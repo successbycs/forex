@@ -1,0 +1,11 @@
+schema_version: forex.project.v1
+project: Forex
+repository: successbycs/forex
+purpose: Learning-first, risk-controlled EUR/USD research and trading assistance.
+canonical_instrument: EUR/USD
+expected_broker_symbol: EURUSD
+broker: GO Markets Mauritius
+permitted_mt5_server: GOMarketsMU-Demo
+forbidden_mt5_server: GOMarketsMU-Live
+initial_research_capital_usd: 1000
+aspirational_monthly_average_usd: 300

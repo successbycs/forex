@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "canonical_instrument", "timezone", "primary_timeframe", "incomplete_bar_policy", "tick_stale_after_seconds"],
+  "properties": {
+    "schema_version": {"const": "forex.market-data.v1"},
+    "canonical_instrument": {"const": "EUR/USD"},
+    "timezone": {"const": "UTC"},
+    "primary_timeframe": {"const": "M15"},
+    "incomplete_bar_policy": {"const": "reject"},
+    "tick_stale_after_seconds": {"type": "integer", "minimum": 1, "maximum": 300}
+  }
+}

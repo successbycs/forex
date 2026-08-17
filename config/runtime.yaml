@@ -1,0 +1,6 @@
+schema_version: forex.runtime.v1
+environment: development
+runtime_mode: RESEARCH
+agent_authority_mode: DISABLED
+live_trading_enabled: false
+maximum_concurrent_positions: 1

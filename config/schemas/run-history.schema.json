@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://successbycs.local/forex/run-history.schema.json",
+  "title": "Forex milestone run history",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project", "events"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "project": {"const": "Forex"},
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["event_id", "timestamp", "milestone_id", "action", "detail"],
+        "properties": {
+          "event_id": {"pattern": "^E[0-9]{6}$"},
+          "timestamp": {"type": "string", "format": "date-time"},
+          "milestone_id": {"pattern": "^M[0-9]+$"},
+          "action": {"type": "string", "minLength": 1},
+          "detail": {"type": "object"}
+        }
+      }
+    }
+  }
+}

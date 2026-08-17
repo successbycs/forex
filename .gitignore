@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+.t480-execution.local.jsonl
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+*.egg-info/
+runs/evidence/
+runs/verification/
+.milestone-state.lock
+runs/.governance-transaction.json

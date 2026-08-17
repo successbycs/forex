@@ -1,0 +1,6 @@
+schema_version: forex.market-data.v1
+canonical_instrument: EUR/USD
+timezone: UTC
+primary_timeframe: M15
+incomplete_bar_policy: reject
+tick_stale_after_seconds: 30

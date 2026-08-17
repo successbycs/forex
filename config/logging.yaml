@@ -1,0 +1,9 @@
+schema_version: forex.logging.v1
+level: INFO
+format: JSON
+output_directory: runs/logs
+redacted_fields:
+  - account_id
+  - api_key
+  - password
+  - token

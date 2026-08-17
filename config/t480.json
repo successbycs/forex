@@ -1,0 +1,12 @@
+{
+  "schema_version": "forex.t480.config.v1",
+  "shared_core_root": "/home/chris/projects/cs-ai-lab-infra",
+  "shared_lab_root": "/home/chris/projects/cs-ai-lab-infra",
+  "application_root": "/home/chris/projects/forex",
+  "shared_network": "cs-ai-lab_internal",
+  "compose_project": "forex",
+  "mt5_process_names": [
+    "terminal64",
+    "terminal"
+  ]
+}

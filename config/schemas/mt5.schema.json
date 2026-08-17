@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "platform", "canonical_instrument", "expected_broker_symbol", "permitted_server", "forbidden_server", "allow_order_operations", "allow_live_server", "terminal_path_environment_variable"],
+  "properties": {
+    "schema_version": {"const": "forex.mt5.v1"},
+    "platform": {"const": "MetaTrader 5"},
+    "canonical_instrument": {"const": "EUR/USD"},
+    "expected_broker_symbol": {"const": "EURUSD"},
+    "permitted_server": {"const": "GOMarketsMU-Demo"},
+    "forbidden_server": {"const": "GOMarketsMU-Live"},
+    "allow_order_operations": {"const": false},
+    "allow_live_server": {"const": false},
+    "terminal_path_environment_variable": {"const": "FOREX_MT5_TERMINAL_PATH"}
+  }
+}

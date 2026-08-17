@@ -1,0 +1,9 @@
+schema_version: forex.mt5.v1
+platform: MetaTrader 5
+canonical_instrument: EUR/USD
+expected_broker_symbol: EURUSD
+permitted_server: GOMarketsMU-Demo
+forbidden_server: GOMarketsMU-Live
+allow_order_operations: false
+allow_live_server: false
+terminal_path_environment_variable: FOREX_MT5_TERMINAL_PATH

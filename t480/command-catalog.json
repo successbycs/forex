@@ -1,0 +1,56 @@
+{
+  "schema_version": "forex.t480.operations.v1",
+  "scope": "fixed_read_only_operations_only",
+  "operations": [
+    {
+      "id": "health",
+      "purpose": "Inspect non-secret T480 Windows host health.",
+      "approval_required": false
+    },
+    {
+      "id": "storage",
+      "purpose": "Inspect Windows filesystem capacity.",
+      "approval_required": false
+    },
+    {
+      "id": "wsl_status",
+      "purpose": "Inspect WSL status and distributions.",
+      "approval_required": false
+    },
+    {
+      "id": "docker_status",
+      "purpose": "Inspect Docker Engine and Compose availability in WSL.",
+      "approval_required": false
+    },
+    {
+      "id": "docker_runtime_evidence",
+      "purpose": "Inspect WSL capacity and Docker runtime health.",
+      "approval_required": false
+    },
+    {
+      "id": "shared_lab_status",
+      "purpose": "Inspect shared AI Lab Compose services and internal network.",
+      "approval_required": false
+    },
+    {
+      "id": "postgres_status",
+      "purpose": "Inspect shared PostgreSQL and pgvector readiness without reading Forex data or exposing credentials.",
+      "approval_required": false
+    },
+    {
+      "id": "forex_preflight",
+      "purpose": "Inspect Forex checkout, toolchain, configuration artifacts, and shared-network readiness.",
+      "approval_required": false
+    },
+    {
+      "id": "forex_runtime_status",
+      "purpose": "Inspect deployed Forex Compose container state without logs, data, or mutations.",
+      "approval_required": false
+    },
+    {
+      "id": "mt5_process_status",
+      "purpose": "Inspect whether a configured MetaTrader terminal process is running without using the MT5 API.",
+      "approval_required": false
+    }
+  ]
+}

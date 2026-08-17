@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "environment", "runtime_mode", "agent_authority_mode", "live_trading_enabled", "maximum_concurrent_positions"],
+  "properties": {
+    "schema_version": {"const": "forex.runtime.v1"},
+    "environment": {"enum": ["development", "test"]},
+    "runtime_mode": {"const": "RESEARCH"},
+    "agent_authority_mode": {"const": "DISABLED"},
+    "live_trading_enabled": {"const": false},
+    "maximum_concurrent_positions": {"type": "integer", "minimum": 0, "maximum": 1}
+  }
+}

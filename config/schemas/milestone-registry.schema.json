@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://successbycs.local/forex/milestone-registry.schema.json",
+  "title": "Forex milestone registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project", "repository", "completion_authority", "allowed_statuses", "milestones"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "project": {"const": "Forex"},
+    "repository": {"type": "string", "minLength": 1},
+    "completion_authority": {"type": "string", "minLength": 1},
+    "allowed_statuses": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "milestones": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/milestone"}
+    }
+  },
+  "$defs": {
+    "stringArray": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "argv"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "argv": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "criterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "kind"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["CAPABILITY", "VERIFICATION", "REAL_WORLD_PROOF", "SAFETY"]}
+      }
+    },
+    "milestone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "milestone_id", "title", "objective", "delivery_type", "proof_type", "dependencies",
+        "entry_conditions", "from_state", "to_state", "scope", "out_of_scope",
+        "operator_config_affected", "expected_artifacts", "acceptance_criteria",
+        "verification_commands", "real_world_proof", "evidence_requirements",
+        "human_review_required", "proof_invalidated_by", "target_date", "target_date_owner", "notes"
+      ],
+      "properties": {
+        "milestone_id": {"pattern": "^M(0|[1-9][0-9]*)$"},
+        "title": {"type": "string", "minLength": 1},
+        "objective": {"type": "string", "minLength": 1},
+        "delivery_type": {"enum": ["FOUNDATION_ENABLING", "CAPABILITY_DELIVERING", "RESEARCH_EVALUATION", "OPERATIONAL_SAFETY"]},
+        "proof_type": {"enum": ["REPOSITORY_EXECUTION", "REAL_SYSTEM_INTEGRATION", "OPERATIONAL_DRILL", "EMPIRICAL_RESEARCH"]},
+        "dependencies": {"$ref": "#/$defs/stringArray"},
+        "entry_conditions": {"$ref": "#/$defs/stringArray"},
+        "from_state": {"type": "string", "minLength": 1},
+        "to_state": {"type": "string", "minLength": 1},
+        "scope": {"$ref": "#/$defs/stringArray"},
+        "out_of_scope": {"$ref": "#/$defs/stringArray"},
+        "operator_config_affected": {"$ref": "#/$defs/stringArray"},
+        "expected_artifacts": {"$ref": "#/$defs/stringArray"},
+        "acceptance_criteria": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/criterion"}},
+        "verification_commands": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/command"}},
+        "real_world_proof": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["real_world_execution", "surface", "capture_command", "verifier_command", "freshness_hours", "success_markers"],
+          "properties": {
+            "real_world_execution": {"const": true},
+            "surface": {"type": "string", "minLength": 1},
+            "capture_command": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+            "verifier_command": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+            "freshness_hours": {"type": "integer", "minimum": 1},
+            "success_markers": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+          }
+        },
+        "evidence_requirements": {"$ref": "#/$defs/stringArray"},
+        "human_review_required": {"type": "boolean"},
+        "proof_invalidated_by": {"$ref": "#/$defs/stringArray"},
+        "target_date": {"type": ["string", "null"], "format": "date"},
+        "target_date_owner": {"const": "HUMAN_OPERATOR"},
+        "notes": {"type": "string"}
+        ,
+        "work_packages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["work_package_id", "title", "dependencies", "acceptance_criteria"],
+            "properties": {
+              "work_package_id": {"pattern": "^M[0-9]+\\.[0-9]+$"},
+              "title": {"type": "string", "minLength": 1},
+              "dependencies": {"$ref": "#/$defs/stringArray"},
+              "acceptance_criteria": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+            }
+          }
+        }
+      }
+    }
+  }
+}

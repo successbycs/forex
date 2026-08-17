@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://successbycs.local/forex/evidence-manifest.schema.json",
+  "title": "Forex real-world evidence manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "milestone_id", "captured_at", "git_revision", "dirty_worktree", "configuration_fingerprint", "surface", "operation", "expected_result", "observed_result", "exit_code", "redactions", "summary", "artifacts"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "milestone_id": {"pattern": "^M[0-9]+$"},
+    "captured_at": {"type": "string", "format": "date-time"},
+    "git_revision": {"type": "string", "minLength": 1},
+    "dirty_worktree": {"type": "boolean"},
+    "configuration_fingerprint": {"pattern": "^sha256:[a-f0-9]{64}$"},
+    "surface": {"type": "string", "minLength": 1},
+    "operation": {"type": "string", "minLength": 1},
+    "expected_result": {"type": "string", "minLength": 1},
+    "observed_result": {"type": "string", "minLength": 1},
+    "exit_code": {"type": "integer"},
+    "redactions": {"type": "array", "items": {"type": "string"}},
+    "summary": {"type": "string", "minLength": 1},
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"pattern": "^[a-f0-9]{64}$"}
+        }
+      }
+    }
+  }
+}

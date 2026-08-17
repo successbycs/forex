@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://successbycs.local/forex/project-state.schema.json",
+  "title": "Forex mutable project state",
+  "type": "object",
+  "required": ["schema_version", "project", "phase", "current_milestone", "next_milestone", "configuration_fingerprint", "last_updated_at", "milestones"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "project": {"const": "Forex"},
+    "phase": {"type": "string"},
+    "current_milestone": {"type": ["string", "null"]},
+    "next_milestone": {"type": ["string", "null"]},
+    "configuration_fingerprint": {"type": ["string", "null"], "pattern": "^sha256:[a-f0-9]{64}$"},
+    "last_updated_at": {"type": "string", "format": "date-time"},
+    "milestones": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/milestoneState"}
+    }
+  },
+  "$defs": {
+    "timestamp": {"type": ["string", "null"], "format": "date-time"},
+    "milestoneState": {
+      "type": "object",
+      "required": ["status", "started_at", "implementation_finished_at", "verification_passed_at", "real_world_proof_captured_at", "human_signed_off_at", "first_proven_at", "proven_at", "last_validated_at", "checks", "evidence", "verification", "human_signoff", "blockers"],
+      "properties": {
+        "status": {"enum": ["PLANNED", "READY", "IN_PROGRESS", "BLOCKED", "NEEDS_FIX", "AWAITING_REAL_WORLD_PROOF", "AWAITING_HUMAN_SIGNOFF", "PROVEN", "NEEDS_REVALIDATION", "SUPERSEDED"]},
+        "started_at": {"$ref": "#/$defs/timestamp"},
+        "implementation_finished_at": {"$ref": "#/$defs/timestamp"},
+        "verification_passed_at": {"$ref": "#/$defs/timestamp"},
+        "real_world_proof_captured_at": {"$ref": "#/$defs/timestamp"},
+        "human_signed_off_at": {"$ref": "#/$defs/timestamp"},
+        "first_proven_at": {"$ref": "#/$defs/timestamp"},
+        "proven_at": {"$ref": "#/$defs/timestamp"},
+        "last_validated_at": {"$ref": "#/$defs/timestamp"},
+        "checks": {"type": "object"},
+        "evidence": {"type": "array"},
+        "verification": {"type": ["object", "null"]},
+        "human_signoff": {"type": ["object", "null"]},
+        "blockers": {"type": "array"}
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project", "repository", "purpose", "canonical_instrument", "expected_broker_symbol", "broker", "permitted_mt5_server", "forbidden_mt5_server", "initial_research_capital_usd", "aspirational_monthly_average_usd"],
+  "properties": {
+    "schema_version": {"const": "forex.project.v1"},
+    "project": {"const": "Forex"},
+    "repository": {"const": "successbycs/forex"},
+    "purpose": {"type": "string", "minLength": 1},
+    "canonical_instrument": {"const": "EUR/USD"},
+    "expected_broker_symbol": {"const": "EURUSD"},
+    "broker": {"const": "GO Markets Mauritius"},
+    "permitted_mt5_server": {"const": "GOMarketsMU-Demo"},
+    "forbidden_mt5_server": {"const": "GOMarketsMU-Live"},
+    "initial_research_capital_usd": {"type": "integer", "minimum": 1},
+    "aspirational_monthly_average_usd": {"type": "integer", "minimum": 0}
+  }
+}
