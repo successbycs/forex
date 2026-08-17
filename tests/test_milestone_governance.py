@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
+import subprocess
 
 import pytest
 
@@ -11,6 +12,7 @@ from forex.milestones import (
     GovernanceError,
     MilestoneStore,
     configuration_fingerprint,
+    _gate_errors,
     git_revision,
     main,
     utc_now,
@@ -87,6 +89,32 @@ def test_closeout_refuses_a_proof_free_milestone(tmp_path: Path) -> None:
     state = json.loads((root / "project_state.json").read_text(encoding="utf-8"))
     assert state["milestones"]["M0"]["status"] == "IN_PROGRESS"
     assert state["milestones"]["M0"]["proven_at"] is None
+
+
+def test_closeout_reports_current_material_worktree_changes(tmp_path: Path) -> None:
+    root = _copy_governance(tmp_path)
+    source = root / "implementation.py"
+    source.write_text("BOUND = True\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Forex Test",
+            "-c",
+            "user.email=forex-test@example.invalid",
+            "commit",
+            "-qm",
+            "bound fixture",
+        ],
+        cwd=root,
+        check=True,
+    )
+    source.write_text("BOUND = False\n", encoding="utf-8")
+    errors = _gate_errors(MilestoneStore(root), "M0")
+    assert any("current worktree has material changes" in error for error in errors)
+    assert any("implementation.py" in error for error in errors)
 
 
 def test_dependency_prevents_starting_a_future_milestone(tmp_path: Path) -> None:

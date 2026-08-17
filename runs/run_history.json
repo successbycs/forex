@@ -859,6 +859,167 @@
         "current": "sha256:bf9a00d9f4c445e97df5b2870684bbfaffd066a70b19414af735ee7d6a424d96",
         "invalidated_milestones": []
       }
+    },
+    {
+      "event_id": "E000067",
+      "timestamp": "2026-08-17T01:55:54Z",
+      "milestone_id": "M0",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260817T015551Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T015551Z/governance.stderr.txt"
+          },
+          {
+            "id": "configuration",
+            "argv": [
+              "python3",
+              "scripts/validate_config.py",
+              "--root",
+              "."
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260817T015551Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T015551Z/configuration.stderr.txt"
+          },
+          {
+            "id": "tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260817T015551Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T015551Z/tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000068",
+      "timestamp": "2026-08-17T01:56:37Z",
+      "milestone_id": "M0",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M0/20260817T015554Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000069",
+      "timestamp": "2026-08-17T01:56:37Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C5",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000070",
+      "timestamp": "2026-08-17T01:56:38Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C12",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000071",
+      "timestamp": "2026-08-17T01:56:38Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C13",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000072",
+      "timestamp": "2026-08-17T01:56:38Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C14",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000073",
+      "timestamp": "2026-08-17T01:56:39Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C15",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000074",
+      "timestamp": "2026-08-17T01:56:39Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C16",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000075",
+      "timestamp": "2026-08-17T01:56:40Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C17",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000076",
+      "timestamp": "2026-08-17T02:26:36Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:bf9a00d9f4c445e97df5b2870684bbfaffd066a70b19414af735ee7d6a424d96",
+        "current": "sha256:d6eaa7d980197e3486dbff4062ab9d315e74a8c020d38d615aca2a6c82437439",
+        "invalidated_milestones": []
+      }
+    },
+    {
+      "event_id": "E000077",
+      "timestamp": "2026-08-17T02:39:34Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:d6eaa7d980197e3486dbff4062ab9d315e74a8c020d38d615aca2a6c82437439",
+        "current": "sha256:07d560b3fd97ffe5af37208d5c069d072f5393a26cbd3fc12cf0b304740b3177",
+        "invalidated_milestones": []
+      }
+    },
+    {
+      "event_id": "E000078",
+      "timestamp": "2026-08-17T02:43:01Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:07d560b3fd97ffe5af37208d5c069d072f5393a26cbd3fc12cf0b304740b3177",
+        "current": "sha256:1af5c130e0da120cd8af14d81cf165c5b481049a1d1f09bcaa4353e1a04143c0",
+        "invalidated_milestones": []
+      }
     }
   ]
 }

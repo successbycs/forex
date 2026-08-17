@@ -22,6 +22,8 @@ reviewers:
     m0_criteria: [M0-C1, M0-C3, M0-C7, M0-C8, M0-C17, M0-C18, M0-C20]
 gate:
   completion_recommendation: RECOMMEND_COMPLETE
+  require_human_readable_summary: true
+  human_summary_filename: review-summary.md
   blocking_verdicts: [FAIL, ABSTAIN]
   blocking_open_severities: [CRITICAL, HIGH]
   require_all_assigned_criteria: true

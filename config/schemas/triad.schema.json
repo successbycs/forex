@@ -25,9 +25,11 @@
     "gate": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["completion_recommendation", "blocking_verdicts", "blocking_open_severities", "require_all_assigned_criteria", "require_read_only_attestation", "require_independent_context_attestation", "require_raw_evidence_attestation", "require_human_final_decision"],
+      "required": ["completion_recommendation", "require_human_readable_summary", "human_summary_filename", "blocking_verdicts", "blocking_open_severities", "require_all_assigned_criteria", "require_read_only_attestation", "require_independent_context_attestation", "require_raw_evidence_attestation", "require_human_final_decision"],
       "properties": {
         "completion_recommendation": {"const": "RECOMMEND_COMPLETE"},
+        "require_human_readable_summary": {"const": true},
+        "human_summary_filename": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*\\.md$"},
         "blocking_verdicts": {"const": ["FAIL", "ABSTAIN"]},
         "blocking_open_severities": {"const": ["CRITICAL", "HIGH"]},
         "require_all_assigned_criteria": {"const": true},

@@ -18,6 +18,7 @@ from forex.milestones import (
     atomic_write_json,
     configuration_fingerprint,
     git_revision,
+    material_worktree_changes,
     sha256_file,
     parse_utc,
     utc_now,
@@ -69,6 +70,7 @@ def load_policy(root: Path) -> dict[str, Any]:
 def _verifier_paths(root: Path, milestone: dict[str, Any]) -> list[str]:
     candidates = {
         "src/forex/milestones.py",
+        "src/forex/t480_dependency.py",
         "src/forex/triad.py",
         "config/schemas/evidence-manifest.schema.json",
         "config/schemas/triad-review.schema.json",
@@ -99,22 +101,6 @@ def verifier_fingerprint(root: Path, paths: list[str]) -> str:
         digest.update((root / relative).read_bytes())
         digest.update(b"\0")
     return f"sha256:{digest.hexdigest()}"
-
-
-def material_worktree_changes(root: Path) -> list[str]:
-    import subprocess
-
-    result = subprocess.run(
-        ["git", "status", "--porcelain", "--untracked-files=all"],
-        cwd=root,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if result.returncode:
-        raise TriadError("cannot inspect Git worktree state")
-    permitted = {"project_state.json", "runs/run_history.json"}
-    return [line[3:] for line in result.stdout.splitlines() if line[3:] not in permitted]
 
 
 def _request_binding(request: dict[str, Any]) -> dict[str, str]:
@@ -313,6 +299,118 @@ def validate_review(root: Path, cycle: Path, review_path: Path) -> dict[str, Any
     return review
 
 
+def render_review_summary(recommendation: dict[str, Any]) -> str:
+    """Render the canonical human-facing form of a recommendation."""
+    supports_completion = recommendation["recommendation"] == "RECOMMEND_COMPLETE"
+    decision = (
+        "SUPPORTED BY TRIAD — eligible for human approval"
+        if supports_completion
+        else "NOT SUPPORTED BY TRIAD — human approval is blocked"
+    )
+    role_positions = {
+        "PASS": "SUPPORTS COMPLETION",
+        "PASS_WITH_FINDINGS": "SUPPORTS WITH FINDINGS",
+        "FAIL": "DOES NOT SUPPORT COMPLETION",
+        "ABSTAIN": "NO RECOMMENDATION",
+    }
+    role_labels = {
+        "AI_ENGINEER": "AI Engineer",
+        "SOLUTION_ARCHITECT": "Solution Architect",
+        "SENIOR_SOFTWARE_DEVELOPER": "Senior Software Developer",
+        "FINANCIAL_DOMAIN_EXPERT": "Financial Domain Expert",
+    }
+    lines = [
+        f"# {recommendation['milestone_id']} Triad plus domain review summary",
+        "",
+        "## Approval recommendation",
+        "",
+        f"**Overall status: {decision}**",
+        "",
+        f"- Triad recommendation: `{recommendation['recommendation']}`",
+        f"- Review cycle: `{recommendation['review_cycle_id']}`",
+        f"- Generated at: `{recommendation['generated_at']}`",
+        "- Final human decision required: `YES`",
+        "",
+        "The reviewers recommend whether the evidence supports completion; they do not approve or close the milestone. Only the human operator can make the final decision.",
+        "",
+        "## Reviewer positions",
+        "",
+    ]
+    for review in recommendation["reviews"]:
+        role = review["role"]
+        verdict = review["verdict"]
+        submission = f"submissions/{role.lower()}.json"
+        lines.extend(
+            [
+                f"### {role_labels.get(role, role.replace('_', ' ').title())}",
+                "",
+                f"- Position: **{role_positions.get(verdict, verdict)}**",
+                f"- Verdict: `{verdict}`",
+                f"- Detailed submission: [{submission}]({submission})",
+                f"- Summary: {review['summary']}",
+                "",
+            ]
+        )
+    lines.extend(["## Blocking reasons", ""])
+    if recommendation["blocking_reasons"]:
+        lines.extend(f"- {reason}" for reason in recommendation["blocking_reasons"])
+    else:
+        lines.append("- None.")
+    lines.extend(["", "## Non-blocking observations", ""])
+    if recommendation["observations"]:
+        lines.extend(f"- {observation}" for observation in recommendation["observations"])
+    else:
+        lines.append("- None.")
+    lines.extend(["", "## Human decision guidance", ""])
+    if supports_completion:
+        lines.append(
+            "The Triad supports completion. The human operator must still inspect the evidence, findings and limitations before explicitly approving or rejecting the milestone."
+        )
+    else:
+        lines.append(
+            "Do not approve or close this milestone. Resolve every blocking reason, capture fresh bound evidence where required, and run a new isolated Triad plus domain review cycle."
+        )
+    lines.extend(
+        [
+            "",
+            "## Immutable binding",
+            "",
+            f"- Git revision: `{recommendation['binding']['git_revision']}`",
+            f"- Configuration fingerprint: `{recommendation['binding']['configuration_fingerprint']}`",
+            f"- Evidence manifest SHA-256: `{recommendation['binding']['evidence_manifest_sha256']}`",
+            f"- Verifier fingerprint: `{recommendation['binding']['verifier_fingerprint']}`",
+            f"- Milestone contract SHA-256: `{recommendation['binding']['milestone_contract_sha256']}`",
+            "",
+            "Machine-readable source: [recommendation.json](recommendation.json)",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def write_review_summary(
+    cycle: Path, recommendation: dict[str, Any], filename: str = "review-summary.md"
+) -> Path:
+    """Write the human-facing Triad decision without changing the signed JSON result."""
+    cycle = cycle.resolve()
+    path = cycle / filename
+    if path.parent != cycle or path.suffix != ".md":
+        raise TriadError(f"unsafe human summary filename: {filename}")
+    path.write_text(render_review_summary(recommendation), encoding="utf-8")
+    return path
+
+
+def review_summary_drift(
+    cycle: Path, recommendation: dict[str, Any], filename: str
+) -> list[str]:
+    summary_path = cycle.resolve() / filename
+    if not summary_path.is_file():
+        return ["required human-readable Triad summary is missing"]
+    if summary_path.read_text(encoding="utf-8") != render_review_summary(recommendation):
+        return ["human-readable Triad summary is stale or modified"]
+    return []
+
+
 def synthesize(root: Path, cycle: Path) -> Path:
     root = root.resolve()
     cycle = cycle.resolve()
@@ -374,6 +472,7 @@ def synthesize(root: Path, cycle: Path) -> Path:
     )
     path = cycle / "recommendation.json"
     atomic_write_json(path, recommendation)
+    write_review_summary(cycle, recommendation, policy["gate"]["human_summary_filename"])
     return path
 
 
@@ -388,6 +487,7 @@ def assess_recommendation(root: Path, recommendation_path: Path) -> list[str]:
     )
     cycle = recommendation_path.parent
     request = load_request(root, cycle)
+    policy = load_policy(root)
     expected = _request_binding(request)
     drift: list[str] = []
     for field, value in expected.items():
@@ -415,6 +515,11 @@ def assess_recommendation(root: Path, recommendation_path: Path) -> list[str]:
         review_path = cycle / "submissions" / f"{summary.get('role', '').lower()}.json"
         if not review_path.is_file() or sha256_file(review_path) != summary.get("review_sha256"):
             drift.append(f"review artifact drift: {summary.get('role', '<unknown>')}")
+    drift.extend(
+        review_summary_drift(
+            cycle, recommendation, policy["gate"]["human_summary_filename"]
+        )
+    )
     if recommendation["recommendation"] != "RECOMMEND_COMPLETE":
         drift.append("Triad does not recommend completion")
     return drift
@@ -432,6 +537,8 @@ def _parser() -> argparse.ArgumentParser:
     validate.add_argument("--review", type=Path, required=True)
     recommend = commands.add_parser("recommend")
     recommend.add_argument("--cycle", type=Path, required=True)
+    summary = commands.add_parser("summary")
+    summary.add_argument("--recommendation", type=Path, required=True)
     assess = commands.add_parser("assess")
     assess.add_argument("--recommendation", type=Path, required=True)
     return parser
@@ -454,6 +561,22 @@ def main(argv: list[str] | None = None) -> int:
             recommendation = json.loads(path.read_text(encoding="utf-8"))
             print(json.dumps({"path": str(path), **recommendation}, indent=2))
             return 0 if recommendation["recommendation"] == "RECOMMEND_COMPLETE" else 3
+        elif args.command == "summary":
+            recommendation_path = args.recommendation.resolve()
+            recommendation = json.loads(recommendation_path.read_text(encoding="utf-8"))
+            _schema_validate(
+                recommendation,
+                root / "config" / "schemas" / "triad-recommendation.schema.json",
+                "Triad recommendation",
+            )
+            policy = load_policy(root)
+            print(
+                write_review_summary(
+                    recommendation_path.parent,
+                    recommendation,
+                    policy["gate"]["human_summary_filename"],
+                )
+            )
         elif args.command == "assess":
             drift = assess_recommendation(root, args.recommendation)
             print(json.dumps({"status": "HEALTHY" if not drift else "DRIFTED", "reasons": drift}, indent=2))

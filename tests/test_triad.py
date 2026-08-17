@@ -5,7 +5,14 @@ from pathlib import Path
 import shutil
 
 from forex.milestones import configuration_fingerprint, sha256_file, utc_now
-from forex.triad import _request_binding, canonical_sha256, load_policy, synthesize
+from forex.triad import (
+    _request_binding,
+    canonical_sha256,
+    load_policy,
+    render_review_summary,
+    review_summary_drift,
+    synthesize,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -112,6 +119,29 @@ def test_four_bound_passing_reviews_recommend_completion(tmp_path: Path) -> None
     assert result["recommendation"] == "RECOMMEND_COMPLETE"
     assert result["blocking_reasons"] == []
     assert result["human_decision_required"] is True
+    summary = (cycle / "review-summary.md").read_text(encoding="utf-8")
+    assert "SUPPORTED BY TRIAD — eligible for human approval" in summary
+    assert "Final human decision required: `YES`" in summary
+    result["recommendation"] = "DO_NOT_COMPLETE"
+    assert "NOT SUPPORTED BY TRIAD" in render_review_summary(result)
+
+
+def test_missing_or_modified_human_summary_is_drift(tmp_path: Path) -> None:
+    root = _root(tmp_path)
+    cycle, request, policy = _cycle(root)
+    _write_reviews(root, cycle, request, policy)
+    result = json.loads(synthesize(root, cycle).read_text(encoding="utf-8"))
+    filename = policy["gate"]["human_summary_filename"]
+    summary_path = cycle / filename
+    assert review_summary_drift(cycle, result, filename) == []
+    summary_path.write_text("modified\n", encoding="utf-8")
+    assert review_summary_drift(cycle, result, filename) == [
+        "human-readable Triad summary is stale or modified"
+    ]
+    summary_path.unlink()
+    assert review_summary_drift(cycle, result, filename) == [
+        "required human-readable Triad summary is missing"
+    ]
 
 
 def test_missing_review_blocks_completion(tmp_path: Path) -> None:
@@ -136,6 +166,9 @@ def test_one_failed_role_blocks_completion(tmp_path: Path) -> None:
     result = json.loads(synthesize(root, cycle).read_text(encoding="utf-8"))
     assert result["recommendation"] == "DO_NOT_COMPLETE"
     assert any("verdict is FAIL" in reason for reason in result["blocking_reasons"])
+    summary = (cycle / "review-summary.md").read_text(encoding="utf-8")
+    assert "NOT SUPPORTED BY TRIAD — human approval is blocked" in summary
+    assert "DOES NOT SUPPORT COMPLETION" in summary
 
 
 def test_reused_reviewer_session_blocks_claimed_independence(tmp_path: Path) -> None:

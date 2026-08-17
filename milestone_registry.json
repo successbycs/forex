@@ -56,6 +56,7 @@
         "src/forex/__init__.py",
         "src/forex/config/__init__.py",
         "src/forex/triad.py",
+        "src/forex/t480_dependency.py",
         "config/project.yaml",
         "config/runtime.yaml",
         "config/mt5.yaml",
@@ -1859,6 +1860,16 @@
           "id": "M16-C4",
           "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
           "kind": "SAFETY"
+        },
+        {
+          "id": "M16-C5",
+          "description": "Minimum sample-adequacy thresholds are governed and predeclared before evaluation; unmet thresholds require an explicit no-demonstrated-edge conclusion.",
+          "kind": "SAFETY"
+        },
+        {
+          "id": "M16-C6",
+          "description": "Results report honest uncertainty, walk-forward and out-of-sample separation, realistic spread/slippage/commission sensitivity, and multiple-testing or selection-bias controls.",
+          "kind": "VERIFICATION"
         }
       ],
       "verification_commands": [
@@ -1901,7 +1912,8 @@
       "evidence_requirements": [
         "Raw command or operation output with exit status and capture timestamps.",
         "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed frozen walk-forward historical evaluation result containing FOREX_M16_PROOF_OK."
+        "A human-observable summary of the observed frozen walk-forward historical evaluation result containing FOREX_M16_PROOF_OK.",
+        "The predeclared sample-adequacy policy, achieved sample, uncertainty measures, cost-stress results, selection-bias controls, and an explicit edge/no-demonstrated-edge conclusion."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
@@ -2768,6 +2780,11 @@
           "id": "M25-C4",
           "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
           "kind": "SAFETY"
+        },
+        {
+          "id": "M25-C5",
+          "description": "Approval is bound to an authenticated or cryptographically signed operator artifact; a caller-supplied identity string alone cannot authorise consequential demo execution.",
+          "kind": "SAFETY"
         }
       ],
       "verification_commands": [
@@ -2810,7 +2827,8 @@
       "evidence_requirements": [
         "Raw command or operation output with exit status and capture timestamps.",
         "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed operator-reviewed demo approval workflow result containing FOREX_M25_PROOF_OK."
+        "A human-observable summary of the observed operator-reviewed demo approval workflow result containing FOREX_M25_PROOF_OK.",
+        "A verifiable operator identity or signature artifact bound to the reviewed intent, evidence, revision, configuration, decision and timestamp."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
@@ -2971,6 +2989,11 @@
           "id": "M27-C4",
           "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
           "kind": "SAFETY"
+        },
+        {
+          "id": "M27-C5",
+          "description": "Consequential demo-execution evidence includes independently controlled or cryptographically signed provenance binding the command, environment, revision, configuration and artifact digest.",
+          "kind": "REAL_WORLD_PROOF"
         }
       ],
       "verification_commands": [
@@ -3013,7 +3036,8 @@
       "evidence_requirements": [
         "Raw command or operation output with exit status and capture timestamps.",
         "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed installed MT5 terminal connected to GOMarketsMU-Demo result containing FOREX_M27_PROOF_OK."
+        "A human-observable summary of the observed installed MT5 terminal connected to GOMarketsMU-Demo result containing FOREX_M27_PROOF_OK.",
+        "A signed provenance statement or immutable separately controlled runner attestation for the exact demo-execution evidence bundle."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
@@ -3277,6 +3301,16 @@
           "id": "M30-C4",
           "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
           "kind": "SAFETY"
+        },
+        {
+          "id": "M30-C5",
+          "description": "The forward-demo duration and minimum observation thresholds are governed and predeclared; inadequate samples must be reported as inconclusive with no demonstrated edge.",
+          "kind": "SAFETY"
+        },
+        {
+          "id": "M30-C6",
+          "description": "Forward results report uncertainty and sensitivity to observed spreads, slippage and commissions without changing the evaluation policy after outcomes are seen.",
+          "kind": "VERIFICATION"
         }
       ],
       "verification_commands": [
@@ -3319,7 +3353,8 @@
       "evidence_requirements": [
         "Raw command or operation output with exit status and capture timestamps.",
         "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed time-bounded forward GOMarketsMU-Demo observation result containing FOREX_M30_PROOF_OK."
+        "A human-observable summary of the observed time-bounded forward GOMarketsMU-Demo observation result containing FOREX_M30_PROOF_OK.",
+        "The frozen observation policy, achieved duration and sample, uncertainty measures, realised-cost sensitivity, deviations, and explicit conclusive/inconclusive status."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
@@ -3379,6 +3414,16 @@
           "id": "M31-C4",
           "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
           "kind": "SAFETY"
+        },
+        {
+          "id": "M31-C5",
+          "description": "Agent-versus-baseline comparison uses predeclared sample-adequacy and uncertainty requirements and reports no demonstrated edge whenever they are unmet.",
+          "kind": "SAFETY"
+        },
+        {
+          "id": "M31-C6",
+          "description": "The comparison retains out-of-sample separation and reports cost sensitivity, confidence or equivalent uncertainty, multiple-testing controls, and selection limitations.",
+          "kind": "VERIFICATION"
         }
       ],
       "verification_commands": [
@@ -3421,7 +3466,8 @@
       "evidence_requirements": [
         "Raw command or operation output with exit status and capture timestamps.",
         "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed frozen forward-demo and out-of-sample comparison dataset result containing FOREX_M31_PROOF_OK."
+        "A human-observable summary of the observed frozen forward-demo and out-of-sample comparison dataset result containing FOREX_M31_PROOF_OK.",
+        "The predeclared comparison policy, achieved sample, uncertainty measures, realistic-cost sensitivity, multiplicity controls, limitations, and explicit edge/no-demonstrated-edge conclusion."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [

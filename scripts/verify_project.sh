@@ -10,6 +10,7 @@ python3 scripts/forex_milestones.py validate
 python3 scripts/forex_triad.py validate-policy
 python3 scripts/check_no_secrets.py --root .
 python3 scripts/t480_adapter.py describe-requirements >/dev/null
+python3 scripts/t480_adapter.py dependency-status >/dev/null
 python3 -m pytest -q
 
 echo "FOREX_REPOSITORY_VERIFICATION_OK"

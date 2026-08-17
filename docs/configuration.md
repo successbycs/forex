@@ -10,7 +10,7 @@ Precedence for M0 is deliberately narrow:
 
 No environment variable may override runtime mode, agent authority, live-trading state, server policy, or order availability. Unknown YAML fields and invalid safe overrides fail validation.
 
-Bootstrap T480 transport settings remain in `config/t480.json` because they must work before application dependencies are installed. The fixed operation list remains in `t480/command-catalog.json`. Do not duplicate these values in YAML.
+Bootstrap T480 transport settings remain in `config/t480.json` because they must work before application dependencies are installed. This governed file also locks the external shared-core owner repository, exact Git revision and safety-relevant file hashes. Environment redirection is prohibited. The fixed operation list remains in `t480/command-catalog.json`. Do not duplicate these values in YAML.
 
 `config/triad.yaml` governs required review roles, assigned M0 criteria and fail-closed recommendation policy. Review-policy changes alter the governed configuration fingerprint and invalidate existing review recommendations and proof.
 

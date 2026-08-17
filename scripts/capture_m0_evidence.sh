@@ -29,6 +29,9 @@ else
 fi
 configuration_fingerprint="$(python3 scripts/forex_milestones.py status --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["configuration_fingerprint"])')"
 
+python3 scripts/t480_adapter.py dependency-status >"$bundle/t480-dependency.txt" 2>"$bundle/t480-dependency.stderr.txt"
+t480_dependency_exit=$?
+
 python3 -m venv "$temporary_environment/venv" >"$bundle/venv.stdout.txt" 2>"$bundle/venv.stderr.txt"
 venv_exit=$?
 
@@ -65,13 +68,14 @@ fi
 bash scripts/verify_project.sh >"$bundle/repository-verification.stdout.txt" 2>"$bundle/repository-verification.stderr.txt"
 repository_exit=$?
 overall_exit=0
-for code in "$venv_exit" "$install_exit" "$governance_exit" "$configuration_exit" "$tests_exit" "$repository_exit"; do
+for code in "$t480_dependency_exit" "$venv_exit" "$install_exit" "$governance_exit" "$configuration_exit" "$tests_exit" "$repository_exit"; do
   if [[ "$code" -ne 0 ]]; then
     overall_exit=1
   fi
 done
 
 {
+  printf 't480_dependency=%s\n' "$t480_dependency_exit"
   printf 'venv=%s\n' "$venv_exit"
   printf 'install=%s\n' "$install_exit"
   printf 'governance=%s\n' "$governance_exit"
@@ -122,6 +126,9 @@ manifest = {
     "exit_code": int(os.environ["FOREX_OVERALL_EXIT"]),
     "redactions": ["Temporary environment path is not retained."],
     "summary": os.environ["FOREX_SUMMARY"],
+    "external_dependencies": [
+        json.loads((bundle / "t480-dependency.txt").read_text(encoding="utf-8"))
+    ],
     "artifacts": artifacts,
 }
 (bundle / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

@@ -25,13 +25,13 @@ AI personas—even separate sessions—are not fully independent organisations. 
 
 ## Workflow
 
-After committed-revision evidence is recorded:
+After committed-revision evidence is recorded for each milestone or remediation iteration:
 
 ```bash
-python3 scripts/forex_triad.py prepare --id M0
+python3 scripts/forex_triad.py prepare --id <milestone>
 ```
 
-The command creates `runs/triad/M0/<cycle>/` with a request, four role packets, four JSON templates, and an empty submissions directory. Give each packet to a separate read-only review session. Do not show any reviewer another submission before its verdict is saved.
+The command creates `runs/triad/<milestone>/<cycle>/` with a request, four role packets, four JSON templates, and an empty submissions directory. Give each packet to a separate read-only review session. Do not show any reviewer another submission before its verdict is saved.
 
 Place completed reviews under `submissions/` using the generated role filenames, then validate and synthesize:
 
@@ -41,13 +41,23 @@ python3 scripts/forex_triad.py recommend --cycle <cycle>
 python3 scripts/forex_triad.py assess --recommendation <cycle>/recommendation.json
 ```
 
-The deterministic synthesizer returns `DO_NOT_COMPLETE` when any required review is missing or invalid, a required role returns `FAIL` or `ABSTAIN`, an assigned criterion is not passed, reviewer sessions are reused, a binding has drifted, or an open critical/high finding exists. Otherwise it returns `RECOMMEND_COMPLETE`, retaining lower-severity observations for the human.
+Every milestone and every repeated review iteration must produce a new review cycle. The deterministic synthesizer writes both the machine-readable `recommendation.json` and the required human-readable `review-summary.md` for that cycle. The summary clearly states whether the Triad supports completion, shows every reviewer's position, lists blockers and observations, and says whether human approval is currently eligible. The Triad provides a recommendation only; the human remains the approval authority.
+
+The summary filename is operator-configurable in `config/triad.yaml`. It is mandatory: recording, human sign-off and milestone closeout fail if the summary is missing, modified, stale, or no longer matches its recommendation. A remediation iteration requires fresh evidence where affected and a completely new isolated review cycle; an earlier summary cannot be reused.
+
+Regenerate the human-readable summary from an existing recommendation when required:
+
+```bash
+python3 scripts/forex_triad.py summary --recommendation <cycle>/recommendation.json
+```
+
+The synthesizer returns `DO_NOT_COMPLETE` when any required review is missing or invalid, a required role returns `FAIL` or `ABSTAIN`, an assigned criterion is not passed, reviewer sessions are reused, a binding has drifted, or an open critical/high finding exists. Otherwise it returns `RECOMMEND_COMPLETE`, retaining lower-severity observations for the human.
 
 Record only a healthy completion recommendation:
 
 ```bash
 python3 scripts/forex_milestones.py record-triad-recommendation \
-  --id M0 --recommendation <cycle>/recommendation.json
+  --id <milestone> --recommendation <cycle>/recommendation.json
 ```
 
 Recording automatically passes the Triad acceptance criterion. Any later change to the commit, configuration, evidence, verifier, milestone contract, review request, or recommendation invalidates the gate.

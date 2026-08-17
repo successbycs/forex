@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from pathlib import Path
 import re
 import sys
@@ -19,6 +18,12 @@ from typing import Any
 
 TOOL_ID = "forex_t480"
 ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from forex.t480_dependency import inspect_dependency, require_dependency  # noqa: E402
+
 CONFIG_PATH = ROOT / "config" / "t480.json"
 CATALOG_PATH = ROOT / "t480" / "command-catalog.json"
 LOCAL_TARGET_PATH = ROOT / ".env.t480.local"
@@ -26,7 +31,7 @@ LOG_PATH = ROOT / ".t480-execution.local.jsonl"
 
 _CONFIG_FIELDS = {
     "schema_version",
-    "shared_core_root",
+    "shared_core",
     "shared_lab_root",
     "application_root",
     "shared_network",
@@ -41,11 +46,16 @@ def load_application_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict) or set(payload) != _CONFIG_FIELDS:
         raise ValueError("Forex T480 adapter configuration fields are invalid")
-    if payload["schema_version"] != "forex.t480.config.v1":
+    if payload["schema_version"] != "forex.t480.config.v2":
         raise ValueError("Forex T480 adapter configuration schema is unsupported")
-    for field in ("shared_core_root", "shared_lab_root", "application_root"):
+    for field in ("shared_lab_root", "application_root"):
         if not _SAFE_PATH.fullmatch(str(payload[field])):
             raise ValueError(f"Unsafe configured path: {field}")
+    dependency = payload["shared_core"]
+    if not isinstance(dependency, dict) or not _SAFE_PATH.fullmatch(
+        str(dependency.get("repository_root", ""))
+    ):
+        raise ValueError("Unsafe configured path: shared_core.repository_root")
     for field in ("shared_network", "compose_project"):
         if not _SAFE_IDENTIFIER.fullmatch(str(payload[field])):
             raise ValueError(f"Unsafe configured identifier: {field}")
@@ -58,7 +68,16 @@ def load_application_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
 
 
 APP_CONFIG = load_application_config()
-SHARED_CORE_ROOT = Path(os.environ.get("CS_AI_LAB_INFRA_ROOT", APP_CONFIG["shared_core_root"])).resolve()
+DEPENDENCY_IDENTITY = inspect_dependency(APP_CONFIG)
+unsafe_identity_errors = [
+    error
+    for error in DEPENDENCY_IDENTITY["errors"]
+    if error != "owner repository worktree is not clean"
+    and not error.startswith("locked dependency file is not tracked:")
+]
+if unsafe_identity_errors:
+    raise ValueError("Unsafe T480 shared-core import: " + "; ".join(unsafe_identity_errors))
+SHARED_CORE_ROOT = Path(APP_CONFIG["shared_core"]["repository_root"]).resolve()
 if str(SHARED_CORE_ROOT) not in sys.path:
     sys.path.insert(0, str(SHARED_CORE_ROOT))
 
@@ -80,7 +99,11 @@ FOREX_ROOT = str(APP_CONFIG["application_root"])
 SHARED_NETWORK = str(APP_CONFIG["shared_network"])
 COMPOSE_PROJECT = str(APP_CONFIG["compose_project"])
 CONFIGURATION_FINGERPRINT = fingerprint_files(
-    [SHARED_CORE_ROOT / "t480" / "transport-config.json", CONFIG_PATH, CATALOG_PATH]
+    [
+        *[SHARED_CORE_ROOT / entry["path"] for entry in APP_CONFIG["shared_core"]["files"]],
+        CONFIG_PATH,
+        CATALOG_PATH,
+    ]
 )
 
 
@@ -219,6 +242,7 @@ def requirements() -> dict[str, Any]:
     return {
         "tool_id": TOOL_ID,
         "shared_core_root": str(SHARED_CORE_ROOT),
+        "shared_core_identity": DEPENDENCY_IDENTITY,
         "description": "Run fixed read-only Forex and shared-platform T480 inspections.",
         "configuration_fingerprint": CONFIGURATION_FINGERPRINT,
         "commands": ["describe-requirements", "preflight", "execute", "verify"],
@@ -251,7 +275,10 @@ def execute(operation_id: str) -> dict[str, Any]:
 
 def parser() -> argparse.ArgumentParser:
     command_parser = argparse.ArgumentParser(description="Governed read-only T480 adapter for Forex.")
-    command_parser.add_argument("command", choices=["describe-requirements", "preflight", "execute", "verify"])
+    command_parser.add_argument(
+        "command",
+        choices=["dependency-status", "describe-requirements", "preflight", "execute", "verify"],
+    )
     command_parser.add_argument("--operation", choices=sorted(OPERATIONS))
     return command_parser
 
@@ -259,21 +286,26 @@ def parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     validate_contract()
-    if args.command == "describe-requirements":
+    if args.command == "dependency-status":
+        payload = inspect_dependency(APP_CONFIG)
+    elif args.command == "describe-requirements":
         payload = requirements()
     elif args.command == "preflight":
+        require_dependency(APP_CONFIG)
         payload = shared_preflight(
             tool_id=TOOL_ID,
             settings=TRANSPORT_SETTINGS,
             config_paths=[LOCAL_TARGET_PATH, SHARED_TARGET_PATH],
         )
     else:
+        require_dependency(APP_CONFIG)
         if not args.operation:
             raise SystemExit("--operation is required for execute and verify")
         payload = execute(args.operation)
         if args.command == "verify":
             payload["verified_operation"] = args.operation
-    payload["configuration_fingerprint"] = CONFIGURATION_FINGERPRINT
+    if args.command != "dependency-status":
+        payload["configuration_fingerprint"] = CONFIGURATION_FINGERPRINT
     append_execution_log(
         LOG_PATH,
         tool_id=TOOL_ID,

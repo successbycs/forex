@@ -1,6 +1,26 @@
 {
-  "schema_version": "forex.t480.config.v1",
-  "shared_core_root": "/home/chris/projects/cs-ai-lab-infra",
+  "schema_version": "forex.t480.config.v2",
+  "shared_core": {
+    "repository": "successbycs/cs-ai-lab-infra",
+    "repository_root": "/home/chris/projects/cs-ai-lab-infra",
+    "expected_git_revision": "551f1afe972172ba9eee707a81a12072c8473ee0",
+    "require_clean_worktree": true,
+    "require_tracked_files": true,
+    "files": [
+      {
+        "path": "t480_core/__init__.py",
+        "sha256": "262807d9ac9d8e72242072e600f9aea62d78df9b3a0355cec836de0faf4db261"
+      },
+      {
+        "path": "t480_core/core.py",
+        "sha256": "d5ef4ee7662d95923272fe9846f0a045face79de6c46ef87e43b81d053c14683"
+      },
+      {
+        "path": "t480/transport-config.json",
+        "sha256": "7f55a436d7aaf65bdad48f219c079d4ff1324eee649524ac09ef7b7fb936b092"
+      }
+    ]
+  },
   "shared_lab_root": "/home/chris/projects/cs-ai-lab-infra",
   "application_root": "/home/chris/projects/forex",
   "shared_network": "cs-ai-lab_internal",

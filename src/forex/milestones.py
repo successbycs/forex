@@ -179,6 +179,21 @@ def git_revision(root: Path) -> str:
     return result.stdout.strip() if result.returncode == 0 else "UNBORN"
 
 
+def material_worktree_changes(root: Path) -> list[str]:
+    """Return current changes that can alter implementation or proof semantics."""
+    result = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=all"],
+        cwd=root,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        raise GovernanceError("cannot inspect current Git worktree state")
+    permitted = {"project_state.json", "runs/run_history.json"}
+    return [line[3:] for line in result.stdout.splitlines() if line[3:] not in permitted]
+
+
 def configuration_fingerprint(root: Path, state: dict[str, Any]) -> str:
     digest = hashlib.sha256()
     paths = state.get("governed_configuration_paths", [])
@@ -588,6 +603,12 @@ def _gate_errors(store: MilestoneStore, milestone_id: str) -> list[str]:
     milestone = store.milestone(milestone_id)
     item = store.milestone_state(milestone_id)
     errors: list[str] = []
+    try:
+        changes = material_worktree_changes(store.root)
+        if changes:
+            errors.append(f"current worktree has material changes: {changes}")
+    except GovernanceError as exc:
+        errors.append(str(exc))
     for dependency in store.dependencies_proven(milestone):
         errors.append(f"dependency is not PROVEN: {dependency}")
     for package_id, package_state in item.get("work_packages", {}).items():
@@ -656,6 +677,11 @@ def _triad_gate_errors(store: MilestoneStore, milestone_id: str) -> list[str]:
         return ["recorded Triad recommendation is missing"]
     if sha256_file(recommendation_path) != record.get("sha256"):
         return ["recorded Triad recommendation hash mismatch"]
+    summary_path = store.root / record.get("summary_path", "")
+    if not summary_path.is_file():
+        return ["recorded human-readable Triad summary is missing"]
+    if sha256_file(summary_path) != record.get("summary_sha256"):
+        return ["recorded human-readable Triad summary hash mismatch"]
     try:
         from forex.triad import assess_recommendation
 
@@ -867,7 +893,7 @@ def run_cli(args: argparse.Namespace) -> int:
         store.event(args.id, "REAL_WORLD_EVIDENCE_RECORDED", {"manifest_path": relative})
         store.save()
     elif args.command == "record-triad-recommendation":
-        from forex.triad import assess_recommendation
+        from forex.triad import assess_recommendation, load_policy
 
         recommendation_path = args.recommendation.resolve()
         relative = _safe_relative(store.root, recommendation_path, "Triad recommendation")
@@ -878,9 +904,13 @@ def run_cli(args: argparse.Namespace) -> int:
         if drift:
             raise GovernanceError("Triad recommendation cannot be recorded:\n- " + "\n- ".join(drift))
         recommendation = load_json(recommendation_path)
+        summary_path = recommendation_path.parent / load_policy(store.root)["gate"]["human_summary_filename"]
+        summary_relative = _safe_relative(store.root, summary_path, "Triad human-readable summary")
         item["triad_recommendation"] = {
             "path": relative,
             "sha256": sha256_file(recommendation_path),
+            "summary_path": summary_relative,
+            "summary_sha256": sha256_file(summary_path),
             "review_cycle_id": recommendation["review_cycle_id"],
             "recommendation": recommendation["recommendation"],
             "binding": recommendation["binding"],

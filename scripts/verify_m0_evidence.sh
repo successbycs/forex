@@ -24,12 +24,14 @@ from datetime import datetime, timezone
 
 root = Path(sys.argv[1]).resolve()
 bundle = Path(sys.argv[2]).resolve()
+sys.path.insert(0, str(root / "src"))
+from forex.t480_dependency import inspect_dependency
 manifest_path = bundle / "manifest.json"
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 required = {
     "schema_version", "milestone_id", "captured_at", "git_revision", "dirty_worktree",
     "configuration_fingerprint", "surface", "operation", "expected_result",
-    "observed_result", "exit_code", "redactions", "summary", "artifacts",
+    "observed_result", "exit_code", "redactions", "summary", "external_dependencies", "artifacts",
 }
 missing = required - manifest.keys()
 if missing:
@@ -42,6 +44,8 @@ if manifest["surface"] != m0["real_world_proof"]["surface"]:
     raise SystemExit("execution surface mismatch")
 if manifest["exit_code"] != 0:
     raise SystemExit("captured operation failed")
+if manifest["dirty_worktree"] is not False:
+    raise SystemExit("captured worktree was dirty")
 captured_at = datetime.fromisoformat(manifest["captured_at"].replace("Z", "+00:00"))
 age_hours = (datetime.now(timezone.utc) - captured_at).total_seconds() / 3600
 if age_hours < -0.1 or age_hours > m0["real_world_proof"]["freshness_hours"]:
@@ -62,6 +66,12 @@ revision = subprocess.run(
 current_revision = revision.stdout.strip() if revision.returncode == 0 else "UNBORN"
 if manifest["git_revision"] != current_revision:
     raise SystemExit("Git revision mismatch")
+adapter_config = json.loads((root / "config" / "t480.json").read_text(encoding="utf-8"))
+dependency = inspect_dependency(adapter_config)
+if not dependency["ok"]:
+    raise SystemExit("T480 shared-core dependency is not immutable: " + "; ".join(dependency["errors"]))
+if manifest["external_dependencies"] != [dependency]:
+    raise SystemExit("external dependency attestation mismatch")
 for artifact in manifest["artifacts"]:
     path = (bundle / artifact["path"]).resolve()
     if not path.is_relative_to(bundle) or not path.is_file():
@@ -77,7 +87,7 @@ for marker in m0["real_world_proof"]["success_markers"]:
     if marker not in combined:
         raise SystemExit(f"missing success marker: {marker}")
 exit_codes = (bundle / "exit-codes.txt").read_text(encoding="utf-8")
-required_zeroes = {"venv=0", "install=0", "governance=0", "configuration=0", "tests=0", "repository_verification=0", "overall=0"}
+required_zeroes = {"t480_dependency=0", "venv=0", "install=0", "governance=0", "configuration=0", "tests=0", "repository_verification=0", "overall=0"}
 if not required_zeroes.issubset(set(exit_codes.splitlines())):
     raise SystemExit("one or more required exit codes are absent or non-zero")
 print("FOREX_M0_EVIDENCE_VERIFIED")

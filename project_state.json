@@ -30,21 +30,21 @@
     "config/t480.json",
     "t480/command-catalog.json"
   ],
-  "configuration_fingerprint": "sha256:bf9a00d9f4c445e97df5b2870684bbfaffd066a70b19414af735ee7d6a424d96",
+  "configuration_fingerprint": "sha256:1af5c130e0da120cd8af14d81cf165c5b481049a1d1f09bcaa4353e1a04143c0",
   "important_architectural_decisions": [
     "Shared T480 transport belongs to cs-ai-lab-infra; Forex owns its catalog and adapter.",
     "Mutable execution state is separate from the declarative milestone registry.",
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-17T01:54:28Z",
+  "last_updated_at": "2026-08-17T02:43:01Z",
   "milestones": {
     "M0": {
       "status": "IN_PROGRESS",
       "started_at": "2026-08-17T01:46:21Z",
       "implementation_finished_at": "2026-08-17T01:23:21Z",
-      "verification_passed_at": "2026-08-17T01:35:37Z",
-      "real_world_proof_captured_at": "2026-08-17T01:36:00Z",
+      "verification_passed_at": "2026-08-17T01:55:54Z",
+      "real_world_proof_captured_at": "2026-08-17T01:56:16Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
@@ -76,9 +76,9 @@
         },
         "M0-C5": {
           "result": "PASS",
-          "recorded_at": "2026-08-17T01:36:20Z",
-          "evidence": "runs/evidence/M0/20260817T013537Z/manifest.json",
-          "note": "Verified against committed revision cde83cc6109739ca73162de8d069cff8ac225bb4 in the dependency-isolated M0 evidence bundle."
+          "recorded_at": "2026-08-17T01:56:37Z",
+          "evidence": "runs/evidence/M0/20260817T015554Z/manifest.json",
+          "note": "Verified against committed Triad revision 7f67aba58bd161e96b859e7dd8890073c993fb5d."
         },
         "M0-C6": {
           "result": "PASS",
@@ -118,33 +118,33 @@
         },
         "M0-C12": {
           "result": "PASS",
-          "recorded_at": "2026-08-17T01:36:20Z",
-          "evidence": "runs/evidence/M0/20260817T013537Z/manifest.json",
-          "note": "Verified against committed revision cde83cc6109739ca73162de8d069cff8ac225bb4 in the dependency-isolated M0 evidence bundle."
+          "recorded_at": "2026-08-17T01:56:38Z",
+          "evidence": "runs/evidence/M0/20260817T015554Z/manifest.json",
+          "note": "Verified against committed Triad revision 7f67aba58bd161e96b859e7dd8890073c993fb5d."
         },
         "M0-C13": {
           "result": "PASS",
-          "recorded_at": "2026-08-17T01:36:21Z",
-          "evidence": "runs/evidence/M0/20260817T013537Z/manifest.json",
-          "note": "Verified against committed revision cde83cc6109739ca73162de8d069cff8ac225bb4 in the dependency-isolated M0 evidence bundle."
+          "recorded_at": "2026-08-17T01:56:38Z",
+          "evidence": "runs/evidence/M0/20260817T015554Z/manifest.json",
+          "note": "Verified against committed Triad revision 7f67aba58bd161e96b859e7dd8890073c993fb5d."
         },
         "M0-C14": {
           "result": "PASS",
-          "recorded_at": "2026-08-17T01:36:21Z",
-          "evidence": "runs/evidence/M0/20260817T013537Z/manifest.json",
-          "note": "Verified against committed revision cde83cc6109739ca73162de8d069cff8ac225bb4 in the dependency-isolated M0 evidence bundle."
+          "recorded_at": "2026-08-17T01:56:38Z",
+          "evidence": "runs/evidence/M0/20260817T015554Z/manifest.json",
+          "note": "Verified against committed Triad revision 7f67aba58bd161e96b859e7dd8890073c993fb5d."
         },
         "M0-C15": {
           "result": "PASS",
-          "recorded_at": "2026-08-17T01:36:21Z",
-          "evidence": "runs/evidence/M0/20260817T013537Z/manifest.json",
-          "note": "Verified against committed revision cde83cc6109739ca73162de8d069cff8ac225bb4 in the dependency-isolated M0 evidence bundle."
+          "recorded_at": "2026-08-17T01:56:39Z",
+          "evidence": "runs/evidence/M0/20260817T015554Z/manifest.json",
+          "note": "Verified against committed Triad revision 7f67aba58bd161e96b859e7dd8890073c993fb5d."
         },
         "M0-C16": {
           "result": "PASS",
-          "recorded_at": "2026-08-17T01:36:22Z",
+          "recorded_at": "2026-08-17T01:56:39Z",
           "evidence": "tests/test_milestone_governance.py",
-          "note": "The committed-revision bundle's tampered copy was independently rejected with hash mismatch; automated controls pass."
+          "note": "The committed Triad revision bundle's tampered copy was rejected with hash mismatch; automated controls pass."
         },
         "M0-C18": {
           "result": "PASS",
@@ -160,9 +160,9 @@
         },
         "M0-C17": {
           "result": "PASS",
-          "recorded_at": "2026-08-17T01:21:49Z",
+          "recorded_at": "2026-08-17T01:56:40Z",
           "evidence": "scripts/check_no_secrets.py",
-          "note": "The tracked-and-trackable candidate scan reports FOREX_SECRET_SCAN_OK; ignored local transport logs and populated environment files remain excluded."
+          "note": "Tracked and trackable files at committed Triad revision passed the secret scan."
         }
       },
       "evidence": [
@@ -219,13 +219,22 @@
           "configuration_fingerprint": "sha256:50cae5e768129c0b602ee808dc6f875b9cef2e14832d99ba414e2f6e4a1ecb56",
           "git_revision": "cde83cc6109739ca73162de8d069cff8ac225bb4",
           "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
+        },
+        {
+          "manifest_path": "runs/evidence/M0/20260817T015554Z/manifest.json",
+          "manifest_sha256": "5d8307cca6859af2788cc996d0ce15e4ccd256188bb494ae30deed8625dcbe86",
+          "captured_at": "2026-08-17T01:56:16Z",
+          "recorded_at": "2026-08-17T01:56:37Z",
+          "configuration_fingerprint": "sha256:bf9a00d9f4c445e97df5b2870684bbfaffd066a70b19414af735ee7d6a424d96",
+          "git_revision": "7f67aba58bd161e96b859e7dd8890073c993fb5d",
+          "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-08-17T01:35:37Z",
-        "git_revision": "cde83cc6109739ca73162de8d069cff8ac225bb4",
-        "configuration_fingerprint": "sha256:50cae5e768129c0b602ee808dc6f875b9cef2e14832d99ba414e2f6e4a1ecb56",
+        "recorded_at": "2026-08-17T01:55:54Z",
+        "git_revision": "7f67aba58bd161e96b859e7dd8890073c993fb5d",
+        "configuration_fingerprint": "sha256:bf9a00d9f4c445e97df5b2870684bbfaffd066a70b19414af735ee7d6a424d96",
         "commands": [
           {
             "id": "governance",
@@ -236,8 +245,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260817T013535Z/governance.stdout.txt",
-            "stderr": "runs/verification/M0/20260817T013535Z/governance.stderr.txt"
+            "stdout": "runs/verification/M0/20260817T015551Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T015551Z/governance.stderr.txt"
           },
           {
             "id": "configuration",
@@ -249,8 +258,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260817T013535Z/configuration.stdout.txt",
-            "stderr": "runs/verification/M0/20260817T013535Z/configuration.stderr.txt"
+            "stdout": "runs/verification/M0/20260817T015551Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T015551Z/configuration.stderr.txt"
           },
           {
             "id": "tests",
@@ -262,8 +271,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260817T013535Z/tests.stdout.txt",
-            "stderr": "runs/verification/M0/20260817T013535Z/tests.stderr.txt"
+            "stdout": "runs/verification/M0/20260817T015551Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T015551Z/tests.stderr.txt"
           }
         ]
       },
