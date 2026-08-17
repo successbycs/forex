@@ -4,11 +4,12 @@
   "title": "Forex milestone registry",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "project", "repository", "completion_authority", "allowed_statuses", "milestones"],
+  "required": ["schema_version", "project", "repository", "triad_review_required", "completion_authority", "allowed_statuses", "milestones"],
   "properties": {
     "schema_version": {"const": "1.0.0"},
     "project": {"const": "Forex"},
     "repository": {"type": "string", "minLength": 1},
+    "triad_review_required": {"const": true},
     "completion_authority": {"type": "string", "minLength": 1},
     "allowed_statuses": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
     "milestones": {

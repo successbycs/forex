@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
+  "implementation_status": "IN_PROGRESS",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -26,24 +26,25 @@
     "config/mt5.yaml",
     "config/project.yaml",
     "config/runtime.yaml",
+    "config/triad.yaml",
     "config/t480.json",
     "t480/command-catalog.json"
   ],
-  "configuration_fingerprint": "sha256:50cae5e768129c0b602ee808dc6f875b9cef2e14832d99ba414e2f6e4a1ecb56",
+  "configuration_fingerprint": "sha256:bf9a00d9f4c445e97df5b2870684bbfaffd066a70b19414af735ee7d6a424d96",
   "important_architectural_decisions": [
     "Shared T480 transport belongs to cs-ai-lab-infra; Forex owns its catalog and adapter.",
     "Mutable execution state is separate from the declarative milestone registry.",
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-17T01:23:21Z",
+  "last_updated_at": "2026-08-17T01:54:28Z",
   "milestones": {
     "M0": {
-      "status": "AWAITING_REAL_WORLD_PROOF",
-      "started_at": "2026-08-17T00:29:15Z",
+      "status": "IN_PROGRESS",
+      "started_at": "2026-08-17T01:46:21Z",
       "implementation_finished_at": "2026-08-17T01:23:21Z",
-      "verification_passed_at": "2026-08-17T01:22:54Z",
-      "real_world_proof_captured_at": "2026-08-17T01:23:02Z",
+      "verification_passed_at": "2026-08-17T01:35:37Z",
+      "real_world_proof_captured_at": "2026-08-17T01:36:00Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
@@ -75,9 +76,9 @@
         },
         "M0-C5": {
           "result": "PASS",
-          "recorded_at": "2026-08-17T01:23:20Z",
-          "evidence": "runs/evidence/M0/20260817T012255Z/manifest.json",
-          "note": "Verified by the final pre-commit dependency-isolated M0 evidence bundle."
+          "recorded_at": "2026-08-17T01:36:20Z",
+          "evidence": "runs/evidence/M0/20260817T013537Z/manifest.json",
+          "note": "Verified against committed revision cde83cc6109739ca73162de8d069cff8ac225bb4 in the dependency-isolated M0 evidence bundle."
         },
         "M0-C6": {
           "result": "PASS",
@@ -117,33 +118,33 @@
         },
         "M0-C12": {
           "result": "PASS",
-          "recorded_at": "2026-08-17T01:23:21Z",
-          "evidence": "runs/evidence/M0/20260817T012255Z/manifest.json",
-          "note": "Verified by the final pre-commit dependency-isolated M0 evidence bundle."
+          "recorded_at": "2026-08-17T01:36:20Z",
+          "evidence": "runs/evidence/M0/20260817T013537Z/manifest.json",
+          "note": "Verified against committed revision cde83cc6109739ca73162de8d069cff8ac225bb4 in the dependency-isolated M0 evidence bundle."
         },
         "M0-C13": {
           "result": "PASS",
-          "recorded_at": "2026-08-17T01:23:21Z",
-          "evidence": "runs/evidence/M0/20260817T012255Z/manifest.json",
-          "note": "Verified by the final pre-commit dependency-isolated M0 evidence bundle."
+          "recorded_at": "2026-08-17T01:36:21Z",
+          "evidence": "runs/evidence/M0/20260817T013537Z/manifest.json",
+          "note": "Verified against committed revision cde83cc6109739ca73162de8d069cff8ac225bb4 in the dependency-isolated M0 evidence bundle."
         },
         "M0-C14": {
           "result": "PASS",
-          "recorded_at": "2026-08-17T01:23:21Z",
-          "evidence": "runs/evidence/M0/20260817T012255Z/manifest.json",
-          "note": "Verified by the final pre-commit dependency-isolated M0 evidence bundle."
+          "recorded_at": "2026-08-17T01:36:21Z",
+          "evidence": "runs/evidence/M0/20260817T013537Z/manifest.json",
+          "note": "Verified against committed revision cde83cc6109739ca73162de8d069cff8ac225bb4 in the dependency-isolated M0 evidence bundle."
         },
         "M0-C15": {
           "result": "PASS",
-          "recorded_at": "2026-08-17T01:23:21Z",
-          "evidence": "runs/evidence/M0/20260817T012255Z/manifest.json",
-          "note": "Verified by the final pre-commit dependency-isolated M0 evidence bundle."
+          "recorded_at": "2026-08-17T01:36:21Z",
+          "evidence": "runs/evidence/M0/20260817T013537Z/manifest.json",
+          "note": "Verified against committed revision cde83cc6109739ca73162de8d069cff8ac225bb4 in the dependency-isolated M0 evidence bundle."
         },
         "M0-C16": {
           "result": "PASS",
-          "recorded_at": "2026-08-17T01:23:21Z",
+          "recorded_at": "2026-08-17T01:36:22Z",
           "evidence": "tests/test_milestone_governance.py",
-          "note": "The final copied bundle was independently rejected with hash mismatch; automated negative controls pass."
+          "note": "The committed-revision bundle's tampered copy was independently rejected with hash mismatch; automated controls pass."
         },
         "M0-C18": {
           "result": "PASS",
@@ -209,12 +210,21 @@
           "configuration_fingerprint": "sha256:50cae5e768129c0b602ee808dc6f875b9cef2e14832d99ba414e2f6e4a1ecb56",
           "git_revision": "UNBORN",
           "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
+        },
+        {
+          "manifest_path": "runs/evidence/M0/20260817T013537Z/manifest.json",
+          "manifest_sha256": "df4ac639831011a697e518513da3d31d4f16d38aa5cf167de87d9a5555ce5b73",
+          "captured_at": "2026-08-17T01:36:00Z",
+          "recorded_at": "2026-08-17T01:36:19Z",
+          "configuration_fingerprint": "sha256:50cae5e768129c0b602ee808dc6f875b9cef2e14832d99ba414e2f6e4a1ecb56",
+          "git_revision": "cde83cc6109739ca73162de8d069cff8ac225bb4",
+          "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-08-17T01:22:54Z",
-        "git_revision": "UNBORN",
+        "recorded_at": "2026-08-17T01:35:37Z",
+        "git_revision": "cde83cc6109739ca73162de8d069cff8ac225bb4",
         "configuration_fingerprint": "sha256:50cae5e768129c0b602ee808dc6f875b9cef2e14832d99ba414e2f6e4a1ecb56",
         "commands": [
           {
@@ -226,8 +236,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260817T012253Z/governance.stdout.txt",
-            "stderr": "runs/verification/M0/20260817T012253Z/governance.stderr.txt"
+            "stdout": "runs/verification/M0/20260817T013535Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T013535Z/governance.stderr.txt"
           },
           {
             "id": "configuration",
@@ -239,8 +249,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260817T012253Z/configuration.stdout.txt",
-            "stderr": "runs/verification/M0/20260817T012253Z/configuration.stderr.txt"
+            "stdout": "runs/verification/M0/20260817T013535Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T013535Z/configuration.stderr.txt"
           },
           {
             "id": "tests",
@@ -252,8 +262,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260817T012253Z/tests.stdout.txt",
-            "stderr": "runs/verification/M0/20260817T012253Z/tests.stderr.txt"
+            "stdout": "runs/verification/M0/20260817T013535Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T013535Z/tests.stderr.txt"
           }
         ]
       },
@@ -283,6 +293,11 @@
         "M0.5": {
           "status": "IN_PROGRESS",
           "started_at": "2026-08-17T01:22:17Z",
+          "verified_at": null
+        },
+        "M0.6": {
+          "status": "PLANNED",
+          "started_at": null,
           "verified_at": null
         }
       }

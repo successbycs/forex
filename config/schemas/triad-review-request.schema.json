@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "review_cycle_id", "milestone_id", "created_at", "git_revision", "configuration_fingerprint", "evidence_manifest_path", "evidence_manifest_sha256", "verification_recorded_at", "verifier_paths", "verifier_fingerprint", "milestone_contract_sha256", "required_roles", "role_packets"],
+  "properties": {
+    "schema_version": {"const": "forex.triad-request.v1"},
+    "review_cycle_id": {"type": "string", "minLength": 1},
+    "milestone_id": {"pattern": "^M[0-9]+$"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "git_revision": {"pattern": "^[a-f0-9]{40}$"},
+    "configuration_fingerprint": {"pattern": "^sha256:[a-f0-9]{64}$"},
+    "evidence_manifest_path": {"type": "string", "minLength": 1},
+    "evidence_manifest_sha256": {"pattern": "^[a-f0-9]{64}$"},
+    "verification_recorded_at": {"type": "string", "format": "date-time"},
+    "verifier_paths": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "verifier_fingerprint": {"pattern": "^sha256:[a-f0-9]{64}$"},
+    "milestone_contract_sha256": {"pattern": "^[a-f0-9]{64}$"},
+    "required_roles": {"type": "array", "minItems": 4, "uniqueItems": true, "items": {"type": "string"}},
+    "role_packets": {"type": "object", "minProperties": 4, "additionalProperties": {"type": "string", "minLength": 1}}
+  }
+}

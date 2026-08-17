@@ -18,6 +18,7 @@ dev = ["pytest>=8,<10"]
 [project.scripts]
 forex-milestones = "forex.milestones:main"
 forex-config = "forex.config:main"
+forex-triad = "forex.triad:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

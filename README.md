@@ -28,3 +28,5 @@ start -> implement -> record-check -> verify -> capture evidence
 Only `prove` writes `proven_at`, the actual completion date. An optional registry `target_date` is editable by the human operator and remains a planning forecast only.
 
 See `docs/evidence_and_milestones.md` for commands, proof rules, failure handling, and revalidation.
+
+Every milestone also requires the isolated engineering Triad plus financial-domain review described in `docs/triad_review.md`. Its deterministic recommendation informs—but never replaces—the human completion decision.

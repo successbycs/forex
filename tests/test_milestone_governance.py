@@ -60,7 +60,7 @@ def _copy_governance(tmp_path: Path) -> Path:
         "M0.1": {"status": "IN_PROGRESS", "started_at": utc_now(), "verified_at": None},
         **{
             f"M0.{index}": {"status": "PLANNED", "started_at": None, "verified_at": None}
-            for index in range(2, 6)
+            for index in range(2, 7)
         },
     }
     state["configuration_fingerprint"] = configuration_fingerprint(tmp_path, state)

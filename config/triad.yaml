@@ -1,0 +1,31 @@
+schema_version: forex.triad-policy.v1
+reviewers:
+  - role: AI_ENGINEER
+    display_name: AI Engineer
+    prompt_path: reviews/roles/ai_engineer.md
+    required: true
+    m0_criteria: [M0-C5, M0-C9, M0-C10, M0-C11, M0-C14, M0-C15, M0-C16]
+  - role: SOLUTION_ARCHITECT
+    display_name: Solution Architect
+    prompt_path: reviews/roles/solution_architect.md
+    required: true
+    m0_criteria: [M0-C1, M0-C2, M0-C3, M0-C4, M0-C6, M0-C8, M0-C10, M0-C18, M0-C20]
+  - role: SENIOR_SOFTWARE_DEVELOPER
+    display_name: Senior Software Developer
+    prompt_path: reviews/roles/senior_software_developer.md
+    required: true
+    m0_criteria: [M0-C5, M0-C6, M0-C7, M0-C9, M0-C11, M0-C12, M0-C13, M0-C16, M0-C17, M0-C20]
+  - role: FINANCIAL_DOMAIN_EXPERT
+    display_name: Financial and Quantitative Research Analyst
+    prompt_path: reviews/roles/financial_domain_expert.md
+    required: true
+    m0_criteria: [M0-C1, M0-C3, M0-C7, M0-C8, M0-C17, M0-C18, M0-C20]
+gate:
+  completion_recommendation: RECOMMEND_COMPLETE
+  blocking_verdicts: [FAIL, ABSTAIN]
+  blocking_open_severities: [CRITICAL, HIGH]
+  require_all_assigned_criteria: true
+  require_read_only_attestation: true
+  require_independent_context_attestation: true
+  require_raw_evidence_attestation: true
+  require_human_final_decision: true

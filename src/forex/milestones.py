@@ -207,6 +207,8 @@ def _require_string_list(value: Any, label: str, *, nonempty: bool = False) -> N
 def validate_registry(registry: dict[str, Any]) -> None:
     if registry.get("schema_version") != "1.0.0":
         raise GovernanceError("unsupported milestone registry schema_version")
+    if registry.get("triad_review_required") is not True:
+        raise GovernanceError("the registry must require Triad-plus-domain review")
     milestones = registry.get("milestones")
     if not isinstance(milestones, list) or not milestones:
         raise GovernanceError("registry milestones must be a non-empty list")
@@ -639,7 +641,28 @@ def _gate_errors(store: MilestoneStore, milestone_id: str) -> list[str]:
             errors.append("human sign-off is not tied to the current verification result")
     if item.get("blockers"):
         errors.append("unresolved blockers remain")
+    errors.extend(_triad_gate_errors(store, milestone_id))
     return errors
+
+
+def _triad_gate_errors(store: MilestoneStore, milestone_id: str) -> list[str]:
+    if store.registry.get("triad_review_required") is not True:
+        return []
+    record = store.milestone_state(milestone_id).get("triad_recommendation")
+    if not record:
+        return ["current Triad-plus-domain completion recommendation is required"]
+    recommendation_path = store.root / record.get("path", "")
+    if not recommendation_path.is_file():
+        return ["recorded Triad recommendation is missing"]
+    if sha256_file(recommendation_path) != record.get("sha256"):
+        return ["recorded Triad recommendation hash mismatch"]
+    try:
+        from forex.triad import assess_recommendation
+
+        drift = assess_recommendation(store.root, recommendation_path)
+    except (GovernanceError, OSError, ValueError) as exc:
+        return [f"Triad recommendation validation failed: {exc}"]
+    return [f"Triad recommendation invalid: {reason}" for reason in drift]
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -668,6 +691,9 @@ def _build_parser() -> argparse.ArgumentParser:
     evidence = subparsers.add_parser("record-evidence")
     evidence.add_argument("--id", required=True)
     evidence.add_argument("--manifest", required=True, type=Path)
+    triad = subparsers.add_parser("record-triad-recommendation")
+    triad.add_argument("--id", required=True)
+    triad.add_argument("--recommendation", required=True, type=Path)
     export = subparsers.add_parser("export-evidence")
     export.add_argument("--id", required=True)
     export.add_argument("--destination", required=True, type=Path)
@@ -840,6 +866,39 @@ def run_cli(args: argparse.Namespace) -> int:
         item["real_world_proof_captured_at"] = manifest["captured_at"]
         store.event(args.id, "REAL_WORLD_EVIDENCE_RECORDED", {"manifest_path": relative})
         store.save()
+    elif args.command == "record-triad-recommendation":
+        from forex.triad import assess_recommendation
+
+        recommendation_path = args.recommendation.resolve()
+        relative = _safe_relative(store.root, recommendation_path, "Triad recommendation")
+        expected_root = (store.root / "runs" / "triad" / args.id).resolve()
+        if not recommendation_path.is_relative_to(expected_root):
+            raise GovernanceError("Triad recommendation must be beneath runs/triad/<milestone_id>")
+        drift = assess_recommendation(store.root, recommendation_path)
+        if drift:
+            raise GovernanceError("Triad recommendation cannot be recorded:\n- " + "\n- ".join(drift))
+        recommendation = load_json(recommendation_path)
+        item["triad_recommendation"] = {
+            "path": relative,
+            "sha256": sha256_file(recommendation_path),
+            "review_cycle_id": recommendation["review_cycle_id"],
+            "recommendation": recommendation["recommendation"],
+            "binding": recommendation["binding"],
+            "recorded_at": utc_now(),
+        }
+        if args.id == "M0" and "M0-C21" in {criterion["id"] for criterion in milestone["acceptance_criteria"]}:
+            item["checks"]["M0-C21"] = {
+                "result": "PASS",
+                "recorded_at": utc_now(),
+                "evidence": relative,
+                "note": "A current bound Triad-plus-domain recommendation supports completion.",
+            }
+        store.event(
+            args.id,
+            "TRIAD_RECOMMENDATION_RECORDED",
+            {"path": relative, "recommendation": recommendation["recommendation"]},
+        )
+        store.save()
     elif args.command == "export-evidence":
         if not item["evidence"]:
             raise GovernanceError("no evidence is available to export")
@@ -851,6 +910,14 @@ def run_cli(args: argparse.Namespace) -> int:
         archive = destination / f"forex-{args.id}-evidence-{timestamp}.tar.gz"
         with tarfile.open(archive, "w:gz", format=tarfile.PAX_FORMAT) as handle:
             handle.add(manifest_path.parent, arcname=f"{args.id}/{manifest_path.parent.name}")
+            triad_record = item.get("triad_recommendation")
+            if triad_record:
+                triad_path = store.root / triad_record["path"]
+                if triad_path.is_file() and sha256_file(triad_path) == triad_record.get("sha256"):
+                    handle.add(
+                        triad_path.parent,
+                        arcname=f"triad/{args.id}/{triad_record['review_cycle_id']}",
+                    )
             handle.add(store.state_path, arcname="governance/project_state.json")
             handle.add(store.history_path, arcname="governance/run_history.json")
             handle.add(store.registry_path, arcname="governance/milestone_registry.json")
@@ -882,6 +949,9 @@ def run_cli(args: argparse.Namespace) -> int:
             raise GovernanceError("sign-off requires explicit confirmation that inputs and outputs were reviewed")
         if not item["evidence"] or not item.get("verification") or not item["verification"].get("passed"):
             raise GovernanceError("sign-off requires current recorded evidence and passing verification")
+        triad_errors = _triad_gate_errors(store, args.id)
+        if triad_errors:
+            raise GovernanceError("sign-off requires a current completion recommendation:\n- " + "\n- ".join(triad_errors))
         timestamp = utc_now()
         decision = args.decision.upper()
         item["human_signoff"] = {

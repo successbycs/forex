@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "reviewers", "gate"],
+  "properties": {
+    "schema_version": {"const": "forex.triad-policy.v1"},
+    "reviewers": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "display_name", "prompt_path", "required", "m0_criteria"],
+        "properties": {
+          "role": {"enum": ["AI_ENGINEER", "SOLUTION_ARCHITECT", "SENIOR_SOFTWARE_DEVELOPER", "FINANCIAL_DOMAIN_EXPERT"]},
+          "display_name": {"type": "string", "minLength": 1},
+          "prompt_path": {"type": "string", "minLength": 1},
+          "required": {"const": true},
+          "m0_criteria": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"pattern": "^M0-C[0-9]+$"}}
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["completion_recommendation", "blocking_verdicts", "blocking_open_severities", "require_all_assigned_criteria", "require_read_only_attestation", "require_independent_context_attestation", "require_raw_evidence_attestation", "require_human_final_decision"],
+      "properties": {
+        "completion_recommendation": {"const": "RECOMMEND_COMPLETE"},
+        "blocking_verdicts": {"const": ["FAIL", "ABSTAIN"]},
+        "blocking_open_severities": {"const": ["CRITICAL", "HIGH"]},
+        "require_all_assigned_criteria": {"const": true},
+        "require_read_only_attestation": {"const": true},
+        "require_independent_context_attestation": {"const": true},
+        "require_raw_evidence_attestation": {"const": true},
+        "require_human_final_decision": {"const": true}
+      }
+    }
+  }
+}

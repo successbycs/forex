@@ -699,6 +699,166 @@
         "from": "IN_PROGRESS",
         "to": "AWAITING_REAL_WORLD_PROOF"
       }
+    },
+    {
+      "event_id": "E000055",
+      "timestamp": "2026-08-17T01:35:37Z",
+      "milestone_id": "M0",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260817T013535Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T013535Z/governance.stderr.txt"
+          },
+          {
+            "id": "configuration",
+            "argv": [
+              "python3",
+              "scripts/validate_config.py",
+              "--root",
+              "."
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260817T013535Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T013535Z/configuration.stderr.txt"
+          },
+          {
+            "id": "tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260817T013535Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T013535Z/tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000056",
+      "timestamp": "2026-08-17T01:36:19Z",
+      "milestone_id": "M0",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M0/20260817T013537Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000057",
+      "timestamp": "2026-08-17T01:36:20Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C5",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000058",
+      "timestamp": "2026-08-17T01:36:20Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C12",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000059",
+      "timestamp": "2026-08-17T01:36:21Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C13",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000060",
+      "timestamp": "2026-08-17T01:36:21Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C14",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000061",
+      "timestamp": "2026-08-17T01:36:21Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C15",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000062",
+      "timestamp": "2026-08-17T01:36:22Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C16",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000063",
+      "timestamp": "2026-08-17T01:46:21Z",
+      "milestone_id": "M0",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "AWAITING_REAL_WORLD_PROOF",
+        "to": "NEEDS_FIX",
+        "reason": "Human requested a governed Triad-plus-domain review and drift recommendation gate before closeout."
+      }
+    },
+    {
+      "event_id": "E000064",
+      "timestamp": "2026-08-17T01:46:21Z",
+      "milestone_id": "M0",
+      "action": "MILESTONE_READY",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "READY"
+      }
+    },
+    {
+      "event_id": "E000065",
+      "timestamp": "2026-08-17T01:46:21Z",
+      "milestone_id": "M0",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
+    },
+    {
+      "event_id": "E000066",
+      "timestamp": "2026-08-17T01:54:28Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:50cae5e768129c0b602ee808dc6f875b9cef2e14832d99ba414e2f6e4a1ecb56",
+        "current": "sha256:bf9a00d9f4c445e97df5b2870684bbfaffd066a70b19414af735ee7d6a424d96",
+        "invalidated_milestones": []
+      }
     }
   ]
 }

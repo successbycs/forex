@@ -8,6 +8,7 @@ M0 is divided into controlled work packages:
 2. M0.2 — typed configuration and safety invariants.
 3. M0.3 — documentation and repository guardrails.
 4. M0.4 — isolated verification and durable evidence.
-5. M0.5 — human review and closeout.
+5. M0.5 — isolated Triad plus financial-domain assurance review.
+6. M0.6 — human review and closeout.
 
 Work packages help sequence work but do not create alternative completion claims. Only the parent milestone's `proven_at` is completion. After M0, the next bounded capability is M1: a Windows-native, read-only proof against the installed MT5 demo terminal.

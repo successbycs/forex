@@ -9,5 +9,6 @@ __pycache__/
 *.egg-info/
 runs/evidence/
 runs/verification/
+runs/triad/
 .milestone-state.lock
 runs/.governance-transaction.json

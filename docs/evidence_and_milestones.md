@@ -44,7 +44,7 @@ Evidence capture and evidence verification are separate. The independent verifie
 
 ## Durable evidence export
 
-Raw bundles are ignored by Git to avoid publishing machine-local observations. Export the latest verified bundle, registry, state, and run history to an operator-selected retained location:
+Raw bundles and review submissions are ignored by Git to avoid publishing machine-local observations. Export the latest verified bundle, recorded Triad cycle, registry, state, and run history to an operator-selected retained location:
 
 ```bash
 python3 scripts/forex_milestones.py export-evidence --id M0 --destination /path/to/retained/evidence

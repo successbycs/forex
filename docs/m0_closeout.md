@@ -1,6 +1,6 @@
 # M0 human closeout guide
 
-M0.1–M0.4 are technical work packages. M0.5 is deliberately reserved for the human operator and an immutable proof revision.
+M0.1–M0.4 are implementation and proof work packages. M0.5 is the isolated Triad-plus-domain assurance review. M0.6 is deliberately reserved for the human operator.
 
 ## Review before authorizing a commit
 
@@ -25,8 +25,10 @@ After the implementation commit, the agent should:
 3. Run the independent verifier and a tampered-bundle negative control.
 4. Record the fresh evidence and acceptance observations.
 5. Export the evidence to the operator-selected retained location, if supplied.
-6. Present the exact Git revision, configuration fingerprint, evidence manifest hash, test count, limitations, and closeout errors.
+6. Prepare four immutable role packets and obtain isolated, read-only reviews.
+7. Synthesize and record the bound recommendation.
+8. Present the exact Git revision, configuration fingerprint, evidence manifest hash, verifier fingerprint, review verdicts, findings, test count, limitations, and closeout errors.
 
-The operator then explicitly approves or rejects the current inputs and outputs. Approval must identify the operator and include a review note. Only after approval may the agent record M0-C19, verify M0.5, and run `prove`.
+The operator then explicitly approves or rejects the current inputs and outputs. Approval must identify the operator and include a review note. Only after approval may the agent record M0-C19, verify M0.6, and run `prove`.
 
 Successful `prove` generates `proven_at`, sets M1 to `READY`, and stops. It does not start M1.
