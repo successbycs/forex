@@ -39,14 +39,14 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-29T04:59:52Z",
+  "last_updated_at": "2026-08-29T05:03:57Z",
   "milestones": {
     "M0": {
       "status": "NEEDS_FIX",
       "started_at": "2026-08-29T04:39:07Z",
-      "implementation_finished_at": "2026-08-29T04:53:55Z",
-      "verification_passed_at": "2026-08-29T04:53:55Z",
-      "real_world_proof_captured_at": "2026-08-29T04:53:52Z",
+      "implementation_finished_at": "2026-08-29T05:01:45Z",
+      "verification_passed_at": "2026-08-29T05:01:45Z",
+      "real_world_proof_captured_at": "2026-08-29T05:01:43Z",
       "human_signed_off_at": "2026-08-29T02:01:23Z",
       "first_proven_at": "2026-08-29T02:01:44Z",
       "proven_at": null,
@@ -311,13 +311,22 @@
           "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
           "git_revision": "9edc9f1d70674e2bc95697b3599bcc22e1233b26",
           "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
+        },
+        {
+          "manifest_path": "runs/evidence/M0/20260829T050130Z/manifest.json",
+          "manifest_sha256": "a43e90e5fe427ca0c0c44926eb55e09fe697f98a61cc921e5f2e609cd4e889bb",
+          "captured_at": "2026-08-29T05:01:43Z",
+          "recorded_at": "2026-08-29T05:01:43Z",
+          "configuration_fingerprint": "sha256:e9f084dd9fcbd5221c5f08d4cb6632e3bf06b8cce022fe5220a168b67df4baf9",
+          "git_revision": "683eb61b5c10e3ae1b6fa85ce7c4651adb4454c5",
+          "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-08-29T04:53:55Z",
-        "git_revision": "9edc9f1d70674e2bc95697b3599bcc22e1233b26",
-        "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+        "recorded_at": "2026-08-29T05:01:45Z",
+        "git_revision": "683eb61b5c10e3ae1b6fa85ce7c4651adb4454c5",
+        "configuration_fingerprint": "sha256:e9f084dd9fcbd5221c5f08d4cb6632e3bf06b8cce022fe5220a168b67df4baf9",
         "commands": [
           {
             "id": "governance",
@@ -328,8 +337,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T045352Z/governance.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T045352Z/governance.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T050143Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T050143Z/governance.stderr.txt"
           },
           {
             "id": "configuration",
@@ -341,8 +350,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T045352Z/configuration.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T045352Z/configuration.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T050143Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T050143Z/configuration.stderr.txt"
           },
           {
             "id": "tests",
@@ -354,8 +363,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T045352Z/tests.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T045352Z/tests.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T050143Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T050143Z/tests.stderr.txt"
           }
         ]
       },
@@ -383,6 +392,10 @@
         {
           "reason": "M0 correction is implemented and locally verified but awaits a clean committed revision before fresh evidence and a new Triad cycle.",
           "recorded_at": "2026-08-29T04:59:52Z"
+        },
+        {
+          "reason": "Fresh Triad cycle M0-20260829T050152Z-683eb61b found that the fixed probe hash must resolve from the committed Git object rather than mutable working-tree bytes; correction is implemented and locally verified pending commit.",
+          "recorded_at": "2026-08-29T05:03:57Z"
         }
       ],
       "work_packages": {

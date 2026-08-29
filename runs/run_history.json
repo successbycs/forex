@@ -1851,6 +1851,85 @@
         "to": "NEEDS_FIX",
         "reason": "M0 correction is implemented and locally verified but awaits a clean committed revision before fresh evidence and a new Triad cycle."
       }
+    },
+    {
+      "event_id": "E000131",
+      "timestamp": "2026-08-29T05:01:43Z",
+      "milestone_id": "M0",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M0/20260829T050130Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000132",
+      "timestamp": "2026-08-29T05:01:45Z",
+      "milestone_id": "M0",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T050143Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T050143Z/governance.stderr.txt"
+          },
+          {
+            "id": "configuration",
+            "argv": [
+              "python3",
+              "scripts/validate_config.py",
+              "--root",
+              "."
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T050143Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T050143Z/configuration.stderr.txt"
+          },
+          {
+            "id": "tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T050143Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T050143Z/tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000133",
+      "timestamp": "2026-08-29T05:01:45Z",
+      "milestone_id": "M0",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
+    },
+    {
+      "event_id": "E000134",
+      "timestamp": "2026-08-29T05:03:57Z",
+      "milestone_id": "M0",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "AWAITING_REAL_WORLD_PROOF",
+        "to": "NEEDS_FIX",
+        "reason": "Fresh Triad cycle M0-20260829T050152Z-683eb61b found that the fixed probe hash must resolve from the committed Git object rather than mutable working-tree bytes; correction is implemented and locally verified pending commit."
+      }
     }
   ]
 }

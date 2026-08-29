@@ -77,6 +77,9 @@ def test_m1_mt5_probe_is_fixed_and_read_only():
     assert "Get-FileHash" in command
     assert "expectedProbeHash" in command
     assert "expectedPythonHash" in command
+    assert '"git", "show", "HEAD:t480/m1_mt5_demo_probe.py"' in (
+        (t480_adapter.ROOT / "scripts" / "t480_adapter.py").read_text(encoding="utf-8")
+    )
     assert "M1 interpreter is not provisioned in governed configuration" in command
     assert "fixed probe hash mismatch" in command
     assert "Python interpreter hash mismatch" in command

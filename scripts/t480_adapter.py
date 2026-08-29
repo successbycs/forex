@@ -14,6 +14,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import subprocess
 import sys
 from typing import Any
 
@@ -124,13 +125,20 @@ def _mt5_process_command(process_names: list[str]) -> str:
 
 def _m1_mt5_demo_probe_command() -> str:
     """Return the content-bound M1 historical-export command for Windows."""
+    committed_probe = subprocess.run(
+        ["git", "show", "HEAD:t480/m1_mt5_demo_probe.py"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+    committed_probe_sha256 = hashlib.sha256(committed_probe).hexdigest()
     return (
         "$ErrorActionPreference='Stop'; "
         "$s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json; "
         "$p=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\m1_mt5_demo_probe.py'; "
         f"$pythonPath=Join-Path $env:USERPROFILE '{APP_CONFIG['m1_python_relative_path']}'; "
         f"$expectedPythonHash='{APP_CONFIG['m1_python_sha256'] or ''}'; "
-        f"$expectedProbeHash='{hashlib.sha256((ROOT / 't480' / 'm1_mt5_demo_probe.py').read_bytes()).hexdigest()}'; "
+        f"$expectedProbeHash='{committed_probe_sha256}'; "
         "if (!(Test-Path -LiteralPath $p)) { throw 'M1 fixed probe file is absent' }; "
         "if (!(Test-Path -LiteralPath $pythonPath)) { throw 'M1 governed Python interpreter is absent' }; "
         "if ($expectedPythonHash -notmatch '^[a-f0-9]{64}$') { throw 'M1 interpreter is not provisioned in governed configuration' }; "
