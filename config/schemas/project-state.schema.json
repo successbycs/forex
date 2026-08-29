@@ -36,6 +36,7 @@
         "evidence": {"type": "array"},
         "verification": {"type": ["object", "null"]},
         "human_signoff": {"type": ["object", "null"]},
+        "review_workflow": {"type": "object"},
         "blockers": {"type": "array"}
       }
     }

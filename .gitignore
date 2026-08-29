@@ -11,6 +11,7 @@ __pycache__/
 runs/evidence/
 runs/verification/
 runs/triad/
+runs/review_requests/
 .milestone-state.lock
 .evidence-runner/
 runs/.governance-transaction.json
