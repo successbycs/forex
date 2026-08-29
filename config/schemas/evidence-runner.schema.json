@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "runner_key_id", "public_key_path", "allowed_jobs"],
+  "properties": {
+    "schema_version": {"const": "forex.evidence-runner.v1"},
+    "runner_key_id": {"type": "string", "minLength": 1},
+    "public_key_path": {"const": "config/evidence_runner_public.pem"},
+    "allowed_jobs": {"const": ["m0-clean-environment-capture"]}
+  }
+}

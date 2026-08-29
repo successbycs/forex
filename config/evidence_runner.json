@@ -1,0 +1,8 @@
+{
+  "schema_version": "forex.evidence-runner.v1",
+  "runner_key_id": "m0-local-self-attested-runner",
+  "public_key_path": "config/evidence_runner_public.pem",
+  "allowed_jobs": [
+    "m0-clean-environment-capture"
+  ]
+}

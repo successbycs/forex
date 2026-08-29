@@ -1247,6 +1247,86 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000094",
+      "timestamp": "2026-08-29T00:54:00Z",
+      "milestone_id": "M0",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M0/20260829T005341Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000095",
+      "timestamp": "2026-08-29T00:54:02Z",
+      "milestone_id": "M0",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T005400Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T005400Z/governance.stderr.txt"
+          },
+          {
+            "id": "configuration",
+            "argv": [
+              "python3",
+              "scripts/validate_config.py",
+              "--root",
+              "."
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T005400Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T005400Z/configuration.stderr.txt"
+          },
+          {
+            "id": "tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T005400Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T005400Z/tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000096",
+      "timestamp": "2026-08-29T00:58:34Z",
+      "milestone_id": "M0",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "IN_PROGRESS",
+        "to": "NEEDS_FIX",
+        "reason": "Formal Triad cycle M0-20260829T005410Z-ea788edb returned DO_NOT_COMPLETE: AI-M0-001 requires independently generated capture provenance and a negative control rejecting synthetic internally consistent bundles."
+      }
+    },
+    {
+      "event_id": "E000097",
+      "timestamp": "2026-08-29T01:18:06Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:1af5c130e0da120cd8af14d81cf165c5b481049a1d1f09bcaa4353e1a04143c0",
+        "current": "sha256:23758eb6aeb7b25146cb9cfae59d5aa64d531d0a6a606a433214797ad86ddcae",
+        "invalidated_milestones": []
+      }
     }
   ]
 }

@@ -17,6 +17,7 @@ FORBIDDEN_NAMES = {
     "id_ed25519",
 }
 FORBIDDEN_SUFFIXES = {".key", ".p12", ".pfx", ".pem"}
+ALLOWED_PUBLIC_KEY_FILENAMES = {"evidence_runner_public.pem"}
 SECRET_PATTERNS = {
     "private key": re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
     "AWS access key": re.compile(r"AKIA[0-9A-Z]{16}"),
@@ -41,7 +42,7 @@ def scan_file(path: Path) -> list[str]:
     problems: list[str] = []
     if path.name in FORBIDDEN_NAMES and path.name != ".env.example":
         problems.append("forbidden secret-bearing filename")
-    if path.suffix.lower() in FORBIDDEN_SUFFIXES:
+    if path.suffix.lower() in FORBIDDEN_SUFFIXES and path.name not in ALLOWED_PUBLIC_KEY_FILENAMES:
         problems.append("forbidden credential/key suffix")
     try:
         content = path.read_text(encoding="utf-8")
@@ -50,6 +51,8 @@ def scan_file(path: Path) -> list[str]:
     for label, pattern in SECRET_PATTERNS.items():
         if pattern.search(content):
             problems.append(f"possible {label}")
+    if path.name in ALLOWED_PUBLIC_KEY_FILENAMES and "-----BEGIN PUBLIC KEY-----" not in content:
+        problems.append("configured public-key file does not contain a public key")
     return problems
 
 

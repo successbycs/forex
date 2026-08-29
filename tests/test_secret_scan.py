@@ -19,3 +19,9 @@ def test_credential_filename_is_rejected_even_when_empty(tmp_path: Path) -> None
     path = tmp_path / "credentials.json"
     path.write_text("{}\n", encoding="utf-8")
     assert "forbidden secret-bearing filename" in scan_file(path)
+
+
+def test_configured_evidence_runner_public_key_is_accepted(tmp_path: Path) -> None:
+    path = tmp_path / "evidence_runner_public.pem"
+    path.write_text("-----BEGIN PUBLIC KEY-----\nfixture\n-----END PUBLIC KEY-----\n", encoding="utf-8")
+    assert scan_file(path) == []

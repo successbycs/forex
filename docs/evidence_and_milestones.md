@@ -4,6 +4,10 @@
 
 `project_state.json` is mutable execution state. `runs/run_history.json` is the append-only logical audit history written by the CLI. Raw verification output and proof bundles are deliberately ignored by Git because they can contain machine-local observations; retain or export them under the operator's evidence policy.
 
+## Evidence assurance tier
+
+Every milestone currently declares `SELF_ATTESTED_INTEGRITY`. Its fixed-job local evidence runner creates a fresh evidence bundle and signs the manifest digest using a private key kept outside Git; the repository stores the public key and verifies the signature. This detects post-capture modification and binds the bundle to its configured runner key, but is not an external witness or separately controlled identity. The same reduced provenance tier applies to demo execution. It does not weaken demo-only server enforcement, deterministic risk controls, explicit human approval, Triad review, or the prohibition on live trading.
+
 ## What completion means
 
 Implementation, tests, evidence capture, verification, and approval are distinct events. A milestone is complete only when `forex-milestones prove --id Mx` successfully writes `proven_at`. The command refuses closeout unless dependencies, all acceptance checks, required artifacts, fixed verification commands, current real-world evidence, configuration/revision matching, blockers, and any required human sign-off all pass.
@@ -40,7 +44,7 @@ Do not record approval on someone else's behalf. `prove` prepares `M1` as `READY
 - Use `invalidate` when a proven capability's implementation, dependency, surface, schema, or governed configuration materially changes.
 - `refresh-fingerprint` acknowledges current operator configuration but proves nothing. Re-run affected verification and real-world proof after a material change.
 
-Evidence capture and evidence verification are separate. The independent verifier does not contact, modify, repair, or regenerate the observed system. Hash, freshness, revision, surface, and configuration mismatches fail closed.
+Evidence capture and evidence verification are separate. The verifier does not contact, modify, repair, or regenerate the observed system. Hash, freshness, revision, surface, configuration, runner-attestation, and signature mismatches fail closed. Its independence is logical separation within the repository, not a separate provenance authority.
 
 ## Durable evidence export
 

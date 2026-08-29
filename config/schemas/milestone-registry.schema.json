@@ -68,9 +68,10 @@
         "real_world_proof": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["real_world_execution", "surface", "capture_command", "verifier_command", "freshness_hours", "success_markers"],
+          "required": ["real_world_execution", "provenance_assurance", "surface", "capture_command", "verifier_command", "freshness_hours", "success_markers"],
           "properties": {
             "real_world_execution": {"const": true},
+            "provenance_assurance": {"const": "SELF_ATTESTED_INTEGRITY"},
             "surface": {"type": "string", "minLength": 1},
             "capture_command": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
             "verifier_command": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},

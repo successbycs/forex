@@ -62,7 +62,7 @@ def _copy_governance(tmp_path: Path) -> Path:
         "M0.1": {"status": "IN_PROGRESS", "started_at": utc_now(), "verified_at": None},
         **{
             f"M0.{index}": {"status": "PLANNED", "started_at": None, "verified_at": None}
-            for index in range(2, 7)
+            for index in range(2, 8)
         },
     }
     state["configuration_fingerprint"] = configuration_fingerprint(tmp_path, state)
@@ -75,6 +75,10 @@ def test_registry_defines_contiguous_real_world_transition_contracts() -> None:
     validate_registry(registry)
     assert [item["milestone_id"] for item in registry["milestones"]] == [f"M{i}" for i in range(33)]
     assert all(item["real_world_proof"]["real_world_execution"] is True for item in registry["milestones"])
+    assert all(
+        item["real_world_proof"]["provenance_assurance"] == "SELF_ATTESTED_INTEGRITY"
+        for item in registry["milestones"]
+    )
     assert all("status" not in item for item in registry["milestones"])
 
 

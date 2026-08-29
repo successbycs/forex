@@ -7,7 +7,7 @@ A milestone is done only when `forex-milestones prove` writes `proven_at` after 
 - required artifacts are non-empty;
 - milestone and repository verification pass;
 - evidence came from the declared real-world surface;
-- raw artifacts, exit codes, timestamps, hashes, Git revision, and configuration fingerprint verify independently;
+- raw artifacts, exit codes, timestamps, hashes, Git revision, configuration fingerprint, and configured local-runner signature verify under the declared `SELF_ATTESTED_INTEGRITY` tier;
 - evidence is fresh and the completion worktree is clean and committed;
 - no critical safety, security, integrity, or lookahead blocker remains;
 - four isolated, bound Triad-plus-domain reviews produce a current deterministic `RECOMMEND_COMPLETE` result;

@@ -11,4 +11,5 @@ runs/evidence/
 runs/verification/
 runs/triad/
 .milestone-state.lock
+.evidence-runner/
 runs/.governance-transaction.json

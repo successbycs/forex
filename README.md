@@ -30,3 +30,5 @@ Only `prove` writes `proven_at`, the actual completion date. An optional registr
 See `docs/evidence_and_milestones.md` for commands, proof rules, failure handling, and revalidation.
 
 Every milestone also requires the isolated engineering Triad plus financial-domain review described in `docs/triad_review.md`. Its deterministic recommendation informs—but never replaces—the human completion decision.
+
+Evidence is currently self-attested: a fixed-job local runner signs each captured M0 evidence manifest with a private key kept outside Git, and the repository verifies using the committed public key. See `docs/evidence_and_milestones.md` for its limitations.

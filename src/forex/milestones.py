@@ -287,13 +287,18 @@ def validate_registry(registry: dict[str, Any]) -> None:
             raise GovernanceError(f"{milestone_id}: real_world_proof must be an object")
         required_proof = {
             "real_world_execution",
+            "provenance_assurance",
             "surface",
             "capture_command",
             "verifier_command",
             "freshness_hours",
             "success_markers",
         }
-        if set(proof) != required_proof or proof["real_world_execution"] is not True:
+        if (
+            set(proof) != required_proof
+            or proof["real_world_execution"] is not True
+            or proof["provenance_assurance"] != "SELF_ATTESTED_INTEGRITY"
+        ):
             raise GovernanceError(f"{milestone_id}: real-world execution contract is incomplete")
         _require_string_list(proof["capture_command"], f"{milestone_id}.capture_command", nonempty=True)
         _require_string_list(proof["verifier_command"], f"{milestone_id}.verifier_command", nonempty=True)

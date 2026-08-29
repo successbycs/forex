@@ -9,6 +9,8 @@ The Triad review consists of three engineering lenses plus a Forex domain lens:
 
 These reviewers provide isolated recommendations; they are not completion authorities. Real-world evidence and deterministic verification must already pass. The human operator remains the only final decision-maker.
 
+Reviewers assess evidence against the milestone's declared `SELF_ATTESTED_INTEGRITY` tier. They must verify the local runner signature and all integrity bindings, and explicitly state that the runner is self-attested. The absence of an external witness or separate signing identity is a documented limitation, not by itself a contract failure.
+
 ## Trust and independence boundary
 
 Each role receives a separate immutable review packet and must review read-only without seeing another role's verdict. The packet binds the review to:

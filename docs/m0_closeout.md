@@ -1,13 +1,13 @@
 # M0 human closeout guide
 
-M0.1–M0.4 are implementation and proof work packages. M0.5 is the isolated Triad-plus-domain assurance review. M0.6 is deliberately reserved for the human operator.
+M0.1–M0.4 are implementation and proof work packages. M0.7 establishes the repo-wide self-attested evidence tier. M0.5 is the isolated Triad-plus-domain assurance review. M0.6 is deliberately reserved for the human operator.
 
 ## Review before authorizing a commit
 
 Inspect:
 
 - `git status --short` and the complete proposed diff;
-- `milestone_registry.json`, especially M0 scope, M1 boundary, and all 21 criteria;
+- `milestone_registry.json`, especially M0 scope, M1 boundary, all 22 criteria, and the `SELF_ATTESTED_INTEGRITY` limitation;
 - `python3 scripts/t480_adapter.py dependency-status`, which must report `ok: true` for a clean, tracked, revision- and hash-matched shared core;
 - `config/*.yaml` and the hard safety constraints;
 - `docs/architecture.md`, `docs/security_model.md`, and deferred capabilities;

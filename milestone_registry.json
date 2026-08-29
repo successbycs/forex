@@ -167,7 +167,7 @@
         },
         {
           "id": "M0-C14",
-          "description": "A fresh isolated-environment M0 execution evidence bundle is captured from the repository.",
+          "description": "A fresh isolated-environment M0 execution evidence bundle is captured from the repository under the declared SELF_ATTESTED_INTEGRITY assurance tier.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
@@ -204,6 +204,11 @@
           "id": "M0-C21",
           "description": "Four isolated read-only Triad-plus-domain reviews, bound to the current commit, configuration, verifier, contract, and real-world evidence, produce a deterministic completion recommendation.",
           "kind": "VERIFICATION"
+        },
+        {
+          "id": "M0-C22",
+          "description": "The repo-wide SELF_ATTESTED_INTEGRITY tier and its limitations are explicit, machine-validated, and protected by a fixed-job local runner signature, hashes, freshness, revision/configuration binding, tamper rejection, Triad review, and human approval.",
+          "kind": "VERIFICATION"
         }
       ],
       "verification_commands": [
@@ -236,10 +241,12 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "fresh temporary Python environment",
         "capture_command": [
-          "bash",
-          "scripts/capture_m0_evidence.sh"
+          "python3",
+          "scripts/forex_evidence_runner.py",
+          "run-m0"
         ],
         "verifier_command": [
           "bash",
@@ -254,7 +261,8 @@
       "evidence_requirements": [
         "Raw command or operation output with exit status and capture timestamps.",
         "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed fresh temporary Python environment result containing FOREX_M0_PROOF_OK."
+        "A human-observable summary of the observed fresh temporary Python environment result containing FOREX_M0_PROOF_OK.",
+        "SELF_ATTESTED_INTEGRITY: locally captured, hash-verified evidence plus a signature from the configured fixed-job local runner; it is not externally witnessed or signed by a separate identity."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
@@ -292,8 +300,14 @@
         {
           "work_package_id": "M0.5",
           "title": "Triad plus domain assurance review",
-          "dependencies": ["M0.4"],
+          "dependencies": ["M0.7"],
           "acceptance_criteria": ["M0-C21"]
+        },
+        {
+          "work_package_id": "M0.7",
+          "title": "Repo-wide self-attested evidence assurance tier",
+          "dependencies": ["M0.4"],
+          "acceptance_criteria": ["M0-C22"]
         },
         {
           "work_package_id": "M0.6",
@@ -375,6 +389,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "installed Windows MT5 terminal on GOMarketsMU-Demo",
         "capture_command": [
           "bash",
@@ -476,6 +491,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "actual locally bound Windows MT5 adapter API",
         "capture_command": [
           "bash",
@@ -577,6 +593,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "real WSL-to-Windows network boundary",
         "capture_command": [
           "bash",
@@ -678,6 +695,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "deployed SuccessByCS AI Lab services on the T480",
         "capture_command": [
           "bash",
@@ -779,6 +797,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "actual isolated Forex database or schema",
         "capture_command": [
           "bash",
@@ -880,6 +899,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "real MT5-to-PostgreSQL EUR/USD M15 data path",
         "capture_command": [
           "bash",
@@ -981,6 +1001,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "real multi-timeframe MT5 historical data path",
         "capture_command": [
           "bash",
@@ -1082,6 +1103,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "real GOMarketsMU-Demo EUR/USD tick stream",
         "capture_command": [
           "bash",
@@ -1183,6 +1205,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "isolated real-data quality gate with injected faults",
         "capture_command": [
           "bash",
@@ -1284,6 +1307,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "actual collector restart against the selected data path",
         "capture_command": [
           "bash",
@@ -1384,6 +1408,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "point-in-time multi-timeframe replay dataset",
         "capture_command": [
           "bash",
@@ -1484,6 +1509,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "point-in-time historical replay dataset",
         "capture_command": [
           "bash",
@@ -1584,6 +1610,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "point-in-time replay with planted future records",
         "capture_command": [
           "bash",
@@ -1684,6 +1711,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "out-of-sample point-in-time replay",
         "capture_command": [
           "bash",
@@ -1784,6 +1812,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "out-of-sample point-in-time strategy replay",
         "capture_command": [
           "bash",
@@ -1894,6 +1923,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "frozen walk-forward historical evaluation",
         "capture_command": [
           "bash",
@@ -1996,6 +2026,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "replay context containing planted unavailable future data",
         "capture_command": [
           "bash",
@@ -2097,6 +2128,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "actual configured model provider in SHADOW mode",
         "capture_command": [
           "bash",
@@ -2198,6 +2230,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "actual decision persistence with leakage negative controls",
         "capture_command": [
           "bash",
@@ -2299,6 +2332,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "frozen out-of-sample agent evaluation dataset",
         "capture_command": [
           "bash",
@@ -2400,6 +2434,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "actual versioned economic-event source and replay",
         "capture_command": [
           "bash",
@@ -2501,6 +2536,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "isolated deterministic risk decision harness",
         "capture_command": [
           "bash",
@@ -2602,6 +2638,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "real GOMarketsMU-Demo symbol constraints plus independent calculations",
         "capture_command": [
           "bash",
@@ -2703,6 +2740,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "durable isolated trade-intent workflow",
         "capture_command": [
           "bash",
@@ -2809,6 +2847,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "operator-reviewed demo approval workflow",
         "capture_command": [
           "bash",
@@ -2911,6 +2950,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "isolated post-approval revalidation drill",
         "capture_command": [
           "bash",
@@ -2992,7 +3032,7 @@
         },
         {
           "id": "M27-C5",
-          "description": "Consequential demo-execution evidence includes independently controlled or cryptographically signed provenance binding the command, environment, revision, configuration and artifact digest.",
+          "description": "Demo-execution evidence follows SELF_ATTESTED_INTEGRITY and binds the command, environment, revision, configuration, artifact digest, timestamps, and exit status for human and Triad review.",
           "kind": "REAL_WORLD_PROOF"
         }
       ],
@@ -3018,6 +3058,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "installed MT5 terminal connected to GOMarketsMU-Demo",
         "capture_command": [
           "bash",
@@ -3037,7 +3078,7 @@
         "Raw command or operation output with exit status and capture timestamps.",
         "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
         "A human-observable summary of the observed installed MT5 terminal connected to GOMarketsMU-Demo result containing FOREX_M27_PROOF_OK.",
-        "A signed provenance statement or immutable separately controlled runner attestation for the exact demo-execution evidence bundle."
+        "A SELF_ATTESTED_INTEGRITY statement identifying the command, environment, revision, configuration, artifact digest, timestamps, exit status, and its limitation of not being externally witnessed."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
@@ -3121,6 +3162,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "real GOMarketsMU-Demo position state and isolated restart",
         "capture_command": [
           "bash",
@@ -3223,6 +3265,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "complete real GOMarketsMU-Demo workflow",
         "capture_command": [
           "bash",
@@ -3335,6 +3378,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "time-bounded forward GOMarketsMU-Demo observation",
         "capture_command": [
           "bash",
@@ -3448,6 +3492,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "frozen forward-demo and out-of-sample comparison dataset",
         "capture_command": [
           "bash",
@@ -3551,6 +3596,7 @@
       ],
       "real_world_proof": {
         "real_world_execution": true,
+        "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
         "surface": "human review of retained technical and empirical evidence",
         "capture_command": [
           "bash",

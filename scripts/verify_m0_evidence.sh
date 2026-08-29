@@ -26,6 +26,7 @@ root = Path(sys.argv[1]).resolve()
 bundle = Path(sys.argv[2]).resolve()
 sys.path.insert(0, str(root / "src"))
 from forex.t480_dependency import inspect_dependency
+from forex.evidence_runner import verify_bundle as verify_runner_bundle
 from forex.m0_evidence import M0_EVIDENCE_ARTIFACTS
 manifest_path = bundle / "manifest.json"
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -73,6 +74,10 @@ if not dependency["ok"]:
     raise SystemExit("T480 shared-core dependency is not immutable: " + "; ".join(dependency["errors"]))
 if manifest["external_dependencies"] != [dependency]:
     raise SystemExit("external dependency attestation mismatch")
+try:
+    verify_runner_bundle(root, bundle)
+except Exception as exc:
+    raise SystemExit(f"self-attested runner verification failed: {exc}") from exc
 declared_artifacts = {artifact.get("path") for artifact in manifest["artifacts"] if isinstance(artifact, dict)}
 if declared_artifacts != M0_EVIDENCE_ARTIFACTS:
     raise SystemExit("M0 evidence manifest does not contain the canonical artifact set")

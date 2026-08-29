@@ -11,6 +11,7 @@ import pytest
 
 from forex.t480_dependency import inspect_dependency
 from forex.m0_evidence import M0_EVIDENCE_ARTIFACTS
+from forex.evidence_runner import generate_keypair, sign_bundle
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,8 +79,20 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path]:
     module.parent.mkdir(parents=True)
     shutil.copy2(ROOT / "src" / "forex" / "t480_dependency.py", module)
     shutil.copy2(ROOT / "src" / "forex" / "m0_evidence.py", module.parent / "m0_evidence.py")
+    shutil.copy2(ROOT / "src" / "forex" / "evidence_runner.py", module.parent / "evidence_runner.py")
     (module.parent / "__init__.py").write_text("", encoding="utf-8")
     _write_json(root / "config" / "t480.json", adapter_config)
+    _write_json(
+        root / "config" / "evidence_runner.json",
+        {
+            "schema_version": "forex.evidence-runner.v1",
+            "runner_key_id": "fixture-runner",
+            "public_key_path": "config/evidence_runner_public.pem",
+            "allowed_jobs": ["m0-clean-environment-capture"],
+        },
+    )
+    private_key = tmp_path / "fixture-private.pem"
+    generate_keypair(private_key, root / "config" / "evidence_runner_public.pem")
     _write_json(
         root / "project_state.json",
         {"governed_configuration_paths": ["config/t480.json"]},
@@ -163,6 +176,7 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path]:
         ],
     }
     _write_json(bundle / "manifest.json", manifest)
+    sign_bundle(root, bundle, private_key)
     return root, bundle
 
 
@@ -199,10 +213,10 @@ def test_black_box_verifier_accepts_bound_bundle(tmp_path: Path) -> None:
         ("dirty", "captured worktree was dirty"),
         ("revision", "Git revision mismatch"),
         ("configuration", "configuration fingerprint mismatch"),
-        ("marker", "missing success marker"),
-        ("exit_code", "required exit codes"),
-        ("path_escape", "canonical artifact set"),
-        ("incomplete_manifest", "canonical artifact set"),
+        ("marker", "runner verification failed"),
+        ("exit_code", "runner verification failed"),
+        ("path_escape", "runner verification failed"),
+        ("incomplete_manifest", "runner verification failed"),
     ],
 )
 def test_black_box_verifier_rejects_invalid_bundles(

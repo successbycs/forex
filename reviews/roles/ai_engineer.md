@@ -11,4 +11,6 @@ Challenge at least:
 - whether AI-generated review or approval can silently close the milestone;
 - whether future information, hidden state, or unconstrained tools could contaminate results.
 
+Assess evidence against the milestone's declared `SELF_ATTESTED_INTEGRITY` tier. Treat the absence of an external witness or separate signing identity as a required limitation, not a failure by itself, when the local runner signature and all declared integrity controls verify.
+
 Assess every criterion assigned in the review packet. Work read-only, cite exact files or raw evidence, state limitations, and return the supplied JSON template. Use `ABSTAIN` when the available evidence cannot support a responsible verdict.
