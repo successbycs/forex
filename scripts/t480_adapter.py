@@ -3,13 +3,14 @@
 
 The reusable transport comes from ``cs-ai-lab-infra/t480_core``. This module
 owns only fixed Forex and shared-platform inspection operations. It cannot
-accept shell text, connect through the MetaTrader Python API, retrieve account
-or market data, deploy services, or place trades.
+accept shell text, deploy services, place trades, or expose arbitrary MT5
+operations. Its single M1 operation is a fixed read-only historical export.
 """
 
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 from pathlib import Path
 import re
@@ -108,6 +109,28 @@ def _mt5_process_command(process_names: list[str]) -> str:
         "$safe=@($processes | Select-Object ProcessName,Id,@{Name='started_at_utc';Expression={"
         "try {$_.StartTime.ToUniversalTime().ToString('o')} catch {$null}}}); "
         "[pscustomobject]@{running=($safe.Count -gt 0);process_count=$safe.Count;processes=$safe} | ConvertTo-Json -Compress -Depth 4"
+    )
+
+
+def _m1_mt5_demo_probe_command() -> str:
+    """Return the fixed read-only M1 historical-export command for Windows."""
+    probe = """import hashlib\nimport json\nimport sys\nfrom datetime import datetime, timezone\nimport MetaTrader5 as mt5\n\nTERMINAL = sys.argv[1]\nSYMBOL = 'EURUSD'\nTIMEFRAME = mt5.TIMEFRAME_H1\nBAR_COUNT = 720\nif not mt5.initialize(path=TERMINAL):\n    raise SystemExit(mt5.last_error())\ntry:\n    account = mt5.account_info()\n    symbol = mt5.symbol_info(SYMBOL)\n    rates = mt5.copy_rates_from_pos(SYMBOL, TIMEFRAME, 1, BAR_COUNT)\n    if not account or account.server != 'GOMarketsMU-Demo':\n        raise SystemExit('MT5 is not connected to GOMarketsMU-Demo')\n    if not symbol or symbol.name != SYMBOL:\n        raise SystemExit('required EURUSD symbol is unavailable')\n    if rates is None or len(rates) != BAR_COUNT:\n        raise SystemExit(f'expected exactly {BAR_COUNT} closed EURUSD H1 bars')\n    bars = []\n    previous_time = None\n    for rate in rates:\n        timestamp = int(rate['time'])\n        if previous_time is not None and timestamp <= previous_time:\n            raise SystemExit('historical bars are not strictly chronological')\n        previous_time = timestamp\n        bar = {'time_utc': datetime.fromtimestamp(timestamp, timezone.utc).isoformat().replace('+00:00', 'Z'), 'open': float(rate['open']), 'high': float(rate['high']), 'low': float(rate['low']), 'close': float(rate['close']), 'volume': int(rate['tick_volume'])}\n        if min(bar['open'], bar['high'], bar['low'], bar['close']) <= 0 or bar['low'] > min(bar['open'], bar['close']) or bar['high'] < max(bar['open'], bar['close']):\n            raise SystemExit('historical bar has invalid OHLC values')\n        bars.append(bar)\n    payload = {'server': account.server, 'symbol': symbol.name, 'timeframe': 'H1', 'bar_count': len(bars), 'first_bar_utc': bars[0]['time_utc'], 'last_bar_utc': bars[-1]['time_utc'], 'bars_sha256': hashlib.sha256(json.dumps(bars, separators=(',', ':'), sort_keys=True).encode('utf-8')).hexdigest(), 'bars': bars}\n    print(json.dumps(payload, separators=(',', ':')))\nfinally:\n    mt5.shutdown()\n"""
+    encoded = base64.b64encode(probe.encode("utf-8")).decode("ascii")
+    return (
+        "$ErrorActionPreference='Stop'; "
+        "$settingsPath=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json'; "
+        "if (!(Test-Path -LiteralPath $settingsPath)) { throw 'M1 local MT5 settings are absent' }; "
+        "$settings=Get-Content -Raw -LiteralPath $settingsPath | ConvertFrom-Json; "
+        "$required=@('schema_version','python_path','terminal_path'); "
+        "if ($settings.PSObject.Properties.Name.Count -ne 3 -or @($required | Where-Object { $_ -notin $settings.PSObject.Properties.Name }).Count -ne 0 -or $settings.schema_version -ne 'forex.mt5-local.v1') { throw 'M1 local MT5 settings are invalid' }; "
+        "$python=[string]$settings.python_path; $terminal=[string]$settings.terminal_path; "
+        "if (!(Test-Path -LiteralPath $python) -or !(Test-Path -LiteralPath $terminal)) { throw 'M1 local MT5 executable path is unavailable' }; "
+        "$code=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('"
+        + encoded
+        + "')); $file=Join-Path $env:TEMP 'forex-m1-readonly-probe.py'; "
+        "[IO.File]::WriteAllText($file,$code); "
+        "& $python $file $terminal; "
+        "$status=$LASTEXITCODE; Remove-Item -Force $file; exit $status"
     )
 
 
@@ -217,6 +240,12 @@ OPERATIONS: dict[str, Operation] = {
         "Inspect whether a configured MetaTrader terminal process is running without using the MT5 API.",
         powershell_command=_mt5_process_command([str(name) for name in APP_CONFIG["mt5_process_names"]]),
     ),
+    "m1_mt5_demo_probe": Operation(
+        "m1_mt5_demo_probe",
+        "Export a fixed read-only closed EURUSD H1 historical sample from GOMarketsMU-Demo for M1.",
+        powershell_command=_m1_mt5_demo_probe_command(),
+        timeout_seconds=60,
+    ),
 }
 
 
@@ -249,8 +278,8 @@ def requirements() -> dict[str, Any]:
         "prohibited": [
             "arbitrary commands",
             "deployment mutations",
-            "MetaTrader API access",
-            "account or market-data access",
+            "generic MetaTrader API access",
+            "arbitrary account or market-data access",
             "order operations",
         ],
     }
@@ -294,6 +323,8 @@ def main(argv: list[str] | None = None) -> int:
         if not args.operation:
             raise SystemExit("--operation is required for execute and verify")
         payload = execute(args.operation)
+        if args.operation == "m1_mt5_demo_probe" and payload.get("ok"):
+            payload["proof_marker"] = "FOREX_M1_PROOF_OK"
         if args.command == "verify":
             payload["verified_operation"] = args.operation
     if args.command != "dependency-status":

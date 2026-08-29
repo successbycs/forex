@@ -51,6 +51,11 @@
       "id": "mt5_process_status",
       "purpose": "Inspect whether a configured MetaTrader terminal process is running without using the MT5 API.",
       "approval_required": false
+    },
+    {
+      "id": "m1_mt5_demo_probe",
+      "purpose": "Export a fixed read-only closed EURUSD H1 historical sample from GOMarketsMU-Demo for M1.",
+      "approval_required": false
     }
   ]
 }

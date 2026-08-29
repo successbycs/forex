@@ -277,65 +277,110 @@
           "work_package_id": "M0.1",
           "title": "Governance traceability",
           "dependencies": [],
-          "acceptance_criteria": ["M0-C1", "M0-C2", "M0-C9", "M0-C10", "M0-C11"]
+          "acceptance_criteria": [
+            "M0-C1",
+            "M0-C2",
+            "M0-C9",
+            "M0-C10",
+            "M0-C11"
+          ]
         },
         {
           "work_package_id": "M0.2",
           "title": "Typed configuration and safety invariants",
-          "dependencies": ["M0.1"],
-          "acceptance_criteria": ["M0-C6", "M0-C7", "M0-C8"]
+          "dependencies": [
+            "M0.1"
+          ],
+          "acceptance_criteria": [
+            "M0-C6",
+            "M0-C7",
+            "M0-C8"
+          ]
         },
         {
           "work_package_id": "M0.3",
           "title": "Documentation and repository guardrails",
-          "dependencies": ["M0.1"],
-          "acceptance_criteria": ["M0-C3", "M0-C4", "M0-C17", "M0-C18", "M0-C20"]
+          "dependencies": [
+            "M0.1"
+          ],
+          "acceptance_criteria": [
+            "M0-C3",
+            "M0-C4",
+            "M0-C17",
+            "M0-C18",
+            "M0-C20"
+          ]
         },
         {
           "work_package_id": "M0.4",
           "title": "Isolated verification and durable evidence",
-          "dependencies": ["M0.2", "M0.3"],
-          "acceptance_criteria": ["M0-C5", "M0-C12", "M0-C13", "M0-C14", "M0-C15", "M0-C16"]
+          "dependencies": [
+            "M0.2",
+            "M0.3"
+          ],
+          "acceptance_criteria": [
+            "M0-C5",
+            "M0-C12",
+            "M0-C13",
+            "M0-C14",
+            "M0-C15",
+            "M0-C16"
+          ]
         },
         {
           "work_package_id": "M0.5",
           "title": "Triad plus domain assurance review",
-          "dependencies": ["M0.7"],
-          "acceptance_criteria": ["M0-C21"]
+          "dependencies": [
+            "M0.7"
+          ],
+          "acceptance_criteria": [
+            "M0-C21"
+          ]
         },
         {
           "work_package_id": "M0.7",
           "title": "Repo-wide self-attested evidence assurance tier",
-          "dependencies": ["M0.4"],
-          "acceptance_criteria": ["M0-C22"]
+          "dependencies": [
+            "M0.4"
+          ],
+          "acceptance_criteria": [
+            "M0-C22"
+          ]
         },
         {
           "work_package_id": "M0.6",
           "title": "Human review and closeout",
-          "dependencies": ["M0.5"],
-          "acceptance_criteria": ["M0-C19"]
+          "dependencies": [
+            "M0.5"
+          ],
+          "acceptance_criteria": [
+            "M0-C19"
+          ]
         }
       ]
     },
     {
       "milestone_id": "M1",
-      "title": "Windows MT5 read-only connection proven",
-      "objective": "Validate the installed demo terminal, safe metadata, exact EUR/USD symbol, and a fresh tick without order operations.",
+      "title": "Bounded EUR/USD historical Demo export proven",
+      "objective": "Prove a fixed, read-only export of exactly 720 closed EUR/USD H1 bars from the authenticated GOMarketsMU-Demo terminal.",
       "delivery_type": "CAPABILITY_DELIVERING",
       "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
         "M0"
       ],
       "entry_conditions": [
-        "M0 is PROVEN and remains valid."
+        "M0 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Windows MT5 read-only connection proven",
+      "to_state": "Bounded EUR/USD historical Demo export proven",
       "scope": [
-        "Validate the installed demo terminal, safe metadata, exact EUR/USD symbol, and a fresh tick without order operations."
+        "Prove a fixed, read-only export of exactly 720 closed EUR/USD H1 bars from the authenticated GOMarketsMU-Demo terminal.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -343,27 +388,29 @@
         "config/runtime.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M1-proof.md"
+        "docs/milestones/M1-proof.md",
+        "tests/test_t480_adapter.py",
+        "t480/mt5.local.example.json"
       ],
       "acceptance_criteria": [
         {
           "id": "M1-C1",
-          "description": "The capability works on the declared surface: installed Windows MT5 terminal on GOMarketsMU-Demo.",
+        "description": "The capability works on the declared surface: installed Windows MT5 terminal on GOMarketsMU-Demo exporting exactly 720 closed EUR/USD H1 bars.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M1-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M1-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M1-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -383,61 +430,70 @@
             "-m",
             "pytest",
             "-q",
-            "tests/milestones/test_m1.py"
+          "tests/test_t480_adapter.py"
           ]
         }
       ],
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "installed Windows MT5 terminal on GOMarketsMU-Demo",
+      "surface": "installed Windows MT5 terminal on GOMarketsMU-Demo exporting exactly 720 closed EUR/USD H1 bars",
         "capture_command": [
-          "bash",
-          "scripts/capture_m1_evidence.sh"
+        "python3",
+        "scripts/t480_adapter.py",
+        "execute",
+        "--operation",
+        "m1_mt5_demo_probe"
         ],
         "verifier_command": [
-          "bash",
-          "scripts/verify_m1_evidence.sh",
-          "{bundle}"
+        "python3",
+        "scripts/t480_adapter.py",
+        "verify",
+        "--operation",
+        "m1_mt5_demo_probe"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M1_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed installed Windows MT5 terminal on GOMarketsMU-Demo result containing FOREX_M1_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "The retained raw fixed-operation output and a fresh fixed-operation verification output, each containing FOREX_M1_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "MVP bridge proof is intentionally bounded to 720 closed H1 bars. Larger or multi-year extraction belongs to later data milestones. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M2",
-      "title": "Local read-only MT5 API proven",
-      "objective": "Prove a locally bound, access-controlled read-only API and the absence of order endpoints.",
-      "delivery_type": "CAPABILITY_DELIVERING",
-      "proof_type": "REAL_SYSTEM_INTEGRATION",
+      "title": "Historical data contracts and snapshots proven",
+      "objective": "Define and validate canonical price, raw-observation, dataset-snapshot, and source-registry contracts for historical research.",
+      "delivery_type": "FOUNDATION_ENABLING",
+      "proof_type": "REPOSITORY_EXECUTION",
       "dependencies": [
         "M1"
       ],
       "entry_conditions": [
-        "M1 is PROVEN and remains valid."
+        "M1 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Local read-only MT5 API proven",
+      "to_state": "Historical data contracts and snapshots proven",
       "scope": [
-        "Prove a locally bound, access-controlled read-only API and the absence of order endpoints."
+        "Define and validate canonical price, raw-observation, dataset-snapshot, and source-registry contracts for historical research.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -445,27 +501,28 @@
         "config/runtime.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M2-proof.md"
+        "docs/milestones/M2-proof.md",
+        "tests/milestones/test_m2.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M2-C1",
-          "description": "The capability works on the declared surface: actual locally bound Windows MT5 adapter API.",
+          "description": "The capability works on the declared surface: validated Forex historical-data contracts and dataset snapshots.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M2-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M2-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M2-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -492,7 +549,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "actual locally bound Windows MT5 adapter API",
+        "surface": "validated Forex historical-data contracts and dataset snapshots",
         "capture_command": [
           "bash",
           "scripts/capture_m2_evidence.sh"
@@ -502,44 +559,48 @@
           "scripts/verify_m2_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M2_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed actual locally bound Windows MT5 adapter API result containing FOREX_M2_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared validated Forex historical-data contracts and dataset snapshots result containing FOREX_M2_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M3",
-      "title": "WSL-to-Windows MT5 path proven",
-      "objective": "Prove a real cross-boundary request with timeout, retry, schema validation, and safe failure.",
+      "title": "Bounded historical MT5 bridge proven",
+      "objective": "Prove the catalog-locked T480 and WSL bridge retrieves only declared historical EUR/USD data without a generic MT5 or shell surface.",
       "delivery_type": "CAPABILITY_DELIVERING",
       "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
         "M2"
       ],
       "entry_conditions": [
-        "M2 is PROVEN and remains valid."
+        "M2 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "WSL-to-Windows MT5 path proven",
+      "to_state": "Bounded historical MT5 bridge proven",
       "scope": [
-        "Prove a real cross-boundary request with timeout, retry, schema validation, and safe failure."
+        "Prove the catalog-locked T480 and WSL bridge retrieves only declared historical EUR/USD data without a generic MT5 or shell surface.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -547,27 +608,28 @@
         "config/runtime.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M3-proof.md"
+        "docs/milestones/M3-proof.md",
+        "tests/milestones/test_m3.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M3-C1",
-          "description": "The capability works on the declared surface: real WSL-to-Windows network boundary.",
+          "description": "The capability works on the declared surface: catalog-locked T480-to-Forex historical MT5 bridge.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M3-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M3-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M3-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -594,7 +656,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "real WSL-to-Windows network boundary",
+        "surface": "catalog-locked T480-to-Forex historical MT5 bridge",
         "capture_command": [
           "bash",
           "scripts/capture_m3_evidence.sh"
@@ -604,44 +666,48 @@
           "scripts/verify_m3_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M3_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed real WSL-to-Windows network boundary result containing FOREX_M3_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared catalog-locked T480-to-Forex historical MT5 bridge result containing FOREX_M3_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M4",
-      "title": "AI Lab application integration proven",
-      "objective": "Use selected shared AI Lab services without duplicated or public infrastructure.",
-      "delivery_type": "FOUNDATION_ENABLING",
+      "title": "Historical research application integration proven",
+      "objective": "Integrate governed historical ingestion into the Forex application boundary without introducing order or live-server capability.",
+      "delivery_type": "CAPABILITY_DELIVERING",
       "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
         "M3"
       ],
       "entry_conditions": [
-        "M3 is PROVEN and remains valid."
+        "M3 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "AI Lab application integration proven",
+      "to_state": "Historical research application integration proven",
       "scope": [
-        "Use selected shared AI Lab services without duplicated or public infrastructure."
+        "Integrate governed historical ingestion into the Forex application boundary without introducing order or live-server capability.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -649,27 +715,28 @@
         "config/runtime.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M4-proof.md"
+        "docs/milestones/M4-proof.md",
+        "tests/milestones/test_m4.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M4-C1",
-          "description": "The capability works on the declared surface: deployed SuccessByCS AI Lab services on the T480.",
+          "description": "The capability works on the declared surface: Forex application historical-ingestion integration.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M4-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M4-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M4-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -696,7 +763,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "deployed SuccessByCS AI Lab services on the T480",
+        "surface": "Forex application historical-ingestion integration",
         "capture_command": [
           "bash",
           "scripts/capture_m4_evidence.sh"
@@ -706,44 +773,48 @@
           "scripts/verify_m4_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M4_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed deployed SuccessByCS AI Lab services on the T480 result containing FOREX_M4_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared Forex application historical-ingestion integration result containing FOREX_M4_PROOF_OK."
       ],
-      "human_review_required": true,
+      "human_review_required": false,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M5",
-      "title": "PostgreSQL persistence foundation proven",
-      "objective": "Create versioned Forex persistence and prove an isolated synthetic write/read round trip.",
+      "title": "Provenance-preserving historical persistence proven",
+      "objective": "Persist raw references, normalised records, hashes, lineage, and idempotent historical imports.",
       "delivery_type": "CAPABILITY_DELIVERING",
       "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
         "M4"
       ],
       "entry_conditions": [
-        "M4 is PROVEN and remains valid."
+        "M4 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "PostgreSQL persistence foundation proven",
+      "to_state": "Provenance-preserving historical persistence proven",
       "scope": [
-        "Create versioned Forex persistence and prove an isolated synthetic write/read round trip."
+        "Persist raw references, normalised records, hashes, lineage, and idempotent historical imports.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -751,27 +822,28 @@
         "config/runtime.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M5-proof.md"
+        "docs/milestones/M5-proof.md",
+        "tests/milestones/test_m5.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M5-C1",
-          "description": "The capability works on the declared surface: actual isolated Forex database or schema.",
+          "description": "The capability works on the declared surface: Forex historical-data persistence and idempotent reimport workflow.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M5-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M5-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M5-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -798,7 +870,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "actual isolated Forex database or schema",
+        "surface": "Forex historical-data persistence and idempotent reimport workflow",
         "capture_command": [
           "bash",
           "scripts/capture_m5_evidence.sh"
@@ -808,44 +880,48 @@
           "scripts/verify_m5_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M5_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed actual isolated Forex database or schema result containing FOREX_M5_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared Forex historical-data persistence and idempotent reimport workflow result containing FOREX_M5_PROOF_OK."
       ],
-      "human_review_required": true,
+      "human_review_required": false,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M6",
-      "title": "EUR/USD M15 end-to-end data slice proven",
-      "objective": "Retrieve, validate, persist, query, and idempotently reingest real EUR/USD M15 history.",
+      "title": "Multi-timeframe EUR/USD historical dataset proven",
+      "objective": "Build complete, quality-labelled EUR/USD historical datasets across declared timeframes from the governed Demo source.",
       "delivery_type": "CAPABILITY_DELIVERING",
       "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
         "M5"
       ],
       "entry_conditions": [
-        "M5 is PROVEN and remains valid."
+        "M5 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "EUR/USD M15 end-to-end data slice proven",
+      "to_state": "Multi-timeframe EUR/USD historical dataset proven",
       "scope": [
-        "Retrieve, validate, persist, query, and idempotently reingest real EUR/USD M15 history."
+        "Build complete, quality-labelled EUR/USD historical datasets across declared timeframes from the governed Demo source.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -853,27 +929,28 @@
         "config/runtime.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M6-proof.md"
+        "docs/milestones/M6-proof.md",
+        "tests/milestones/test_m6.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M6-C1",
-          "description": "The capability works on the declared surface: real MT5-to-PostgreSQL EUR/USD M15 data path.",
+          "description": "The capability works on the declared surface: governed multi-timeframe EUR/USD historical dataset path.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M6-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M6-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M6-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -900,7 +977,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "real MT5-to-PostgreSQL EUR/USD M15 data path",
+        "surface": "governed multi-timeframe EUR/USD historical dataset path",
         "capture_command": [
           "bash",
           "scripts/capture_m6_evidence.sh"
@@ -910,44 +987,48 @@
           "scripts/verify_m6_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M6_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed real MT5-to-PostgreSQL EUR/USD M15 data path result containing FOREX_M6_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared governed multi-timeframe EUR/USD historical dataset path result containing FOREX_M6_PROOF_OK."
       ],
       "human_review_required": false,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M7",
-      "title": "Multi-timeframe historical data proven",
-      "objective": "Extend point-in-time-safe ingestion across MN1, W1, D1, H4, H1, M30, M15, M5, and M1.",
-      "delivery_type": "CAPABILITY_DELIVERING",
-      "proof_type": "REAL_SYSTEM_INTEGRATION",
+      "title": "External source qualification proven",
+      "objective": "Qualify macro, calendar, and sentiment candidates for licence, timing, revisions, coverage, retention, and point-in-time suitability before adoption.",
+      "delivery_type": "OPERATIONAL_SAFETY",
+      "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
         "M6"
       ],
       "entry_conditions": [
-        "M6 is PROVEN and remains valid."
+        "M6 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Multi-timeframe historical data proven",
+      "to_state": "External source qualification proven",
       "scope": [
-        "Extend point-in-time-safe ingestion across MN1, W1, D1, H4, H1, M30, M15, M5, and M1."
+        "Qualify macro, calendar, and sentiment candidates for licence, timing, revisions, coverage, retention, and point-in-time suitability before adoption.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -955,27 +1036,28 @@
         "config/runtime.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M7-proof.md"
+        "docs/milestones/M7-proof.md",
+        "tests/milestones/test_m7.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M7-C1",
-          "description": "The capability works on the declared surface: real multi-timeframe MT5 historical data path.",
+          "description": "The capability works on the declared surface: retained source-qualification samples and source-registry decisions.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M7-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M7-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M7-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -1002,7 +1084,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "real multi-timeframe MT5 historical data path",
+        "surface": "retained source-qualification samples and source-registry decisions",
         "capture_command": [
           "bash",
           "scripts/capture_m7_evidence.sh"
@@ -1012,44 +1094,48 @@
           "scripts/verify_m7_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M7_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed real multi-timeframe MT5 historical data path result containing FOREX_M7_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared retained source-qualification samples and source-registry decisions result containing FOREX_M7_PROOF_OK."
       ],
-      "human_review_required": false,
+      "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M8",
-      "title": "Tick and spread collection proven",
-      "objective": "Capture real bid, ask, source timestamps, and spreads with measured limitations.",
+      "title": "US macro vintage adapter proven",
+      "objective": "Retrieve and normalise declared US macro observations using vintage-aware data so replay uses values available at the historical decision time.",
       "delivery_type": "CAPABILITY_DELIVERING",
       "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
         "M7"
       ],
       "entry_conditions": [
-        "M7 is PROVEN and remains valid."
+        "M7 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Tick and spread collection proven",
+      "to_state": "US macro vintage adapter proven",
       "scope": [
-        "Capture real bid, ask, source timestamps, and spreads with measured limitations."
+        "Retrieve and normalise declared US macro observations using vintage-aware data so replay uses values available at the historical decision time.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -1057,27 +1143,28 @@
         "config/runtime.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M8-proof.md"
+        "docs/milestones/M8-proof.md",
+        "tests/milestones/test_m8.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M8-C1",
-          "description": "The capability works on the declared surface: real GOMarketsMU-Demo EUR/USD tick stream.",
+          "description": "The capability works on the declared surface: US macro vintage-data adapter and retained sample.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M8-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M8-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M8-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -1104,7 +1191,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "real GOMarketsMU-Demo EUR/USD tick stream",
+        "surface": "US macro vintage-data adapter and retained sample",
         "capture_command": [
           "bash",
           "scripts/capture_m8_evidence.sh"
@@ -1114,44 +1201,48 @@
           "scripts/verify_m8_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M8_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed real GOMarketsMU-Demo EUR/USD tick stream result containing FOREX_M8_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared US macro vintage-data adapter and retained sample result containing FOREX_M8_PROOF_OK."
       ],
       "human_review_required": false,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M9",
-      "title": "Data-quality blocking proven",
-      "objective": "Detect declared faults and prove invalid or stale data blocks downstream eligibility.",
-      "delivery_type": "OPERATIONAL_SAFETY",
-      "proof_type": "OPERATIONAL_DRILL",
+      "title": "Euro-area macro versioned adapter proven",
+      "objective": "Retrieve and normalise declared Euro-area macro observations with metadata, UTC handling, and revision lineage.",
+      "delivery_type": "CAPABILITY_DELIVERING",
+      "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
         "M8"
       ],
       "entry_conditions": [
-        "M8 is PROVEN and remains valid."
+        "M8 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Data-quality blocking proven",
+      "to_state": "Euro-area macro versioned adapter proven",
       "scope": [
-        "Detect declared faults and prove invalid or stale data blocks downstream eligibility."
+        "Retrieve and normalise declared Euro-area macro observations with metadata, UTC handling, and revision lineage.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -1159,27 +1250,28 @@
         "config/runtime.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M9-proof.md"
+        "docs/milestones/M9-proof.md",
+        "tests/milestones/test_m9.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M9-C1",
-          "description": "The capability works on the declared surface: isolated real-data quality gate with injected faults.",
+          "description": "The capability works on the declared surface: Euro-area macro versioned-data adapter and retained sample.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M9-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M9-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M9-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -1206,7 +1298,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "isolated real-data quality gate with injected faults",
+        "surface": "Euro-area macro versioned-data adapter and retained sample",
         "capture_command": [
           "bash",
           "scripts/capture_m9_evidence.sh"
@@ -1216,44 +1308,48 @@
           "scripts/verify_m9_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M9_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed isolated real-data quality gate with injected faults result containing FOREX_M9_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared Euro-area macro versioned-data adapter and retained sample result containing FOREX_M9_PROOF_OK."
       ],
-      "human_review_required": true,
+      "human_review_required": false,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M10",
-      "title": "Incremental collection and restart safety proven",
-      "objective": "Prove checkpoint recovery, incremental retrieval, deduplication, restart behavior, and logging.",
-      "delivery_type": "OPERATIONAL_SAFETY",
-      "proof_type": "OPERATIONAL_DRILL",
+      "title": "Economic-calendar event lifecycle proven",
+      "objective": "Model historical USD and EUR events with stable IDs, event and release times, forecasts, actuals, revisions, and cancellations.",
+      "delivery_type": "CAPABILITY_DELIVERING",
+      "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
         "M9"
       ],
       "entry_conditions": [
-        "M9 is PROVEN and remains valid."
+        "M9 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Incremental collection and restart safety proven",
+      "to_state": "Economic-calendar event lifecycle proven",
       "scope": [
-        "Prove checkpoint recovery, incremental retrieval, deduplication, restart behavior, and logging."
+        "Model historical USD and EUR events with stable IDs, event and release times, forecasts, actuals, revisions, and cancellations.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -1261,27 +1357,28 @@
         "config/runtime.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M10-proof.md"
+        "docs/milestones/M10-proof.md",
+        "tests/milestones/test_m10.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M10-C1",
-          "description": "The capability works on the declared surface: actual collector restart against the selected data path.",
+          "description": "The capability works on the declared surface: historical economic-calendar adapter and event-lifecycle records.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M10-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M10-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M10-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -1308,7 +1405,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "actual collector restart against the selected data path",
+        "surface": "historical economic-calendar adapter and event-lifecycle records",
         "capture_command": [
           "bash",
           "scripts/capture_m10_evidence.sh"
@@ -1318,71 +1415,76 @@
           "scripts/verify_m10_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M10_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed actual collector restart against the selected data path result containing FOREX_M10_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared historical economic-calendar adapter and event-lifecycle records result containing FOREX_M10_PROOF_OK."
       ],
-      "human_review_required": false,
+      "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M11",
-      "title": "Multi-timeframe context proven",
-      "objective": "Verify hierarchical structural, regime, directional, setup, entry, and execution context.",
+      "title": "Experimental historical sentiment adapter proven",
+      "objective": "Create a licence-aware, attributable historical sentiment prototype that records relevance and uncertainty rather than trading signals.",
       "delivery_type": "CAPABILITY_DELIVERING",
-      "proof_type": "EMPIRICAL_RESEARCH",
+      "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
         "M10"
       ],
       "entry_conditions": [
-        "M10 is PROVEN and remains valid."
+        "M10 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Multi-timeframe context proven",
+      "to_state": "Experimental historical sentiment adapter proven",
       "scope": [
-        "Verify hierarchical structural, regime, directional, setup, entry, and execution context."
+        "Create a licence-aware, attributable historical sentiment prototype that records relevance and uncertainty rather than trading signals.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
         "config/market_data.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M11-proof.md"
+        "docs/milestones/M11-proof.md",
+        "tests/milestones/test_m11.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M11-C1",
-          "description": "The capability works on the declared surface: point-in-time multi-timeframe replay dataset.",
+          "description": "The capability works on the declared surface: permitted historical sentiment adapter and normalised records.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M11-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M11-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M11-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -1409,7 +1511,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "point-in-time multi-timeframe replay dataset",
+        "surface": "permitted historical sentiment adapter and normalised records",
         "capture_command": [
           "bash",
           "scripts/capture_m11_evidence.sh"
@@ -1419,71 +1521,76 @@
           "scripts/verify_m11_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 720,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M11_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed point-in-time multi-timeframe replay dataset result containing FOREX_M11_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared permitted historical sentiment adapter and normalised records result containing FOREX_M11_PROOF_OK."
       ],
-      "human_review_required": false,
+      "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M12",
-      "title": "Feature engine proven",
-      "objective": "Prove a small versioned deterministic feature set on point-in-time data.",
+      "title": "Historical normalisation and quality quarantine proven",
+      "objective": "Normalise all approved source records and quarantine malformed, duplicate, stale, late, missing, or unverifiable observations.",
       "delivery_type": "CAPABILITY_DELIVERING",
-      "proof_type": "EMPIRICAL_RESEARCH",
+      "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
         "M11"
       ],
       "entry_conditions": [
-        "M11 is PROVEN and remains valid."
+        "M11 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Feature engine proven",
+      "to_state": "Historical normalisation and quality quarantine proven",
       "scope": [
-        "Prove a small versioned deterministic feature set on point-in-time data."
+        "Normalise all approved source records and quarantine malformed, duplicate, stale, late, missing, or unverifiable observations.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
         "config/market_data.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M12-proof.md"
+        "docs/milestones/M12-proof.md",
+        "tests/milestones/test_m12.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M12-C1",
-          "description": "The capability works on the declared surface: point-in-time historical replay dataset.",
+          "description": "The capability works on the declared surface: normalisation, quality, and quarantine processing path.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M12-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M12-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M12-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -1510,7 +1617,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "point-in-time historical replay dataset",
+        "surface": "normalisation, quality, and quarantine processing path",
         "capture_command": [
           "bash",
           "scripts/capture_m12_evidence.sh"
@@ -1520,71 +1627,76 @@
           "scripts/verify_m12_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 720,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M12_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed point-in-time historical replay dataset result containing FOREX_M12_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared normalisation, quality, and quarantine processing path result containing FOREX_M12_PROOF_OK."
       ],
       "human_review_required": false,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M13",
-      "title": "Historical replay and no-lookahead proven",
-      "objective": "Reconstruct only information available at a requested timestamp and reject future records.",
+      "title": "Point-in-time alignment and replay proven",
+      "objective": "Construct aligned daily EUR/USD contexts and replay them with a strict UTC information cutoff and no future leakage.",
       "delivery_type": "OPERATIONAL_SAFETY",
       "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
         "M12"
       ],
       "entry_conditions": [
-        "M12 is PROVEN and remains valid."
+        "M12 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Historical replay and no-lookahead proven",
+      "to_state": "Point-in-time alignment and replay proven",
       "scope": [
-        "Reconstruct only information available at a requested timestamp and reject future records."
+        "Construct aligned daily EUR/USD contexts and replay them with a strict UTC information cutoff and no future leakage.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
         "config/market_data.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M13-proof.md"
+        "docs/milestones/M13-proof.md",
+        "tests/milestones/test_m13.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M13-C1",
-          "description": "The capability works on the declared surface: point-in-time replay with planted future records.",
+          "description": "The capability works on the declared surface: point-in-time alignment engine and historical replay environment.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M13-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M13-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M13-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -1611,7 +1723,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "point-in-time replay with planted future records",
+        "surface": "point-in-time alignment engine and historical replay environment",
         "capture_command": [
           "bash",
           "scripts/capture_m13_evidence.sh"
@@ -1621,71 +1733,76 @@
           "scripts/verify_m13_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M13_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed point-in-time replay with planted future records result containing FOREX_M13_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared point-in-time alignment engine and historical replay environment result containing FOREX_M13_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M14",
-      "title": "Deterministic regime engine proven",
-      "objective": "Evaluate versioned deterministic regimes, including UNKNOWN, out of sample.",
-      "delivery_type": "CAPABILITY_DELIVERING",
+      "title": "Deterministic regime and event-window engine proven",
+      "objective": "Classify reproducible market regimes and event windows from point-in-time-safe historical context.",
+      "delivery_type": "RESEARCH_EVALUATION",
       "proof_type": "EMPIRICAL_RESEARCH",
       "dependencies": [
         "M13"
       ],
       "entry_conditions": [
-        "M13 is PROVEN and remains valid."
+        "M13 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Deterministic regime engine proven",
+      "to_state": "Deterministic regime and event-window engine proven",
       "scope": [
-        "Evaluate versioned deterministic regimes, including UNKNOWN, out of sample."
+        "Classify reproducible market regimes and event windows from point-in-time-safe historical context.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
         "config/market_data.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M14-proof.md"
+        "docs/milestones/M14-proof.md",
+        "tests/milestones/test_m14.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M14-C1",
-          "description": "The capability works on the declared surface: out-of-sample point-in-time replay.",
+          "description": "The capability works on the declared surface: deterministic historical regime and event-window engine.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M14-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M14-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M14-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -1712,7 +1829,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "out-of-sample point-in-time replay",
+        "surface": "deterministic historical regime and event-window engine",
         "capture_command": [
           "bash",
           "scripts/capture_m14_evidence.sh"
@@ -1722,71 +1839,76 @@
           "scripts/verify_m14_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 720,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M14_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed out-of-sample point-in-time replay result containing FOREX_M14_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared deterministic historical regime and event-window engine result containing FOREX_M14_PROOF_OK."
       ],
       "human_review_required": false,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M15",
-      "title": "Deterministic strategy evidence proven",
-      "objective": "Produce versioned BUY, SELL, or NO_SIGNAL evidence without execution authority.",
-      "delivery_type": "CAPABILITY_DELIVERING",
+      "title": "Deterministic daily market hypothesis engine proven",
+      "objective": "Generate explainable, non-executing daily EUR/USD hypotheses with confidence, conflicting signals, provenance, and invalidation conditions.",
+      "delivery_type": "RESEARCH_EVALUATION",
       "proof_type": "EMPIRICAL_RESEARCH",
       "dependencies": [
         "M14"
       ],
       "entry_conditions": [
-        "M14 is PROVEN and remains valid."
+        "M14 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Deterministic strategy evidence proven",
+      "to_state": "Deterministic daily market hypothesis engine proven",
       "scope": [
-        "Produce versioned BUY, SELL, or NO_SIGNAL evidence without execution authority."
+        "Generate explainable, non-executing daily EUR/USD hypotheses with confidence, conflicting signals, provenance, and invalidation conditions.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
         "config/market_data.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M15-proof.md"
+        "docs/milestones/M15-proof.md",
+        "tests/milestones/test_m15.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M15-C1",
-          "description": "The capability works on the declared surface: out-of-sample point-in-time strategy replay.",
+          "description": "The capability works on the declared surface: deterministic daily market-hypothesis and ledger workflow.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M15-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M15-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M15-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -1813,7 +1935,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "out-of-sample point-in-time strategy replay",
+        "surface": "deterministic daily market-hypothesis and ledger workflow",
         "capture_command": [
           "bash",
           "scripts/capture_m15_evidence.sh"
@@ -1823,82 +1945,77 @@
           "scripts/verify_m15_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 720,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M15_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed out-of-sample point-in-time strategy replay result containing FOREX_M15_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared deterministic daily market-hypothesis and ledger workflow result containing FOREX_M15_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M16",
-      "title": "Deterministic backtesting and walk-forward baseline proven",
-      "objective": "Establish a realistic-cost, point-in-time, out-of-sample deterministic baseline.",
+      "title": "Historical baseline and walk-forward evaluation proven",
+      "objective": "Evaluate price-only, macro, calendar, and sentiment hypotheses against no-change baselines with pre-declared walk-forward controls.",
       "delivery_type": "RESEARCH_EVALUATION",
       "proof_type": "EMPIRICAL_RESEARCH",
       "dependencies": [
         "M15"
       ],
       "entry_conditions": [
-        "M15 is PROVEN and remains valid."
+        "M15 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Deterministic backtesting and walk-forward baseline proven",
+      "to_state": "Historical baseline and walk-forward evaluation proven",
       "scope": [
-        "Establish a realistic-cost, point-in-time, out-of-sample deterministic baseline."
+        "Evaluate price-only, macro, calendar, and sentiment hypotheses against no-change baselines with pre-declared walk-forward controls.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
         "config/market_data.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M16-proof.md"
+        "docs/milestones/M16-proof.md",
+        "tests/milestones/test_m16.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M16-C1",
-          "description": "The capability works on the declared surface: frozen walk-forward historical evaluation.",
+          "description": "The capability works on the declared surface: reproducible historical walk-forward evaluation environment.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M16-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M16-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M16-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
-        },
-        {
-          "id": "M16-C5",
-          "description": "Minimum sample-adequacy thresholds are governed and predeclared before evaluation; unmet thresholds require an explicit no-demonstrated-edge conclusion.",
-          "kind": "SAFETY"
-        },
-        {
-          "id": "M16-C6",
-          "description": "Results report honest uncertainty, walk-forward and out-of-sample separation, realistic spread/slippage/commission sensitivity, and multiple-testing or selection-bias controls.",
-          "kind": "VERIFICATION"
         }
       ],
       "verification_commands": [
@@ -1924,7 +2041,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "frozen walk-forward historical evaluation",
+        "surface": "reproducible historical walk-forward evaluation environment",
         "capture_command": [
           "bash",
           "scripts/capture_m16_evidence.sh"
@@ -1934,45 +2051,49 @@
           "scripts/verify_m16_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 720,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M16_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed frozen walk-forward historical evaluation result containing FOREX_M16_PROOF_OK.",
-        "The predeclared sample-adequacy policy, achieved sample, uncertainty measures, cost-stress results, selection-bias controls, and an explicit edge/no-demonstrated-edge conclusion."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared reproducible historical walk-forward evaluation environment result containing FOREX_M16_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. After M16 proof and before M17 begins, conduct the short MVP mid-build review: confirm truthful lineage and no-lookahead, understandable user flow, intact safety limits, and remove or defer non-essential complexity. It is not a separate architecture board or execution approval. Historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M17",
-      "title": "Agent context contract proven",
-      "objective": "Prove a typed, read-only, point-in-time-safe context for the Forex Analyst Agent.",
+      "title": "Non-executing agent context contract proven",
+      "objective": "Define the bounded historical context available to research agents and structurally exclude future, account, and order information.",
       "delivery_type": "OPERATIONAL_SAFETY",
       "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
         "M16"
       ],
       "entry_conditions": [
-        "M16 is PROVEN and remains valid."
+        "M16 is PROVEN and remains valid.",
+        "The short MVP mid-build review has been recorded after M16 proof; it confirms data truthfulness, user-flow clarity, safety limits, and removal or deferral of non-essential complexity.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Agent context contract proven",
+      "to_state": "Non-executing agent context contract proven",
       "scope": [
-        "Prove a typed, read-only, point-in-time-safe context for the Forex Analyst Agent."
+        "Define the bounded historical context available to research agents and structurally exclude future, account, and order information.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -1980,27 +2101,28 @@
         "config/models.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M17-proof.md"
+        "docs/milestones/M17-proof.md",
+        "tests/milestones/test_m17.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M17-C1",
-          "description": "The capability works on the declared surface: replay context containing planted unavailable future data.",
+          "description": "The capability works on the declared surface: offline non-executing agent-context contract.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M17-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M17-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M17-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -2027,7 +2149,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "replay context containing planted unavailable future data",
+        "surface": "offline non-executing agent-context contract",
         "capture_command": [
           "bash",
           "scripts/capture_m17_evidence.sh"
@@ -2037,44 +2159,48 @@
           "scripts/verify_m17_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M17_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed replay context containing planted unavailable future data result containing FOREX_M17_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared offline non-executing agent-context contract result containing FOREX_M17_PROOF_OK."
       ],
-      "human_review_required": true,
+      "human_review_required": false,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M18",
-      "title": "Forex Analyst Agent shadow mode proven",
-      "objective": "Run constrained typed shadow recommendations with no trade authority.",
+      "title": "Controlled Ollama sentiment assistance proven",
+      "objective": "Run a fixed-version, schema-constrained Ollama task on permitted historical inputs with deterministic validation and abstention.",
       "delivery_type": "CAPABILITY_DELIVERING",
       "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
         "M17"
       ],
       "entry_conditions": [
-        "M17 is PROVEN and remains valid."
+        "M17 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Forex Analyst Agent shadow mode proven",
+      "to_state": "Controlled Ollama sentiment assistance proven",
       "scope": [
-        "Run constrained typed shadow recommendations with no trade authority."
+        "Run a fixed-version, schema-constrained Ollama task on permitted historical inputs with deterministic validation and abstention.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -2082,27 +2208,28 @@
         "config/models.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M18-proof.md"
+        "docs/milestones/M18-proof.md",
+        "tests/milestones/test_m18.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M18-C1",
-          "description": "The capability works on the declared surface: actual configured model provider in SHADOW mode.",
+          "description": "The capability works on the declared surface: offline Ollama sentiment-assistance validation workflow.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M18-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M18-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M18-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -2129,7 +2256,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "actual configured model provider in SHADOW mode",
+        "surface": "offline Ollama sentiment-assistance validation workflow",
         "capture_command": [
           "bash",
           "scripts/capture_m18_evidence.sh"
@@ -2139,44 +2266,48 @@
           "scripts/verify_m18_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M18_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed actual configured model provider in SHADOW mode result containing FOREX_M18_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared offline Ollama sentiment-assistance validation workflow result containing FOREX_M18_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M19",
-      "title": "Agent decision persistence and controlled memory proven",
-      "objective": "Persist decision provenance while preventing future-outcome leakage.",
+      "title": "Decision and model lineage persistence proven",
+      "objective": "Persist hypotheses, model/prompt versions, inputs, outputs, hashes, and validation results for reproducible replay.",
       "delivery_type": "OPERATIONAL_SAFETY",
       "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
         "M18"
       ],
       "entry_conditions": [
-        "M18 is PROVEN and remains valid."
+        "M18 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Agent decision persistence and controlled memory proven",
+      "to_state": "Decision and model lineage persistence proven",
       "scope": [
-        "Persist decision provenance while preventing future-outcome leakage."
+        "Persist hypotheses, model/prompt versions, inputs, outputs, hashes, and validation results for reproducible replay.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -2184,27 +2315,28 @@
         "config/models.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M19-proof.md"
+        "docs/milestones/M19-proof.md",
+        "tests/milestones/test_m19.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M19-C1",
-          "description": "The capability works on the declared surface: actual decision persistence with leakage negative controls.",
+          "description": "The capability works on the declared surface: offline decision and model-lineage persistence workflow.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M19-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M19-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M19-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -2231,7 +2363,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "actual decision persistence with leakage negative controls",
+        "surface": "offline decision and model-lineage persistence workflow",
         "capture_command": [
           "bash",
           "scripts/capture_m19_evidence.sh"
@@ -2241,44 +2373,48 @@
           "scripts/verify_m19_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M19_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed actual decision persistence with leakage negative controls result containing FOREX_M19_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared offline decision and model-lineage persistence workflow result containing FOREX_M19_PROOF_OK."
       ],
-      "human_review_required": true,
+      "human_review_required": false,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M20",
-      "title": "Offline agent evaluation proven",
-      "objective": "Compare a frozen deterministic baseline, shadow recommendations, and subsequent outcomes.",
+      "title": "Ollama-assisted evaluation proven",
+      "objective": "Compare validated Ollama-assisted sentiment experiments with deterministic and price-only baselines under pre-declared controls.",
       "delivery_type": "RESEARCH_EVALUATION",
       "proof_type": "EMPIRICAL_RESEARCH",
       "dependencies": [
         "M19"
       ],
       "entry_conditions": [
-        "M19 is PROVEN and remains valid."
+        "M19 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Offline agent evaluation proven",
+      "to_state": "Ollama-assisted evaluation proven",
       "scope": [
-        "Compare a frozen deterministic baseline, shadow recommendations, and subsequent outcomes."
+        "Compare validated Ollama-assisted sentiment experiments with deterministic and price-only baselines under pre-declared controls.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -2286,27 +2422,28 @@
         "config/models.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M20-proof.md"
+        "docs/milestones/M20-proof.md",
+        "tests/milestones/test_m20.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M20-C1",
-          "description": "The capability works on the declared surface: frozen out-of-sample agent evaluation dataset.",
+          "description": "The capability works on the declared surface: offline Ollama-assisted historical evaluation environment.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M20-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M20-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M20-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -2333,7 +2470,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "frozen out-of-sample agent evaluation dataset",
+        "surface": "offline Ollama-assisted historical evaluation environment",
         "capture_command": [
           "bash",
           "scripts/capture_m20_evidence.sh"
@@ -2343,44 +2480,48 @@
           "scripts/verify_m20_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 720,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M20_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed frozen out-of-sample agent evaluation dataset result containing FOREX_M20_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared offline Ollama-assisted historical evaluation environment result containing FOREX_M20_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M21",
-      "title": "Economic-event context proven",
-      "objective": "Ingest versioned US and Eurozone events while deterministic blackout rules remain authoritative.",
-      "delivery_type": "CAPABILITY_DELIVERING",
-      "proof_type": "REAL_SYSTEM_INTEGRATION",
+      "title": "Economic-event context quality proven",
+      "objective": "Prove event timing, forecast availability, revision, cancellation, DST, and missing-data controls for historical decision context.",
+      "delivery_type": "OPERATIONAL_SAFETY",
+      "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
         "M20"
       ],
       "entry_conditions": [
-        "M20 is PROVEN and remains valid."
+        "M20 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Economic-event context proven",
+      "to_state": "Economic-event context quality proven",
       "scope": [
-        "Ingest versioned US and Eurozone events while deterministic blackout rules remain authoritative."
+        "Prove event timing, forecast availability, revision, cancellation, DST, and missing-data controls for historical decision context.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -2388,27 +2529,28 @@
         "config/models.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M21-proof.md"
+        "docs/milestones/M21-proof.md",
+        "tests/milestones/test_m21.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M21-C1",
-          "description": "The capability works on the declared surface: actual versioned economic-event source and replay.",
+          "description": "The capability works on the declared surface: historical economic-event quality-control pipeline.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M21-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M21-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M21-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -2435,7 +2577,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "actual versioned economic-event source and replay",
+        "surface": "historical economic-event quality-control pipeline",
         "capture_command": [
           "bash",
           "scripts/capture_m21_evidence.sh"
@@ -2445,44 +2587,48 @@
           "scripts/verify_m21_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M21_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed actual versioned economic-event source and replay result containing FOREX_M21_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared historical economic-event quality-control pipeline result containing FOREX_M21_PROOF_OK."
       ],
-      "human_review_required": true,
+      "human_review_required": false,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M22",
-      "title": "Deterministic Risk Engine proven",
-      "objective": "Exhaustively prove fail-closed deterministic risk controls and agent non-authority.",
+      "title": "Deterministic simulated risk engine proven",
+      "objective": "Apply deterministic risk limits to non-executing simulated intents and record refusal reasons.",
       "delivery_type": "OPERATIONAL_SAFETY",
       "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
         "M21"
       ],
       "entry_conditions": [
-        "M21 is PROVEN and remains valid."
+        "M21 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Deterministic Risk Engine proven",
+      "to_state": "Deterministic simulated risk engine proven",
       "scope": [
-        "Exhaustively prove fail-closed deterministic risk controls and agent non-authority."
+        "Apply deterministic risk limits to non-executing simulated intents and record refusal reasons.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -2490,27 +2636,28 @@
         "config/execution.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M22-proof.md"
+        "docs/milestones/M22-proof.md",
+        "tests/milestones/test_m22.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M22-C1",
-          "description": "The capability works on the declared surface: isolated deterministic risk decision harness.",
+          "description": "The capability works on the declared surface: offline simulated risk-engine evaluation.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M22-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M22-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M22-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -2537,7 +2684,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "isolated deterministic risk decision harness",
+        "surface": "offline simulated risk-engine evaluation",
         "capture_command": [
           "bash",
           "scripts/capture_m22_evidence.sh"
@@ -2547,44 +2694,48 @@
           "scripts/verify_m22_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M22_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed isolated deterministic risk decision harness result containing FOREX_M22_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared offline simulated risk-engine evaluation result containing FOREX_M22_PROOF_OK."
       ],
-      "human_review_required": true,
+      "human_review_required": false,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M23",
-      "title": "Position sizing proven",
-      "objective": "Validate risk-based sizing against real symbol properties and broker volume constraints.",
+      "title": "Simulated position sizing proven",
+      "objective": "Calculate bounded simulated position sizes from approved historical inputs without an order capability.",
       "delivery_type": "OPERATIONAL_SAFETY",
-      "proof_type": "REAL_SYSTEM_INTEGRATION",
+      "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
         "M22"
       ],
       "entry_conditions": [
-        "M22 is PROVEN and remains valid."
+        "M22 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Position sizing proven",
+      "to_state": "Simulated position sizing proven",
       "scope": [
-        "Validate risk-based sizing against real symbol properties and broker volume constraints."
+        "Calculate bounded simulated position sizes from approved historical inputs without an order capability.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -2592,27 +2743,28 @@
         "config/execution.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M23-proof.md"
+        "docs/milestones/M23-proof.md",
+        "tests/milestones/test_m23.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M23-C1",
-          "description": "The capability works on the declared surface: real GOMarketsMU-Demo symbol constraints plus independent calculations.",
+          "description": "The capability works on the declared surface: offline simulated position-sizing evaluation.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M23-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M23-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M23-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -2639,7 +2791,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "real GOMarketsMU-Demo symbol constraints plus independent calculations",
+        "surface": "offline simulated position-sizing evaluation",
         "capture_command": [
           "bash",
           "scripts/capture_m23_evidence.sh"
@@ -2649,44 +2801,48 @@
           "scripts/verify_m23_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M23_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed real GOMarketsMU-Demo symbol constraints plus independent calculations result containing FOREX_M23_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared offline simulated position-sizing evaluation result containing FOREX_M23_PROOF_OK."
       ],
-      "human_review_required": true,
+      "human_review_required": false,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M24",
-      "title": "Trade intent and decision orchestration proven",
-      "objective": "Create a durable intent lifecycle linking evidence, advice, and risk without execution.",
-      "delivery_type": "CAPABILITY_DELIVERING",
+      "title": "Simulated intent orchestration proven",
+      "objective": "Produce auditable simulated intents and NO_TRADE outcomes without execution authority.",
+      "delivery_type": "OPERATIONAL_SAFETY",
       "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
         "M23"
       ],
       "entry_conditions": [
-        "M23 is PROVEN and remains valid."
+        "M23 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Trade intent and decision orchestration proven",
+      "to_state": "Simulated intent orchestration proven",
       "scope": [
-        "Create a durable intent lifecycle linking evidence, advice, and risk without execution."
+        "Produce auditable simulated intents and NO_TRADE outcomes without execution authority.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -2694,27 +2850,28 @@
         "config/execution.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M24-proof.md"
+        "docs/milestones/M24-proof.md",
+        "tests/milestones/test_m24.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M24-C1",
-          "description": "The capability works on the declared surface: durable isolated trade-intent workflow.",
+          "description": "The capability works on the declared surface: offline simulated intent-orchestration workflow.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M24-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M24-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M24-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -2741,7 +2898,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "durable isolated trade-intent workflow",
+        "surface": "offline simulated intent-orchestration workflow",
         "capture_command": [
           "bash",
           "scripts/capture_m24_evidence.sh"
@@ -2751,44 +2908,48 @@
           "scripts/verify_m24_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M24_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed durable isolated trade-intent workflow result containing FOREX_M24_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared offline simulated intent-orchestration workflow result containing FOREX_M24_PROOF_OK."
       ],
-      "human_review_required": true,
+      "human_review_required": false,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M25",
       "title": "Human approval workflow proven",
-      "objective": "Bind explicit, expiring human approval to one current trade intent and fail closed.",
+      "objective": "Require explicit, scoped, expiring human approval before any future Demo execution path may proceed.",
       "delivery_type": "OPERATIONAL_SAFETY",
       "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
         "M24"
       ],
       "entry_conditions": [
-        "M24 is PROVEN and remains valid."
+        "M24 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
       "to_state": "Human approval workflow proven",
       "scope": [
-        "Bind explicit, expiring human approval to one current trade intent and fail closed."
+        "Require explicit, scoped, expiring human approval before any future Demo execution path may proceed.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -2796,32 +2957,28 @@
         "config/execution.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M25-proof.md"
+        "docs/milestones/M25-proof.md",
+        "tests/milestones/test_m25.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M25-C1",
-          "description": "The capability works on the declared surface: operator-reviewed demo approval workflow.",
+          "description": "The capability works on the declared surface: offline human-approval workflow.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M25-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M25-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M25-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
-          "kind": "SAFETY"
-        },
-        {
-          "id": "M25-C5",
-          "description": "Approval is bound to an authenticated or cryptographically signed operator artifact; a caller-supplied identity string alone cannot authorise consequential demo execution.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -2848,7 +3005,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "operator-reviewed demo approval workflow",
+        "surface": "offline human-approval workflow",
         "capture_command": [
           "bash",
           "scripts/capture_m25_evidence.sh"
@@ -2858,45 +3015,48 @@
           "scripts/verify_m25_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M25_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed operator-reviewed demo approval workflow result containing FOREX_M25_PROOF_OK.",
-        "A verifiable operator identity or signature artifact bound to the reviewed intent, evidence, revision, configuration, decision and timestamp."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared offline human-approval workflow result containing FOREX_M25_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M26",
-      "title": "Execution revalidation proven",
-      "objective": "After approval, recheck every market, account, risk, freshness, and idempotency condition.",
+      "title": "Offline execution revalidation model proven",
+      "objective": "Model and test pre-execution freshness, spread, risk, approval, and market-state revalidation without market order access.",
       "delivery_type": "OPERATIONAL_SAFETY",
       "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
         "M25"
       ],
       "entry_conditions": [
-        "M25 is PROVEN and remains valid."
+        "M25 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Execution revalidation proven",
+      "to_state": "Offline execution revalidation model proven",
       "scope": [
-        "After approval, recheck every market, account, risk, freshness, and idempotency condition."
+        "Model and test pre-execution freshness, spread, risk, approval, and market-state revalidation without market order access.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -2904,27 +3064,28 @@
         "config/execution.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M26-proof.md"
+        "docs/milestones/M26-proof.md",
+        "tests/milestones/test_m26.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M26-C1",
-          "description": "The capability works on the declared surface: isolated post-approval revalidation drill.",
+          "description": "The capability works on the declared surface: offline execution-revalidation evaluation workflow.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M26-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M26-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M26-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -2951,7 +3112,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "isolated post-approval revalidation drill",
+        "surface": "offline execution-revalidation evaluation workflow",
         "capture_command": [
           "bash",
           "scripts/capture_m26_evidence.sh"
@@ -2961,44 +3122,48 @@
           "scripts/verify_m26_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 168,
         "success_markers": [
           "FOREX_M26_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed isolated post-approval revalidation drill result containing FOREX_M26_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared offline execution-revalidation evaluation workflow result containing FOREX_M26_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M27",
-      "title": "MT5 demo execution proven",
-      "objective": "Add broker-verified idempotent operations only for GOMarketsMU-Demo after approval.",
+      "title": "Fresh real-time Demo data path proven",
+      "objective": "When the Demo market is active, prove a fresh EUR/USD tick through the fixed read-only GOMarketsMU-Demo probe.",
       "delivery_type": "CAPABILITY_DELIVERING",
       "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
         "M26"
       ],
       "entry_conditions": [
-        "M26 is PROVEN and remains valid."
+        "M26 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "MT5 demo execution proven",
+      "to_state": "Fresh real-time Demo data path proven",
       "scope": [
-        "Add broker-verified idempotent operations only for GOMarketsMU-Demo after approval."
+        "When the Demo market is active, prove a fresh EUR/USD tick through the fixed read-only GOMarketsMU-Demo probe.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -3007,33 +3172,29 @@
         "config/agent.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M27-proof.md"
+        "docs/milestones/M27-proof.md",
+        "tests/milestones/test_m27.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M27-C1",
-          "description": "The capability works on the declared surface: installed MT5 terminal connected to GOMarketsMU-Demo.",
+          "description": "The capability works on the declared surface: installed Windows MT5 terminal on GOMarketsMU-Demo with a fresh EUR/USD tick.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M27-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M27-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M27-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
-        },
-        {
-          "id": "M27-C5",
-          "description": "Demo-execution evidence follows SELF_ATTESTED_INTEGRITY and binds the command, environment, revision, configuration, artifact digest, timestamps, and exit status for human and Triad review.",
-          "kind": "REAL_WORLD_PROOF"
         }
       ],
       "verification_commands": [
@@ -3059,7 +3220,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "installed MT5 terminal connected to GOMarketsMU-Demo",
+        "surface": "installed Windows MT5 terminal on GOMarketsMU-Demo with a fresh EUR/USD tick",
         "capture_command": [
           "bash",
           "scripts/capture_m27_evidence.sh"
@@ -3075,39 +3236,42 @@
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed installed MT5 terminal connected to GOMarketsMU-Demo result containing FOREX_M27_PROOF_OK.",
-        "A SELF_ATTESTED_INTEGRITY statement identifying the command, environment, revision, configuration, artifact digest, timestamps, exit status, and its limitation of not being externally witnessed."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared installed Windows MT5 terminal on GOMarketsMU-Demo with a fresh EUR/USD tick result containing FOREX_M27_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M28",
-      "title": "Position monitoring and reconciliation proven",
-      "objective": "Use MT5 broker state as authority during startup and ongoing reconciliation.",
-      "delivery_type": "OPERATIONAL_SAFETY",
-      "proof_type": "OPERATIONAL_DRILL",
+      "title": "Real-time Demo tick and spread collection proven",
+      "objective": "Collect and validate fresh Demo ticks, spreads, and broker-condition observations without an order.",
+      "delivery_type": "CAPABILITY_DELIVERING",
+      "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
         "M27"
       ],
       "entry_conditions": [
-        "M27 is PROVEN and remains valid."
+        "M27 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Position monitoring and reconciliation proven",
+      "to_state": "Real-time Demo tick and spread collection proven",
       "scope": [
-        "Use MT5 broker state as authority during startup and ongoing reconciliation."
+        "Collect and validate fresh Demo ticks, spreads, and broker-condition observations without an order.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -3116,27 +3280,28 @@
         "config/agent.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M28-proof.md"
+        "docs/milestones/M28-proof.md",
+        "tests/milestones/test_m28.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M28-C1",
-          "description": "The capability works on the declared surface: real GOMarketsMU-Demo position state and isolated restart.",
+          "description": "The capability works on the declared surface: real-time GOMarketsMU-Demo tick, spread, and broker-condition collection path.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M28-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M28-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M28-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -3163,7 +3328,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "real GOMarketsMU-Demo position state and isolated restart",
+        "surface": "real-time GOMarketsMU-Demo tick, spread, and broker-condition collection path",
         "capture_command": [
           "bash",
           "scripts/capture_m28_evidence.sh"
@@ -3179,38 +3344,42 @@
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed real GOMarketsMU-Demo position state and isolated restart result containing FOREX_M28_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared real-time GOMarketsMU-Demo tick, spread, and broker-condition collection path result containing FOREX_M28_PROOF_OK."
       ],
-      "human_review_required": true,
+      "human_review_required": false,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M29",
-      "title": "End-to-end agentic demo workflow proven",
-      "objective": "Prove the complete approved demo path from real data through journal and reconciliation.",
-      "delivery_type": "CAPABILITY_DELIVERING",
-      "proof_type": "REAL_SYSTEM_INTEGRATION",
+      "title": "Real-time Demo recovery safety proven",
+      "objective": "Prove interruption, outage, restart, and idempotent collection recovery against fresh Demo data without an order.",
+      "delivery_type": "OPERATIONAL_SAFETY",
+      "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
         "M28"
       ],
       "entry_conditions": [
-        "M28 is PROVEN and remains valid."
+        "M28 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "End-to-end agentic demo workflow proven",
+      "to_state": "Real-time Demo recovery safety proven",
       "scope": [
-        "Prove the complete approved demo path from real data through journal and reconciliation."
+        "Prove interruption, outage, restart, and idempotent collection recovery against fresh Demo data without an order.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -3219,27 +3388,28 @@
         "config/agent.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M29-proof.md"
+        "docs/milestones/M29-proof.md",
+        "tests/milestones/test_m29.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M29-C1",
-          "description": "The capability works on the declared surface: complete real GOMarketsMU-Demo workflow.",
+          "description": "The capability works on the declared surface: real-time GOMarketsMU-Demo collection and recovery workflow.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M29-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M29-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M29-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
         }
       ],
@@ -3266,7 +3436,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "complete real GOMarketsMU-Demo workflow",
+        "surface": "real-time GOMarketsMU-Demo collection and recovery workflow",
         "capture_command": [
           "bash",
           "scripts/capture_m29_evidence.sh"
@@ -3282,38 +3452,42 @@
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed complete real GOMarketsMU-Demo workflow result containing FOREX_M29_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared real-time GOMarketsMU-Demo collection and recovery workflow result containing FOREX_M29_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M30",
-      "title": "Forward demo evaluation completed",
-      "objective": "Operate under a predeclared observation policy and report reliability, safety, failures, and outcomes.",
-      "delivery_type": "RESEARCH_EVALUATION",
-      "proof_type": "EMPIRICAL_RESEARCH",
+      "title": "Controlled MT5 Demo execution and reconciliation proven",
+      "objective": "Only after all prior gates, prove a human-approved GOMarketsMU-Demo order and its complete reconciliation.",
+      "delivery_type": "CAPABILITY_DELIVERING",
+      "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
         "M29"
       ],
       "entry_conditions": [
-        "M29 is PROVEN and remains valid."
+        "M29 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Forward demo evaluation completed",
+      "to_state": "Controlled MT5 Demo execution and reconciliation proven",
       "scope": [
-        "Operate under a predeclared observation policy and report reliability, safety, failures, and outcomes."
+        "Only after all prior gates, prove a human-approved GOMarketsMU-Demo order and its complete reconciliation.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -3322,38 +3496,29 @@
         "config/agent.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M30-proof.md"
+        "docs/milestones/M30-proof.md",
+        "tests/milestones/test_m30.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M30-C1",
-          "description": "The capability works on the declared surface: time-bounded forward GOMarketsMU-Demo observation.",
+          "description": "The capability works on the declared surface: GOMarketsMU-Demo execution and reconciliation surface.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M30-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M30-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M30-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
-        },
-        {
-          "id": "M30-C5",
-          "description": "The forward-demo duration and minimum observation thresholds are governed and predeclared; inadequate samples must be reported as inconclusive with no demonstrated edge.",
-          "kind": "SAFETY"
-        },
-        {
-          "id": "M30-C6",
-          "description": "Forward results report uncertainty and sensitivity to observed spreads, slippage and commissions without changing the evaluation policy after outcomes are seen.",
-          "kind": "VERIFICATION"
         }
       ],
       "verification_commands": [
@@ -3379,7 +3544,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "time-bounded forward GOMarketsMU-Demo observation",
+        "surface": "GOMarketsMU-Demo execution and reconciliation surface",
         "capture_command": [
           "bash",
           "scripts/capture_m30_evidence.sh"
@@ -3389,45 +3554,48 @@
           "scripts/verify_m30_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 720,
+        "freshness_hours": 24,
         "success_markers": [
           "FOREX_M30_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed time-bounded forward GOMarketsMU-Demo observation result containing FOREX_M30_PROOF_OK.",
-        "The frozen observation policy, achieved duration and sample, uncertainty measures, realised-cost sensitivity, deviations, and explicit conclusive/inconclusive status."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared GOMarketsMU-Demo execution and reconciliation surface result containing FOREX_M30_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M31",
-      "title": "Agent-versus-baseline analysis completed",
-      "objective": "Compare expectancy, drawdown, WAIT behavior, regimes, sessions, and persistence.",
+      "title": "End-to-end Demo workflow and baseline comparison completed",
+      "objective": "Evaluate controlled Demo workflow outcomes against pre-declared historical baselines without live access.",
       "delivery_type": "RESEARCH_EVALUATION",
       "proof_type": "EMPIRICAL_RESEARCH",
       "dependencies": [
         "M30"
       ],
       "entry_conditions": [
-        "M30 is PROVEN and remains valid."
+        "M30 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Agent-versus-baseline analysis completed",
+      "to_state": "End-to-end Demo workflow and baseline comparison completed",
       "scope": [
-        "Compare expectancy, drawdown, WAIT behavior, regimes, sessions, and persistence."
+        "Evaluate controlled Demo workflow outcomes against pre-declared historical baselines without live access.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -3436,38 +3604,29 @@
         "config/agent.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M31-proof.md"
+        "docs/milestones/M31-proof.md",
+        "tests/milestones/test_m31.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M31-C1",
-          "description": "The capability works on the declared surface: frozen forward-demo and out-of-sample comparison dataset.",
+          "description": "The capability works on the declared surface: controlled GOMarketsMU-Demo workflow evaluation.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M31-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M31-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M31-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
           "kind": "SAFETY"
-        },
-        {
-          "id": "M31-C5",
-          "description": "Agent-versus-baseline comparison uses predeclared sample-adequacy and uncertainty requirements and reports no demonstrated edge whenever they are unmet.",
-          "kind": "SAFETY"
-        },
-        {
-          "id": "M31-C6",
-          "description": "The comparison retains out-of-sample separation and reports cost sensitivity, confidence or equivalent uncertainty, multiple-testing controls, and selection limitations.",
-          "kind": "VERIFICATION"
         }
       ],
       "verification_commands": [
@@ -3493,7 +3652,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "frozen forward-demo and out-of-sample comparison dataset",
+        "surface": "controlled GOMarketsMU-Demo workflow evaluation",
         "capture_command": [
           "bash",
           "scripts/capture_m31_evidence.sh"
@@ -3503,45 +3662,49 @@
           "scripts/verify_m31_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 720,
+        "freshness_hours": 24,
         "success_markers": [
           "FOREX_M31_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed frozen forward-demo and out-of-sample comparison dataset result containing FOREX_M31_PROOF_OK.",
-        "The predeclared comparison policy, achieved sample, uncertainty measures, realistic-cost sensitivity, multiplicity controls, limitations, and explicit edge/no-demonstrated-edge conclusion."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared controlled GOMarketsMU-Demo workflow evaluation result containing FOREX_M31_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M32",
-      "title": "Live-readiness assessment completed",
-      "objective": "Produce a formal human-reviewed assessment without enabling or implementing live trading.",
+      "title": "Forward Demo evaluation and live-readiness assessment completed",
+      "objective": "Assess retained forward Demo evidence and document whether further live-trading development should be considered; this grants no live authority.",
       "delivery_type": "RESEARCH_EVALUATION",
       "proof_type": "EMPIRICAL_RESEARCH",
       "dependencies": [
         "M31"
       ],
       "entry_conditions": [
-        "M31 is PROVEN and remains valid."
+        "M31 is PROVEN and remains valid.",
+        "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Live-readiness assessment completed",
+      "to_state": "Forward Demo evaluation and live-readiness assessment completed",
       "scope": [
-        "Produce a formal human-reviewed assessment without enabling or implementing live trading."
+        "Assess retained forward Demo evidence and document whether further live-trading development should be considered; this grants no live authority.",
+        "Perform the short final MVP quality review: confirm the human-operated Demo workflow is safe, observable, and explainable; remove non-essential components and record live-readiness gaps.",
+        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
+        "Generic MT5, shell, or source-download command surfaces.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -3550,27 +3713,28 @@
         "config/agent.yaml"
       ],
       "expected_artifacts": [
-        "docs/milestones/M32-proof.md"
+        "docs/milestones/M32-proof.md",
+        "tests/milestones/test_m32.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M32-C1",
-          "description": "The capability works on the declared surface: human review of retained technical and empirical evidence.",
+          "description": "The capability works on the declared surface: retained GOMarketsMU-Demo forward-evaluation evidence and live-readiness assessment.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M32-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M32-C3",
-          "description": "Fresh independent real-world proof matches the Git revision and configuration fingerprint.",
+          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M32-C4",
-          "description": "Safety boundaries hold with no unresolved critical safety, integrity, or lookahead issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue; the final MVP quality review confirms safe, observable, explainable human-operated Demo use and grants no live authority.",
           "kind": "SAFETY"
         }
       ],
@@ -3597,7 +3761,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "human review of retained technical and empirical evidence",
+        "surface": "retained GOMarketsMU-Demo forward-evaluation evidence and live-readiness assessment",
         "capture_command": [
           "bash",
           "scripts/capture_m32_evidence.sh"
@@ -3607,24 +3771,94 @@
           "scripts/verify_m32_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 720,
+        "freshness_hours": 24,
         "success_markers": [
           "FOREX_M32_PROOF_OK"
         ]
       },
       "evidence_requirements": [
-        "Raw command or operation output with exit status and capture timestamps.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, and SHA-256 artifact hashes.",
-        "A human-observable summary of the observed human review of retained technical and empirical evidence result containing FOREX_M32_PROOF_OK."
+        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
+        "A human-observable summary of the declared retained GOMarketsMU-Demo forward-evaluation evidence and live-readiness assessment result containing FOREX_M32_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, or governed configuration change.",
-        "Evidence exceeding its declared freshness window."
+        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
+        "Evidence exceeding its declared freshness window.",
+        "A point-in-time, provenance, or safety-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "target_date is an editable forecast only; proven_at is the actual completion time."
+      "notes": "Three-phase historical-first roadmap. M32 includes the short final MVP quality review; it grants no live-trading authority. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
+    }
+  ],
+  "roadmap_phases": [
+    {
+      "id": "PHASE_1_HISTORICAL_FOUNDATION",
+      "title": "Historical data foundation and deterministic research",
+      "milestone_ids": [
+        "M0",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
+        "M7",
+        "M8",
+        "M9",
+        "M10",
+        "M11",
+        "M12",
+        "M13",
+        "M14",
+        "M15",
+        "M16"
+      ],
+      "purpose": "Use authenticated, closed MT5 Demo history to build the data foundation, reproducible research pipeline, no-lookahead replay, and deterministic baseline while markets are closed.",
+      "constraints": [
+        "Historical data is not real-time data and cannot prove tick freshness, current spreads, restart behaviour under market activity, or execution.",
+        "No live trading, GOMarketsMU-Live access, agent execution authority, or order surface."
+      ]
+    },
+    {
+      "id": "PHASE_2_OFFLINE_DECISION_SAFETY",
+      "title": "Offline decision, risk, and approval controls",
+      "milestone_ids": [
+        "M17",
+        "M18",
+        "M19",
+        "M20",
+        "M21",
+        "M22",
+        "M23",
+        "M24",
+        "M25",
+        "M26"
+      ],
+      "purpose": "Build and test non-executing agent context, evaluation, risk, sizing, intent, approval, and revalidation controls against historical replay.",
+      "constraints": [
+        "Every result is simulated or shadow-only; a simulated intent is not an order.",
+        "No live trading, GOMarketsMU-Live access, agent execution authority, or order surface."
+      ]
+    },
+    {
+      "id": "PHASE_3_REALTIME_DEMO_OPERATIONS",
+      "title": "Real-time Demo operational validation",
+      "milestone_ids": [
+        "M27",
+        "M28",
+        "M29",
+        "M30",
+        "M31",
+        "M32"
+      ],
+      "purpose": "When the Demo market is active, validate fresh data, collection safety, controlled human-approved Demo execution, reconciliation, and forward evaluation before any live-readiness assessment.",
+      "constraints": [
+        "Use GOMarketsMU-Demo only; GOMarketsMU-Live remains prohibited.",
+        "No order capability before M27; actual Demo execution is separately gated at M30.",
+        "M32 is an assessment only and does not authorize live trading."
+      ]
     }
   ]
 }

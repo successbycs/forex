@@ -51,10 +51,39 @@ def test_mt5_status_is_process_only():
     assert "order_send" not in command
 
 
-def test_requirements_prohibit_trading_and_market_data_access():
+def test_m1_mt5_probe_is_fixed_and_read_only():
+    command = t480_adapter.OPERATIONS["m1_mt5_demo_probe"].powershell_command or ""
+    assert "MetaTrader5" not in command  # encoded fixed script; no operator-provided Python.
+    encoded = command.split("FromBase64String('", 1)[1].split("')", 1)[0]
+    probe = __import__("base64").b64decode(encoded).decode("utf-8")
+    assert "copy_rates_from_pos" in probe
+    assert "TIMEFRAME_H1" in probe
+    assert "BAR_COUNT = 720" in probe
+    assert "symbol_info_tick" not in probe
+    assert "order_send" not in probe
+    assert "OEM" not in command
+    assert "mt5.local.json" in command
+    assert "python_path" in command
+    assert "terminal_path" in command
+    assert "--command" not in t480_adapter.parser().format_help()
+    assert t480_adapter.OPERATIONS["m1_mt5_demo_probe"].approval_required is False
+
+
+def test_m1_verification_marker_is_reserved_for_a_successful_fixed_probe(monkeypatch):
+    monkeypatch.setattr(t480_adapter, "require_dependency", lambda _: None)
+    monkeypatch.setattr(t480_adapter, "append_execution_log", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        t480_adapter,
+        "execute",
+        lambda operation_id: {"operation": operation_id, "ok": True, "result": {}},
+    )
+    assert t480_adapter.main(["verify", "--operation", "m1_mt5_demo_probe"]) == 0
+
+
+def test_requirements_prohibit_trading_and_arbitrary_market_data_access():
     prohibited = " ".join(t480_adapter.requirements()["prohibited"])
-    assert "MetaTrader API" in prohibited
-    assert "market-data" in prohibited
+    assert "generic MetaTrader API" in prohibited
+    assert "arbitrary" in prohibited
     assert "order" in prohibited
 
 

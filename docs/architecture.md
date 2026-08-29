@@ -4,6 +4,31 @@
 
 ![High-level Forex repository architecture](assets/forex-architecture-overview.png)
 
+## Historical market-intelligence roadmap
+
+![Historical market-intelligence architecture](assets/advanced-market-intelligence-architecture.png)
+
+This diagram visualises the approved three-phase, historical-first roadmap. It
+is a design overview, not evidence that any future adapter, source, Ollama
+task, real-time feed, or Demo execution capability is deployed.
+
+Amber ticks mean **built, but not proven**. They do not change milestone state:
+M0 remains `NEEDS_REVALIDATION` and M1 remains blocked until that revalidation
+is complete. All other phase components are planned.
+
+### Component-to-milestone map
+
+| Diagram component | Delivering milestones |
+| --- | --- |
+| Governance, evidence, review, self-attested integrity | M0 revalidation; required throughout M1–M32 |
+| Demo historical export, fixed read-only bridge, persistence, multi-timeframe price data | M1–M6 |
+| Source qualification and candidate macro/calendar/sentiment adapters | M7–M11 |
+| Normalisation, provenance, point-in-time alignment, replay, hypotheses, walk-forward evaluation | M12–M16 |
+| Non-executing context, bounded Ollama assistance, lineage, simulated risk/sizing/intent, approval and revalidation | M17–M26 |
+| Fresh Demo tick, tick/spread collection, recovery safety | M27–M29 |
+| Human-approved Demo execution and reconciliation | M30 |
+| End-to-end comparison, forward Demo evaluation, live-readiness assessment | M31–M32 |
+
 The diagram is a maintained overview of the intended ownership and trust
 boundaries. It distinguishes the Forex repository, shared `cs-ai-lab-infra`,
 and the Windows T480 / MetaTrader 5 environment. It also shows the evidence
@@ -13,10 +38,17 @@ then the four-role Triad-plus-domain review produces a recommendation for a
 human decision.
 
 This is an architecture map, not proof that a shared service or future
-capability is currently deployed. The current M0 scope is stated below and the
-mutable execution record remains `project_state.json`.
+capability is currently deployed. The mutable execution record remains
+`project_state.json`.
 
-The M0 repository contains only governance, typed operator configuration, testing, evidence tooling, and the catalog-locked T480 transport adapter. It intentionally has no strategy, agent, database, market-data, MT5 API, account, position-sizing, or order implementation.
+The roadmap is historical-first: closed MT5 Demo history supports the data and research layers through M16, offline shadow/risk/approval controls follow through M26, and fresh real-time Demo validation is deferred to M27–M32. Historical bars never substitute for a fresh tick, current spread, or execution proof.
+
+The historical research layer will preserve source and availability timestamps,
+revision lineage, source hashes, and dataset snapshots before aligning macro,
+calendar, market-context, or sentiment observations with EUR/USD decisions.
+This is necessary to prevent future leakage. Ollama, if adopted under M18, is
+limited to fixed-version, offline, schema-constrained analysis of permitted
+captured data; it has no transport, provider, MT5, or execution authority.
 
 Target ownership boundary:
 
@@ -35,5 +67,6 @@ Windows T480
 Capabilities are introduced vertically, one milestone at a time. Shared infrastructure is referenced rather than copied. Fixed safety invariants remain in schemas and code, even when related operator settings are visible in configuration.
 
 The hard boundary remains: research only; no live trading, no
-`GOMarketsMU-Live`, and no order surface before M27. The evidence signature is
-self-attested integrity, not independent execution provenance.
+`GOMarketsMU-Live`, and no order surface before M27. Actual Demo execution is
+separately gated at M30. The evidence signature is self-attested integrity,
+not independent execution provenance.

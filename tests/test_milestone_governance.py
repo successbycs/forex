@@ -123,8 +123,12 @@ def test_closeout_reports_current_material_worktree_changes(tmp_path: Path) -> N
 
 def test_dependency_prevents_starting_a_future_milestone(tmp_path: Path) -> None:
     root = _copy_governance(tmp_path)
+    state_path = root / "project_state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["milestones"]["M1"]["status"] = "PLANNED"
+    state_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
     assert main(["--root", str(root), "ready", "--id", "M1"]) == 2
-    state = json.loads((root / "project_state.json").read_text(encoding="utf-8"))
+    state = json.loads(state_path.read_text(encoding="utf-8"))
     assert state["milestones"]["M1"]["status"] == "PLANNED"
 
 
@@ -185,7 +189,10 @@ def test_target_date_is_not_a_completion_timestamp() -> None:
     registry = json.loads((ROOT / "milestone_registry.json").read_text(encoding="utf-8"))
     state = json.loads((ROOT / "project_state.json").read_text(encoding="utf-8"))
     assert all(item["target_date_owner"] == "HUMAN_OPERATOR" for item in registry["milestones"])
-    assert state["milestones"]["M0"]["proven_at"] is None
+    assert all(
+        item["target_date"] is None or item["target_date"] != state["milestones"][item["milestone_id"]]["proven_at"]
+        for item in registry["milestones"]
+    )
 
 
 def test_json_schema_validation_rejects_registry_shape_drift(tmp_path: Path) -> None:

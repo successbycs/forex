@@ -3,8 +3,8 @@
   "project": "Forex",
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
-  "phase": "FOUNDATION",
-  "last_proven_milestone": null,
+  "phase": "PHASE_1_HISTORICAL_FOUNDATION",
+  "last_proven_milestone": "M0",
   "current_milestone": "M0",
   "next_milestone": "M1",
   "canonical_instrument": "EUR/USD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "NEEDS_REVALIDATION",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -32,25 +32,25 @@
     "config/t480.json",
     "t480/command-catalog.json"
   ],
-  "configuration_fingerprint": "sha256:23758eb6aeb7b25146cb9cfae59d5aa64d531d0a6a606a433214797ad86ddcae",
+  "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
   "important_architectural_decisions": [
     "Shared T480 transport belongs to cs-ai-lab-infra; Forex owns its catalog and adapter.",
     "Mutable execution state is separate from the declarative milestone registry.",
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-29T01:52:59Z",
+  "last_updated_at": "2026-08-29T03:17:46Z",
   "milestones": {
     "M0": {
-      "status": "IN_PROGRESS",
+      "status": "NEEDS_REVALIDATION",
       "started_at": "2026-08-29T01:22:12Z",
       "implementation_finished_at": "2026-08-17T01:23:21Z",
-      "verification_passed_at": "2026-08-29T01:52:59Z",
-      "real_world_proof_captured_at": "2026-08-29T01:52:50Z",
-      "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
+      "verification_passed_at": "2026-08-29T01:57:02Z",
+      "real_world_proof_captured_at": "2026-08-29T01:56:54Z",
+      "human_signed_off_at": "2026-08-29T02:01:23Z",
+      "first_proven_at": "2026-08-29T02:01:44Z",
+      "proven_at": "2026-08-29T02:01:44Z",
+      "last_validated_at": "2026-08-29T02:01:44Z",
       "checks": {
         "M0-C1": {
           "result": "PASS",
@@ -171,6 +171,18 @@
           "recorded_at": "2026-08-29T01:22:12Z",
           "evidence": "docs/evidence_and_milestones.md",
           "note": "All milestone contracts declare SELF_ATTESTED_INTEGRITY; the fixed-job local runner signature, public-key verification, and documented limitation are implemented and covered by repository verification."
+        },
+        "M0-C21": {
+          "result": "PASS",
+          "recorded_at": "2026-08-29T02:01:23Z",
+          "evidence": "runs/triad/M0/M0-20260829T015703Z-43f12321/recommendation.json",
+          "note": "A current bound Triad-plus-domain recommendation supports completion."
+        },
+        "M0-C19": {
+          "result": "PASS",
+          "recorded_at": "2026-08-29T02:01:44Z",
+          "evidence": "runs/triad/M0/M0-20260829T015703Z-43f12321/review-summary.md",
+          "note": "Chris Sparshott explicitly approved after confirming inputs and outputs reviewed."
         }
       },
       "evidence": [
@@ -272,12 +284,21 @@
           "configuration_fingerprint": "sha256:23758eb6aeb7b25146cb9cfae59d5aa64d531d0a6a606a433214797ad86ddcae",
           "git_revision": "fe16cbc3e1a9bcdd56b7ba854b0c510b79b90a54",
           "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
+        },
+        {
+          "manifest_path": "runs/evidence/M0/20260829T015645Z/manifest.json",
+          "manifest_sha256": "96cc7a7b8f447650431be3d975676e75ff5af76489f238f1e021fb6a80961b1a",
+          "captured_at": "2026-08-29T01:56:54Z",
+          "recorded_at": "2026-08-29T01:57:00Z",
+          "configuration_fingerprint": "sha256:23758eb6aeb7b25146cb9cfae59d5aa64d531d0a6a606a433214797ad86ddcae",
+          "git_revision": "43f12321fe6b027086cd62720da0d41b4246cef4",
+          "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-08-29T01:52:59Z",
-        "git_revision": "fe16cbc3e1a9bcdd56b7ba854b0c510b79b90a54",
+        "recorded_at": "2026-08-29T01:57:02Z",
+        "git_revision": "43f12321fe6b027086cd62720da0d41b4246cef4",
         "configuration_fingerprint": "sha256:23758eb6aeb7b25146cb9cfae59d5aa64d531d0a6a606a433214797ad86ddcae",
         "commands": [
           {
@@ -289,8 +310,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T015257Z/governance.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T015257Z/governance.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T015700Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T015700Z/governance.stderr.txt"
           },
           {
             "id": "configuration",
@@ -302,8 +323,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T015257Z/configuration.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T015257Z/configuration.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T015700Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T015700Z/configuration.stderr.txt"
           },
           {
             "id": "tests",
@@ -315,13 +336,29 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T015257Z/tests.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T015257Z/tests.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T015700Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T015700Z/tests.stderr.txt"
           }
         ]
       },
-      "human_signoff": null,
-      "blockers": [],
+      "human_signoff": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE",
+        "note": "Operator approval given in this session after review of the M0 foundation, evidence architecture, deferred work, and safety boundaries.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "43f12321fe6b027086cd62720da0d41b4246cef4",
+        "configuration_fingerprint": "sha256:23758eb6aeb7b25146cb9cfae59d5aa64d531d0a6a606a433214797ad86ddcae",
+        "evidence_manifest_sha256": "96cc7a7b8f447650431be3d975676e75ff5af76489f238f1e021fb6a80961b1a",
+        "verification_recorded_at": "2026-08-29T01:57:02Z",
+        "recorded_at": "2026-08-29T02:01:23Z"
+      },
+      "blockers": [
+        {
+          "reason": "Governed configuration fingerprint changed.",
+          "recorded_at": "2026-08-29T03:14:53Z"
+        }
+      ],
       "work_packages": {
         "M0.1": {
           "status": "VERIFIED",
@@ -344,25 +381,42 @@
           "verified_at": "2026-08-17T01:22:17Z"
         },
         "M0.5": {
-          "status": "IN_PROGRESS",
+          "status": "VERIFIED",
           "started_at": "2026-08-17T01:22:17Z",
-          "verified_at": null
+          "verified_at": "2026-08-29T02:01:44Z"
         },
         "M0.6": {
-          "status": "PLANNED",
-          "started_at": null,
-          "verified_at": null
+          "status": "VERIFIED",
+          "started_at": "2026-08-29T02:01:44Z",
+          "verified_at": "2026-08-29T02:01:44Z"
         },
         "M0.7": {
           "status": "VERIFIED",
           "started_at": "2026-08-29T01:22:12Z",
           "verified_at": "2026-08-29T01:22:12Z"
         }
+      },
+      "triad_recommendation": {
+        "path": "runs/triad/M0/M0-20260829T015703Z-43f12321/recommendation.json",
+        "sha256": "2b208c308b545d2959be77014ba4aceada24d420a126bddb4397c4896e0e91ea",
+        "summary_path": "runs/triad/M0/M0-20260829T015703Z-43f12321/review-summary.md",
+        "summary_sha256": "eacf4575591a0ada9350f4c5b560068a41aff1767ed5b825d351b95aad0041f3",
+        "review_cycle_id": "M0-20260829T015703Z-43f12321",
+        "recommendation": "RECOMMEND_COMPLETE",
+        "binding": {
+          "request_sha256": "199cbcadee0f813cbfb2c662ab717be668a501804a1ed097cfad694c780c68e3",
+          "git_revision": "43f12321fe6b027086cd62720da0d41b4246cef4",
+          "configuration_fingerprint": "sha256:23758eb6aeb7b25146cb9cfae59d5aa64d531d0a6a606a433214797ad86ddcae",
+          "evidence_manifest_sha256": "96cc7a7b8f447650431be3d975676e75ff5af76489f238f1e021fb6a80961b1a",
+          "verifier_fingerprint": "sha256:48bf63999121337cb653f79df3ded136e6c6b40ae34d3b09026f878a2b3e5b29",
+          "milestone_contract_sha256": "eac6b672a022ee2be9e14631354aec206a10c4dbc62595ca26963806aa03fdf8"
+        },
+        "recorded_at": "2026-08-29T02:01:23Z"
       }
     },
     "M1": {
-      "status": "PLANNED",
-      "started_at": null,
+      "status": "BLOCKED",
+      "started_at": "2026-08-29T02:04:03Z",
       "implementation_finished_at": null,
       "verification_passed_at": null,
       "real_world_proof_captured_at": null,
@@ -374,7 +428,12 @@
       "evidence": [],
       "verification": null,
       "human_signoff": null,
-      "blockers": []
+      "blockers": [
+        {
+          "reason": "M0 proof was invalidated by the approved three-phase registry and governance-schema change; M1 cannot proceed until M0 is revalidated.",
+          "recorded_at": "2026-08-29T03:15:11Z"
+        }
+      ]
     },
     "M2": {
       "status": "PLANNED",

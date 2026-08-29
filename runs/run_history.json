@@ -1491,6 +1491,176 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000107",
+      "timestamp": "2026-08-29T01:57:00Z",
+      "milestone_id": "M0",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M0/20260829T015645Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000108",
+      "timestamp": "2026-08-29T01:57:02Z",
+      "milestone_id": "M0",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T015700Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T015700Z/governance.stderr.txt"
+          },
+          {
+            "id": "configuration",
+            "argv": [
+              "python3",
+              "scripts/validate_config.py",
+              "--root",
+              "."
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T015700Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T015700Z/configuration.stderr.txt"
+          },
+          {
+            "id": "tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T015700Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T015700Z/tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000109",
+      "timestamp": "2026-08-29T02:01:23Z",
+      "milestone_id": "M0",
+      "action": "TRIAD_RECOMMENDATION_RECORDED",
+      "detail": {
+        "path": "runs/triad/M0/M0-20260829T015703Z-43f12321/recommendation.json",
+        "recommendation": "RECOMMEND_COMPLETE"
+      }
+    },
+    {
+      "event_id": "E000110",
+      "timestamp": "2026-08-29T02:01:23Z",
+      "milestone_id": "M0",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "event_id": "E000111",
+      "timestamp": "2026-08-29T02:01:44Z",
+      "milestone_id": "M0",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M0.5"
+      }
+    },
+    {
+      "event_id": "E000112",
+      "timestamp": "2026-08-29T02:01:44Z",
+      "milestone_id": "M0",
+      "action": "WORK_PACKAGE_STARTED",
+      "detail": {
+        "work_package_id": "M0.6"
+      }
+    },
+    {
+      "event_id": "E000113",
+      "timestamp": "2026-08-29T02:01:44Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C19",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000114",
+      "timestamp": "2026-08-29T02:01:44Z",
+      "milestone_id": "M0",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M0.6"
+      }
+    },
+    {
+      "event_id": "E000115",
+      "timestamp": "2026-08-29T02:01:44Z",
+      "milestone_id": "M0",
+      "action": "MILESTONE_PROVEN",
+      "detail": {
+        "proven_at": "2026-08-29T02:01:44Z",
+        "next_milestone": "M1"
+      }
+    },
+    {
+      "event_id": "E000116",
+      "timestamp": "2026-08-29T02:04:03Z",
+      "milestone_id": "M1",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
+    },
+    {
+      "event_id": "E000117",
+      "timestamp": "2026-08-29T03:14:53Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:23758eb6aeb7b25146cb9cfae59d5aa64d531d0a6a606a433214797ad86ddcae",
+        "current": "sha256:cb4505f4cde7668638d98b2a8b4d7dc66bd8acf20c6f2eca6e29a73657594ae5",
+        "invalidated_milestones": [
+          "M0"
+        ]
+      }
+    },
+    {
+      "event_id": "E000118",
+      "timestamp": "2026-08-29T03:15:11Z",
+      "milestone_id": "M1",
+      "action": "BLOCK",
+      "detail": {
+        "from": "IN_PROGRESS",
+        "to": "BLOCKED",
+        "reason": "M0 proof was invalidated by the approved three-phase registry and governance-schema change; M1 cannot proceed until M0 is revalidated."
+      }
+    },
+    {
+      "event_id": "E000119",
+      "timestamp": "2026-08-29T03:17:46Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:cb4505f4cde7668638d98b2a8b4d7dc66bd8acf20c6f2eca6e29a73657594ae5",
+        "current": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+        "invalidated_milestones": []
+      }
     }
   ]
 }

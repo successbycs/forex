@@ -224,6 +224,9 @@ def validate_registry(registry: dict[str, Any]) -> None:
         raise GovernanceError("unsupported milestone registry schema_version")
     if registry.get("triad_review_required") is not True:
         raise GovernanceError("the registry must require Triad-plus-domain review")
+    roadmap_phases = registry.get("roadmap_phases")
+    if not isinstance(roadmap_phases, list) or len(roadmap_phases) != 3:
+        raise GovernanceError("registry must declare exactly three roadmap phases")
     milestones = registry.get("milestones")
     if not isinstance(milestones, list) or not milestones:
         raise GovernanceError("registry milestones must be a non-empty list")
@@ -326,6 +329,17 @@ def validate_registry(registry: dict[str, Any]) -> None:
     if len(ids) != len(set(ids)):
         raise GovernanceError("milestone IDs must be unique")
     known = set(ids)
+    phase_ids: list[str] = []
+    for phase in roadmap_phases:
+        if not isinstance(phase, dict) or set(phase) != {
+            "id", "title", "milestone_ids", "purpose", "constraints"
+        }:
+            raise GovernanceError("malformed roadmap phase")
+        _require_string_list(phase["milestone_ids"], f"roadmap phase {phase.get('id')}.milestone_ids", nonempty=True)
+        _require_string_list(phase["constraints"], f"roadmap phase {phase.get('id')}.constraints", nonempty=True)
+        phase_ids.extend(phase["milestone_ids"])
+    if set(phase_ids) != known or len(phase_ids) != len(set(phase_ids)):
+        raise GovernanceError("roadmap phases must assign every milestone exactly once")
     for milestone in milestones:
         unknown = set(milestone["dependencies"]) - known
         if unknown:

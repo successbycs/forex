@@ -2,7 +2,7 @@
 
 Forex is a learning-first, risk-controlled EUR/USD research and trading-assistance project. Approximately USD 300 per month is only a distant research aspiration; it is not a milestone, quota, sizing input, or claim of expected performance.
 
-The current phase is repository foundation. Live trading and `GOMarketsMU-Live` are structurally out of scope.
+The roadmap has three phases: historical data foundation and deterministic research; offline decision and safety controls; then real-time Demo operational validation. Live trading and `GOMarketsMU-Live` are structurally out of scope throughout.
 
 ## Start building and testing
 
@@ -10,12 +10,12 @@ The canonical milestone definitions are in `milestone_registry.json`; mutable st
 
 ```bash
 python3 scripts/forex_milestones.py status
-python3 scripts/forex_milestones.py show --id M0
+python3 scripts/forex_milestones.py show --id M1
 python3 scripts/forex_milestones.py validate
 bash scripts/verify_project.sh
 ```
 
-M0 is already `IN_PROGRESS`. For later milestones, use `ready` only after dependencies are proven, then `start`. Each future milestone has a dedicated test and proof command in the registry; those paths intentionally fail until that milestone implements them.
+The mutable state records the currently active or blocked milestone. The registry's three-phase contract determines what may be built with historical data and what must wait for real-time Demo market activity. Use `ready` only after dependencies are proven, then `start`.
 
 The normal closeout sequence is:
 

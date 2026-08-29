@@ -1,0 +1,11 @@
+{
+  "kind": "HISTORICAL_FIXTURE",
+  "symbol": "EURUSD",
+  "timeframe": "H1",
+  "source": "MT5_DEMO_HISTORICAL_EXPORT",
+  "bars": [
+    {"time_utc": "2026-08-28T20:00:00Z", "open": 1.1587, "high": 1.15893, "low": 1.15778, "close": 1.15804, "volume": 5093},
+    {"time_utc": "2026-08-28T21:00:00Z", "open": 1.15804, "high": 1.15849, "low": 1.15776, "close": 1.15807, "volume": 4318},
+    {"time_utc": "2026-08-28T22:00:00Z", "open": 1.15803, "high": 1.1588, "low": 1.15796, "close": 1.15858, "volume": 3752}
+  ]
+}

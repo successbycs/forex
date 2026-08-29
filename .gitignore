@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+t480/mt5.local.json
 .t480-execution.local.jsonl
 __pycache__/
 *.py[cod]

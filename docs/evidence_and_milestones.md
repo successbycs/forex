@@ -8,6 +8,10 @@
 
 Every milestone currently declares `SELF_ATTESTED_INTEGRITY`. Its fixed-job local evidence runner creates a fresh evidence bundle and signs the manifest digest using a private key kept outside Git; the repository stores the public key and verifies the signature. This detects post-capture modification and binds the bundle to its configured runner key, but is not an external witness or separately controlled identity. The same reduced provenance tier applies to demo execution. It does not weaken demo-only server enforcement, deterministic risk controls, explicit human approval, Triad review, or the prohibition on live trading.
 
+## Three-phase operating model
+
+The registry divides the route into historical foundation (M0–M16), offline decision and safety controls (M17–M26), and real-time Demo operations (M27–M32). Closed historical bars are valid evidence for the historical and replay contracts only. They cannot satisfy a fresh-tick, current-spread, live-market recovery, or Demo-execution contract. Real-time validation uses `GOMarketsMU-Demo` only; `GOMarketsMU-Live` remains prohibited.
+
 ## What completion means
 
 Implementation, tests, evidence capture, verification, and approval are distinct events. A milestone is complete only when `forex-milestones prove --id Mx` successfully writes `proven_at`. The command refuses closeout unless dependencies, all acceptance checks, required artifacts, fixed verification commands, current real-world evidence, configuration/revision matching, blockers, and any required human sign-off all pass.

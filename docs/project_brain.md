@@ -4,7 +4,7 @@ Forex is a learning-first EUR/USD research project intended to mature cautiously
 
 The approximately USD 300 monthly figure is an aspiration for research comparison only. It is not a quota, acceptance criterion, sizing input, or profitability claim. Capital preservation, data integrity, safety, reproducibility, and explainability precede return.
 
-Current state is authoritative in `project_state.json`. M0 is the only active milestone. M1 must not start until M0 has an immutable real-world proof, explicit operator sign-off, and a system-generated `proven_at`.
+Current state is authoritative in `project_state.json`; the milestone registry is the fixed contract. The approved roadmap has three phases: historical foundation and deterministic research (M0–M16), offline decision and safety controls (M17–M26), and real-time Demo operational validation (M27–M32). M1 is a read-only export of closed Demo history; fresh-tick proof is intentionally deferred to M27.
 
 ## Architecture knowledge
 
@@ -20,6 +20,10 @@ The diagram is explanatory rather than an assertion that every shown future or
 shared component is deployed. `docs/architecture.md` is the narrative source
 of truth for the design, while the milestone registry and project state retain
 their respective contract and execution roles.
+
+The design-only prompt for the proposed historical market-intelligence and
+Ollama-assisted research capability is retained in
+[`docs/prompts/advanced-market-intelligence-milestone-prompt.md`](prompts/advanced-market-intelligence-milestone-prompt.md).
 
 ## Inspected sources
 
