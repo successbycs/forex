@@ -1327,6 +1327,112 @@
         "current": "sha256:23758eb6aeb7b25146cb9cfae59d5aa64d531d0a6a606a433214797ad86ddcae",
         "invalidated_milestones": []
       }
+    },
+    {
+      "event_id": "E000098",
+      "timestamp": "2026-08-29T01:22:01Z",
+      "milestone_id": "M0",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M0/20260829T012146Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000099",
+      "timestamp": "2026-08-29T01:22:03Z",
+      "milestone_id": "M0",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T012201Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T012201Z/governance.stderr.txt"
+          },
+          {
+            "id": "configuration",
+            "argv": [
+              "python3",
+              "scripts/validate_config.py",
+              "--root",
+              "."
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T012201Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T012201Z/configuration.stderr.txt"
+          },
+          {
+            "id": "tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T012201Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T012201Z/tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000100",
+      "timestamp": "2026-08-29T01:22:12Z",
+      "milestone_id": "M0",
+      "action": "MILESTONE_READY",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "READY"
+      }
+    },
+    {
+      "event_id": "E000101",
+      "timestamp": "2026-08-29T01:22:12Z",
+      "milestone_id": "M0",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
+    },
+    {
+      "event_id": "E000102",
+      "timestamp": "2026-08-29T01:22:12Z",
+      "milestone_id": "M0",
+      "action": "WORK_PACKAGE_STARTED",
+      "detail": {
+        "work_package_id": "M0.7"
+      }
+    },
+    {
+      "event_id": "E000103",
+      "timestamp": "2026-08-29T01:22:12Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C22",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000104",
+      "timestamp": "2026-08-29T01:22:12Z",
+      "milestone_id": "M0",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M0.7"
+      }
     }
   ]
 }

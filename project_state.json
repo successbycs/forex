@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "NEEDS_FIX",
+  "implementation_status": "IN_PROGRESS",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,14 +39,14 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-29T01:18:06Z",
+  "last_updated_at": "2026-08-29T01:22:12Z",
   "milestones": {
     "M0": {
-      "status": "NEEDS_FIX",
-      "started_at": "2026-08-17T01:46:21Z",
+      "status": "IN_PROGRESS",
+      "started_at": "2026-08-29T01:22:12Z",
       "implementation_finished_at": "2026-08-17T01:23:21Z",
-      "verification_passed_at": "2026-08-29T00:54:02Z",
-      "real_world_proof_captured_at": "2026-08-29T00:53:51Z",
+      "verification_passed_at": "2026-08-29T01:22:03Z",
+      "real_world_proof_captured_at": "2026-08-29T01:21:56Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
@@ -165,6 +165,12 @@
           "recorded_at": "2026-08-17T02:52:30Z",
           "evidence": "scripts/check_no_secrets.py",
           "note": "The pushed revision passed the repository secret scan."
+        },
+        "M0-C22": {
+          "result": "PASS",
+          "recorded_at": "2026-08-29T01:22:12Z",
+          "evidence": "docs/evidence_and_milestones.md",
+          "note": "All milestone contracts declare SELF_ATTESTED_INTEGRITY; the fixed-job local runner signature, public-key verification, and documented limitation are implemented and covered by repository verification."
         }
       },
       "evidence": [
@@ -248,13 +254,22 @@
           "configuration_fingerprint": "sha256:1af5c130e0da120cd8af14d81cf165c5b481049a1d1f09bcaa4353e1a04143c0",
           "git_revision": "ea788edbc83f359eb6f456f7954c73d1f783ddb4",
           "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
+        },
+        {
+          "manifest_path": "runs/evidence/M0/20260829T012146Z/manifest.json",
+          "manifest_sha256": "f30eabe3c0c4d00faaa2953030f6dda2128f6e1231bcdf701fff7d09a5224b45",
+          "captured_at": "2026-08-29T01:21:56Z",
+          "recorded_at": "2026-08-29T01:22:01Z",
+          "configuration_fingerprint": "sha256:23758eb6aeb7b25146cb9cfae59d5aa64d531d0a6a606a433214797ad86ddcae",
+          "git_revision": "614a4eeaba59bc394f2ec151f4ccc2289340500c",
+          "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-08-29T00:54:02Z",
-        "git_revision": "ea788edbc83f359eb6f456f7954c73d1f783ddb4",
-        "configuration_fingerprint": "sha256:1af5c130e0da120cd8af14d81cf165c5b481049a1d1f09bcaa4353e1a04143c0",
+        "recorded_at": "2026-08-29T01:22:03Z",
+        "git_revision": "614a4eeaba59bc394f2ec151f4ccc2289340500c",
+        "configuration_fingerprint": "sha256:23758eb6aeb7b25146cb9cfae59d5aa64d531d0a6a606a433214797ad86ddcae",
         "commands": [
           {
             "id": "governance",
@@ -265,8 +280,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T005400Z/governance.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T005400Z/governance.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T012201Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T012201Z/governance.stderr.txt"
           },
           {
             "id": "configuration",
@@ -278,8 +293,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T005400Z/configuration.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T005400Z/configuration.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T012201Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T012201Z/configuration.stderr.txt"
           },
           {
             "id": "tests",
@@ -291,18 +306,13 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T005400Z/tests.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T005400Z/tests.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T012201Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T012201Z/tests.stderr.txt"
           }
         ]
       },
       "human_signoff": null,
-      "blockers": [
-        {
-          "reason": "Formal Triad cycle M0-20260829T005410Z-ea788edb returned DO_NOT_COMPLETE: AI-M0-001 requires independently generated capture provenance and a negative control rejecting synthetic internally consistent bundles.",
-          "recorded_at": "2026-08-29T00:58:34Z"
-        }
-      ],
+      "blockers": [],
       "work_packages": {
         "M0.1": {
           "status": "VERIFIED",
@@ -335,9 +345,9 @@
           "verified_at": null
         },
         "M0.7": {
-          "status": "PLANNED",
-          "started_at": null,
-          "verified_at": null
+          "status": "VERIFIED",
+          "started_at": "2026-08-29T01:22:12Z",
+          "verified_at": "2026-08-29T01:22:12Z"
         }
       }
     },

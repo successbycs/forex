@@ -6,6 +6,21 @@ The approximately USD 300 monthly figure is an aspiration for research compariso
 
 Current state is authoritative in `project_state.json`. M0 is the only active milestone. M1 must not start until M0 has an immutable real-world proof, explicit operator sign-off, and a system-generated `proven_at`.
 
+## Architecture knowledge
+
+The maintained visual overview is
+[`docs/assets/forex-architecture-overview.png`](assets/forex-architecture-overview.png).
+It records the intended three-zone boundary: Forex owns its application
+contracts, evidence tooling, and catalog-locked adapter; `cs-ai-lab-infra`
+owns shared T480 transport and platform services; Windows T480 hosts the
+future read-only MetaTrader 5 surface. It also records the current
+self-attested evidence path and four-role Triad-plus-domain review.
+
+The diagram is explanatory rather than an assertion that every shown future or
+shared component is deployed. `docs/architecture.md` is the narrative source
+of truth for the design, while the milestone registry and project state retain
+their respective contract and execution roles.
+
 ## Inspected sources
 
 Inspected on 2026-08-17:
