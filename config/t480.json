@@ -1,5 +1,5 @@
 {
-  "schema_version": "forex.t480.config.v2",
+  "schema_version": "forex.t480.config.v3",
   "shared_core": {
     "repository": "successbycs/cs-ai-lab-infra",
     "repository_root": "/home/chris/projects/cs-ai-lab-infra",
@@ -28,5 +28,7 @@
   "mt5_process_names": [
     "terminal64",
     "terminal"
-  ]
+  ],
+  "m1_python_relative_path": "Documents\\Code\\forex-m1-probe\\.venv\\Scripts\\python.exe",
+  "m1_python_sha256": null
 }

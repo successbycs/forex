@@ -32,21 +32,21 @@
     "config/t480.json",
     "t480/command-catalog.json"
   ],
-  "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+  "configuration_fingerprint": "sha256:e9f084dd9fcbd5221c5f08d4cb6632e3bf06b8cce022fe5220a168b67df4baf9",
   "important_architectural_decisions": [
     "Shared T480 transport belongs to cs-ai-lab-infra; Forex owns its catalog and adapter.",
     "Mutable execution state is separate from the declarative milestone registry.",
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-29T04:45:45Z",
+  "last_updated_at": "2026-08-29T04:59:52Z",
   "milestones": {
     "M0": {
       "status": "NEEDS_FIX",
       "started_at": "2026-08-29T04:39:07Z",
-      "implementation_finished_at": "2026-08-29T04:39:23Z",
-      "verification_passed_at": "2026-08-29T04:39:23Z",
-      "real_world_proof_captured_at": "2026-08-29T04:39:20Z",
+      "implementation_finished_at": "2026-08-29T04:53:55Z",
+      "verification_passed_at": "2026-08-29T04:53:55Z",
+      "real_world_proof_captured_at": "2026-08-29T04:53:52Z",
       "human_signed_off_at": "2026-08-29T02:01:23Z",
       "first_proven_at": "2026-08-29T02:01:44Z",
       "proven_at": null,
@@ -302,12 +302,21 @@
           "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
           "git_revision": "f7a69b42f0edd96016e66b930f9e16a53ecafa5f",
           "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
+        },
+        {
+          "manifest_path": "runs/evidence/M0/20260829T045339Z/manifest.json",
+          "manifest_sha256": "382361d47c9c9ff4d6c3f8055b432e3d71803fa248c3b5d1c9442460718b4fbf",
+          "captured_at": "2026-08-29T04:53:52Z",
+          "recorded_at": "2026-08-29T04:53:52Z",
+          "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+          "git_revision": "9edc9f1d70674e2bc95697b3599bcc22e1233b26",
+          "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-08-29T04:39:23Z",
-        "git_revision": "f7a69b42f0edd96016e66b930f9e16a53ecafa5f",
+        "recorded_at": "2026-08-29T04:53:55Z",
+        "git_revision": "9edc9f1d70674e2bc95697b3599bcc22e1233b26",
         "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
         "commands": [
           {
@@ -319,8 +328,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T043921Z/governance.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T043921Z/governance.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T045352Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T045352Z/governance.stderr.txt"
           },
           {
             "id": "configuration",
@@ -332,8 +341,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T043921Z/configuration.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T043921Z/configuration.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T045352Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T045352Z/configuration.stderr.txt"
           },
           {
             "id": "tests",
@@ -345,8 +354,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T043921Z/tests.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T043921Z/tests.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T045352Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T045352Z/tests.stderr.txt"
           }
         ]
       },
@@ -370,6 +379,10 @@
         {
           "reason": "Fresh Triad cycle M0-20260829T044055Z-f7a69b42 returned DO_NOT_COMPLETE: M0-C20 prohibits the committed M1 MT5 historical-data probe, and the probe deployment lacks a remote content/interpreter binding.",
           "recorded_at": "2026-08-29T04:45:26Z"
+        },
+        {
+          "reason": "M0 correction is implemented and locally verified but awaits a clean committed revision before fresh evidence and a new Triad cycle.",
+          "recorded_at": "2026-08-29T04:59:52Z"
         }
       ],
       "work_packages": {

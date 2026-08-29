@@ -20,10 +20,10 @@ def main(terminal_path: str) -> None:
         raise SystemExit(mt5.last_error())
     try:
         account = mt5.account_info()
-        symbol = mt5.symbol_info(SYMBOL)
-        rates = mt5.copy_rates_from_pos(SYMBOL, TIMEFRAME, 1, BAR_COUNT)
         if not account or account.server != "GOMarketsMU-Demo":
             raise SystemExit("MT5 is not connected to GOMarketsMU-Demo")
+        symbol = mt5.symbol_info(SYMBOL)
+        rates = mt5.copy_rates_from_pos(SYMBOL, TIMEFRAME, 1, BAR_COUNT)
         if not symbol or symbol.name != SYMBOL:
             raise SystemExit("required EURUSD symbol is unavailable")
         if rates is None or len(rates) != BAR_COUNT:

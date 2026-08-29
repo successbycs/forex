@@ -1761,6 +1761,96 @@
         "to": "NEEDS_FIX",
         "reason": "test"
       }
+    },
+    {
+      "event_id": "E000126",
+      "timestamp": "2026-08-29T04:53:52Z",
+      "milestone_id": "M0",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M0/20260829T045339Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000127",
+      "timestamp": "2026-08-29T04:53:55Z",
+      "milestone_id": "M0",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T045352Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T045352Z/governance.stderr.txt"
+          },
+          {
+            "id": "configuration",
+            "argv": [
+              "python3",
+              "scripts/validate_config.py",
+              "--root",
+              "."
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T045352Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T045352Z/configuration.stderr.txt"
+          },
+          {
+            "id": "tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T045352Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T045352Z/tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000128",
+      "timestamp": "2026-08-29T04:53:55Z",
+      "milestone_id": "M0",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
+    },
+    {
+      "event_id": "E000129",
+      "timestamp": "2026-08-29T04:58:42Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+        "current": "sha256:e9f084dd9fcbd5221c5f08d4cb6632e3bf06b8cce022fe5220a168b67df4baf9",
+        "invalidated_milestones": []
+      }
+    },
+    {
+      "event_id": "E000130",
+      "timestamp": "2026-08-29T04:59:52Z",
+      "milestone_id": "M0",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "AWAITING_REAL_WORLD_PROOF",
+        "to": "NEEDS_FIX",
+        "reason": "M0 correction is implemented and locally verified but awaits a clean committed revision before fresh evidence and a new Triad cycle."
+      }
     }
   ]
 }

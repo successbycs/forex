@@ -1,7 +1,4 @@
 {
-  "schema_version": "forex.mt5-local.v2",
-  "python_path": "C:\\Users\\<windows-user>\\Documents\\Code\\forex-m1-probe\\.venv\\Scripts\\python.exe",
-  "terminal_path": "C:\\Program Files\\GO Markets MT5\\terminal64.exe",
-  "probe_sha256": "<lowercase-sha256-of-m1_mt5_demo_probe.py>",
-  "python_sha256": "<lowercase-sha256-of-python.exe>"
+  "schema_version": "forex.mt5-local.v3",
+  "terminal_path": "C:\\Program Files\\GO Markets MT5\\terminal64.exe"
 }
