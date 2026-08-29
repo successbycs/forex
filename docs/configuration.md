@@ -15,11 +15,9 @@ Bootstrap T480 transport settings remain in `config/t480.json` because they must
 The M1 Windows executable paths are deliberately machine-local. Copy
 `t480/mt5.local.example.json` to the T480 as
 `%USERPROFILE%\\Documents\\Code\\forex-m1-probe\\mt5.local.json`, then replace
-the terminal path. The file is ignored by Git and must not contain account
-credentials. The probe source hash is derived from the committed source; the
-Windows Python path and its SHA-256 must be approved in `config/t480.json`.
-Until the interpreter hash is recorded there, the fixed M1 operation refuses
-to execute. It accepts no path or command arguments.
+the placeholder Windows user path. The file is ignored by Git and contains
+only the local Python and MT5 executable paths; it must not contain account
+credentials. The fixed M1 operation accepts no path or command arguments.
 
 `config/triad.yaml` governs required review roles, assigned M0 criteria and fail-closed recommendation policy. Review-policy changes alter the governed configuration fingerprint and invalidate existing review recommendations and proof.
 

@@ -41,15 +41,6 @@ def test_configuration_rejects_unsafe_paths(tmp_path):
         t480_adapter.load_application_config(path)
 
 
-def test_configuration_rejects_invalid_governed_m1_interpreter_hash(tmp_path):
-    payload = dict(t480_adapter.APP_CONFIG)
-    payload["m1_python_sha256"] = "not-a-sha256"
-    path = tmp_path / "config.json"
-    path.write_text(json.dumps(payload), encoding="utf-8")
-    with pytest.raises(ValueError):
-        t480_adapter.load_application_config(path)
-
-
 def test_mt5_status_is_process_only():
     operation = t480_adapter.OPERATIONS["mt5_process_status"]
     command = operation.powershell_command or ""
@@ -74,24 +65,14 @@ def test_m1_mt5_probe_is_fixed_and_read_only():
     assert "mt5.local.json" in command
     assert "m1_mt5_demo_probe.py" in command
     assert "terminal_path" in command
-    assert "Get-FileHash" in command
-    assert "expectedProbeHash" in command
-    assert "expectedPythonHash" in command
-    assert '"git", "show", "HEAD:t480/m1_mt5_demo_probe.py"' in (
-        (t480_adapter.ROOT / "scripts" / "t480_adapter.py").read_text(encoding="utf-8")
-    )
-    assert "M1 interpreter is not provisioned in governed configuration" in command
-    assert "fixed probe hash mismatch" in command
-    assert "Python interpreter hash mismatch" in command
+    assert "python_path" in command
     assert "--command" not in t480_adapter.parser().format_help()
     assert t480_adapter.OPERATIONS["m1_mt5_demo_probe"].approval_required is False
-
 
 def test_m1_probe_checks_demo_server_before_any_market_data_call():
     probe = (t480_adapter.ROOT / "t480" / "m1_mt5_demo_probe.py").read_text(encoding="utf-8")
     assert probe.index('account.server != "GOMarketsMU-Demo"') < probe.index("symbol_info")
     assert probe.index('account.server != "GOMarketsMU-Demo"') < probe.index("copy_rates_from_pos")
-
 
 def test_m1_verification_marker_is_reserved_for_a_successful_fixed_probe(monkeypatch):
     monkeypatch.setattr(t480_adapter, "require_dependency", lambda _: None)

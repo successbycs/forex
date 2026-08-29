@@ -1930,6 +1930,147 @@
         "to": "NEEDS_FIX",
         "reason": "Fresh Triad cycle M0-20260829T050152Z-683eb61b found that the fixed probe hash must resolve from the committed Git object rather than mutable working-tree bytes; correction is implemented and locally verified pending commit."
       }
+    },
+    {
+      "event_id": "E000135",
+      "timestamp": "2026-08-29T05:06:28Z",
+      "milestone_id": "M0",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M0/20260829T050614Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000136",
+      "timestamp": "2026-08-29T05:06:30Z",
+      "milestone_id": "M0",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T050628Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T050628Z/governance.stderr.txt"
+          },
+          {
+            "id": "configuration",
+            "argv": [
+              "python3",
+              "scripts/validate_config.py",
+              "--root",
+              "."
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T050628Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T050628Z/configuration.stderr.txt"
+          },
+          {
+            "id": "tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T050628Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T050628Z/tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000137",
+      "timestamp": "2026-08-29T05:06:30Z",
+      "milestone_id": "M0",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
+    },
+    {
+      "event_id": "E000138",
+      "timestamp": "2026-08-29T05:09:39Z",
+      "milestone_id": "M0",
+      "action": "TRIAD_RECOMMENDATION_RECORDED",
+      "detail": {
+        "path": "runs/triad/M0/M0-20260829T050631Z-b56f49b8/recommendation.json",
+        "recommendation": "RECOMMEND_COMPLETE"
+      }
+    },
+    {
+      "event_id": "E000139",
+      "timestamp": "2026-08-29T05:09:39Z",
+      "milestone_id": "M0",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "human-operator",
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "event_id": "E000140",
+      "timestamp": "2026-08-29T05:10:11Z",
+      "milestone_id": "M0",
+      "action": "MILESTONE_PROVEN",
+      "detail": {
+        "proven_at": "2026-08-29T05:10:11Z",
+        "next_milestone": "M1"
+      }
+    },
+    {
+      "event_id": "E000141",
+      "timestamp": "2026-08-29T05:10:43Z",
+      "milestone_id": "M1",
+      "action": "MILESTONE_UNBLOCKED",
+      "detail": {
+        "reason": "M0 is proven at the revision and configuration required by the M1 dependency."
+      }
+    },
+    {
+      "event_id": "E000142",
+      "timestamp": "2026-08-29T05:10:58Z",
+      "milestone_id": "M1",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
+    },
+    {
+      "event_id": "E000143",
+      "timestamp": "2026-08-29T05:15:20Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:e9f084dd9fcbd5221c5f08d4cb6632e3bf06b8cce022fe5220a168b67df4baf9",
+        "current": "sha256:7670cb5911d4467a4592e3faf78b1f594ff9d4b7db49052a52df3ad646fa5526",
+        "invalidated_milestones": [
+          "M0"
+        ]
+      }
+    },
+    {
+      "event_id": "E000144",
+      "timestamp": "2026-08-29T05:19:17Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:7670cb5911d4467a4592e3faf78b1f594ff9d4b7db49052a52df3ad646fa5526",
+        "current": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+        "invalidated_milestones": []
+      }
     }
   ]
 }

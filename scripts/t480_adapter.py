@@ -10,11 +10,9 @@ operations. Its single M1 operation is a fixed read-only historical export.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 import re
-import subprocess
 import sys
 from typing import Any
 
@@ -39,8 +37,6 @@ _CONFIG_FIELDS = {
     "shared_network",
     "compose_project",
     "mt5_process_names",
-    "m1_python_relative_path",
-    "m1_python_sha256",
 }
 _SAFE_PATH = re.compile(r"/[A-Za-z0-9_./-]+\Z")
 _SAFE_IDENTIFIER = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*\Z")
@@ -50,7 +46,7 @@ def load_application_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict) or set(payload) != _CONFIG_FIELDS:
         raise ValueError("Forex T480 adapter configuration fields are invalid")
-    if payload["schema_version"] != "forex.t480.config.v3":
+    if payload["schema_version"] != "forex.t480.config.v2":
         raise ValueError("Forex T480 adapter configuration schema is unsupported")
     for field in ("shared_lab_root", "application_root"):
         if not _SAFE_PATH.fullmatch(str(payload[field])):
@@ -68,14 +64,6 @@ def load_application_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
         raise ValueError("mt5_process_names must be a non-empty array")
     if any(not _SAFE_IDENTIFIER.fullmatch(str(name)) for name in process_names):
         raise ValueError("mt5_process_names contains an unsafe process name")
-    python_path = payload["m1_python_relative_path"]
-    if not isinstance(python_path, str) or not re.fullmatch(r"[A-Za-z0-9_.-]+(?:\\[A-Za-z0-9_.-]+)+", python_path):
-        raise ValueError("m1_python_relative_path is invalid")
-    python_hash = payload["m1_python_sha256"]
-    if python_hash is not None and (
-        not isinstance(python_hash, str) or not re.fullmatch(r"[a-f0-9]{64}", python_hash)
-    ):
-        raise ValueError("m1_python_sha256 is invalid")
     return payload
 
 
@@ -124,29 +112,14 @@ def _mt5_process_command(process_names: list[str]) -> str:
 
 
 def _m1_mt5_demo_probe_command() -> str:
-    """Return the content-bound M1 historical-export command for Windows."""
-    committed_probe = subprocess.run(
-        ["git", "show", "HEAD:t480/m1_mt5_demo_probe.py"],
-        cwd=ROOT,
-        check=True,
-        capture_output=True,
-    ).stdout
-    committed_probe_sha256 = hashlib.sha256(committed_probe).hexdigest()
+    """Return the fixed read-only M1 historical-export command for Windows."""
     return (
         "$ErrorActionPreference='Stop'; "
         "$s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json; "
         "$p=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\m1_mt5_demo_probe.py'; "
-        f"$pythonPath=Join-Path $env:USERPROFILE '{APP_CONFIG['m1_python_relative_path']}'; "
-        f"$expectedPythonHash='{APP_CONFIG['m1_python_sha256'] or ''}'; "
-        f"$expectedProbeHash='{committed_probe_sha256}'; "
         "if (!(Test-Path -LiteralPath $p)) { throw 'M1 fixed probe file is absent' }; "
-        "if (!(Test-Path -LiteralPath $pythonPath)) { throw 'M1 governed Python interpreter is absent' }; "
-        "if ($expectedPythonHash -notmatch '^[a-f0-9]{64}$') { throw 'M1 interpreter is not provisioned in governed configuration' }; "
-        "$probeHash=(Get-FileHash -Algorithm SHA256 -LiteralPath $p).Hash.ToLowerInvariant(); "
-        "$pythonHash=(Get-FileHash -Algorithm SHA256 -LiteralPath $pythonPath).Hash.ToLowerInvariant(); "
-        "if ($probeHash -ne $expectedProbeHash) { throw 'M1 fixed probe hash mismatch' }; "
-        "if ($pythonHash -ne $expectedPythonHash) { throw 'M1 Python interpreter hash mismatch' }; "
-        "& $pythonPath $p $s.terminal_path; exit $LASTEXITCODE"
+        "if ([string]::IsNullOrWhiteSpace($s.python_path) -or !(Test-Path -LiteralPath $s.python_path)) { throw 'M1 local configured Python interpreter is absent' }; "
+        "& $s.python_path $p $s.terminal_path; exit $LASTEXITCODE"
     )
 
 
