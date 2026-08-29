@@ -1433,6 +1433,64 @@
       "detail": {
         "work_package_id": "M0.7"
       }
+    },
+    {
+      "event_id": "E000105",
+      "timestamp": "2026-08-29T01:52:57Z",
+      "milestone_id": "M0",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M0/20260829T015239Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000106",
+      "timestamp": "2026-08-29T01:52:59Z",
+      "milestone_id": "M0",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T015257Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T015257Z/governance.stderr.txt"
+          },
+          {
+            "id": "configuration",
+            "argv": [
+              "python3",
+              "scripts/validate_config.py",
+              "--root",
+              "."
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T015257Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T015257Z/configuration.stderr.txt"
+          },
+          {
+            "id": "tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T015257Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T015257Z/tests.stderr.txt"
+          }
+        ]
+      }
     }
   ]
 }

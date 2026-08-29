@@ -68,15 +68,7 @@ def load_application_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
 
 
 APP_CONFIG = load_application_config()
-DEPENDENCY_IDENTITY = inspect_dependency(APP_CONFIG)
-unsafe_identity_errors = [
-    error
-    for error in DEPENDENCY_IDENTITY["errors"]
-    if error != "owner repository worktree is not clean"
-    and not error.startswith("locked dependency file is not tracked:")
-]
-if unsafe_identity_errors:
-    raise ValueError("Unsafe T480 shared-core import: " + "; ".join(unsafe_identity_errors))
+DEPENDENCY_IDENTITY = require_dependency(APP_CONFIG)
 SHARED_CORE_ROOT = Path(APP_CONFIG["shared_core"]["repository_root"]).resolve()
 if str(SHARED_CORE_ROOT) not in sys.path:
     sys.path.insert(0, str(SHARED_CORE_ROOT))

@@ -64,7 +64,12 @@ def _cycle(root: Path) -> tuple[Path, dict, dict]:
 
 def _review(root: Path, request: dict, reviewer_policy: dict, *, verdict: str = "PASS", session: str | None = None) -> dict:
     role = reviewer_policy["role"]
-    binding = _request_binding(request)
+    binding = _request_binding(
+        request,
+        request_sha256=sha256_file(
+            root / "runs" / "triad" / "M0" / request["review_cycle_id"] / "request.json"
+        ),
+    )
     binding["role_prompt_sha256"] = sha256_file(root / reviewer_policy["prompt_path"])
     result = "FAIL" if verdict == "FAIL" else "PASS"
     return {

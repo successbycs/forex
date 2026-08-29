@@ -103,9 +103,9 @@ def verifier_fingerprint(root: Path, paths: list[str]) -> str:
     return f"sha256:{digest.hexdigest()}"
 
 
-def _request_binding(request: dict[str, Any]) -> dict[str, str]:
+def _request_binding(request: dict[str, Any], *, request_sha256: str | None = None) -> dict[str, str]:
     return {
-        "request_sha256": canonical_sha256(request),
+        "request_sha256": request_sha256 or canonical_sha256(request),
         "git_revision": request["git_revision"],
         "configuration_fingerprint": request["configuration_fingerprint"],
         "evidence_manifest_sha256": request["evidence_manifest_sha256"],
@@ -168,7 +168,7 @@ def prepare_review(root: Path, milestone_id: str) -> Path:
         request, root / "config" / "schemas" / "triad-review-request.schema.json", "Triad request"
     )
     atomic_write_json(cycle / "request.json", request)
-    binding = _request_binding(request)
+    binding = _request_binding(request, request_sha256=sha256_file(cycle / "request.json"))
     criterion_by_id = {criterion["id"]: criterion for criterion in milestone["acceptance_criteria"]}
     for reviewer in policy["reviewers"]:
         role = reviewer["role"]
@@ -259,7 +259,7 @@ def validate_review(root: Path, cycle: Path, review_path: Path) -> dict[str, Any
     role = review["role"]
     if role not in policies or role not in request["required_roles"]:
         raise TriadError(f"unexpected reviewer role: {role}")
-    expected_binding = _request_binding(request)
+    expected_binding = _request_binding(request, request_sha256=sha256_file(cycle / "request.json"))
     for field, expected in expected_binding.items():
         if review["binding"].get(field) != expected:
             raise TriadError(f"{role}: binding mismatch for {field}")
