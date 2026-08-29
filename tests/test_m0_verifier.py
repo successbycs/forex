@@ -10,6 +10,7 @@ import subprocess
 import pytest
 
 from forex.t480_dependency import inspect_dependency
+from forex.m0_evidence import M0_EVIDENCE_ARTIFACTS
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -76,6 +77,7 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path]:
     module = root / "src" / "forex" / "t480_dependency.py"
     module.parent.mkdir(parents=True)
     shutil.copy2(ROOT / "src" / "forex" / "t480_dependency.py", module)
+    shutil.copy2(ROOT / "src" / "forex" / "m0_evidence.py", module.parent / "m0_evidence.py")
     (module.parent / "__init__.py").write_text("", encoding="utf-8")
     _write_json(root / "config" / "t480.json", adapter_config)
     _write_json(
@@ -134,6 +136,8 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path]:
     (bundle / "t480-dependency.txt").write_text(
         json.dumps(dependency, indent=2) + "\n", encoding="utf-8"
     )
+    for artifact in M0_EVIDENCE_ARTIFACTS - {"summary.txt", "exit-codes.txt", "t480-dependency.txt"}:
+        (bundle / artifact).write_text("fixture\n", encoding="utf-8")
     fingerprint = hashlib.sha256()
     fingerprint.update(b"config/t480.json\0")
     fingerprint.update((root / "config" / "t480.json").read_bytes())
@@ -197,7 +201,8 @@ def test_black_box_verifier_accepts_bound_bundle(tmp_path: Path) -> None:
         ("configuration", "configuration fingerprint mismatch"),
         ("marker", "missing success marker"),
         ("exit_code", "required exit codes"),
-        ("path_escape", "missing or unsafe artifact"),
+        ("path_escape", "canonical artifact set"),
+        ("incomplete_manifest", "canonical artifact set"),
     ],
 )
 def test_black_box_verifier_rejects_invalid_bundles(
@@ -229,6 +234,8 @@ def test_black_box_verifier_rejects_invalid_bundles(
         ] = _sha256(exits)
     elif mutation == "path_escape":
         manifest["artifacts"][0]["path"] = "../../outside.txt"
+    elif mutation == "incomplete_manifest":
+        manifest["artifacts"] = [item for item in manifest["artifacts"] if item["path"] != "tests.stdout.txt"]
     _save_manifest(bundle, manifest)
     result = _verify(root, bundle)
     assert result.returncode != 0

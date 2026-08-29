@@ -1020,6 +1020,233 @@
         "current": "sha256:1af5c130e0da120cd8af14d81cf165c5b481049a1d1f09bcaa4353e1a04143c0",
         "invalidated_milestones": []
       }
+    },
+    {
+      "event_id": "E000079",
+      "timestamp": "2026-08-17T02:50:47Z",
+      "milestone_id": "M0",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260817T025041Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T025041Z/governance.stderr.txt"
+          },
+          {
+            "id": "configuration",
+            "argv": [
+              "python3",
+              "scripts/validate_config.py",
+              "--root",
+              "."
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260817T025041Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T025041Z/configuration.stderr.txt"
+          },
+          {
+            "id": "tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260817T025041Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T025041Z/tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000080",
+      "timestamp": "2026-08-17T02:51:59Z",
+      "milestone_id": "M0",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M0/20260817T025051Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000081",
+      "timestamp": "2026-08-17T02:52:26Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000082",
+      "timestamp": "2026-08-17T02:52:26Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C8",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000083",
+      "timestamp": "2026-08-17T02:52:27Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C9",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000084",
+      "timestamp": "2026-08-17T02:52:27Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C5",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000085",
+      "timestamp": "2026-08-17T02:52:27Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C11",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000086",
+      "timestamp": "2026-08-17T02:52:28Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C12",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000087",
+      "timestamp": "2026-08-17T02:52:28Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C13",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000088",
+      "timestamp": "2026-08-17T02:52:29Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C14",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000089",
+      "timestamp": "2026-08-17T02:52:29Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C15",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000090",
+      "timestamp": "2026-08-17T02:52:29Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C16",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000091",
+      "timestamp": "2026-08-17T02:52:30Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C17",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000092",
+      "timestamp": "2026-08-17T02:52:30Z",
+      "milestone_id": "M0",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M0-C20",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000093",
+      "timestamp": "2026-08-17T03:02:14Z",
+      "milestone_id": "M0",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260817T030211Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T030211Z/governance.stderr.txt"
+          },
+          {
+            "id": "configuration",
+            "argv": [
+              "python3",
+              "scripts/validate_config.py",
+              "--root",
+              "."
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260817T030211Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T030211Z/configuration.stderr.txt"
+          },
+          {
+            "id": "tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260817T030211Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260817T030211Z/tests.stderr.txt"
+          }
+        ]
+      }
     }
   ]
 }

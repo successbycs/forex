@@ -26,6 +26,7 @@ root = Path(sys.argv[1]).resolve()
 bundle = Path(sys.argv[2]).resolve()
 sys.path.insert(0, str(root / "src"))
 from forex.t480_dependency import inspect_dependency
+from forex.m0_evidence import M0_EVIDENCE_ARTIFACTS
 manifest_path = bundle / "manifest.json"
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 required = {
@@ -72,6 +73,9 @@ if not dependency["ok"]:
     raise SystemExit("T480 shared-core dependency is not immutable: " + "; ".join(dependency["errors"]))
 if manifest["external_dependencies"] != [dependency]:
     raise SystemExit("external dependency attestation mismatch")
+declared_artifacts = {artifact.get("path") for artifact in manifest["artifacts"] if isinstance(artifact, dict)}
+if declared_artifacts != M0_EVIDENCE_ARTIFACTS:
+    raise SystemExit("M0 evidence manifest does not contain the canonical artifact set")
 for artifact in manifest["artifacts"]:
     path = (bundle / artifact["path"]).resolve()
     if not path.is_relative_to(bundle) or not path.is_file():

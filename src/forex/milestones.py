@@ -23,6 +23,8 @@ from typing import Any, Iterable
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from forex.m0_evidence import M0_EVIDENCE_ARTIFACTS
+
 
 STATUSES = {
     "PLANNED",
@@ -82,8 +84,6 @@ TIMESTAMP_FIELDS = (
     "proven_at",
     "last_validated_at",
 )
-
-
 class GovernanceError(RuntimeError):
     """A milestone contract, state, transition, or proof is invalid."""
 
@@ -537,6 +537,10 @@ def validate_evidence_bundle(
     artifacts = manifest["artifacts"]
     if not isinstance(artifacts, list) or not artifacts:
         raise GovernanceError("evidence manifest must list raw artifacts")
+    if milestone["milestone_id"] == "M0" and run_external_verifier:
+        declared_paths = {item.get("path") for item in artifacts if isinstance(item, dict)}
+        if declared_paths != M0_EVIDENCE_ARTIFACTS:
+            raise GovernanceError("M0 evidence manifest does not contain the canonical artifact set")
     bundle = manifest_path.parent
     combined_text = ""
     for artifact in artifacts:
