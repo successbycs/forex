@@ -5,8 +5,9 @@ EUR/USD historical bars from `GOMarketsMU-Demo`.
 It is a fixed Python program that returns exactly 720 closed `EURUSD` H1 bars
 (about 30 days), together with the connected server, bar range, and a content
 hash. The reviewed fixed probe source is installed at the fixed T480-local
-path beside `mt5.local.json`; the catalog operation accepts no source, path, or
-command argument. The raw bars are carried as a `gzip+base64-json` payload so
+path beside `mt5.local.json`; that ignored local file pins the SHA-256 of both
+the probe and its Python interpreter, and the catalog operation refuses either
+hash mismatch. It accepts no source, path, or command argument. The raw bars are carried as a `gzip+base64-json` payload so
 the bounded export fits through the Windows SSH channel; the hash is calculated
 over the uncompressed canonical bar JSON. It initializes the locally installed
 MT5 terminal and always shuts it down cleanly; it does not expose a generic

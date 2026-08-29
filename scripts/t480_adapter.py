@@ -112,12 +112,18 @@ def _mt5_process_command(process_names: list[str]) -> str:
 
 
 def _m1_mt5_demo_probe_command() -> str:
-    """Return the fixed read-only M1 historical-export command for Windows."""
+    """Return the content-bound M1 historical-export command for Windows."""
     return (
         "$ErrorActionPreference='Stop'; "
         "$s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json; "
         "$p=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\m1_mt5_demo_probe.py'; "
         "if (!(Test-Path -LiteralPath $p)) { throw 'M1 fixed probe file is absent' }; "
+        "if (!(Test-Path -LiteralPath $s.python_path)) { throw 'M1 configured Python interpreter is absent' }; "
+        "if ($s.probe_sha256 -notmatch '^[a-f0-9]{64}$' -or $s.python_sha256 -notmatch '^[a-f0-9]{64}$') { throw 'M1 local hash pins are invalid' }; "
+        "$probeHash=(Get-FileHash -Algorithm SHA256 -LiteralPath $p).Hash.ToLowerInvariant(); "
+        "$pythonHash=(Get-FileHash -Algorithm SHA256 -LiteralPath $s.python_path).Hash.ToLowerInvariant(); "
+        "if ($probeHash -ne $s.probe_sha256) { throw 'M1 fixed probe hash mismatch' }; "
+        "if ($pythonHash -ne $s.python_sha256) { throw 'M1 Python interpreter hash mismatch' }; "
         "& $s.python_path $p $s.terminal_path; exit $LASTEXITCODE"
     )
 

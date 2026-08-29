@@ -16,8 +16,11 @@ The M1 Windows executable paths are deliberately machine-local. Copy
 `t480/mt5.local.example.json` to the T480 as
 `%USERPROFILE%\\Documents\\Code\\forex-m1-probe\\mt5.local.json`, then replace
 the placeholder Windows user path. The file is ignored by Git and contains
-only the local Python and MT5 executable paths; it must not contain account
-credentials. The fixed M1 operation accepts no path or command arguments.
+only local executable paths plus lowercase SHA-256 pins for the deployed probe
+and its Python interpreter; it must not contain account credentials. Generate
+the pins with `Get-FileHash -Algorithm SHA256` on those exact files. The fixed
+M1 operation accepts no path or command arguments and refuses a missing,
+malformed, or mismatched pin.
 
 `config/triad.yaml` governs required review roles, assigned M0 criteria and fail-closed recommendation policy. Review-policy changes alter the governed configuration fingerprint and invalidate existing review recommendations and proof.
 

@@ -1,6 +1,6 @@
 # Security model
 
-M0 has no trading, market-data, account, database, or model-provider capability. Its T480 adapter exposes only catalogued read-only operational observations through the shared transport core.
+M0 has no trading, database, or model-provider capability. Its T480 adapter exposes catalogued read-only operations through the shared transport core. The sole MT5/data exception is the fixed `m1_mt5_demo_probe`: it is Demo-only and exports exactly 720 closed EUR/USD H1 bars solely to prepare M1. It does not provide generic MT5, generic market-data, arbitrary account, shell, deployment, or order access.
 
 Hard boundaries:
 

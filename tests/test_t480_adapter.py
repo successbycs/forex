@@ -66,6 +66,11 @@ def test_m1_mt5_probe_is_fixed_and_read_only():
     assert "m1_mt5_demo_probe.py" in command
     assert "python_path" in command
     assert "terminal_path" in command
+    assert "Get-FileHash" in command
+    assert "probe_sha256" in command
+    assert "python_sha256" in command
+    assert "fixed probe hash mismatch" in command
+    assert "Python interpreter hash mismatch" in command
     assert "--command" not in t480_adapter.parser().format_help()
     assert t480_adapter.OPERATIONS["m1_mt5_demo_probe"].approval_required is False
 

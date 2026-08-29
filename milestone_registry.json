@@ -30,11 +30,11 @@
       "from_state": "The milestone capability is not yet proven.",
       "to_state": "Repository foundation proven",
       "scope": [
-        "Establish and clean-environment-prove a configuration-first, evidence-gated repository."
+        "Establish and clean-environment-prove a configuration-first, evidence-gated repository, including the fixed M1 preparation probe for bounded Demo historical EUR/USD export."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
-        "Capabilities assigned to later milestones."
+        "Capabilities assigned to later milestones, except for the explicitly fixed M1 preparation probe."
       ],
       "operator_config_affected": [
         "config/project.yaml",
@@ -197,7 +197,7 @@
         },
         {
           "id": "M0-C20",
-          "description": "The Forex T480 adapter remains catalog-locked, shared-core based, read-only, and exposes no arbitrary command, deployment mutation, MT5 API, market-data, account, or order surface.",
+          "description": "The Forex T480 adapter remains catalog-locked, shared-core based, and read-only. It exposes no arbitrary command, deployment mutation, generic MT5 API, generic market-data, arbitrary account, or order surface; its sole MT5 exception is the fixed m1_mt5_demo_probe, which is Demo-only and exports exactly 720 closed EUR/USD H1 bars for M1 preparation.",
           "kind": "SAFETY"
         },
         {
