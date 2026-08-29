@@ -2480,6 +2480,23 @@
         "from": "READY",
         "to": "IN_PROGRESS"
       }
+    },
+    {
+      "event_id": "E000169",
+      "timestamp": "2026-08-29T22:45:27Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+        "current": "sha256:bc781288540a5e738143bcc90108aee288d00c184bf6b3fb8be1672563837f2d",
+        "invalidated_milestones": [
+          "M1"
+        ],
+        "preserved_milestones": [
+          "M0"
+        ],
+        "preservation_reason": "Operator approved the shared-lock update and M1 revalidation; the pre-existing M0 standing-baseline exception remains in force."
+      }
     }
   ]
 }

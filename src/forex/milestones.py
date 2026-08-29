@@ -759,7 +759,17 @@ def _build_parser() -> argparse.ArgumentParser:
         command = subparsers.add_parser(name)
         command.add_argument("--id", required=True)
         command.add_argument("--reason", required=True)
-    subparsers.add_parser("refresh-fingerprint", help="record current config fingerprint without proving anything")
+    refresh = subparsers.add_parser("refresh-fingerprint", help="record current config fingerprint without proving anything")
+    refresh.add_argument(
+        "--preserve-proven-id",
+        action="append",
+        default=[],
+        help="retain one explicitly approved standing baseline while other proven milestones are invalidated",
+    )
+    refresh.add_argument(
+        "--preservation-reason",
+        help="human-approved reason for preserving the standing baseline",
+    )
     return parser
 
 
@@ -783,11 +793,23 @@ def run_cli(args: argparse.Namespace) -> int:
     if args.command == "refresh-fingerprint":
         old = store.state.get("configuration_fingerprint")
         new = configuration_fingerprint(store.root, store.state)
+        preserved = sorted(set(args.preserve_proven_id))
+        if preserved and not args.preservation_reason:
+            raise GovernanceError("--preservation-reason is required when preserving a proven milestone")
+        for milestone_id in preserved:
+            item = store.milestone_state(milestone_id)
+            signoff = item.get("human_signoff") or {}
+            if item.get("status") != "PROVEN":
+                raise GovernanceError(f"only a PROVEN milestone can be preserved: {milestone_id}")
+            if milestone_id != "M0" or "standing baseline" not in signoff.get("note", "").lower():
+                raise GovernanceError(
+                    "preserving proof requires the recorded M0 standing-baseline operator exception"
+                )
         store.state["configuration_fingerprint"] = new
         invalidated: list[str] = []
         if old is not None and old != new:
             for milestone_id, item in store.state["milestones"].items():
-                if item["status"] == "PROVEN":
+                if item["status"] == "PROVEN" and milestone_id not in preserved:
                     item["status"] = "NEEDS_REVALIDATION"
                     item["blockers"].append(
                         {"reason": "Governed configuration fingerprint changed.", "recorded_at": utc_now()}
@@ -796,7 +818,13 @@ def run_cli(args: argparse.Namespace) -> int:
         store.event(
             "M0",
             "CONFIGURATION_FINGERPRINT_REFRESHED",
-            {"previous": old, "current": new, "invalidated_milestones": invalidated},
+            {
+                "previous": old,
+                "current": new,
+                "invalidated_milestones": invalidated,
+                "preserved_milestones": preserved,
+                "preservation_reason": args.preservation_reason,
+            },
         )
         store.save()
         print(new)

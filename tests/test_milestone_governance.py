@@ -195,6 +195,42 @@ def test_target_date_is_not_a_completion_timestamp() -> None:
     )
 
 
+def test_refresh_fingerprint_can_preserve_only_the_approved_m0_standing_baseline(tmp_path: Path) -> None:
+    root = _copy_governance(tmp_path)
+    state_path = root / "project_state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    for milestone_id in ("M0", "M1"):
+        state["milestones"][milestone_id]["status"] = "PROVEN"
+        state["milestones"][milestone_id]["proven_at"] = utc_now()
+        state["milestones"][milestone_id]["human_signoff"] = {
+            "note": "Operator authorizes M0 as the standing baseline."
+        }
+    state_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+    config_path = root / "config" / "t480.json"
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    config["shared_core"]["expected_git_revision"] = "a" * 40
+    config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+
+    assert main(
+        [
+            "--root",
+            str(root),
+            "refresh-fingerprint",
+            "--preserve-proven-id",
+            "M0",
+            "--preservation-reason",
+            "Recorded operator standing-baseline exception; revalidate M1 for shared-lock update.",
+        ]
+    ) == 0
+
+    refreshed = json.loads(state_path.read_text(encoding="utf-8"))
+    assert refreshed["milestones"]["M0"]["status"] == "PROVEN"
+    assert refreshed["milestones"]["M1"]["status"] == "NEEDS_REVALIDATION"
+    event = json.loads((root / "runs" / "run_history.json").read_text(encoding="utf-8"))["events"][-1]
+    assert event["detail"]["preserved_milestones"] == ["M0"]
+    assert event["detail"]["invalidated_milestones"] == ["M1"]
+
+
 def test_json_schema_validation_rejects_registry_shape_drift(tmp_path: Path) -> None:
     root = _copy_governance(tmp_path)
     registry_path = root / "milestone_registry.json"

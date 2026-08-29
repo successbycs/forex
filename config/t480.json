@@ -3,7 +3,7 @@
   "shared_core": {
     "repository": "successbycs/cs-ai-lab-infra",
     "repository_root": "/home/chris/projects/cs-ai-lab-infra",
-    "expected_git_revision": "551f1afe972172ba9eee707a81a12072c8473ee0",
+    "expected_git_revision": "c92b99e8f2f069daf7d3a9b378e70b0e100ee051",
     "require_clean_worktree": true,
     "require_tracked_files": true,
     "files": [
