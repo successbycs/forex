@@ -12,6 +12,11 @@ over the uncompressed canonical bar JSON. It initializes the locally installed
 MT5 terminal and always shuts it down cleanly; it does not expose a generic
 command parameter, credentials, account values, positions, or order methods.
 
+Each raw adapter result carries the governed project configuration fingerprint
+used by milestone evidence. Its separate adapter-only fingerprint is retained
+under `adapter_configuration_fingerprint`; it is diagnostic and not the M1
+evidence binding.
+
 The probe fails closed unless the server is exactly `GOMarketsMU-Demo`, the
 symbol is exactly `EURUSD`, and all 720 bars are closed, chronological, and
 valid OHLC values. It reads executable paths from the ignored T480-local

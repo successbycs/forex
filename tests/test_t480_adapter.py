@@ -15,6 +15,12 @@ def test_catalog_and_adapter_operations_match():
     assert {entry["id"] for entry in catalog["operations"]} == set(t480_adapter.OPERATIONS)
 
 
+def test_adapter_emits_the_governed_project_fingerprint_for_evidence_binding():
+    fingerprint = t480_adapter.project_configuration_fingerprint()
+    assert fingerprint.startswith("sha256:")
+    assert len(fingerprint) == 71
+
+
 def test_adapter_is_read_only_and_has_no_arbitrary_command_surface():
     assert all(not operation.approval_required for operation in t480_adapter.OPERATIONS.values())
     help_text = t480_adapter.parser().format_help()

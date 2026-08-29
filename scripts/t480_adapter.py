@@ -23,6 +23,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from forex.t480_dependency import inspect_dependency, require_dependency  # noqa: E402
+from forex.milestones import configuration_fingerprint  # noqa: E402
 
 CONFIG_PATH = ROOT / "config" / "t480.json"
 CATALOG_PATH = ROOT / "t480" / "command-catalog.json"
@@ -97,6 +98,12 @@ CONFIGURATION_FINGERPRINT = fingerprint_files(
         CATALOG_PATH,
     ]
 )
+
+
+def project_configuration_fingerprint() -> str:
+    """Return the governed project fingerprint used by milestone evidence."""
+    state = json.loads((ROOT / "project_state.json").read_text(encoding="utf-8"))
+    return configuration_fingerprint(ROOT, state)
 
 
 def _mt5_process_command(process_names: list[str]) -> str:
@@ -254,7 +261,8 @@ def requirements() -> dict[str, Any]:
         "shared_core_root": str(SHARED_CORE_ROOT),
         "shared_core_identity": DEPENDENCY_IDENTITY,
         "description": "Run fixed read-only Forex and shared-platform T480 inspections.",
-        "configuration_fingerprint": CONFIGURATION_FINGERPRINT,
+        "configuration_fingerprint": project_configuration_fingerprint(),
+        "adapter_configuration_fingerprint": CONFIGURATION_FINGERPRINT,
         "commands": ["describe-requirements", "preflight", "execute", "verify"],
         "operations": [
             {
@@ -317,7 +325,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "verify":
             payload["verified_operation"] = args.operation
     if args.command != "dependency-status":
-        payload["configuration_fingerprint"] = CONFIGURATION_FINGERPRINT
+        payload["configuration_fingerprint"] = project_configuration_fingerprint()
+        payload["adapter_configuration_fingerprint"] = CONFIGURATION_FINGERPRINT
     append_execution_log(
         LOG_PATH,
         tool_id=TOOL_ID,

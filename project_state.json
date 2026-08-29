@@ -5,8 +5,8 @@
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
   "last_proven_milestone": "M0",
-  "current_milestone": "M1",
-  "next_milestone": "M2",
+  "current_milestone": null,
+  "next_milestone": "M1",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
   "broker": "GO Markets Mauritius",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,18 +39,18 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-29T05:19:17Z",
+  "last_updated_at": "2026-08-29T05:34:58Z",
   "milestones": {
     "M0": {
-      "status": "NEEDS_REVALIDATION",
-      "started_at": "2026-08-29T04:39:07Z",
+      "status": "PROVEN",
+      "started_at": "2026-08-29T05:22:27Z",
       "implementation_finished_at": "2026-08-29T05:06:30Z",
-      "verification_passed_at": "2026-08-29T05:06:30Z",
-      "real_world_proof_captured_at": "2026-08-29T05:06:28Z",
-      "human_signed_off_at": "2026-08-29T05:09:39Z",
+      "verification_passed_at": "2026-08-29T05:22:08Z",
+      "real_world_proof_captured_at": "2026-08-29T05:21:56Z",
+      "human_signed_off_at": "2026-08-29T05:32:26Z",
       "first_proven_at": "2026-08-29T02:01:44Z",
-      "proven_at": "2026-08-29T05:10:11Z",
-      "last_validated_at": "2026-08-29T05:10:11Z",
+      "proven_at": "2026-08-29T05:32:38Z",
+      "last_validated_at": "2026-08-29T05:32:38Z",
       "checks": {
         "M0-C1": {
           "result": "PASS",
@@ -174,8 +174,8 @@
         },
         "M0-C21": {
           "result": "PASS",
-          "recorded_at": "2026-08-29T05:09:39Z",
-          "evidence": "runs/triad/M0/M0-20260829T050631Z-b56f49b8/recommendation.json",
+          "recorded_at": "2026-08-29T05:30:02Z",
+          "evidence": "runs/triad/M0/M0-20260829T052233Z-a7a43a24/recommendation.json",
           "note": "A current bound Triad-plus-domain recommendation supports completion."
         },
         "M0-C19": {
@@ -329,13 +329,22 @@
           "configuration_fingerprint": "sha256:e9f084dd9fcbd5221c5f08d4cb6632e3bf06b8cce022fe5220a168b67df4baf9",
           "git_revision": "b56f49b8fd5badb48e08f9c90143e177b04a243c",
           "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
+        },
+        {
+          "manifest_path": "runs/evidence/M0/20260829T052144Z/manifest.json",
+          "manifest_sha256": "d9dc18a888b7e10e9a21f3e88b4df293f4004ab0d5a67f6eb0df602c2de1cb32",
+          "captured_at": "2026-08-29T05:21:56Z",
+          "recorded_at": "2026-08-29T05:22:05Z",
+          "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+          "git_revision": "a7a43a240b213496a3568a287b91b461f5358d37",
+          "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-08-29T05:06:30Z",
-        "git_revision": "b56f49b8fd5badb48e08f9c90143e177b04a243c",
-        "configuration_fingerprint": "sha256:e9f084dd9fcbd5221c5f08d4cb6632e3bf06b8cce022fe5220a168b67df4baf9",
+        "recorded_at": "2026-08-29T05:22:08Z",
+        "git_revision": "a7a43a240b213496a3568a287b91b461f5358d37",
+        "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
         "commands": [
           {
             "id": "governance",
@@ -346,8 +355,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T050628Z/governance.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T050628Z/governance.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T052205Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T052205Z/governance.stderr.txt"
           },
           {
             "id": "configuration",
@@ -359,8 +368,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T050628Z/configuration.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T050628Z/configuration.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T052205Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T052205Z/configuration.stderr.txt"
           },
           {
             "id": "tests",
@@ -372,29 +381,24 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T050628Z/tests.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T050628Z/tests.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T052205Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T052205Z/tests.stderr.txt"
           }
         ]
       },
       "human_signoff": {
         "operator": "human-operator",
         "decision": "APPROVE",
-        "note": "Approved current M0 evidence and Triad recommendation bound to b56f49b.",
+        "note": "Operator approved the fresh M0 revalidation and authorizes M0 as the standing baseline; do not initiate further M0 revalidation without explicit operator direction.",
         "inputs_reviewed": true,
         "outputs_reviewed": true,
-        "git_revision": "b56f49b8fd5badb48e08f9c90143e177b04a243c",
-        "configuration_fingerprint": "sha256:e9f084dd9fcbd5221c5f08d4cb6632e3bf06b8cce022fe5220a168b67df4baf9",
-        "evidence_manifest_sha256": "a2fc98a22c4b00a319cc54b8ac45b29ad89a833682cd8b519d4a1b31f0e62771",
-        "verification_recorded_at": "2026-08-29T05:06:30Z",
-        "recorded_at": "2026-08-29T05:09:39Z"
+        "git_revision": "a7a43a240b213496a3568a287b91b461f5358d37",
+        "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+        "evidence_manifest_sha256": "d9dc18a888b7e10e9a21f3e88b4df293f4004ab0d5a67f6eb0df602c2de1cb32",
+        "verification_recorded_at": "2026-08-29T05:22:08Z",
+        "recorded_at": "2026-08-29T05:32:26Z"
       },
-      "blockers": [
-        {
-          "reason": "Governed configuration fingerprint changed.",
-          "recorded_at": "2026-08-29T05:15:20Z"
-        }
-      ],
+      "blockers": [],
       "work_packages": {
         "M0.1": {
           "status": "VERIFIED",
@@ -433,36 +437,104 @@
         }
       },
       "triad_recommendation": {
-        "path": "runs/triad/M0/M0-20260829T050631Z-b56f49b8/recommendation.json",
-        "sha256": "c4184fce3c7212743d1365683a641411088ce15df42448c4ab404cba97fe8431",
-        "summary_path": "runs/triad/M0/M0-20260829T050631Z-b56f49b8/review-summary.md",
-        "summary_sha256": "3bf1a0a7e9f65c6f4f77e048612ad7c25a28a507d6b50868ee1a659d22cc2c4e",
-        "review_cycle_id": "M0-20260829T050631Z-b56f49b8",
+        "path": "runs/triad/M0/M0-20260829T052233Z-a7a43a24/recommendation.json",
+        "sha256": "bd8aa3429a21394ff6de8dcdaf21af21fc5b5cc8d2cfced5ffd1d6a54d875b70",
+        "summary_path": "runs/triad/M0/M0-20260829T052233Z-a7a43a24/review-summary.md",
+        "summary_sha256": "6304ac5f54f110be20b244409068c49f6a8266a8465b3791a20f9ca0914723b9",
+        "review_cycle_id": "M0-20260829T052233Z-a7a43a24",
         "recommendation": "RECOMMEND_COMPLETE",
         "binding": {
-          "request_sha256": "6f045e98e0caacb41f673c0d0887b87b50468154eaf6ac61360796a6525db435",
-          "git_revision": "b56f49b8fd5badb48e08f9c90143e177b04a243c",
-          "configuration_fingerprint": "sha256:e9f084dd9fcbd5221c5f08d4cb6632e3bf06b8cce022fe5220a168b67df4baf9",
-          "evidence_manifest_sha256": "a2fc98a22c4b00a319cc54b8ac45b29ad89a833682cd8b519d4a1b31f0e62771",
+          "request_sha256": "5527f14ebb706c535153c58ba252ce538f2a48b3a17ae55abf1197867d0bbd49",
+          "git_revision": "a7a43a240b213496a3568a287b91b461f5358d37",
+          "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+          "evidence_manifest_sha256": "d9dc18a888b7e10e9a21f3e88b4df293f4004ab0d5a67f6eb0df602c2de1cb32",
           "verifier_fingerprint": "sha256:26677b8093031899c65d59078dc3128405fa7370e9f9918daab2fa141f8bf63d",
           "milestone_contract_sha256": "577d833c6de0652088fec0be183e5534ee433fed76e8eafbe9d9ebd8706c577a"
         },
-        "recorded_at": "2026-08-29T05:09:39Z"
+        "recorded_at": "2026-08-29T05:30:02Z"
       }
     },
     "M1": {
-      "status": "IN_PROGRESS",
+      "status": "AWAITING_REAL_WORLD_PROOF",
       "started_at": "2026-08-29T05:10:58Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
+      "implementation_finished_at": "2026-08-29T05:34:58Z",
+      "verification_passed_at": "2026-08-29T05:34:58Z",
+      "real_world_proof_captured_at": "2026-08-29T05:34:06Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
+      "checks": {
+        "M1-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-08-29T05:34:57Z",
+          "evidence": "runs/evidence/M1/20260829T053403Z/manifest.json",
+          "note": "Two retained fixed probe runs each report GOMarketsMU-Demo, EURUSD, H1, and exactly 720 closed bars."
+        },
+        "M1-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-08-29T05:34:57Z",
+          "evidence": "runs/evidence/M1/20260829T053403Z/manifest.json",
+          "note": "Fresh self-attested evidence is bound to current Git revision, governed configuration fingerprint, artifact hashes, and a clean implementation worktree."
+        },
+        "M1-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-08-29T05:34:57Z",
+          "evidence": "runs/evidence/M1/20260829T053403Z/manifest.json",
+          "note": "Fixed no-argument probe is Demo-gated before market-data access; retained output contains no credentials, balances, positions, or order data."
+        },
+        "M1-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-08-29T05:34:58Z",
+          "evidence": "tests/test_t480_adapter.py",
+          "note": "Current governance and M1 adapter verification commands passed with inspectable versioned artifacts."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M1/20260829T053403Z/manifest.json",
+          "manifest_sha256": "465499638118cf3fcc1aee280702431af1ab5fd645785c9fa623fc7729d6c7a6",
+          "captured_at": "2026-08-29T05:34:06Z",
+          "recorded_at": "2026-08-29T05:34:44Z",
+          "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+          "git_revision": "a7a43a240b213496a3568a287b91b461f5358d37",
+          "summary": "FOREX_M1_PROOF_OK: capture and verification each returned exactly 720 closed EURUSD H1 bars from GOMarketsMU-Demo."
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-08-29T05:34:58Z",
+        "git_revision": "a7a43a240b213496a3568a287b91b461f5358d37",
+        "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M1/20260829T053457Z/governance.stdout.txt",
+            "stderr": "runs/verification/M1/20260829T053457Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/test_t480_adapter.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M1/20260829T053457Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M1/20260829T053457Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
       "human_signoff": null,
       "blockers": []
     },
