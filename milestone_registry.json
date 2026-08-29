@@ -1770,6 +1770,7 @@
       "to_state": "Deterministic regime and event-window engine proven",
       "scope": [
         "Classify reproducible market regimes and event windows from point-in-time-safe historical context.",
+        "Define the versioned EUR/USD intraday-session contract: one daily decision timestamp and one mandatory flat-by cutoff timestamp in UTC, including daylight-saving handling and scheduled-event blackout windows.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -1787,7 +1788,7 @@
       "acceptance_criteria": [
         {
           "id": "M14-C1",
-          "description": "The capability works on the declared surface: deterministic historical regime and event-window engine.",
+          "description": "The capability works on the declared surface: deterministic historical regime and event-window engine with a versioned EUR/USD intraday-session contract.",
           "kind": "CAPABILITY"
         },
         {
@@ -1861,8 +1862,8 @@
     },
     {
       "milestone_id": "M15",
-      "title": "Deterministic daily market hypothesis engine proven",
-      "objective": "Generate explainable, non-executing daily EUR/USD hypotheses with confidence, conflicting signals, provenance, and invalidation conditions.",
+      "title": "Daily hypothesis and explainable ML baseline proven",
+      "objective": "Generate explainable, non-executing daily EUR/USD hypotheses and one reproducible offline ML baseline from point-in-time-valid historical features.",
       "delivery_type": "RESEARCH_EVALUATION",
       "proof_type": "EMPIRICAL_RESEARCH",
       "dependencies": [
@@ -1873,14 +1874,16 @@
         "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Deterministic daily market hypothesis engine proven",
+      "to_state": "Daily hypothesis and explainable ML baseline proven",
       "scope": [
         "Generate explainable, non-executing daily EUR/USD hypotheses with confidence, conflicting signals, provenance, and invalidation conditions.",
+        "Train one small, explainable offline classifier on point-in-time-valid historical features to rank BUY, SELL, or NO_TRADE for the pre-declared intraday session; version its features, target, parameters, and 0–100 advisory score.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
         "Generic MT5, shell, or source-download command surfaces.",
+        "Deep learning, reinforcement learning, online learning, automated retraining, LLM trade decisions, or any ML authority over orders or approvals.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -1888,12 +1891,13 @@
       ],
       "expected_artifacts": [
         "docs/milestones/M15-proof.md",
+        "docs/milestones/M15-ml-baseline-model-card.md",
         "tests/milestones/test_m15.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M15-C1",
-          "description": "The capability works on the declared surface: deterministic daily market-hypothesis and ledger workflow.",
+          "description": "The capability works on the declared surface: deterministic daily market-hypothesis and ledger workflow plus one reproducible, explainable offline ML baseline that emits BUY, SELL, or NO_TRADE with a 0–100 advisory score.",
           "kind": "CAPABILITY"
         },
         {
@@ -1908,7 +1912,7 @@
         },
         {
           "id": "M15-C4",
-          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue; ML output remains research-only and cannot create, approve, or execute an order.",
           "kind": "SAFETY"
         }
       ],
@@ -1967,8 +1971,8 @@
     },
     {
       "milestone_id": "M16",
-      "title": "Historical baseline and walk-forward evaluation proven",
-      "objective": "Evaluate price-only, macro, calendar, and sentiment hypotheses against no-change baselines with pre-declared walk-forward controls.",
+      "title": "Historical and ML walk-forward evaluation proven",
+      "objective": "Evaluate price-only, macro, calendar, sentiment, and the M15 ML baseline against no-change baselines with pre-declared chronological walk-forward controls.",
       "delivery_type": "RESEARCH_EVALUATION",
       "proof_type": "EMPIRICAL_RESEARCH",
       "dependencies": [
@@ -1979,9 +1983,10 @@
         "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Historical baseline and walk-forward evaluation proven",
+      "to_state": "Historical and ML walk-forward evaluation proven",
       "scope": [
-        "Evaluate price-only, macro, calendar, and sentiment hypotheses against no-change baselines with pre-declared walk-forward controls.",
+        "Evaluate price-only, macro, calendar, sentiment, and the M15 ML baseline against no-change baselines with pre-declared chronological walk-forward controls.",
+        "Report model performance, stability across windows, feature contribution, and spread/cost-sensitive simulated comparison for the one-session entry-to-mandatory-exit strategy without treating any result as an order signal.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -1999,7 +2004,7 @@
       "acceptance_criteria": [
         {
           "id": "M16-C1",
-          "description": "The capability works on the declared surface: reproducible historical walk-forward evaluation environment.",
+          "description": "The capability works on the declared surface: reproducible chronological historical walk-forward evaluation environment comparing the ML baseline with no-change and deterministic baselines.",
           "kind": "CAPABILITY"
         },
         {
@@ -2014,7 +2019,7 @@
         },
         {
           "id": "M16-C4",
-          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue; random shuffling, live fitting, and profitability claims are excluded.",
           "kind": "SAFETY"
         }
       ],
@@ -2624,6 +2629,7 @@
       "to_state": "Deterministic simulated risk engine proven",
       "scope": [
         "Apply deterministic risk limits to non-executing simulated intents and record refusal reasons.",
+        "Enforce one intraday EUR/USD position at most, a mandatory flat-by cutoff, loss and spread limits, and scheduled-event blackout refusal rules in simulation.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -2642,7 +2648,7 @@
       "acceptance_criteria": [
         {
           "id": "M22-C1",
-          "description": "The capability works on the declared surface: offline simulated risk-engine evaluation.",
+          "description": "The capability works on the declared surface: offline simulated risk-engine evaluation including one-position, flat-by-cutoff, loss, spread, and event-blackout limits.",
           "kind": "CAPABILITY"
         },
         {
@@ -2731,6 +2737,7 @@
       "to_state": "Simulated position sizing proven",
       "scope": [
         "Calculate bounded simulated position sizes from approved historical inputs without an order capability.",
+        "Calculate the size only after the intraday risk limits and mandatory exit rule have passed; return NO_TRADE when they do not.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -2838,6 +2845,7 @@
       "to_state": "Simulated intent orchestration proven",
       "scope": [
         "Produce auditable simulated intents and NO_TRADE outcomes without execution authority.",
+        "For each eligible intraday session, record direction, 0–100 ML advisory score, score calibration status, reasons, decision-data timestamp, entry window, mandatory exit cutoff, invalidating conditions, and risk flags.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -2856,7 +2864,7 @@
       "acceptance_criteria": [
         {
           "id": "M24-C1",
-          "description": "The capability works on the declared surface: offline simulated intent-orchestration workflow.",
+          "description": "The capability works on the declared surface: offline simulated intraday intent workflow with BUY, SELL, and NO_TRADE outcomes and a mandatory exit cutoff.",
           "kind": "CAPABILITY"
         },
         {
@@ -2945,6 +2953,7 @@
       "to_state": "Human approval workflow proven",
       "scope": [
         "Require explicit, scoped, expiring human approval before any future Demo execution path may proceed.",
+        "Present the full intraday advisory intent, including direction, score, rationale, risk limits, entry window, and mandatory exit cutoff, for human accept-or-reject; a score never constitutes approval.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -3159,6 +3168,7 @@
       "to_state": "Fresh real-time Demo data path proven",
       "scope": [
         "When the Demo market is active, prove a fresh EUR/USD tick through the fixed read-only GOMarketsMU-Demo probe.",
+        "Prove that fresh Demo data is available at the configured intraday decision time; historical data cannot satisfy this condition.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -3267,6 +3277,7 @@
       "to_state": "Real-time Demo tick and spread collection proven",
       "scope": [
         "Collect and validate fresh Demo ticks, spreads, and broker-condition observations without an order.",
+        "Validate current spread and market-condition guards at the configured intraday decision time and refuse a simulated intent when they are outside configured bounds.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -3483,6 +3494,7 @@
       "to_state": "Controlled MT5 Demo execution and reconciliation proven",
       "scope": [
         "Only after all prior gates, prove a human-approved GOMarketsMU-Demo order and its complete reconciliation.",
+        "For the one-position intraday strategy, prove human-approved Demo entry, mandatory close by the configured cutoff or earlier risk exit, and complete reconciliation of both actions.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -3502,7 +3514,7 @@
       "acceptance_criteria": [
         {
           "id": "M30-C1",
-          "description": "The capability works on the declared surface: GOMarketsMU-Demo execution and reconciliation surface.",
+          "description": "The capability works on the declared surface: human-approved GOMarketsMU-Demo intraday entry, mandatory close, and complete reconciliation surface.",
           "kind": "CAPABILITY"
         },
         {

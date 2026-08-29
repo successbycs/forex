@@ -53,16 +53,17 @@ def test_mt5_status_is_process_only():
 
 def test_m1_mt5_probe_is_fixed_and_read_only():
     command = t480_adapter.OPERATIONS["m1_mt5_demo_probe"].powershell_command or ""
-    assert "MetaTrader5" not in command  # encoded fixed script; no operator-provided Python.
-    encoded = command.split("FromBase64String('", 1)[1].split("')", 1)[0]
-    probe = __import__("base64").b64decode(encoded).decode("utf-8")
+    probe = (t480_adapter.ROOT / "t480" / "m1_mt5_demo_probe.py").read_text(encoding="utf-8")
     assert "copy_rates_from_pos" in probe
     assert "TIMEFRAME_H1" in probe
     assert "BAR_COUNT = 720" in probe
+    assert "bars_encoding" in probe
+    assert "gzip+base64-json" in probe
     assert "symbol_info_tick" not in probe
     assert "order_send" not in probe
     assert "OEM" not in command
     assert "mt5.local.json" in command
+    assert "m1_mt5_demo_probe.py" in command
     assert "python_path" in command
     assert "terminal_path" in command
     assert "--command" not in t480_adapter.parser().format_help()

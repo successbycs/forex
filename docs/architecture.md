@@ -23,7 +23,7 @@ is complete. All other phase components are planned.
 | Governance, evidence, review, self-attested integrity | M0 revalidation; required throughout M1–M32 |
 | Demo historical export, fixed read-only bridge, persistence, multi-timeframe price data | M1–M6 |
 | Source qualification and candidate macro/calendar/sentiment adapters | M7–M11 |
-| Normalisation, provenance, point-in-time alignment, replay, hypotheses, walk-forward evaluation | M12–M16 |
+| Normalisation, provenance, point-in-time alignment, replay, deterministic hypotheses, one explainable offline ML baseline, walk-forward evaluation | M12–M16 |
 | Non-executing context, bounded Ollama assistance, lineage, simulated risk/sizing/intent, approval and revalidation | M17–M26 |
 | Fresh Demo tick, tick/spread collection, recovery safety | M27–M29 |
 | Human-approved Demo execution and reconciliation | M30 |
@@ -49,6 +49,19 @@ calendar, market-context, or sentiment observations with EUR/USD decisions.
 This is necessary to prevent future leakage. Ollama, if adopted under M18, is
 limited to fixed-version, offline, schema-constrained analysis of permitted
 captured data; it has no transport, provider, MT5, or execution authority.
+
+M15 adds one small, explainable ML baseline to the historical research layer.
+It consumes only versioned, point-in-time-valid snapshots and produces
+research probabilities plus a model card. M16 tests it chronologically against
+no-change and deterministic baselines. It is not an autonomous strategy, does
+not retrain online, and cannot create, approve, or execute orders.
+
+The initial strategy shape is one EUR/USD intraday session: at a defined UTC
+decision time the research layer returns `BUY`, `SELL`, or `NO_TRADE` with a
+0–100 advisory score. A later Demo workflow may open at most one
+human-approved position and must close it by the configured UTC cutoff or an
+earlier predefined risk exit. The score is evidence for a human decision, not
+an approval or execution instruction.
 
 Target ownership boundary:
 

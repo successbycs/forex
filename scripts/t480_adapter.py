@@ -10,7 +10,6 @@ operations. Its single M1 operation is a fixed read-only historical export.
 from __future__ import annotations
 
 import argparse
-import base64
 import json
 from pathlib import Path
 import re
@@ -114,23 +113,12 @@ def _mt5_process_command(process_names: list[str]) -> str:
 
 def _m1_mt5_demo_probe_command() -> str:
     """Return the fixed read-only M1 historical-export command for Windows."""
-    probe = """import hashlib\nimport json\nimport sys\nfrom datetime import datetime, timezone\nimport MetaTrader5 as mt5\n\nTERMINAL = sys.argv[1]\nSYMBOL = 'EURUSD'\nTIMEFRAME = mt5.TIMEFRAME_H1\nBAR_COUNT = 720\nif not mt5.initialize(path=TERMINAL):\n    raise SystemExit(mt5.last_error())\ntry:\n    account = mt5.account_info()\n    symbol = mt5.symbol_info(SYMBOL)\n    rates = mt5.copy_rates_from_pos(SYMBOL, TIMEFRAME, 1, BAR_COUNT)\n    if not account or account.server != 'GOMarketsMU-Demo':\n        raise SystemExit('MT5 is not connected to GOMarketsMU-Demo')\n    if not symbol or symbol.name != SYMBOL:\n        raise SystemExit('required EURUSD symbol is unavailable')\n    if rates is None or len(rates) != BAR_COUNT:\n        raise SystemExit(f'expected exactly {BAR_COUNT} closed EURUSD H1 bars')\n    bars = []\n    previous_time = None\n    for rate in rates:\n        timestamp = int(rate['time'])\n        if previous_time is not None and timestamp <= previous_time:\n            raise SystemExit('historical bars are not strictly chronological')\n        previous_time = timestamp\n        bar = {'time_utc': datetime.fromtimestamp(timestamp, timezone.utc).isoformat().replace('+00:00', 'Z'), 'open': float(rate['open']), 'high': float(rate['high']), 'low': float(rate['low']), 'close': float(rate['close']), 'volume': int(rate['tick_volume'])}\n        if min(bar['open'], bar['high'], bar['low'], bar['close']) <= 0 or bar['low'] > min(bar['open'], bar['close']) or bar['high'] < max(bar['open'], bar['close']):\n            raise SystemExit('historical bar has invalid OHLC values')\n        bars.append(bar)\n    payload = {'server': account.server, 'symbol': symbol.name, 'timeframe': 'H1', 'bar_count': len(bars), 'first_bar_utc': bars[0]['time_utc'], 'last_bar_utc': bars[-1]['time_utc'], 'bars_sha256': hashlib.sha256(json.dumps(bars, separators=(',', ':'), sort_keys=True).encode('utf-8')).hexdigest(), 'bars': bars}\n    print(json.dumps(payload, separators=(',', ':')))\nfinally:\n    mt5.shutdown()\n"""
-    encoded = base64.b64encode(probe.encode("utf-8")).decode("ascii")
     return (
         "$ErrorActionPreference='Stop'; "
-        "$settingsPath=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json'; "
-        "if (!(Test-Path -LiteralPath $settingsPath)) { throw 'M1 local MT5 settings are absent' }; "
-        "$settings=Get-Content -Raw -LiteralPath $settingsPath | ConvertFrom-Json; "
-        "$required=@('schema_version','python_path','terminal_path'); "
-        "if ($settings.PSObject.Properties.Name.Count -ne 3 -or @($required | Where-Object { $_ -notin $settings.PSObject.Properties.Name }).Count -ne 0 -or $settings.schema_version -ne 'forex.mt5-local.v1') { throw 'M1 local MT5 settings are invalid' }; "
-        "$python=[string]$settings.python_path; $terminal=[string]$settings.terminal_path; "
-        "if (!(Test-Path -LiteralPath $python) -or !(Test-Path -LiteralPath $terminal)) { throw 'M1 local MT5 executable path is unavailable' }; "
-        "$code=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('"
-        + encoded
-        + "')); $file=Join-Path $env:TEMP 'forex-m1-readonly-probe.py'; "
-        "[IO.File]::WriteAllText($file,$code); "
-        "& $python $file $terminal; "
-        "$status=$LASTEXITCODE; Remove-Item -Force $file; exit $status"
+        "$s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json; "
+        "$p=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\m1_mt5_demo_probe.py'; "
+        "if (!(Test-Path -LiteralPath $p)) { throw 'M1 fixed probe file is absent' }; "
+        "& $s.python_path $p $s.terminal_path; exit $LASTEXITCODE"
     )
 
 
