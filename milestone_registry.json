@@ -491,13 +491,13 @@
       "scope": [
         "Define and validate canonical price, raw-observation, dataset-snapshot, and source-registry contracts for historical research.",
         "Define a versioned PostgreSQL physical schema, lineage keys, integrity constraints, immutable snapshot boundary, and no-lookahead enforcement for those contracts.",
-        "Run PostgreSQL bound only to localhost, apply the M2 migration, and import the retained M1 720-bar EUR/USD H1 observation as one verified snapshot.",
+        "Use the existing private T480 AI Lab PostgreSQL/pgvector service through a fixed Forex-owned T480 operation; apply the M2 migration and import the retained M1 720-bar EUR/USD H1 observation as one verified snapshot.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
         "Generic MT5, shell, or source-download command surfaces.",
-        "Public or LAN database exposure, secrets in Git, generic ingestion or download surfaces, and application-level reimport workflows."
+        "Project-local database services, public or LAN database exposure, secrets in Git, generic ingestion or download surfaces, and application-level reimport workflows."
       ],
       "operator_config_affected": [
         "config/mt5.yaml",
@@ -506,14 +506,14 @@
       "expected_artifacts": [
         "docs/milestones/M2-proof.md",
         "sql/migrations/001_m2_historical_data.sql",
-        "compose.yaml",
-        "scripts/import_m2_postgres.sh",
+        "docs/infrastructure_requirements.md",
+        "scripts/build_m2_postgres_import.py",
         "tests/milestones/test_m2.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M2-C1",
-          "description": "The capability works on the declared surface: validated Forex historical-data contracts, localhost-only PostgreSQL schema, and imported dataset snapshot.",
+          "description": "The capability works on the declared surface: validated Forex historical-data contracts, private T480 shared PostgreSQL schema, and imported dataset snapshot.",
           "kind": "CAPABILITY"
         },
         {
@@ -555,7 +555,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "localhost-only PostgreSQL storing the retained M1 EUR/USD H1 snapshot",
+        "surface": "private T480 AI Lab PostgreSQL storing the retained M1 EUR/USD H1 snapshot in the Forex-owned schema",
         "capture_command": [
           "bash",
           "scripts/capture_m2_evidence.sh"
@@ -573,8 +573,8 @@
       "evidence_requirements": [
         "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
         "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
-        "Raw local PostgreSQL migration/import/query output with row counts, snapshot hash, source/revision/configuration provenance, timestamps, and redaction declaration.",
-        "A human-observable summary of the declared localhost-only PostgreSQL M1-snapshot persistence result containing FOREX_M2_PROOF_OK."
+        "Raw T480 fixed-operation migration/import/query output with row counts, snapshot hash, source/revision/configuration provenance, timestamps, and redaction declaration.",
+        "A human-observable summary of the declared private T480 shared-PostgreSQL M1-snapshot persistence result containing FOREX_M2_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [

@@ -80,3 +80,11 @@ def test_m2_fixed_postgres_import_contains_exact_retained_m1_bar_count():
     assert "m2-m1-eurusd-h1-720" in result.stdout
     assert "FOREX_M2_POSTGRES_IMPORT_OK" in result.stdout
     assert "GOMarketsMU-Live" not in result.stdout
+
+
+def test_m2_capture_uses_only_fixed_shared_adapter_operations():
+    capture = Path("scripts/capture_m2_evidence.sh").read_text()
+    assert "postgres_pgvector_adapter.py" in capture
+    for operation in ("preflight", "forex-m2-apply-schema --approve", "forex-m2-import --approve", "forex-m2-verify"):
+        assert operation in capture
+    assert "import_m2_postgres.sh" not in capture

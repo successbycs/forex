@@ -12,25 +12,27 @@ T480 Windows host
   no database port exposed on LAN/public interfaces
 
 T480 WSL Ubuntu
-  Forex repository, fixed read-only T480 adapter, evidence tooling
-
-Docker Desktop via WSL integration
-  PostgreSQL 16 container, bound only to 127.0.0.1:54329
-  named local volume for historical research data
+  Forex repository, fixed T480 adapter, evidence tooling
+  shared AI Lab Docker runtime
+    private PostgreSQL + pgvector service on the internal Docker network
+    shared platform volume and T480-local credentials
 ```
 
-M2 owns the versioned PostgreSQL schema and the first controlled import of
-retained M1 historical evidence. The import has a fixed input: the retained
-720 closed EUR/USD H1 M1 Demo observation. It records source, revision,
-timestamps, hashes, redaction and lineage; it does not provide a general
-download, database, MT5, shell, account, or order interface.
+All runtime functions run on the T480 AI Lab. M2 owns the versioned `forex`
+PostgreSQL schema and the first controlled import of retained M1 historical
+evidence; `cs-ai-lab-infra` owns the private PostgreSQL/pgvector service,
+Docker network, volumes, and credentials. The import has a fixed input: the
+retained 720 closed EUR/USD H1 M1 Demo observation. It records source,
+revision, timestamps, hashes, redaction and lineage; it does not provide a
+general download, database, MT5, shell, account, or order interface.
 
-The Windows MT5 terminal and PostgreSQL are separate components. Forex code
-reaches MT5 only through its fixed Demo-only catalog operation. PostgreSQL is
-an internal WSL/Docker research service; it must not be published to the
-network. M5 later proves application-level database integration and
-idempotent reimport. M2 does not claim PostgreSQL is deployed until the local
-service, migration, import, and retained query evidence have all succeeded.
+The Windows MT5 terminal and shared PostgreSQL service are separate T480
+components. Forex code reaches MT5 only through its fixed Demo-only catalog
+operation and reaches PostgreSQL only through a fixed, approval-gated T480
+operation. PostgreSQL is internal to the shared Docker network and has no
+published host, LAN, or public port. M5 later proves application-level
+database integration and idempotent reimport. M2 does not claim persistence
+until the T480 service, migration, import, and retained query evidence pass.
 
 ## Historical market-intelligence roadmap
 

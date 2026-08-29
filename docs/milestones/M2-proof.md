@@ -3,8 +3,9 @@
 M2 defines a small, canonical contract layer for historical research. It does
 not add a download API, generic MT5 access, live data, orders, or a trading
 model. Its physical persistence definition is the versioned PostgreSQL
-migration `sql/migrations/001_m2_historical_data.sql`; deployment and a live
-database connection are deliberately not claimed by M2.
+migration `sql/migrations/001_m2_historical_data.sql`; M2 claims persistence
+only after the fixed T480 shared-adapter migration, import, and verification
+operations have actually succeeded.
 
 ## Contract objects
 
@@ -39,17 +40,20 @@ external source qualification. Those are later M7 work.
 
 ## M2 proof surface
 
-The proof surface is deterministic validation of a retained, hash-addressed
-historical dataset snapshot. `capture_m2_evidence.sh` retains the raw
-milestone-test, governance, configuration, and repository-verification
-outputs. `verify_m2_evidence.sh` separately validates manifest/artifact
-hashes, clean revision/configuration binding, success markers, and the M2
-snapshot tests without contacting MT5 or any external source.
+The proof surface is deterministic validation plus the private T480 shared
+PostgreSQL service. `capture_m2_evidence.sh` invokes only fixed,
+approval-gated operations in the `cs-ai-lab-infra` PostgreSQL adapter and
+retains their raw preflight, migration, import, verification, dependency, and
+repository-verification outputs. `verify_m2_evidence.sh` separately validates
+manifest/artifact hashes, clean revision/configuration binding, success
+markers, and the M2 snapshot tests without contacting MT5 or any external
+source.
 `check_m2_schema.py` statically checks the required PostgreSQL tables,
 lineage, indexes, immutability, no-lookahead triggers, and forbidden
 capabilities. It is not a database-connection claim.
 
 `FOREX_M2_PROOF_OK` means these contracts and snapshot validations passed for
-the bound revision. It does **not** prove a market-data feed, current tick,
-source licence, trading edge, order capability, or independent remote
-execution provenance.
+the bound revision and the fixed T480 PostgreSQL query returned the expected
+dataset. It does **not** prove a market-data feed, current tick, source
+licence, trading edge, order capability, or independent remote execution
+provenance.

@@ -3,6 +3,8 @@ set -uo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
+shared_adapter="/home/chris/projects/cs-ai-lab-infra/scripts/postgres_pgvector_adapter.py"
+test -f "$shared_adapter" || { echo "shared PostgreSQL adapter is absent" >&2; exit 4; }
 run_id="$(date -u +%Y%m%dT%H%M%SZ)"
 bundle="${1:-$repo_root/runs/evidence/M2/$run_id}"
 mkdir -p "$bundle"
@@ -14,24 +16,32 @@ configuration_fingerprint="$(python3 scripts/forex_milestones.py status --json |
 
 python3 -m pytest -q tests/milestones/test_m2.py >"$bundle/m2-tests.stdout.txt" 2>"$bundle/m2-tests.stderr.txt"; tests_exit=$?
 python3 scripts/check_m2_schema.py --root . >"$bundle/postgres-schema.stdout.txt" 2>"$bundle/postgres-schema.stderr.txt"; schema_exit=$?
-bash scripts/import_m2_postgres.sh >"$bundle/postgres-import.stdout.txt" 2>"$bundle/postgres-import.stderr.txt"; import_exit=$?
+git -C /home/chris/projects/cs-ai-lab-infra rev-parse HEAD >"$bundle/shared-postgres-adapter.txt" 2>&1
+sha256sum "$shared_adapter" >>"$bundle/shared-postgres-adapter.txt"
+python3 "$shared_adapter" preflight >"$bundle/postgres-preflight.stdout.json" 2>"$bundle/postgres-preflight.stderr.txt"; preflight_exit=$?
+python3 "$shared_adapter" forex-m2-apply-schema --approve >"$bundle/postgres-schema-apply.stdout.json" 2>"$bundle/postgres-schema-apply.stderr.txt"; apply_exit=$?
+python3 "$shared_adapter" forex-m2-import --approve >"$bundle/postgres-import.stdout.json" 2>"$bundle/postgres-import.stderr.txt"; import_exit=$?
+python3 "$shared_adapter" forex-m2-verify >"$bundle/postgres-verify.stdout.json" 2>"$bundle/postgres-verify.stderr.txt"; postgres_verify_exit=$?
 python3 scripts/forex_milestones.py validate >"$bundle/governance.stdout.txt" 2>"$bundle/governance.stderr.txt"; governance_exit=$?
 python3 scripts/validate_config.py --root . --json >"$bundle/configuration.stdout.json" 2>"$bundle/configuration.stderr.txt"; configuration_exit=$?
 bash scripts/verify_project.sh >"$bundle/repository-verification.stdout.txt" 2>"$bundle/repository-verification.stderr.txt"; repository_exit=$?
 
 overall=0
-for code in "$tests_exit" "$schema_exit" "$import_exit" "$governance_exit" "$configuration_exit" "$repository_exit"; do [[ "$code" -eq 0 ]] || overall=1; done
+for code in "$tests_exit" "$schema_exit" "$preflight_exit" "$apply_exit" "$import_exit" "$postgres_verify_exit" "$governance_exit" "$configuration_exit" "$repository_exit"; do [[ "$code" -eq 0 ]] || overall=1; done
 {
   printf 'm2_tests=%s\n' "$tests_exit"
   printf 'postgres_schema=%s\n' "$schema_exit"
+  printf 'postgres_preflight=%s\n' "$preflight_exit"
+  printf 'postgres_schema_apply=%s\n' "$apply_exit"
   printf 'postgres_import=%s\n' "$import_exit"
+  printf 'postgres_verify=%s\n' "$postgres_verify_exit"
   printf 'governance=%s\n' "$governance_exit"
   printf 'configuration=%s\n' "$configuration_exit"
   printf 'repository_verification=%s\n' "$repository_exit"
   printf 'overall=%s\n' "$overall"
 } >"$bundle/exit-codes.txt"
 if [[ "$overall" -eq 0 && "$dirty_worktree" == false ]]; then
-  summary='FOREX_M2_PROOF_OK: canonical historical-data contracts, localhost-only PostgreSQL migration and retained M1 snapshot import, point-in-time validation, governance, configuration, and repository verification passed.'
+  summary='FOREX_M2_PROOF_OK: canonical historical-data contracts, private T480 shared-PostgreSQL migration and retained M1 snapshot import, point-in-time validation, governance, configuration, and repository verification passed.'
 else
   summary='FOREX_M2_PROOF_FAILED: inspect retained raw outputs and worktree declaration.'
 fi
@@ -50,7 +60,7 @@ manifest = {
   "captured_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
   "git_revision": os.environ['FOREX_M2_REVISION'], "dirty_worktree": os.environ['FOREX_M2_DIRTY'] == 'true',
   "configuration_fingerprint": os.environ['FOREX_M2_CONFIG'],
-  "surface": "localhost-only PostgreSQL storing the retained M1 EUR/USD H1 snapshot",
+  "surface": "private T480 AI Lab PostgreSQL storing the retained M1 EUR/USD H1 snapshot in the Forex-owned schema",
   "operation": "M2 deterministic contract and repository verification",
   "expected_result": "M2 contracts reject invalid lineage, hash, and look-ahead inputs; all declared checks exit zero.",
   "observed_result": os.environ['FOREX_M2_SUMMARY'], "exit_code": int(os.environ['FOREX_M2_OVERALL']),
