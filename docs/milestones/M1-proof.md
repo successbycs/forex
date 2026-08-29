@@ -28,3 +28,16 @@ is a Phase 3 M27 requirement.
 
 Raw evidence and the implementation revision remain required before M1 can be
 closed.
+
+## Approved MVP assurance limit
+
+M1 accepts the T480's self-attested output from this fixed Demo probe. The
+evidence binds the local repository revision, the governed project
+configuration fingerprint, raw capture and verification outputs, and their
+artifact hashes. It deliberately does **not** pin or authenticate remote probe
+bytes or the machine-local Python interpreter. That means the result is a
+bounded, self-attested observation—not independently controlled execution
+provenance and not proof of a generic MT5, order, or live-trading capability.
+
+The M1 bundle also retains repository-verification output. It does not license
+or qualify other external research sources; that work belongs to M7.

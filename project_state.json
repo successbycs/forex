@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-29T05:34:58Z",
+  "last_updated_at": "2026-08-29T05:49:13Z",
   "milestones": {
     "M0": {
       "status": "PROVEN",
@@ -458,8 +458,8 @@
       "status": "AWAITING_REAL_WORLD_PROOF",
       "started_at": "2026-08-29T05:10:58Z",
       "implementation_finished_at": "2026-08-29T05:34:58Z",
-      "verification_passed_at": "2026-08-29T05:34:58Z",
-      "real_world_proof_captured_at": "2026-08-29T05:34:06Z",
+      "verification_passed_at": "2026-08-29T05:49:13Z",
+      "real_world_proof_captured_at": "2026-08-29T05:48:59Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
@@ -499,12 +499,30 @@
           "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
           "git_revision": "a7a43a240b213496a3568a287b91b461f5358d37",
           "summary": "FOREX_M1_PROOF_OK: capture and verification each returned exactly 720 closed EURUSD H1 bars from GOMarketsMU-Demo."
+        },
+        {
+          "manifest_path": "runs/evidence/M1/20260829T053947Z/manifest.json",
+          "manifest_sha256": "30dda650711b8c7a9d17c0e2eeeba419ceafb95ed59a31e8f0ac58ec5d9185f3",
+          "captured_at": "2026-08-29T05:39:50Z",
+          "recorded_at": "2026-08-29T05:40:00Z",
+          "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+          "git_revision": "b093bada485f10043e9e7f98caf3e71e3ebeaae5",
+          "summary": "FOREX_M1_PROOF_OK: capture and verification each returned exactly 720 closed EURUSD H1 bars from GOMarketsMU-Demo."
+        },
+        {
+          "manifest_path": "runs/evidence/M1/20260829T054853Z/manifest.json",
+          "manifest_sha256": "b97fce3e3b4c819c458a2dfee1dfe8f258bc93a79bfc80bac6e3e87275e15ebd",
+          "captured_at": "2026-08-29T05:48:59Z",
+          "recorded_at": "2026-08-29T05:49:13Z",
+          "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+          "git_revision": "b093bada485f10043e9e7f98caf3e71e3ebeaae5",
+          "summary": "FOREX_M1_PROOF_OK: capture and verification each returned exactly 720 closed EURUSD H1 bars from GOMarketsMU-Demo; repository verification passed."
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-08-29T05:34:58Z",
-        "git_revision": "a7a43a240b213496a3568a287b91b461f5358d37",
+        "recorded_at": "2026-08-29T05:49:13Z",
+        "git_revision": "b093bada485f10043e9e7f98caf3e71e3ebeaae5",
         "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
         "commands": [
           {
@@ -516,8 +534,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M1/20260829T053457Z/governance.stdout.txt",
-            "stderr": "runs/verification/M1/20260829T053457Z/governance.stderr.txt"
+            "stdout": "runs/verification/M1/20260829T054913Z/governance.stdout.txt",
+            "stderr": "runs/verification/M1/20260829T054913Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -530,8 +548,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M1/20260829T053457Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M1/20260829T053457Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M1/20260829T054913Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M1/20260829T054913Z/milestone-tests.stderr.txt"
           }
         ]
       },

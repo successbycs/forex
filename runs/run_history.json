@@ -2265,6 +2265,98 @@
         "from": "IN_PROGRESS",
         "to": "AWAITING_REAL_WORLD_PROOF"
       }
+    },
+    {
+      "event_id": "E000158",
+      "timestamp": "2026-08-29T05:40:00Z",
+      "milestone_id": "M1",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M1/20260829T053947Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000159",
+      "timestamp": "2026-08-29T05:40:08Z",
+      "milestone_id": "M1",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M1/20260829T054007Z/governance.stdout.txt",
+            "stderr": "runs/verification/M1/20260829T054007Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/test_t480_adapter.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M1/20260829T054007Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M1/20260829T054007Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000160",
+      "timestamp": "2026-08-29T05:49:13Z",
+      "milestone_id": "M1",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M1/20260829T054853Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000161",
+      "timestamp": "2026-08-29T05:49:13Z",
+      "milestone_id": "M1",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M1/20260829T054913Z/governance.stdout.txt",
+            "stderr": "runs/verification/M1/20260829T054913Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/test_t480_adapter.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M1/20260829T054913Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M1/20260829T054913Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
     }
   ]
 }

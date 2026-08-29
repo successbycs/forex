@@ -6,7 +6,7 @@
 
 ## Evidence assurance tier
 
-Every milestone currently declares `SELF_ATTESTED_INTEGRITY`. Its fixed-job local evidence runner creates a fresh evidence bundle and signs the manifest digest using a private key kept outside Git; the repository stores the public key and verifies the signature. This detects post-capture modification and binds the bundle to its configured runner key, but is not an external witness or separately controlled identity. The same reduced provenance tier applies to demo execution. It does not weaken demo-only server enforcement, deterministic risk controls, explicit human approval, Triad review, or the prohibition on live trading.
+Every milestone currently declares `SELF_ATTESTED_INTEGRITY`. M0 uses a fixed-job local evidence runner that signs the manifest digest using a private key kept outside Git; the repository verifies it with the stored public key. M1's approved MVP bridge instead retains hash-addressed raw capture, verification, and repository-verification outputs, bound to the repository revision and governed configuration. M1 deliberately does not authenticate the remote probe bytes or its machine-local interpreter. Neither pattern is an external witness or separately controlled identity. This does not weaken the Demo-only repository boundary, human approval, Triad review, or prohibition on live trading.
 
 ## Three-phase operating model
 

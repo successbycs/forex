@@ -376,7 +376,7 @@
       "to_state": "Bounded EUR/USD historical Demo export proven",
       "scope": [
         "Prove a fixed, read-only export of exactly 720 closed EUR/USD H1 bars from the authenticated GOMarketsMU-Demo terminal.",
-        "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
+        "Retain the repository revision, governed configuration fingerprint, raw operation outputs, and artifact hashes sufficient to reproduce the MVP self-attested observation."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
@@ -405,12 +405,12 @@
         },
         {
           "id": "M1-C3",
-          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
+          "description": "Current self-attested real-world proof matches the Git revision, governed configuration fingerprint, declared Demo source, and retained raw artifact hashes; no ML model applies.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M1-C4",
-          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
+          "description": "The reviewed repository surface remains Demo-only, read-only, and non-executing; the retained observation is point-in-time bounded, contains no credentials or order data, and does not qualify additional external research sources or their licences.",
           "kind": "SAFETY"
         }
       ],
@@ -459,8 +459,9 @@
       },
       "evidence_requirements": [
         "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
-        "The retained raw fixed-operation output and a fresh fixed-operation verification output, each containing FOREX_M1_PROOF_OK."
+        "Git revision, dirty-worktree declaration, governed configuration fingerprint, declared Demo source, and SHA-256 artifact hashes; no ML model, prompt, remote executable identity, or interpreter identity applies to M1.",
+        "The retained raw fixed-operation output, a fresh fixed-operation verification output, and repository-verification output, each with required success markers where applicable.",
+        "MVP limitation: the T480 probe and machine-local interpreter are self-attested observations. M1 does not authenticate their remote executable bytes or establish independently controlled execution provenance."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
@@ -470,7 +471,7 @@
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "MVP bridge proof is intentionally bounded to 720 closed H1 bars. Larger or multi-year extraction belongs to later data milestones. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
+      "notes": "MVP bridge proof is intentionally bounded to 720 closed H1 bars. Its assurance accepts self-attested T480 probe output without remote executable or interpreter hash pinning; this limitation is explicit and is not evidence of independent provenance. Larger or multi-year extraction belongs to later data milestones. Historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M2",

@@ -9,7 +9,7 @@ The Triad review consists of three engineering lenses plus a Forex domain lens:
 
 These reviewers provide isolated recommendations; they are not completion authorities. Real-world evidence and deterministic verification must already pass. The human operator remains the only final decision-maker.
 
-Reviewers assess evidence against the milestone's declared `SELF_ATTESTED_INTEGRITY` tier. They must verify the local runner signature and all integrity bindings, and explicitly state that the runner is self-attested. The absence of an external witness or separate signing identity is a documented limitation, not by itself a contract failure.
+Reviewers assess evidence against the milestone's declared `SELF_ATTESTED_INTEGRITY` tier and its milestone-specific evidence requirements. M0 requires its local runner signature. M1's approved MVP bridge instead requires retained, hash-addressed raw capture, verification, and repository-verification outputs bound to the repository revision and governed configuration; it deliberately does not authenticate the remote probe bytes or machine-local interpreter. The absence of an external witness, separate signing identity, or M1 remote-executable identity is a documented limitation, not by itself a contract failure.
 
 ## Trust and independence boundary
 
