@@ -475,8 +475,8 @@
     },
     {
       "milestone_id": "M2",
-      "title": "Historical data contracts and snapshots proven",
-      "objective": "Define and validate canonical price, raw-observation, dataset-snapshot, and source-registry contracts for historical research.",
+      "title": "Historical data contracts, PostgreSQL schema, and snapshots proven",
+      "objective": "Define and validate canonical historical-data contracts and PostgreSQL schema, then prove one localhost-only initial import of the retained M1 EUR/USD snapshot.",
       "delivery_type": "FOUNDATION_ENABLING",
       "proof_type": "REPOSITORY_EXECUTION",
       "dependencies": [
@@ -487,15 +487,17 @@
         "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Historical data contracts and snapshots proven",
+      "to_state": "Historical data contracts, PostgreSQL schema, and initial snapshot persistence proven",
       "scope": [
         "Define and validate canonical price, raw-observation, dataset-snapshot, and source-registry contracts for historical research.",
+        "Define a versioned PostgreSQL physical schema, lineage keys, integrity constraints, immutable snapshot boundary, and no-lookahead enforcement for those contracts.",
+        "Run PostgreSQL bound only to localhost, apply the M2 migration, and import the retained M1 720-bar EUR/USD H1 observation as one verified snapshot.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
         "Generic MT5, shell, or source-download command surfaces.",
-        "Capabilities assigned to later milestones."
+        "Public or LAN database exposure, secrets in Git, generic ingestion or download surfaces, and application-level reimport workflows."
       ],
       "operator_config_affected": [
         "config/mt5.yaml",
@@ -503,12 +505,15 @@
       ],
       "expected_artifacts": [
         "docs/milestones/M2-proof.md",
+        "sql/migrations/001_m2_historical_data.sql",
+        "compose.yaml",
+        "scripts/import_m2_postgres.sh",
         "tests/milestones/test_m2.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M2-C1",
-          "description": "The capability works on the declared surface: validated Forex historical-data contracts and dataset snapshots.",
+          "description": "The capability works on the declared surface: validated Forex historical-data contracts, localhost-only PostgreSQL schema, and imported dataset snapshot.",
           "kind": "CAPABILITY"
         },
         {
@@ -550,7 +555,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "validated Forex historical-data contracts and dataset snapshots",
+        "surface": "localhost-only PostgreSQL storing the retained M1 EUR/USD H1 snapshot",
         "capture_command": [
           "bash",
           "scripts/capture_m2_evidence.sh"
@@ -568,7 +573,8 @@
       "evidence_requirements": [
         "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
         "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
-        "A human-observable summary of the declared validated Forex historical-data contracts and dataset snapshots result containing FOREX_M2_PROOF_OK."
+        "Raw local PostgreSQL migration/import/query output with row counts, snapshot hash, source/revision/configuration provenance, timestamps, and redaction declaration.",
+        "A human-observable summary of the declared localhost-only PostgreSQL M1-snapshot persistence result containing FOREX_M2_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
@@ -796,8 +802,8 @@
     },
     {
       "milestone_id": "M5",
-      "title": "Provenance-preserving historical persistence proven",
-      "objective": "Persist raw references, normalised records, hashes, lineage, and idempotent historical imports.",
+      "title": "Historical persistence integration and idempotent reimport proven",
+      "objective": "Prove the application uses the M2 PostgreSQL schema to persist raw references, normalised records, hashes, lineage, and idempotent historical imports.",
       "delivery_type": "CAPABILITY_DELIVERING",
       "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
@@ -808,9 +814,9 @@
         "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Provenance-preserving historical persistence proven",
+      "to_state": "Historical persistence integration and idempotent reimport proven",
       "scope": [
-        "Persist raw references, normalised records, hashes, lineage, and idempotent historical imports.",
+        "Prove the application uses the M2 PostgreSQL schema to persist raw references, normalised records, hashes, lineage, and idempotent historical imports.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -829,7 +835,7 @@
       "acceptance_criteria": [
         {
           "id": "M5-C1",
-          "description": "The capability works on the declared surface: Forex historical-data persistence and idempotent reimport workflow.",
+          "description": "The capability works on the declared surface: application-to-PostgreSQL historical-data persistence and idempotent reimport workflow.",
           "kind": "CAPABILITY"
         },
         {
@@ -871,7 +877,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "Forex historical-data persistence and idempotent reimport workflow",
+        "surface": "application-to-PostgreSQL historical-data persistence and idempotent reimport workflow",
         "capture_command": [
           "bash",
           "scripts/capture_m5_evidence.sh"
@@ -889,7 +895,7 @@
       "evidence_requirements": [
         "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
         "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
-        "A human-observable summary of the declared Forex historical-data persistence and idempotent reimport workflow result containing FOREX_M5_PROOF_OK."
+        "A human-observable summary of the declared application-to-PostgreSQL historical-data persistence and idempotent reimport workflow result containing FOREX_M5_PROOF_OK."
       ],
       "human_review_required": false,
       "proof_invalidated_by": [

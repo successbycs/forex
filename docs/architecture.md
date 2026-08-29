@@ -4,6 +4,34 @@
 
 ![High-level Forex repository architecture](assets/forex-architecture-overview.png)
 
+## T480 deployment boundary
+
+```text
+T480 Windows host
+  MetaTrader 5 on GOMarketsMU-Demo only
+  no database port exposed on LAN/public interfaces
+
+T480 WSL Ubuntu
+  Forex repository, fixed read-only T480 adapter, evidence tooling
+
+Docker Desktop via WSL integration
+  PostgreSQL 16 container, bound only to 127.0.0.1:54329
+  named local volume for historical research data
+```
+
+M2 owns the versioned PostgreSQL schema and the first controlled import of
+retained M1 historical evidence. The import has a fixed input: the retained
+720 closed EUR/USD H1 M1 Demo observation. It records source, revision,
+timestamps, hashes, redaction and lineage; it does not provide a general
+download, database, MT5, shell, account, or order interface.
+
+The Windows MT5 terminal and PostgreSQL are separate components. Forex code
+reaches MT5 only through its fixed Demo-only catalog operation. PostgreSQL is
+an internal WSL/Docker research service; it must not be published to the
+network. M5 later proves application-level database integration and
+idempotent reimport. M2 does not claim PostgreSQL is deployed until the local
+service, migration, import, and retained query evidence have all succeeded.
+
 ## Historical market-intelligence roadmap
 
 ![Historical market-intelligence architecture](assets/advanced-market-intelligence-architecture.png)
@@ -70,7 +98,7 @@ cs-ai-lab-infra
   shared T480 transport, PostgreSQL, n8n, optional Ollama, internal network
 
 Forex
-  application configuration, read-only MT5 adapter, schemas, migrations,
+  application configuration, read-only MT5 adapter, PostgreSQL historical-data schemas and migrations,
   research logic, workflows, decisions, and evidence
 
 Windows T480
