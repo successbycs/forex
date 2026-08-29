@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "NEEDS_REVALIDATION",
+  "implementation_status": "NEEDS_FIX",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,17 +39,17 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-29T03:17:46Z",
+  "last_updated_at": "2026-08-29T04:45:45Z",
   "milestones": {
     "M0": {
-      "status": "NEEDS_REVALIDATION",
-      "started_at": "2026-08-29T01:22:12Z",
-      "implementation_finished_at": "2026-08-17T01:23:21Z",
-      "verification_passed_at": "2026-08-29T01:57:02Z",
-      "real_world_proof_captured_at": "2026-08-29T01:56:54Z",
+      "status": "NEEDS_FIX",
+      "started_at": "2026-08-29T04:39:07Z",
+      "implementation_finished_at": "2026-08-29T04:39:23Z",
+      "verification_passed_at": "2026-08-29T04:39:23Z",
+      "real_world_proof_captured_at": "2026-08-29T04:39:20Z",
       "human_signed_off_at": "2026-08-29T02:01:23Z",
       "first_proven_at": "2026-08-29T02:01:44Z",
-      "proven_at": "2026-08-29T02:01:44Z",
+      "proven_at": null,
       "last_validated_at": "2026-08-29T02:01:44Z",
       "checks": {
         "M0-C1": {
@@ -293,13 +293,22 @@
           "configuration_fingerprint": "sha256:23758eb6aeb7b25146cb9cfae59d5aa64d531d0a6a606a433214797ad86ddcae",
           "git_revision": "43f12321fe6b027086cd62720da0d41b4246cef4",
           "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
+        },
+        {
+          "manifest_path": "runs/evidence/M0/20260829T043908Z/manifest.json",
+          "manifest_sha256": "7db21fac83c6d8a4e5a24ea1576ab6ba56806a4eb8cef2a76e96f7a256a5b908",
+          "captured_at": "2026-08-29T04:39:20Z",
+          "recorded_at": "2026-08-29T04:39:20Z",
+          "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+          "git_revision": "f7a69b42f0edd96016e66b930f9e16a53ecafa5f",
+          "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-08-29T01:57:02Z",
-        "git_revision": "43f12321fe6b027086cd62720da0d41b4246cef4",
-        "configuration_fingerprint": "sha256:23758eb6aeb7b25146cb9cfae59d5aa64d531d0a6a606a433214797ad86ddcae",
+        "recorded_at": "2026-08-29T04:39:23Z",
+        "git_revision": "f7a69b42f0edd96016e66b930f9e16a53ecafa5f",
+        "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
         "commands": [
           {
             "id": "governance",
@@ -310,8 +319,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T015700Z/governance.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T015700Z/governance.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T043921Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T043921Z/governance.stderr.txt"
           },
           {
             "id": "configuration",
@@ -323,8 +332,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T015700Z/configuration.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T015700Z/configuration.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T043921Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T043921Z/configuration.stderr.txt"
           },
           {
             "id": "tests",
@@ -336,8 +345,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T015700Z/tests.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T015700Z/tests.stderr.txt"
+            "stdout": "runs/verification/M0/20260829T043921Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T043921Z/tests.stderr.txt"
           }
         ]
       },
@@ -357,6 +366,10 @@
         {
           "reason": "Governed configuration fingerprint changed.",
           "recorded_at": "2026-08-29T03:14:53Z"
+        },
+        {
+          "reason": "Fresh Triad cycle M0-20260829T044055Z-f7a69b42 returned DO_NOT_COMPLETE: M0-C20 prohibits the committed M1 MT5 historical-data probe, and the probe deployment lacks a remote content/interpreter binding.",
+          "recorded_at": "2026-08-29T04:45:26Z"
         }
       ],
       "work_packages": {

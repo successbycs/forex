@@ -1661,6 +1661,106 @@
         "current": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
         "invalidated_milestones": []
       }
+    },
+    {
+      "event_id": "E000120",
+      "timestamp": "2026-08-29T04:39:07Z",
+      "milestone_id": "M0",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "NEEDS_REVALIDATION",
+        "to": "IN_PROGRESS"
+      }
+    },
+    {
+      "event_id": "E000121",
+      "timestamp": "2026-08-29T04:39:20Z",
+      "milestone_id": "M0",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M0/20260829T043908Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000122",
+      "timestamp": "2026-08-29T04:39:23Z",
+      "milestone_id": "M0",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T043921Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T043921Z/governance.stderr.txt"
+          },
+          {
+            "id": "configuration",
+            "argv": [
+              "python3",
+              "scripts/validate_config.py",
+              "--root",
+              "."
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T043921Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T043921Z/configuration.stderr.txt"
+          },
+          {
+            "id": "tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260829T043921Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260829T043921Z/tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000123",
+      "timestamp": "2026-08-29T04:39:23Z",
+      "milestone_id": "M0",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "IN_PROGRESS",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
+    },
+    {
+      "event_id": "E000124",
+      "timestamp": "2026-08-29T04:45:26Z",
+      "milestone_id": "M0",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "AWAITING_REAL_WORLD_PROOF",
+        "to": "NEEDS_FIX",
+        "reason": "Fresh Triad cycle M0-20260829T044055Z-f7a69b42 returned DO_NOT_COMPLETE: M0-C20 prohibits the committed M1 MT5 historical-data probe, and the probe deployment lacks a remote content/interpreter binding."
+      }
+    },
+    {
+      "event_id": "E000125",
+      "timestamp": "2026-08-29T04:45:45Z",
+      "milestone_id": "M0",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "NEEDS_FIX",
+        "reason": "test"
+      }
     }
   ]
 }
