@@ -10,8 +10,13 @@ M2 has persisted the retained M1 EUR/USD H1 historical observation in the
 private T480 shared PostgreSQL service. Its verified evidence records one
 `DEMO_ONLY` source, one raw observation, one immutable snapshot, and 720 bars
 with lineage and no-lookahead checks. This is historical research data only:
-it neither creates a live feed nor permits orders, and M2 is not complete
-until the evidence-bound Triad and human route has completed.
+it neither creates a live feed nor permits orders. M2 requires its declared
+proof and explicit human sign-off; the Review Board is reserved for phase
+gates M16, M27, and M32.
+
+Administrators can inspect the price-data database directly from the home LAN;
+see [`docs/database_access.md`](database_access.md). This is direct PostgreSQL
+client access to the T480, not a new trading application or order surface.
 
 ## Architecture knowledge
 
@@ -28,11 +33,10 @@ shared component is deployed. `docs/architecture.md` is the narrative source
 of truth for the design, while the milestone registry and project state retain
 their respective contract and execution roles.
 
-Final evidence review uses four isolated roles. The `ptr.py` helper can either
-generate one reviewer prompt or run a visible sequential request/response
-handoff. It validates a role's JSON against its immutable packet before
-recording it and stops on failure. It adds no completion state, authority,
-trading capability, or substitute for human acceptance.
+The four-role Review Board is retained for the three phase gates only: M16,
+M27, and M32. Routine MVP milestones use tests, their declared external proof
+where applicable, and human acceptance. There is no separate Builder/Reviewer
+workflow or automated reviewer runner.
 
 The design-only prompt for the proposed historical market-intelligence and
 Ollama-assisted research capability is retained in

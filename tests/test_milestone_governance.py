@@ -11,6 +11,7 @@ import pytest
 from forex.milestones import (
     GovernanceError,
     MilestoneStore,
+    _triad_gate_errors,
     configuration_fingerprint,
     _gate_errors,
     git_revision,
@@ -80,6 +81,21 @@ def test_registry_defines_contiguous_real_world_transition_contracts() -> None:
         for item in registry["milestones"]
     )
     assert all("status" not in item for item in registry["milestones"])
+
+
+def test_review_board_is_limited_to_mvp_phase_gates() -> None:
+    store = MilestoneStore(ROOT)
+    assert store.registry["triad_review_required"] is False
+    required = {
+        item["milestone_id"]
+        for item in store.registry["milestones"]
+        if item.get("review_board_required") is True
+    }
+    assert required == {"M16", "M27", "M32"}
+    assert _triad_gate_errors(store, "M2") == []
+    assert _triad_gate_errors(store, "M16") == [
+        "current Triad-plus-domain completion recommendation is required"
+    ]
 
 
 def test_repository_governance_files_validate() -> None:

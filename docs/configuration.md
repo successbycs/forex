@@ -19,7 +19,9 @@ the placeholder Windows user path. The file is ignored by Git and contains
 only the local Python and MT5 executable paths; it must not contain account
 credentials. The fixed M1 operation accepts no path or command arguments.
 
-`config/triad.yaml` governs required review roles, assigned M0 criteria and fail-closed recommendation policy. Review-policy changes alter the governed configuration fingerprint and invalidate existing review recommendations and proof.
+`config/triad.yaml` governs the four Review Board roles and fail-closed
+recommendation policy at M16, M27, and M32. A policy change invalidates a
+recorded Review Board recommendation, not unrelated routine milestone proof.
 
 Validate configuration with:
 

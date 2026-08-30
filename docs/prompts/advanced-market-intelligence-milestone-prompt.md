@@ -16,7 +16,7 @@ Your sole output must be a milestone-driven delivery proposal. Do not write impl
 Repository governance:
 - `milestone_registry.json` is the fixed milestone contract; `project_state.json` is mutable execution state.
 - Work may proceed only on the active milestone after dependencies are proven. M0 currently requires revalidation; do not recommend later implementation until that gate is satisfied.
-- Every milestone requires real-world proof, self-attested integrity evidence, current Triad-plus-domain review, and human sign-off before `proven_at`.
+- Every milestone requires its declared proof and human sign-off before `proven_at`. The Review Board (Triad plus domain expert) is required at phase gates M16, M27, and M32, not for routine MVP milestones.
 - Fixtures, tests, documentation, correlations, and backtests never prove a milestone or profitability by themselves.
 - Preserve: no live trading, no `GOMarketsMU-Live`, no secrets in Git, no agent execution authority, no arbitrary shell/MT5 command surface, and no order surface before M27.
 - Shared T480 transport belongs to `cs-ai-lab-infra`; Forex owns fixed adapter catalogues, schemas, workflows, tests, and evidence.

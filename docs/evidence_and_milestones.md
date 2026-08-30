@@ -6,7 +6,7 @@
 
 ## Evidence assurance tier
 
-Every milestone currently declares `SELF_ATTESTED_INTEGRITY`. M0 uses a fixed-job local evidence runner that signs the manifest digest using a private key kept outside Git; the repository verifies it with the stored public key. M1's approved MVP bridge instead retains hash-addressed raw capture, verification, and repository-verification outputs, bound to the repository revision and governed configuration. M1 deliberately does not authenticate the remote probe bytes or its machine-local interpreter. Neither pattern is an external witness or separately controlled identity. This does not weaken the Demo-only repository boundary, human approval, Triad review, or prohibition on live trading.
+Every milestone currently declares `SELF_ATTESTED_INTEGRITY`. M0 uses a fixed-job local evidence runner that signs the manifest digest using a private key kept outside Git; the repository verifies it with the stored public key. M1's approved MVP bridge instead retains hash-addressed raw capture, verification, and repository-verification outputs, bound to the repository revision and governed configuration. M1 deliberately does not authenticate the remote probe bytes or its machine-local interpreter. Neither pattern is an external witness or separately controlled identity. This does not weaken the Demo-only repository boundary, human approval, the phase-gate Review Board, or prohibition on live trading.
 
 ## Three-phase operating model
 
@@ -14,7 +14,7 @@ The registry divides the route into historical foundation (M0–M16), offline de
 
 ## What completion means
 
-Implementation, tests, evidence capture, verification, and approval are distinct events. A milestone is complete only when `forex-milestones prove --id Mx` successfully writes `proven_at`. The command refuses closeout unless dependencies, all acceptance checks, required artifacts, fixed verification commands, current real-world evidence, configuration/revision matching, blockers, and any required human sign-off all pass.
+Implementation, tests, evidence capture, verification, and approval are distinct events. A milestone is complete only when `forex-milestones prove --id Mx` successfully writes `proven_at`. The command refuses closeout unless dependencies, all acceptance checks, required artifacts, fixed verification commands, current real-world evidence, configuration/revision matching, blockers, and human sign-off all pass. The four-role Review Board is an additional requirement only at M16, M27, and M32.
 
 `target_date` is an editable planning forecast owned by the human operator. It never causes closeout and is never reported as the actual completion date. A material change moves previously proven work to `NEEDS_REVALIDATION`; `first_proven_at` remains historical while a fresh `proven_at` is generated after revalidation.
 
@@ -64,7 +64,7 @@ python3 scripts/forex_milestones.py human-override \
 ```
 
 This is an exceptional dependency waiver, not a substitute for evidence,
-Triad review, human sign-off, or proof. It requires an explicit operator,
+required Review Board review, human sign-off, or proof. It requires an explicit operator,
 reason, and reassessment confirmation, and is recorded in state and run
 history. The three-cycle limit remains the automatic stop for normal retries.
 

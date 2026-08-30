@@ -35,7 +35,6 @@ REQUIRED_SNIPPETS = (
     "CREATE TRIGGER price_bar_point_in_time",
     "CREATE TRIGGER snapshot_observation_point_in_time",
     "CREATE TRIGGER raw_observation_sealed_provenance_immutable",
-    "CREATE TRIGGER source_registry_sealed_provenance_immutable",
     "sealed snapshot provenance is immutable",
 )
 FORBIDDEN_PATTERNS = (r"GOMarketsMU-Live", r"order_send", r"COPY\s+FROM\s+PROGRAM", r"dblink", r"http")

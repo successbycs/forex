@@ -4,48 +4,22 @@
 
 ![High-level Forex repository architecture](assets/forex-architecture-overview.png)
 
-## Human-controlled development review
+## Human-controlled Review Board
 
-An optional fresh Reviewer context can inspect a committed Builder revision
-before expensive evidence capture. It is advice for the human and Builder, not
-a new workflow gate or a completion claim.
-
-```text
-Milestone agreed
-     ↓
-Builder worktree: /home/chris/projects/forex
-     ↓
-human-approved commit
-     ↓
-read-only Reviewer worktree: /home/chris/projects/forex-reviewer
-     ↓
-review findings
-     ↓
-human-authorised Builder fixes, if required
-     ↓
-existing evidence → evidence-bound Triad → human sign-off → prove
-```
-
-Separate contexts provide logical review separation, not independently
-controlled provenance. The existing evidence-bound Triad remains the only
-structured completion recommendation, and only the human may approve a commit,
-sign off, or invoke `prove`. See
-[`docs/governance/review-workflow.md`](governance/review-workflow.md).
-
-The final Triad has four isolated roles: Solution Architect, AI Engineer,
-Senior Software Developer, and Financial Domain Expert. `scripts/ptr.py
---sequence` is only a convenience runner: it requests one fresh read-only
-role review, validates the JSON reply against its prepared packet, records it
-only when valid, then advances to the next missing role. A timeout, malformed
-reply, or failed validation stops the sequence. It cannot recommend
-completion, sign off, prove, or close a milestone.
+Normal MVP milestones use implementation, tests, one declared external proof
+where needed, and human acceptance. The only formal review body is the Review
+Board: the engineering Triad (Solution Architect, AI Engineer, and Senior
+Software Developer) plus the Financial Domain Expert. It is required at M16,
+M27, and M32—the three phase gates—and may be requested by the human at any
+other time. There is no separate Builder/Reviewer workflow or automated
+reviewer runner.
 
 ## T480 deployment boundary
 
 ```text
 T480 Windows host
   MetaTrader 5 on GOMarketsMU-Demo only
-  no database port exposed on LAN/public interfaces
+  PostgreSQL published on port 5432 for home-LAN administrator access
 
 T480 WSL Ubuntu
   Forex repository, fixed T480 adapter, evidence tooling
@@ -71,10 +45,10 @@ account, or order interface.
 The Windows MT5 terminal and shared PostgreSQL service are separate T480
 components. Forex code reaches MT5 only through its fixed Demo-only catalog
 operation and reaches PostgreSQL only through a fixed, approval-gated T480
-operation. PostgreSQL is internal to the shared Docker network and has no
-published host, LAN, or public port. M5 later proves application-level
-database integration and idempotent reimport; M2 is only the controlled initial
-snapshot.
+operation. For this home-network MVP, PostgreSQL is also published on T480
+port 5432 for administrator clients on the closed LAN; it is not a public
+internet service. M5 later proves application-level database integration and
+idempotent reimport; M2 is only the controlled initial snapshot.
 
 ## Historical market-intelligence roadmap
 
@@ -109,8 +83,8 @@ boundaries. It distinguishes the Forex repository, shared `cs-ai-lab-infra`,
 and the Windows T480 / MetaTrader 5 environment. It also shows the evidence
 path: the fixed local evidence runner self-attests a captured bundle; the
 repository verifier checks its signature, schema, policy, and reproducibility;
-then the four-role Triad-plus-domain review produces a recommendation for a
-human decision.
+then, at a phase gate, the four-role Review Board produces a recommendation
+for a human decision.
 
 This is an architecture map, not proof that a shared service or future
 capability is currently deployed. The mutable execution record remains

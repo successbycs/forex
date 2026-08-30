@@ -7,7 +7,7 @@ Architecture boundary:
 - All runtime operations must execute on the T480 AI Lab.
 - cs-ai-lab-infra owns Docker, PostgreSQL/pgvector, credentials, internal network, and backups.
 - Forex owns only the forex PostgreSQL schema, its reviewed migration, fixed import workflow, contracts, tests, evidence, and review.
-- Do not create or use a Forex-local Docker Compose database. Do not publish PostgreSQL to host, LAN, or public interfaces.
+- Do not create or use a Forex-local Docker Compose database. Home-LAN administrator access may be enabled through the shared infrastructure; never expose PostgreSQL to the public internet.
 
 First run read-only T480 checks proving the shared PostgreSQL service is healthy, internal-only, and has pgvector enabled. Retain raw outputs.
 
@@ -30,7 +30,7 @@ If the existing shared-lab PostgreSQL adapter cannot safely apply a Forex-owned 
 
 Update M2 documentation, infrastructure requirements, tests, capture script, independent verifier, and milestone registry as needed. Keep M5 as the later application integration and idempotent reimport milestone.
 
-Run M2 tests, full repository tests, static migration validation, governance validation, and the T480 real-world capture/verifier. Retain raw migration/import/query outputs and hashes. Obtain a fresh Triad-plus-domain recommendation bound to the exact committed revision, configuration, M2 contract, verifier, and evidence.
+Run M2 tests, full repository tests, static migration validation, governance validation, and the T480 real-world capture/verifier. Retain raw migration/import/query outputs and hashes. Obtain explicit human sign-off after the evidence is inspected; the Review Board is not required until the M16 phase gate.
 
 You are authorized to create only the reviewed forex schema/tables and the fixed 720-bar M2 import in the shared T480 PostgreSQL database. Request my explicit approval before any commit and again before marking M2 proven.
 ```

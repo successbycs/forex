@@ -28,10 +28,10 @@ the `forex` schema, migrations, fixed adapter, historical-data contracts, and
 evidence. The shared platform owns transport, Docker, credentials, backups,
 and network exposure.
 
-## ADR-007 — Sequential automated Triad handoff is a helper only
+## ADR-007 — Review Board only at phase gates
 
-`scripts/ptr.py --sequence` may request four fresh read-only reviewer contexts
-one at a time. It validates a reply before recording it and stops on the first
-missing, malformed, or invalid response. It does not create a competing
-milestone workflow and cannot recommend completion, sign off, prove, deploy,
-or acquire trading authority.
+The only formal review body is the Review Board: Triad plus Financial Domain
+Expert. It is required at M16, M27, and M32, not for every MVP milestone.
+Routine work closes through tests, the milestone's declared real-world check
+where applicable, and explicit human sign-off. Builder/Reviewer handoff
+machinery and automated reviewer runners are deliberately excluded.

@@ -31,13 +31,16 @@ canonical EUR/USD, allowed timeframes, hashes, positive OHLC values, and
 valid OHLC ranges. A trigger rejects bars whose availability exceeds the
 snapshot cutoff; a second trigger rejects later raw-observation lineage.
 Sealed snapshot headers, bars, and lineage links cannot be updated or deleted.
-The second migration also prevents updating or deleting a raw observation or
-source registry record once a sealed snapshot references it. Capture includes a
-real negative control that attempts both mutations and requires PostgreSQL to
-reject them.
+The second migration prevents updating or deleting a raw observation once a
+sealed snapshot references it. The source registry remains a changeable
+current catalog; a corrected historical record uses a new raw observation and
+new snapshot rather than rewriting the sealed one. Capture includes a real
+negative control that attempts the prohibited raw-observation mutation.
 
 The schema stores references and hashes, not credentials or unrestricted raw
-broker payloads. PostgreSQL is not exposed to the LAN or public internet.
+broker payloads. PostgreSQL is never exposed to the public internet. Home-LAN
+administrator access is a shared-infrastructure convenience, documented in
+`docs/database_access.md`; it is not an order or trading interface.
 
 The M1 Demo source is registered as `DEMO_ONLY` and
 `UNQUALIFIED_BROKER_TERMINAL_DATA`: this does not claim a licence decision or
@@ -67,5 +70,6 @@ the decision cutoff, and both point-in-time triggers.
 the bound revision and the fixed T480 PostgreSQL query returned the expected
 dataset. It does **not** prove a market-data feed, current tick, source
 licence, trading edge, order capability, independent remote execution
-provenance, or M2 completion. Completion still requires the evidence-bound
-Triad recommendation and explicit human sign-off before `proven_at`.
+provenance, or M2 completion. Completion requires explicit human sign-off
+before `proven_at`; the Review Board is reserved for phase gates M16, M27,
+and M32.

@@ -1,4 +1,4 @@
-# Triad plus domain milestone assurance
+# Review Board: Triad plus domain assurance
 
 The Triad review consists of three engineering lenses plus a Forex domain lens:
 
@@ -25,9 +25,17 @@ Each role receives a separate immutable review packet and must review read-only 
 
 AI personas—even separate sessions—are not fully independent organisations. Isolation reduces anchoring and makes disagreements visible; it does not replace human judgment or external-system proof.
 
+## When it is required
+
+The Review Board is a phase-gate check, not a per-milestone development gate.
+It is required only for M16, M27, and M32. A human may request it for another
+milestone when the change is unusually consequential, but it is otherwise not
+part of normal MVP implementation or closeout.
+
 ## Workflow
 
-After committed-revision evidence is recorded for each milestone or remediation iteration:
+After committed-revision evidence is recorded for a required phase gate or a
+human-requested review:
 
 ```bash
 python3 scripts/forex_triad.py prepare --id <milestone>
@@ -43,7 +51,7 @@ python3 scripts/forex_triad.py recommend --cycle <cycle>
 python3 scripts/forex_triad.py assess --recommendation <cycle>/recommendation.json
 ```
 
-Every milestone and every repeated review iteration must produce a new review cycle. The deterministic synthesizer writes both the machine-readable `recommendation.json` and the required human-readable `review-summary.md` for that cycle. The summary clearly states whether the Triad supports completion, shows every reviewer's position, lists blockers and observations, and says whether human approval is currently eligible. The Triad provides a recommendation only; the human remains the approval authority.
+Every required Review Board iteration must produce a new review cycle. The deterministic synthesizer writes both the machine-readable `recommendation.json` and the required human-readable `review-summary.md` for that cycle. The summary clearly states whether the board supports completion, shows every reviewer's position, lists blockers and observations, and says whether human approval is currently eligible. The board provides a recommendation only; the human remains the approval authority.
 
 The summary filename is operator-configurable in `config/triad.yaml`. It is mandatory: recording, human sign-off and milestone closeout fail if the summary is missing, modified, stale, or no longer matches its recommendation. A remediation iteration requires fresh evidence where affected and a completely new isolated review cycle; an earlier summary cannot be reused.
 
@@ -68,6 +76,6 @@ Recording automatically passes the Triad acceptance criterion. Any later change 
 
 The Triad recommendation answers whether the reviewed evidence supports milestone completion. It does not close the milestone. The human reviews disagreements, observations, limitations and raw proof, then explicitly approves or rejects. `proven_at` remains available only after the human gate passes.
 
-## Pre-implementation use from M1 onward
-
-Before implementation, the same roles should challenge the proposed contract and verifier. After implementation, new isolated sessions review the real proof. This temporal separation prevents Codex from silently redefining success after observing its own result.
+There is no mandatory pre-implementation Review Board. Build normally, keep
+the fixed safety boundaries, and reserve the board for the three phase gates
+or a human-requested decision.

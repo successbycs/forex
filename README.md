@@ -22,18 +22,19 @@ The normal closeout sequence is:
 ```text
 start -> implement -> record-check -> verify -> capture evidence
 -> independently verify and record evidence -> finish-implementation
--> evidence-bound Triad recommendation -> human sign-off when required -> prove
+-> human sign-off -> prove
 ```
 
 Only `prove` writes `proven_at`, the actual completion date. An optional registry `target_date` is editable by the human operator and remains a planning forecast only.
 
 See `docs/evidence_and_milestones.md` for commands, proof rules, failure handling, and revalidation.
 
-Every milestone also requires the isolated engineering Triad plus financial-domain review described in `docs/triad_review.md`. Its deterministic recommendation informs—but never replaces—the human completion decision.
+The final Review Board—Triad plus Financial Domain Expert—is required only at
+the three phase gates: M16 (historical research ready), M27 (Demo data
+operations ready), and M32 (live-readiness assessment). It informs—but never
+replaces—the human completion decision. See `docs/triad_review.md`.
 
-For a prepared review cycle, `python3 scripts/ptr.py --id Mx --sequence` can
-request each missing isolated role review in turn, validate a JSON reply, and
-stop on failure. It is a convenience helper only: it cannot sign off, prove,
-or complete a milestone.
+Administrators can inspect the T480 PostgreSQL historical price data from the
+home LAN using the guide in [`docs/database_access.md`](docs/database_access.md).
 
 Evidence is currently self-attested: a fixed-job local runner signs each captured M0 evidence manifest with a private key kept outside Git, and the repository verifies using the committed public key. See `docs/evidence_and_milestones.md` for its limitations.

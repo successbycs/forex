@@ -2889,6 +2889,105 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000198",
+      "timestamp": "2026-08-30T08:08:24Z",
+      "milestone_id": "M2",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M2/20260830T080759Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000199",
+      "timestamp": "2026-08-30T08:08:24Z",
+      "milestone_id": "M2",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M2-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000200",
+      "timestamp": "2026-08-30T08:08:24Z",
+      "milestone_id": "M2",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M2-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000201",
+      "timestamp": "2026-08-30T08:08:24Z",
+      "milestone_id": "M2",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M2-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000202",
+      "timestamp": "2026-08-30T08:08:24Z",
+      "milestone_id": "M2",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M2-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000203",
+      "timestamp": "2026-08-30T08:08:25Z",
+      "milestone_id": "M2",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M2/20260830T080824Z/governance.stdout.txt",
+            "stderr": "runs/verification/M2/20260830T080824Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m2.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M2/20260830T080824Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M2/20260830T080824Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000204",
+      "timestamp": "2026-08-30T08:29:15Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:3d4193c6fc4a2c5c1b63b16916f7111ad82221d6345ddfc6f8c33bad8fdb7488",
+        "current": "sha256:3c75af07ec0013738f53a11d288fdd36dc7e9a73d0307104319aac4e21031bbb",
+        "invalidated_milestones": [],
+        "preserved_milestones": [],
+        "preservation_reason": null
+      }
     }
   ]
 }

@@ -224,8 +224,8 @@ def _require_string_list(value: Any, label: str, *, nonempty: bool = False) -> N
 def validate_registry(registry: dict[str, Any]) -> None:
     if registry.get("schema_version") != "1.0.0":
         raise GovernanceError("unsupported milestone registry schema_version")
-    if registry.get("triad_review_required") is not True:
-        raise GovernanceError("the registry must require Triad-plus-domain review")
+    if not isinstance(registry.get("triad_review_required"), bool):
+        raise GovernanceError("triad_review_required must be a boolean")
     roadmap_phases = registry.get("roadmap_phases")
     if not isinstance(roadmap_phases, list) or len(roadmap_phases) != 3:
         raise GovernanceError("registry must declare exactly three roadmap phases")
@@ -245,6 +245,8 @@ def validate_registry(registry: dict[str, Any]) -> None:
         milestone_id = milestone["milestone_id"]
         if not isinstance(milestone_id, str) or not milestone_id.startswith("M"):
             raise GovernanceError(f"invalid milestone_id: {milestone_id!r}")
+        if "review_board_required" in milestone and not isinstance(milestone["review_board_required"], bool):
+            raise GovernanceError(f"milestone {milestone_id} review_board_required must be a boolean")
         if "status" in milestone:
             raise GovernanceError(f"{milestone_id}: mutable status belongs in project_state.json")
         if milestone["delivery_type"] not in DELIVERY_TYPES:
@@ -713,7 +715,11 @@ def _gate_errors(store: MilestoneStore, milestone_id: str) -> list[str]:
 
 
 def _triad_gate_errors(store: MilestoneStore, milestone_id: str) -> list[str]:
-    if store.registry.get("triad_review_required") is not True:
+    milestone = store.milestone(milestone_id)
+    if not (
+        store.registry.get("triad_review_required") is True
+        or milestone.get("review_board_required") is True
+    ):
         return []
     record = store.milestone_state(milestone_id).get("triad_recommendation")
     if not record:

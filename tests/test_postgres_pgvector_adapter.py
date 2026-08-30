@@ -36,5 +36,5 @@ def test_provenance_negative_control_attempts_both_sealed_mutations():
         assert postgres_pgvector_adapter.provenance_negative_control()["ok"]
     query = remote.call_args.args[0]
     assert "UPDATE forex.raw_observation" in query
-    assert "UPDATE forex.source_registry" in query
-    assert "FOREX_M2_SEALED_PROVENANCE_NEGATIVE_CONTROL_OK" in query
+    assert "UPDATE forex.source_registry" not in query
+    assert "FOREX_M2_SEALED_RAW_OBSERVATION_NEGATIVE_CONTROL_OK" in query

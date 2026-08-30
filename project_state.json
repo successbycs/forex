@@ -32,14 +32,14 @@
     "config/t480.json",
     "t480/command-catalog.json"
   ],
-  "configuration_fingerprint": "sha256:3d4193c6fc4a2c5c1b63b16916f7111ad82221d6345ddfc6f8c33bad8fdb7488",
+  "configuration_fingerprint": "sha256:3c75af07ec0013738f53a11d288fdd36dc7e9a73d0307104319aac4e21031bbb",
   "important_architectural_decisions": [
     "Shared T480 transport belongs to cs-ai-lab-infra; Forex owns its catalog and adapter.",
     "Mutable execution state is separate from the declarative milestone registry.",
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-30T04:23:17Z",
+  "last_updated_at": "2026-08-30T08:29:15Z",
   "milestones": {
     "M0": {
       "status": "NEEDS_REVALIDATION",
@@ -622,8 +622,8 @@
       "status": "AWAITING_REAL_WORLD_PROOF",
       "started_at": "2026-08-29T06:53:54Z",
       "implementation_finished_at": "2026-08-30T02:57:14Z",
-      "verification_passed_at": "2026-08-30T04:23:17Z",
-      "real_world_proof_captured_at": "2026-08-30T04:23:01Z",
+      "verification_passed_at": "2026-08-30T08:08:25Z",
+      "real_world_proof_captured_at": "2026-08-30T08:08:13Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
@@ -631,27 +631,27 @@
       "checks": {
         "M2-C1": {
           "result": "PASS",
-          "recorded_at": "2026-08-30T04:23:16Z",
-          "evidence": "runs/evidence/M2/20260830T042241Z/manifest.json",
-          "note": "Fixed T480 verification confirms the DEMO_ONLY EUR/USD:H1 snapshot, source-to-snapshot lineage, and 720 bars."
+          "recorded_at": "2026-08-30T08:08:24Z",
+          "evidence": "runs/evidence/M2/20260830T080759Z/manifest.json",
+          "note": "T480 contains the sealed-provenance schema and the fixed DEMO_ONLY EUR/USD:H1 snapshot."
         },
         "M2-C2": {
           "result": "PASS",
-          "recorded_at": "2026-08-30T04:23:16Z",
-          "evidence": "runs/evidence/M2/20260830T042241Z/manifest.json",
-          "note": "M2 and repository verification artifacts completed successfully in the retained bundle."
+          "recorded_at": "2026-08-30T08:08:24Z",
+          "evidence": "runs/evidence/M2/20260830T080759Z/manifest.json",
+          "note": "M2 tests, schema validation, fixed operations, governance, configuration, and repository verification completed successfully."
         },
         "M2-C3": {
           "result": "PASS",
-          "recorded_at": "2026-08-30T04:23:16Z",
-          "evidence": "runs/evidence/M2/20260830T042241Z/manifest.json",
-          "note": "Current retained evidence is bound to clean revision 40ad7ad and the governed configuration fingerprint."
+          "recorded_at": "2026-08-30T08:08:24Z",
+          "evidence": "runs/evidence/M2/20260830T080759Z/manifest.json",
+          "note": "Fresh clean-revision evidence is bound to commit 1a52db8 and governed configuration."
         },
         "M2-C4": {
           "result": "PASS",
-          "recorded_at": "2026-08-30T04:23:16Z",
-          "evidence": "runs/evidence/M2/20260830T042241Z/manifest.json",
-          "note": "Fixed verification confirms DEMO_ONLY status, point-in-time triggers, and no bar availability after the snapshot cutoff."
+          "recorded_at": "2026-08-30T08:08:24Z",
+          "evidence": "runs/evidence/M2/20260830T080759Z/manifest.json",
+          "note": "T480 negative control rejected sealed raw-observation and source-registry provenance updates; no-lookahead controls remain verified."
         }
       },
       "evidence": [
@@ -681,12 +681,21 @@
           "configuration_fingerprint": "sha256:3d4193c6fc4a2c5c1b63b16916f7111ad82221d6345ddfc6f8c33bad8fdb7488",
           "git_revision": "40ad7ad47df2d12be2197861f630d2964e36d13f",
           "summary": "FOREX_M2_PROOF_OK: canonical historical-data contracts, private T480 shared-PostgreSQL migration and retained M1 snapshot import, point-in-time validation, governance, configuration, and repository verification passed."
+        },
+        {
+          "manifest_path": "runs/evidence/M2/20260830T080759Z/manifest.json",
+          "manifest_sha256": "d673643382e10749605ec031a8942936d6878905eff733b9b6c56e04ed791131",
+          "captured_at": "2026-08-30T08:08:13Z",
+          "recorded_at": "2026-08-30T08:08:24Z",
+          "configuration_fingerprint": "sha256:3d4193c6fc4a2c5c1b63b16916f7111ad82221d6345ddfc6f8c33bad8fdb7488",
+          "git_revision": "1a52db851079fb39700d15296afe8838aacbe6c2",
+          "summary": "FOREX_M2_PROOF_OK: canonical historical-data contracts, private T480 shared-PostgreSQL migration and retained M1 snapshot import, point-in-time validation, governance, configuration, and repository verification passed."
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-08-30T04:23:17Z",
-        "git_revision": "40ad7ad47df2d12be2197861f630d2964e36d13f",
+        "recorded_at": "2026-08-30T08:08:25Z",
+        "git_revision": "1a52db851079fb39700d15296afe8838aacbe6c2",
         "configuration_fingerprint": "sha256:3d4193c6fc4a2c5c1b63b16916f7111ad82221d6345ddfc6f8c33bad8fdb7488",
         "commands": [
           {
@@ -698,8 +707,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M2/20260830T042316Z/governance.stdout.txt",
-            "stderr": "runs/verification/M2/20260830T042316Z/governance.stderr.txt"
+            "stdout": "runs/verification/M2/20260830T080824Z/governance.stdout.txt",
+            "stderr": "runs/verification/M2/20260830T080824Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -712,8 +721,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M2/20260830T042316Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M2/20260830T042316Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M2/20260830T080824Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M2/20260830T080824Z/milestone-tests.stderr.txt"
           }
         ]
       },
