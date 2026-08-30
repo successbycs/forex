@@ -36,6 +36,13 @@ ORDER_BY = {
     "dataset_snapshot_observation": "snapshot_id, observation_id",
     "price_bar": "time_utc",
 }
+ORDER_DIRECTION = {
+    "source_registry": "ASC",
+    "raw_observation": "DESC",
+    "dataset_snapshot": "DESC",
+    "dataset_snapshot_observation": "ASC",
+    "price_bar": "DESC",
+}
 REQUIRED_ENV = ("FOREX_POSTGRES_HOST", "FOREX_POSTGRES_PORT", "FOREX_POSTGRES_DB", "FOREX_POSTGRES_USER", "FOREX_POSTGRES_PASSWORD")
 WRITE_COLUMNS = {
     "source_registry": ("source_id", "contract_version", "owner", "license", "cost_model", "api_version", "endpoint_allowlist", "rate_limit", "retention_rule", "historical_depth", "revision_support", "timezone_policy", "outage_policy", "approval_status", "secrets_reference", "provenance_note"),
@@ -152,7 +159,7 @@ def run(command: str, table: str | None, limit: int, payload: dict[str, object] 
         result = _psql(f"SELECT COALESCE(json_agg(json_build_object('column', column_name, 'type', data_type, 'nullable', is_nullable) ORDER BY ordinal_position), '[]'::json) FROM information_schema.columns WHERE table_schema='forex' AND table_name='{table}';")
     elif command in {"read", "preview"}:
         assert table
-        result = _psql(f"SELECT COALESCE(json_agg(row_to_json(record)), '[]'::json) FROM (SELECT * FROM forex.{table} ORDER BY {ORDER_BY[table]} LIMIT {limit}) record;")
+        result = _psql(f"SELECT COALESCE(json_agg(row_to_json(record)), '[]'::json) FROM (SELECT * FROM forex.{table} ORDER BY {ORDER_BY[table]} {ORDER_DIRECTION[table]} LIMIT {limit}) record;")
     else:
         assert table and payload is not None
         result = _psql(_write_sql(table, payload) + " SELECT json_build_object('written', true, 'table', '" + table + "');")

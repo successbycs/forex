@@ -2000,6 +2000,7 @@
       "scope": [
         "Evaluate price-only, macro, calendar, sentiment, and the M15 ML baseline against no-change baselines with pre-declared chronological walk-forward controls.",
         "Report model performance, stability across windows, feature contribution, and spread/cost-sensitive simulated comparison for the one-session entry-to-mandatory-exit strategy without treating any result as an order signal.",
+        "Conduct a reference-only MQL5 CodeBase scan for evaluation, diagnostic, replay, statistics, and indicator patterns relevant to the historical research roadmap; record each candidate as REFERENCE_ONLY, REIMPLEMENT, or REJECT without importing or executing third-party code.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -2012,6 +2013,7 @@
       ],
       "expected_artifacts": [
         "docs/milestones/M16-proof.md",
+        "docs/milestones/M16-mql5-codebase-review.md",
         "tests/milestones/test_m16.py"
       ],
       "acceptance_criteria": [
@@ -2032,7 +2034,7 @@
         },
         {
           "id": "M16-C4",
-          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue; random shuffling, live fitting, and profitability claims are excluded.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue; random shuffling, live fitting, profitability claims, and direct third-party MQL5 CodeBase adoption are excluded.",
           "kind": "SAFETY"
         }
       ],

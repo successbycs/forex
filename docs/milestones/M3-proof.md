@@ -15,3 +15,10 @@ If `request_cap_reached` is false, `first_bar_utc` is the earliest H1 history
 available to this fixed MT5 probe at capture time. If true, the result proves
 only that at least 100,000 closed H1 bars are available; it does not claim the
 absolute server maximum.
+
+The committed source is copied to the existing fixed
+`Documents\\Code\\forex-m1-probe` folder by the Windows OpenSSH copy client.
+The read-only Forex adapter then refuses to run unless that staged file has the
+exact committed SHA-256. It accepts neither code nor paths from callers. The
+result includes the committed probe SHA-256. The only T480-local configuration
+read is the fixed M1 terminal/Python configuration in that same folder.

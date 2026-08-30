@@ -12,8 +12,9 @@ def test_m3_history_depth_probe_is_fixed_read_only_and_demo_only():
     assert 'SYMBOL = "EURUSD"' in probe
     assert 'TIMEFRAME_NAME = "H1"' in probe
     assert "REQUESTED_CLOSED_BARS = 100_000" in probe
+    assert "REQUEST_CANDIDATES" in probe
     assert 'account.server != "GOMarketsMU-Demo"' in probe
-    assert "copy_rates_from_pos(SYMBOL, TIMEFRAME, 1, REQUESTED_CLOSED_BARS)" in probe
+    assert "copy_rates_from_pos(SYMBOL, TIMEFRAME, 1, candidate)" in probe
     assert "order_send" not in probe
     assert "symbol_info_tick" not in probe
     assert "account_info()" in probe
@@ -23,8 +24,8 @@ def test_m3_adapter_operation_has_no_argument_or_command_surface():
     operation = t480_adapter.OPERATIONS["m3_mt5_history_depth_probe"]
     command = operation.powershell_command or ""
     assert operation.approval_required is False
-    assert "forex-m3-probe" in command
-    assert "m3_mt5_history_depth_probe.py" in command
+    assert "forex-m1-probe" in command
+    assert "FOREX_M3_PROBE_SHA256" in command
     assert "--command" not in t480_adapter.parser().format_help()
     assert "--script" not in t480_adapter.parser().format_help()
 

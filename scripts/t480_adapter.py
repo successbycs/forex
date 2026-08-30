@@ -10,6 +10,7 @@ operations. Its single M1 operation is a fixed read-only historical export.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -132,13 +133,17 @@ def _m1_mt5_demo_probe_command() -> str:
 
 def _m3_mt5_history_depth_probe_command() -> str:
     """Return the fixed read-only M3 history-depth command for Windows."""
+    source = (ROOT / "t480" / "m3_mt5_history_depth_probe.py").read_bytes()
+    digest = hashlib.sha256(source).hexdigest()
     return (
         "$ErrorActionPreference='Stop'; "
-        "$s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m3-probe\\mt5.local.json')|ConvertFrom-Json; "
-        "$p=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m3-probe\\m3_mt5_history_depth_probe.py'; "
-        "if (!(Test-Path -LiteralPath $p)) { throw 'M3 fixed probe file is absent' }; "
+        "$root=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe'; "
+        "$s=gc -Raw (Join-Path $root 'mt5.local.json')|ConvertFrom-Json; "
         "if ([string]::IsNullOrWhiteSpace($s.python_path) -or !(Test-Path -LiteralPath $s.python_path)) { throw 'M3 local configured Python interpreter is absent' }; "
-        "& $s.python_path $p $s.terminal_path; exit $LASTEXITCODE"
+        "$p=Join-Path $root 'm3_mt5_history_depth_probe.py'; "
+        "if (!(Test-Path -LiteralPath $p)) { throw 'M3 fixed probe file is absent; stage the committed probe with the fixed OpenSSH copy step first' }; "
+        "if ((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLower() -ne '" + digest + "') { throw 'M3 fixed probe hash does not match the committed source' }; "
+        "$env:FOREX_M3_PROBE_SHA256='" + digest + "'; & $s.python_path $p $s.terminal_path; exit $LASTEXITCODE"
     )
 
 
@@ -266,7 +271,7 @@ OPERATIONS: dict[str, Operation] = {
 def validate_contract() -> None:
     validate_catalog(CATALOG_PATH, OPERATIONS)
     if any(operation.approval_required for operation in OPERATIONS.values()):
-        raise ValueError("The initial Forex T480 adapter must remain read-only")
+        raise ValueError("The Forex T480 adapter must remain read-only")
 
 
 def target() -> str:

@@ -40,5 +40,5 @@ M1 is the bounded historical-export proof. The former fresh-tick requirement is 
 Two short reviews prevent accumulated complexity from slowing the MVP without
 creating an enterprise assurance programme:
 
-1. **Mid-build review — after M16 and before M17.** Confirm that historical data lineage and no-lookahead controls are truthful, the user path is understandable, safety limits remain intact, and unused complexity is removed. It does not create a new approval board or grant execution authority.
+1. **Mid-build review — after M16 and before M17.** Confirm that historical data lineage and no-lookahead controls are truthful, the user path is understandable, safety limits remain intact, and unused complexity is removed. Include the bounded MQL5 CodeBase reference scan: it may identify ideas to reimplement, but never imports or runs third-party trading code. It does not create a new approval board or grant execution authority.
 2. **Final review — before M32 closeout.** Confirm that the human-operated Demo workflow is safe, observable, and explainable; remove non-essential components and record any live-readiness gaps. It grants no live-trading authority.
