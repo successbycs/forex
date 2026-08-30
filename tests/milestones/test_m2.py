@@ -77,6 +77,7 @@ def test_m2_fixed_postgres_import_contains_exact_retained_m1_bar_count():
     result = subprocess.run(["python3", "scripts/build_m2_postgres_import.py"], text=True, capture_output=True)
     assert result.returncode == 0, result.stderr
     assert result.stdout.count("INSERT INTO forex.price_bar") == 720
+    assert "VALUES ('m2-m1-eurusd-h1-720', '2026-07-17T23:00:00Z'" in result.stdout
     assert "m2-m1-eurusd-h1-720" in result.stdout
     assert "FOREX_M2_POSTGRES_IMPORT_OK" in result.stdout
     assert "GOMarketsMU-Live" not in result.stdout

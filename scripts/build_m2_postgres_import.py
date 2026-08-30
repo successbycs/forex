@@ -52,7 +52,15 @@ def build_sql(snapshot: dict) -> str:
     lines.append("INSERT INTO forex.dataset_snapshot (snapshot_id, contract_version, instrument, timeframe, decision_cutoff_utc, created_at_utc, artifact_sha256, no_lookahead) VALUES (" + ", ".join(quote(snapshot[k]) if k != "no_lookahead" else str(snapshot[k]).lower() for k in ("snapshot_id", "contract_version", "instrument", "timeframe", "decision_cutoff_utc", "created_at_utc", "artifact_sha256", "no_lookahead")) + ");")
     lines.append(f"INSERT INTO forex.dataset_snapshot_observation (snapshot_id, observation_id) VALUES ({quote(SNAPSHOT_ID)}, {quote(OBSERVATION_ID)});")
     for bar in snapshot["price_bars"]:
-        lines.append("INSERT INTO forex.price_bar (snapshot_id, time_utc, open, high, low, close, volume, raw_observation_id, available_at_utc) VALUES (" + ", ".join(quote(bar[k]) if k in {"time_utc", "raw_observation_id", "available_at_utc"} else str(bar[k]) for k in ("time_utc", "open", "high", "low", "close", "volume", "raw_observation_id", "available_at_utc")) + ")".replace("VALUES (", f"VALUES ({quote(SNAPSHOT_ID)}, ", 1) + ";")
+        values = [quote(SNAPSHOT_ID)] + [
+            quote(bar[key]) if key in {"time_utc", "raw_observation_id", "available_at_utc"} else str(bar[key])
+            for key in ("time_utc", "open", "high", "low", "close", "volume", "raw_observation_id", "available_at_utc")
+        ]
+        lines.append(
+            "INSERT INTO forex.price_bar (snapshot_id, time_utc, open, high, low, close, volume, raw_observation_id, available_at_utc) VALUES ("
+            + ", ".join(values)
+            + ");"
+        )
     lines.extend(["COMMIT;", "SELECT 'FOREX_M2_POSTGRES_IMPORT_OK' AS marker;"])
     return "\n".join(lines) + "\n"
 
