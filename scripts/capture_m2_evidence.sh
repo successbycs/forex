@@ -61,7 +61,7 @@ manifest = {
   "captured_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
   "git_revision": os.environ['FOREX_M2_REVISION'], "dirty_worktree": os.environ['FOREX_M2_DIRTY'] == 'true',
   "configuration_fingerprint": os.environ['FOREX_M2_CONFIG'],
-  "surface": "private T480 AI Lab PostgreSQL storing the retained M1 EUR/USD H1 snapshot in the Forex-owned schema",
+  "surface": "T480 AI Lab PostgreSQL storing the retained M1 EUR/USD H1 snapshot in the Forex-owned schema, with administrator access on the closed home LAN",
   "operation": "M2 deterministic contract and repository verification",
   "expected_result": "M2 contracts reject invalid lineage, hash, and look-ahead inputs; all declared checks exit zero.",
   "observed_result": os.environ['FOREX_M2_SUMMARY'], "exit_code": int(os.environ['FOREX_M2_OVERALL']),
