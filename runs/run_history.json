@@ -3237,6 +3237,21 @@
         "from": "READY",
         "to": "IN_PROGRESS"
       }
+    },
+    {
+      "event_id": "E000219",
+      "timestamp": "2026-08-30T23:29:40Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:89d0b075b41806eb8d1005ba49fd107134999f5ef8c2e442b99424b484fb142d",
+        "current": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2"
+        ],
+        "preservation_reason": "Human validation completed: M3-only MT5 bridge catalogue change does not alter the proven M2 PostgreSQL schema, snapshot, or retained historical bars."
+      }
     }
   ]
 }

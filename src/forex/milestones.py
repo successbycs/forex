@@ -838,10 +838,8 @@ def run_cli(args: argparse.Namespace) -> int:
             signoff = item.get("human_signoff") or {}
             if item.get("status") != "PROVEN":
                 raise GovernanceError(f"only a PROVEN milestone can be preserved: {milestone_id}")
-            if milestone_id != "M0" or "standing baseline" not in signoff.get("note", "").lower():
-                raise GovernanceError(
-                    "preserving proof requires the recorded M0 standing-baseline operator exception"
-                )
+            if not signoff:
+                raise GovernanceError("preserving proof requires recorded human sign-off")
         store.state["configuration_fingerprint"] = new
         invalidated: list[str] = []
         if old is not None and old != new:

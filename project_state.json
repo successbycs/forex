@@ -32,14 +32,14 @@
     "config/t480.json",
     "t480/command-catalog.json"
   ],
-  "configuration_fingerprint": "sha256:89d0b075b41806eb8d1005ba49fd107134999f5ef8c2e442b99424b484fb142d",
+  "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
   "important_architectural_decisions": [
     "Shared T480 transport belongs to cs-ai-lab-infra; Forex owns its catalog and adapter.",
     "Mutable execution state is separate from the declarative milestone registry.",
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-30T22:49:15Z",
+  "last_updated_at": "2026-08-30T23:29:40Z",
   "milestones": {
     "M0": {
       "status": "NEEDS_REVALIDATION",
