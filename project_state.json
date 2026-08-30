@@ -4,9 +4,9 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
-  "last_proven_milestone": "M1",
-  "current_milestone": "M2",
-  "next_milestone": "M3",
+  "last_proven_milestone": "M2",
+  "current_milestone": "M3",
+  "next_milestone": "M4",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
   "broker": "GO Markets Mauritius",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
+  "implementation_status": "IN_PROGRESS",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-30T22:43:41Z",
+  "last_updated_at": "2026-08-30T22:49:15Z",
   "milestones": {
     "M0": {
       "status": "NEEDS_REVALIDATION",
@@ -619,39 +619,39 @@
       }
     },
     "M2": {
-      "status": "AWAITING_REAL_WORLD_PROOF",
+      "status": "PROVEN",
       "started_at": "2026-08-29T06:53:54Z",
       "implementation_finished_at": "2026-08-30T02:57:14Z",
-      "verification_passed_at": "2026-08-30T08:38:01Z",
-      "real_world_proof_captured_at": "2026-08-30T08:38:00Z",
-      "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
+      "verification_passed_at": "2026-08-30T22:44:39Z",
+      "real_world_proof_captured_at": "2026-08-30T22:44:15Z",
+      "human_signed_off_at": "2026-08-30T22:46:13Z",
+      "first_proven_at": "2026-08-30T22:46:14Z",
+      "proven_at": "2026-08-30T22:46:14Z",
+      "last_validated_at": "2026-08-30T22:46:14Z",
       "checks": {
         "M2-C1": {
           "result": "PASS",
-          "recorded_at": "2026-08-30T08:08:24Z",
-          "evidence": "runs/evidence/M2/20260830T080759Z/manifest.json",
-          "note": "T480 contains the sealed-provenance schema and the fixed DEMO_ONLY EUR/USD:H1 snapshot."
+          "recorded_at": "2026-08-30T22:44:38Z",
+          "evidence": "runs/evidence/M2/20260830T224357Z/manifest.json",
+          "note": "T480 PostgreSQL contains one DEMO_ONLY EUR/USD:H1 snapshot with 720 bars and verified lineage."
         },
         "M2-C2": {
           "result": "PASS",
-          "recorded_at": "2026-08-30T08:08:24Z",
-          "evidence": "runs/evidence/M2/20260830T080759Z/manifest.json",
-          "note": "M2 tests, schema validation, fixed operations, governance, configuration, and repository verification completed successfully."
+          "recorded_at": "2026-08-30T22:44:38Z",
+          "evidence": "runs/evidence/M2/20260830T224357Z/manifest.json",
+          "note": "M2 tests, schema checks, fixed operations, configuration, governance, and repository verification passed."
         },
         "M2-C3": {
           "result": "PASS",
-          "recorded_at": "2026-08-30T08:08:24Z",
-          "evidence": "runs/evidence/M2/20260830T080759Z/manifest.json",
-          "note": "Fresh clean-revision evidence is bound to commit 1a52db8 and governed configuration."
+          "recorded_at": "2026-08-30T22:44:38Z",
+          "evidence": "runs/evidence/M2/20260830T224357Z/manifest.json",
+          "note": "Current self-attested T480 evidence is clean, revision-bound, configuration-bound, and independently verified."
         },
         "M2-C4": {
           "result": "PASS",
-          "recorded_at": "2026-08-30T08:08:24Z",
-          "evidence": "runs/evidence/M2/20260830T080759Z/manifest.json",
-          "note": "T480 negative control rejected sealed raw-observation and source-registry provenance updates; no-lookahead controls remain verified."
+          "recorded_at": "2026-08-30T22:44:38Z",
+          "evidence": "runs/evidence/M2/20260830T224357Z/manifest.json",
+          "note": "DEMO_ONLY source, no-lookahead controls, and sealed raw-observation negative control passed."
         }
       },
       "evidence": [
@@ -699,13 +699,22 @@
           "configuration_fingerprint": "sha256:3c75af07ec0013738f53a11d288fdd36dc7e9a73d0307104319aac4e21031bbb",
           "git_revision": "72c2daeb963ff489dbfe3bb310a674f18ce4360b",
           "summary": "FOREX_M2_PROOF_OK: canonical historical-data contracts, private T480 shared-PostgreSQL migration and retained M1 snapshot import, point-in-time validation, governance, configuration, and repository verification passed."
+        },
+        {
+          "manifest_path": "runs/evidence/M2/20260830T224357Z/manifest.json",
+          "manifest_sha256": "f233e0e4d8fa051f5cdad06630f66ed26ac8f60c915903ff4f5c0ed444927671",
+          "captured_at": "2026-08-30T22:44:15Z",
+          "recorded_at": "2026-08-30T22:44:38Z",
+          "configuration_fingerprint": "sha256:89d0b075b41806eb8d1005ba49fd107134999f5ef8c2e442b99424b484fb142d",
+          "git_revision": "c8df9e63df8fe5d2bb01117749bee1690c4407de",
+          "summary": "FOREX_M2_PROOF_OK: canonical historical-data contracts, private T480 shared-PostgreSQL migration and retained M1 snapshot import, point-in-time validation, governance, configuration, and repository verification passed."
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-08-30T08:38:01Z",
-        "git_revision": "72c2daeb963ff489dbfe3bb310a674f18ce4360b",
-        "configuration_fingerprint": "sha256:3c75af07ec0013738f53a11d288fdd36dc7e9a73d0307104319aac4e21031bbb",
+        "recorded_at": "2026-08-30T22:44:39Z",
+        "git_revision": "c8df9e63df8fe5d2bb01117749bee1690c4407de",
+        "configuration_fingerprint": "sha256:89d0b075b41806eb8d1005ba49fd107134999f5ef8c2e442b99424b484fb142d",
         "commands": [
           {
             "id": "governance",
@@ -716,8 +725,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M2/20260830T083801Z/governance.stdout.txt",
-            "stderr": "runs/verification/M2/20260830T083801Z/governance.stderr.txt"
+            "stdout": "runs/verification/M2/20260830T224438Z/governance.stdout.txt",
+            "stderr": "runs/verification/M2/20260830T224438Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -730,17 +739,28 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M2/20260830T083801Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M2/20260830T083801Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M2/20260830T224438Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M2/20260830T224438Z/milestone-tests.stderr.txt"
           }
         ]
       },
-      "human_signoff": null,
+      "human_signoff": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE",
+        "note": "Human operator approved the verified M2 T480 PostgreSQL historical-data proof.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "c8df9e63df8fe5d2bb01117749bee1690c4407de",
+        "configuration_fingerprint": "sha256:89d0b075b41806eb8d1005ba49fd107134999f5ef8c2e442b99424b484fb142d",
+        "evidence_manifest_sha256": "f233e0e4d8fa051f5cdad06630f66ed26ac8f60c915903ff4f5c0ed444927671",
+        "verification_recorded_at": "2026-08-30T22:44:39Z",
+        "recorded_at": "2026-08-30T22:46:13Z"
+      },
       "blockers": []
     },
     "M3": {
-      "status": "PLANNED",
-      "started_at": null,
+      "status": "IN_PROGRESS",
+      "started_at": "2026-08-30T22:49:15Z",
       "implementation_finished_at": null,
       "verification_passed_at": null,
       "real_world_proof_captured_at": null,

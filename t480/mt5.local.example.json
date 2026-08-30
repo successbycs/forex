@@ -1,4 +1,5 @@
 {
   "schema_version": "forex.mt5-local.v3",
-  "terminal_path": "C:\\Program Files\\GO Markets MT5\\terminal64.exe"
+  "terminal_path": "C:\\Program Files\\GO Markets MT5\\terminal64.exe",
+  "python_path": "C:\\Users\\OEM\\AppData\\Local\\Programs\\Python\\Python312\\python.exe"
 }

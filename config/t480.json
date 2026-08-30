@@ -3,7 +3,7 @@
   "shared_core": {
     "repository": "successbycs/cs-ai-lab-infra",
     "repository_root": "/home/chris/projects/cs-ai-lab-infra",
-    "expected_git_revision": "ccbbde211015521cc85cd18b4f5be86802f3c977",
+    "expected_git_revision": "a84572004dbad6531332952685995a62ff336359",
     "require_clean_worktree": false,
     "require_tracked_files": true,
     "files": [
@@ -13,7 +13,7 @@
       },
       {
         "path": "t480_core/core.py",
-        "sha256": "d5ef4ee7662d95923272fe9846f0a045face79de6c46ef87e43b81d053c14683"
+        "sha256": "aeed94975c655e7efe6cb60bb48e510a36b91af46c36bfb2d849f11495914c5e"
       },
       {
         "path": "t480/transport-config.json",

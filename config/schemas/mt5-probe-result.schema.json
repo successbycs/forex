@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Forex fixed MT5 history-depth result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "server", "symbol", "timeframe", "requested_closed_bars", "returned_closed_bars", "first_bar_utc", "last_bar_utc", "request_cap_reached", "invalid_ohlc_count"],
+  "properties": {
+    "schema_version": {"const": "forex.mt5-history-depth.v1"},
+    "server": {"const": "GOMarketsMU-Demo"},
+    "symbol": {"const": "EURUSD"},
+    "timeframe": {"const": "H1"},
+    "requested_closed_bars": {"const": 100000},
+    "returned_closed_bars": {"type": "integer", "minimum": 1, "maximum": 100000},
+    "first_bar_utc": {"type": "string", "format": "date-time"},
+    "last_bar_utc": {"type": "string", "format": "date-time"},
+    "request_cap_reached": {"type": "boolean"},
+    "invalid_ohlc_count": {"const": 0}
+  }
+}

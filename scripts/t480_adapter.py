@@ -130,6 +130,18 @@ def _m1_mt5_demo_probe_command() -> str:
     )
 
 
+def _m3_mt5_history_depth_probe_command() -> str:
+    """Return the fixed read-only M3 history-depth command for Windows."""
+    return (
+        "$ErrorActionPreference='Stop'; "
+        "$s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m3-probe\\mt5.local.json')|ConvertFrom-Json; "
+        "$p=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m3-probe\\m3_mt5_history_depth_probe.py'; "
+        "if (!(Test-Path -LiteralPath $p)) { throw 'M3 fixed probe file is absent' }; "
+        "if ([string]::IsNullOrWhiteSpace($s.python_path) -or !(Test-Path -LiteralPath $s.python_path)) { throw 'M3 local configured Python interpreter is absent' }; "
+        "& $s.python_path $p $s.terminal_path; exit $LASTEXITCODE"
+    )
+
+
 OPERATIONS: dict[str, Operation] = {
     "health": Operation(
         "health",
@@ -241,6 +253,12 @@ OPERATIONS: dict[str, Operation] = {
         "Export a fixed read-only closed EURUSD H1 historical sample from GOMarketsMU-Demo for M1.",
         powershell_command=_m1_mt5_demo_probe_command(),
         timeout_seconds=60,
+    ),
+    "m3_mt5_history_depth_probe": Operation(
+        "m3_mt5_history_depth_probe",
+        "Measure fixed closed EURUSD H1 history depth from GOMarketsMU-Demo without persisting or trading.",
+        powershell_command=_m3_mt5_history_depth_probe_command(),
+        timeout_seconds=120,
     ),
 }
 
