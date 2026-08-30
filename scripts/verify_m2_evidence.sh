@@ -30,5 +30,7 @@ if 'FOREX_M2_PROOF_OK' not in combined or 'FOREX_REPOSITORY_VERIFICATION_OK' not
 if not any(marker in combined for marker in ('FOREX_M2_POSTGRES_IMPORT_OK', 'FOREX_M2_IMPORT_ALREADY_PRESENT')): raise SystemExit('PostgreSQL import marker missing')
 if not any(marker in combined for marker in ('FOREX_M2_SCHEMA_APPLIED', 'FOREX_M2_SCHEMA_ALREADY_APPLIED')) or 'FOREX_M2_POSTGRES_VERIFY_OK' not in combined: raise SystemExit('shared PostgreSQL operation marker missing')
 if '1|1|1|720|sha256:' not in combined: raise SystemExit('expected PostgreSQL import row counts and snapshot hash are missing')
+for required in ('source_status=DEMO_ONLY', 'snapshot=EUR/USD:H1', 'lineage_ok=true', 'bar_availability_ok=true', 'point_in_time_triggers=2'):
+    if required not in combined: raise SystemExit('required schema/lineage verification is missing: ' + required)
 print('FOREX_M2_EVIDENCE_VERIFIED')
 PY

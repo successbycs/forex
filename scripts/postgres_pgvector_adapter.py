@@ -102,7 +102,19 @@ printf 'FOREX_M2_IMPORT_EXECUTED sha256:{digest}\\n' '''
 
 
 def verify_snapshot() -> dict:
-    body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 'FOREX_M2_POSTGRES_VERIFY_OK', (SELECT count(*) FROM forex.source_registry), (SELECT count(*) FROM forex.raw_observation), (SELECT count(*) FROM forex.dataset_snapshot), (SELECT count(*) FROM forex.price_bar), (SELECT artifact_sha256 FROM forex.dataset_snapshot WHERE snapshot_id='m2-m1-eurusd-h1-720'), (SELECT payload_sha256 FROM forex.raw_observation WHERE observation_id='m1-demo-eurusd-h1-720');" </dev/null'''
+    body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 'FOREX_M2_POSTGRES_VERIFY_OK',
+ (SELECT count(*) FROM forex.source_registry),
+ (SELECT count(*) FROM forex.raw_observation),
+ (SELECT count(*) FROM forex.dataset_snapshot),
+ (SELECT count(*) FROM forex.price_bar),
+ (SELECT artifact_sha256 FROM forex.dataset_snapshot WHERE snapshot_id='m2-m1-eurusd-h1-720'),
+ (SELECT payload_sha256 FROM forex.raw_observation WHERE observation_id='m1-demo-eurusd-h1-720'),
+ 'source_status=' || (SELECT approval_status FROM forex.source_registry WHERE source_id='gomarketsmu-demo-m1'),
+ 'snapshot=' || (SELECT instrument || ':' || timeframe FROM forex.dataset_snapshot WHERE snapshot_id='m2-m1-eurusd-h1-720'),
+ 'lineage_ok=' || EXISTS (SELECT 1 FROM forex.dataset_snapshot_observation link JOIN forex.raw_observation observation ON observation.observation_id=link.observation_id JOIN forex.source_registry source ON source.source_id=observation.source_id WHERE link.snapshot_id='m2-m1-eurusd-h1-720' AND observation.observation_id='m1-demo-eurusd-h1-720' AND source.source_id='gomarketsmu-demo-m1'),
+ 'bar_availability_ok=' || NOT EXISTS (SELECT 1 FROM forex.price_bar bar JOIN forex.dataset_snapshot snapshot ON snapshot.snapshot_id=bar.snapshot_id WHERE bar.snapshot_id='m2-m1-eurusd-h1-720' AND bar.available_at_utc > snapshot.decision_cutoff_utc),
+ 'point_in_time_triggers=' || (SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname IN ('price_bar_point_in_time','snapshot_observation_point_in_time'));
+ " </dev/null'''
     return wrap("forex_m2_verify_snapshot", remote(body))
 
 

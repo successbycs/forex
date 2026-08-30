@@ -483,7 +483,7 @@
         "M1"
       ],
       "entry_conditions": [
-        "M1 is PROVEN and remains valid.",
+        "M1 is PROVEN and remains valid, or has a recorded HUMAN_REVALIDATION_EXCEPTION under the repository revalidation policy.",
         "The three-phase roadmap and Demo-only safety boundary remain intact."
       ],
       "from_state": "The milestone capability is not yet proven.",

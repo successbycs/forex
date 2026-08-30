@@ -21,3 +21,11 @@ def test_import_is_hash_bound():
         assert postgres_pgvector_adapter.import_snapshot()["ok"]
     assert "sha256sum" in remote.call_args.args[0]
     assert "FOREX_M2_IMPORT_ALREADY_PRESENT" in remote.call_args.args[0]
+
+
+def test_verification_query_checks_m2_lineage_and_point_in_time_controls():
+    with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+        assert postgres_pgvector_adapter.verify_snapshot()["ok"]
+    query = remote.call_args.args[0]
+    for required in ("source_status", "snapshot=", "lineage_ok", "bar_availability_ok", "price_bar_point_in_time", "snapshot_observation_point_in_time"):
+        assert required in query
