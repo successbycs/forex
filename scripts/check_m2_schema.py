@@ -34,12 +34,15 @@ REQUIRED_SNIPPETS = (
     "CREATE TRIGGER price_bar_immutable",
     "CREATE TRIGGER price_bar_point_in_time",
     "CREATE TRIGGER snapshot_observation_point_in_time",
+    "CREATE TRIGGER raw_observation_sealed_provenance_immutable",
+    "CREATE TRIGGER source_registry_sealed_provenance_immutable",
+    "sealed snapshot provenance is immutable",
 )
 FORBIDDEN_PATTERNS = (r"GOMarketsMU-Live", r"order_send", r"COPY\s+FROM\s+PROGRAM", r"dblink", r"http")
 
 
-def validate(path: Path) -> list[str]:
-    sql = path.read_text(encoding="utf-8")
+def validate(paths: tuple[Path, ...]) -> list[str]:
+    sql = "\n".join(path.read_text(encoding="utf-8") for path in paths)
     failures = [f"missing required migration statement: {snippet}" for snippet in REQUIRED_SNIPPETS if snippet not in sql]
     failures.extend(f"forbidden capability in migration: {pattern}" for pattern in FORBIDDEN_PATTERNS if re.search(pattern, sql, re.IGNORECASE))
     if not sql.lstrip().startswith("--") or "BEGIN;" not in sql or not sql.rstrip().endswith("COMMIT;"):
@@ -51,7 +54,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Statically validate the M2 PostgreSQL migration")
     parser.add_argument("--root", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)
-    failures = validate(args.root / "sql" / "migrations" / "001_m2_historical_data.sql")
+    failures = validate((
+        args.root / "sql" / "migrations" / "001_m2_historical_data.sql",
+        args.root / "sql" / "migrations" / "002_m2_sealed_provenance.sql",
+    ))
     if failures:
         print("M2 PostgreSQL migration invalid:\n- " + "\n- ".join(failures), file=sys.stderr)
         return 2

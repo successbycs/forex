@@ -21,12 +21,13 @@ $postgres_adapter preflight >"$bundle/postgres-preflight.stdout.json" 2>"$bundle
 $postgres_adapter forex-m2-apply-schema --approve >"$bundle/postgres-schema-apply.stdout.json" 2>"$bundle/postgres-schema-apply.stderr.txt"; apply_exit=$?
 $postgres_adapter forex-m2-import --approve >"$bundle/postgres-import.stdout.json" 2>"$bundle/postgres-import.stderr.txt"; import_exit=$?
 $postgres_adapter forex-m2-verify >"$bundle/postgres-verify.stdout.json" 2>"$bundle/postgres-verify.stderr.txt"; postgres_verify_exit=$?
+$postgres_adapter forex-m2-provenance-negative-control >"$bundle/postgres-provenance-negative-control.stdout.json" 2>"$bundle/postgres-provenance-negative-control.stderr.txt"; provenance_negative_control_exit=$?
 python3 scripts/forex_milestones.py validate >"$bundle/governance.stdout.txt" 2>"$bundle/governance.stderr.txt"; governance_exit=$?
 python3 scripts/validate_config.py --root . --json >"$bundle/configuration.stdout.json" 2>"$bundle/configuration.stderr.txt"; configuration_exit=$?
 bash scripts/verify_project.sh >"$bundle/repository-verification.stdout.txt" 2>"$bundle/repository-verification.stderr.txt"; repository_exit=$?
 
 overall=0
-for code in "$tests_exit" "$schema_exit" "$preflight_exit" "$apply_exit" "$import_exit" "$postgres_verify_exit" "$governance_exit" "$configuration_exit" "$repository_exit"; do [[ "$code" -eq 0 ]] || overall=1; done
+for code in "$tests_exit" "$schema_exit" "$preflight_exit" "$apply_exit" "$import_exit" "$postgres_verify_exit" "$provenance_negative_control_exit" "$governance_exit" "$configuration_exit" "$repository_exit"; do [[ "$code" -eq 0 ]] || overall=1; done
 {
   printf 'm2_tests=%s\n' "$tests_exit"
   printf 'postgres_schema=%s\n' "$schema_exit"
@@ -34,6 +35,7 @@ for code in "$tests_exit" "$schema_exit" "$preflight_exit" "$apply_exit" "$impor
   printf 'postgres_schema_apply=%s\n' "$apply_exit"
   printf 'postgres_import=%s\n' "$import_exit"
   printf 'postgres_verify=%s\n' "$postgres_verify_exit"
+  printf 'postgres_provenance_negative_control=%s\n' "$provenance_negative_control_exit"
   printf 'governance=%s\n' "$governance_exit"
   printf 'configuration=%s\n' "$configuration_exit"
   printf 'repository_verification=%s\n' "$repository_exit"

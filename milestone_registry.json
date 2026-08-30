@@ -506,6 +506,7 @@
       "expected_artifacts": [
         "docs/milestones/M2-proof.md",
         "sql/migrations/001_m2_historical_data.sql",
+        "sql/migrations/002_m2_sealed_provenance.sql",
         "docs/infrastructure_requirements.md",
         "scripts/build_m2_postgres_import.py",
         "tests/milestones/test_m2.py"
@@ -573,7 +574,7 @@
       "evidence_requirements": [
         "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
         "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
-        "Raw T480 fixed-operation migration/import/query output with row counts, snapshot hash, source/revision/configuration provenance, timestamps, and redaction declaration.",
+        "Raw T480 fixed-operation migration/import/query output with row counts, snapshot hash, source/revision/configuration provenance, timestamps, and redaction declaration; include a negative control proving sealed source and raw-observation provenance updates are rejected.",
         "A human-observable summary of the declared private T480 shared-PostgreSQL M1-snapshot persistence result containing FOREX_M2_PROOF_OK."
       ],
       "human_review_required": true,

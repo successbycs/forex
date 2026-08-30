@@ -29,10 +29,14 @@ SETTINGS = load_transport_settings(SHARED_ROOT / "t480" / "transport-config.json
 TARGET = resolve_ssh_target(SETTINGS, [ROOT / ".env.t480.local", SHARED_ROOT / ".env.t480.local"])
 REMOTE_LAB = "/home/chris/projects/cs-ai-lab-infra"
 REMOTE_FOREX = "/home/chris/projects/forex"
-ASSETS = {"schema": "sql/migrations/001_m2_historical_data.sql", "import": "scripts/build_m2_postgres_import.py"}
+ASSETS = {
+    "schema": "sql/migrations/001_m2_historical_data.sql",
+    "sealed_provenance": "sql/migrations/002_m2_sealed_provenance.sql",
+    "import": "scripts/build_m2_postgres_import.py",
+}
 M2_SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
 M2_SNAPSHOT_ARTIFACT_SHA256 = "sha256:dc5384732d71091aa2279aaf6d92e8e1780c8021eacde948432ad7bc68fdabaa"
-READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify"}
+READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control"}
 MUTATING = {"forex-m2-apply-schema", "forex-m2-import"}
 
 
@@ -71,17 +75,29 @@ def vector_probe() -> dict:
 
 
 def apply_schema() -> dict:
-    relative, digest = asset("schema")
-    body = f'''file="{REMOTE_FOREX}/{relative}"
-test -f "$file"
-[[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
-if [[ "$(docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT to_regclass('forex.source_registry') IS NOT NULL;" </dev/null)" == t ]]; then
-  printf 'FOREX_M2_SCHEMA_ALREADY_APPLIED sha256:{digest}\\n'
+    schema_relative, schema_digest = asset("schema")
+    provenance_relative, provenance_digest = asset("sealed_provenance")
+    combined_digest = hashlib.sha256(f"{schema_digest}:{provenance_digest}".encode()).hexdigest()
+    body = f'''schema_file="{REMOTE_FOREX}/{schema_relative}"
+provenance_file="{REMOTE_FOREX}/{provenance_relative}"
+test -f "$schema_file" && test -f "$provenance_file"
+[[ "$(sha256sum "$schema_file" | head -c 64)" == "{schema_digest}" ]]
+[[ "$(sha256sum "$provenance_file" | head -c 64)" == "{provenance_digest}" ]]
+applied=false
+if [[ "$(docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT to_regclass('forex.source_registry') IS NOT NULL;" </dev/null)" != t ]]; then
+  docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$schema_file"
+  applied=true
+fi
+if [[ "$(docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE NOT tgisinternal AND tgname='raw_observation_sealed_provenance_immutable');" </dev/null)" != t ]]; then
+  docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$provenance_file"
+  applied=true
+fi
+if [[ "$applied" == true ]]; then
+  printf 'FOREX_M2_SCHEMA_APPLIED sha256:{combined_digest}\\n'
 else
-  docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$file"
-  printf 'FOREX_M2_SCHEMA_APPLIED sha256:{digest}\\n'
+  printf 'FOREX_M2_SCHEMA_ALREADY_APPLIED sha256:{combined_digest}\\n'
 fi'''
-    return wrap("forex_m2_apply_schema", remote(body), digest)
+    return wrap("forex_m2_apply_schema", remote(body), combined_digest)
 
 
 def import_snapshot() -> dict:
@@ -113,9 +129,33 @@ def verify_snapshot() -> dict:
  'snapshot=' || (SELECT instrument || ':' || timeframe FROM forex.dataset_snapshot WHERE snapshot_id='m2-m1-eurusd-h1-720'),
  'lineage_ok=' || EXISTS (SELECT 1 FROM forex.dataset_snapshot_observation link JOIN forex.raw_observation observation ON observation.observation_id=link.observation_id JOIN forex.source_registry source ON source.source_id=observation.source_id WHERE link.snapshot_id='m2-m1-eurusd-h1-720' AND observation.observation_id='m1-demo-eurusd-h1-720' AND source.source_id='gomarketsmu-demo-m1'),
  'bar_availability_ok=' || NOT EXISTS (SELECT 1 FROM forex.price_bar bar JOIN forex.dataset_snapshot snapshot ON snapshot.snapshot_id=bar.snapshot_id WHERE bar.snapshot_id='m2-m1-eurusd-h1-720' AND bar.available_at_utc > snapshot.decision_cutoff_utc),
- 'point_in_time_triggers=' || (SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname IN ('price_bar_point_in_time','snapshot_observation_point_in_time'));
+ 'point_in_time_triggers=' || (SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname IN ('price_bar_point_in_time','snapshot_observation_point_in_time')),
+ 'sealed_provenance_triggers=' || (SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname IN ('raw_observation_sealed_provenance_immutable','source_registry_sealed_provenance_immutable'));
  " </dev/null'''
     return wrap("forex_m2_verify_snapshot", remote(body))
+
+
+def provenance_negative_control() -> dict:
+    body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<'SQL'
+DO $$
+BEGIN
+  BEGIN
+    UPDATE forex.raw_observation SET source_revision = source_revision WHERE observation_id = 'm1-demo-eurusd-h1-720';
+    RAISE EXCEPTION 'raw observation mutation unexpectedly allowed';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM <> 'sealed snapshot provenance is immutable' THEN RAISE; END IF;
+  END;
+  BEGIN
+    UPDATE forex.source_registry SET contract_version = contract_version WHERE source_id = 'gomarketsmu-demo-m1';
+    RAISE EXCEPTION 'source registry mutation unexpectedly allowed';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM <> 'sealed snapshot provenance is immutable' THEN RAISE; END IF;
+  END;
+  RAISE NOTICE 'FOREX_M2_SEALED_PROVENANCE_NEGATIVE_CONTROL_OK';
+END;
+$$;
+SQL'''
+    return wrap("forex_m2_provenance_negative_control", remote(body))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -125,7 +165,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command in MUTATING and not args.approve:
         parser.error("this mutating operation requires --approve")
-    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot}
+    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control}
     payload = actions[args.command]()
     print(json.dumps(payload, indent=2))
     return 0 if payload["ok"] else 1

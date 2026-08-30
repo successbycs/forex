@@ -3,7 +3,8 @@
 M2 defines a small, canonical contract layer for historical research. It does
 not add a download API, generic MT5 access, live data, orders, or a trading
 model. Its physical persistence definition is the versioned PostgreSQL
-migration `sql/migrations/001_m2_historical_data.sql`; M2 claims persistence
+migrations `sql/migrations/001_m2_historical_data.sql` and
+`sql/migrations/002_m2_sealed_provenance.sql`; M2 claims persistence
 only after the fixed T480 shared-adapter migration, import, and verification
 operations have actually succeeded.
 
@@ -30,6 +31,10 @@ canonical EUR/USD, allowed timeframes, hashes, positive OHLC values, and
 valid OHLC ranges. A trigger rejects bars whose availability exceeds the
 snapshot cutoff; a second trigger rejects later raw-observation lineage.
 Sealed snapshot headers, bars, and lineage links cannot be updated or deleted.
+The second migration also prevents updating or deleting a raw observation or
+source registry record once a sealed snapshot references it. Capture includes a
+real negative control that attempts both mutations and requires PostgreSQL to
+reject them.
 
 The schema stores references and hashes, not credentials or unrestricted raw
 broker payloads. PostgreSQL is not exposed to the LAN or public internet.
@@ -44,8 +49,8 @@ The proof surface is deterministic validation plus the private T480 shared
 PostgreSQL service. `capture_m2_evidence.sh` invokes only fixed,
 approval-gated operations in the Forex-owned PostgreSQL adapter, using the
 locked shared `cs-ai-lab-infra` transport, and retains raw preflight,
-migration, import, verification, dependency, and repository-verification
-outputs. `verify_m2_evidence.sh` separately validates
+migration, import, verification, sealed-provenance negative-control,
+dependency, and repository-verification outputs. `verify_m2_evidence.sh` separately validates
 manifest/artifact hashes, clean revision/configuration binding, success
 markers, and the M2 snapshot tests without contacting MT5 or any external
 source.

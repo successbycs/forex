@@ -53,7 +53,13 @@ def test_m2_replay_never_exceeds_snapshot_cutoff():
 
 
 def test_m2_postgres_migration_preserves_lineage_immutability_and_no_lookahead():
-    migration = Path("sql/migrations/001_m2_historical_data.sql").read_text()
+    migration = "\n".join(
+        Path(path).read_text()
+        for path in (
+            "sql/migrations/001_m2_historical_data.sql",
+            "sql/migrations/002_m2_sealed_provenance.sql",
+        )
+    )
     for table in ("source_registry", "raw_observation", "dataset_snapshot", "dataset_snapshot_observation", "price_bar"):
         assert f"CREATE TABLE forex.{table}" in migration
     assert "REFERENCES forex.source_registry" in migration
@@ -63,6 +69,9 @@ def test_m2_postgres_migration_preserves_lineage_immutability_and_no_lookahead()
     assert "raw observation availability exceeds snapshot decision cutoff" in migration
     assert "CREATE TRIGGER price_bar_immutable" in migration
     assert "CREATE TRIGGER dataset_snapshot_observation_immutable" in migration
+    assert "CREATE TRIGGER raw_observation_sealed_provenance_immutable" in migration
+    assert "CREATE TRIGGER source_registry_sealed_provenance_immutable" in migration
+    assert "sealed snapshot provenance is immutable" in migration
     assert "order_send" not in migration.lower()
     assert "gomarketsmu-live" not in migration.lower()
 
@@ -86,6 +95,6 @@ def test_m2_fixed_postgres_import_contains_exact_retained_m1_bar_count():
 def test_m2_capture_uses_only_fixed_shared_adapter_operations():
     capture = Path("scripts/capture_m2_evidence.sh").read_text()
     assert "postgres_pgvector_adapter.py" in capture
-    for operation in ("preflight", "forex-m2-apply-schema --approve", "forex-m2-import --approve", "forex-m2-verify"):
+    for operation in ("preflight", "forex-m2-apply-schema --approve", "forex-m2-import --approve", "forex-m2-verify", "forex-m2-provenance-negative-control"):
         assert operation in capture
     assert "import_m2_postgres.sh" not in capture

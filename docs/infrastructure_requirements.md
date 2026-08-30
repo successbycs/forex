@@ -26,7 +26,10 @@ Before a controlled import, the fixed Forex adapter `preflight`, `inspect`,
 and `vector-probe` operations must show the shared PostgreSQL/pgvector service
 healthy. The M2-specific `forex-m2-apply-schema` and `forex-m2-import`
 operations require explicit `--approve`; `forex-m2-verify` is read-only. The
-database is not considered available merely because a migration exists.
+read-only `forex-m2-provenance-negative-control` attempts updates to sealed
+provenance records within PostgreSQL and requires rejection without persisting
+any change. The database is not considered available merely because a
+migration exists.
 
 ## Controlled data path
 
