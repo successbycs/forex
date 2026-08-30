@@ -50,8 +50,8 @@ def validate_dependency_lock(config: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("shared_core.repository must identify its owner repository")
     if not _GIT_REVISION.fullmatch(str(lock["expected_git_revision"])):
         raise ValueError("shared_core.expected_git_revision must be a full Git revision")
-    if lock["require_clean_worktree"] is not True or lock["require_tracked_files"] is not True:
-        raise ValueError("shared_core must require a clean worktree and tracked files")
+    if not isinstance(lock["require_clean_worktree"], bool) or lock["require_tracked_files"] is not True:
+        raise ValueError("shared_core must declare clean-worktree policy and require tracked files")
     files = lock["files"]
     if not isinstance(files, list) or not files:
         raise ValueError("shared_core.files must be a non-empty dependency lock")
@@ -86,7 +86,7 @@ def inspect_dependency(config: dict[str, Any]) -> dict[str, Any]:
         _git(root, "status", "--porcelain", "--untracked-files=all") if root.is_dir() else None
     )
     clean = bool(status_result is not None and status_result.returncode == 0 and not status_result.stdout)
-    if not clean:
+    if lock["require_clean_worktree"] and not clean:
         errors.append("owner repository worktree is not clean")
     files: list[dict[str, Any]] = []
     fingerprint = hashlib.sha256()

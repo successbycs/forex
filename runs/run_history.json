@@ -3108,6 +3108,19 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000209",
+      "timestamp": "2026-08-30T22:43:41Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:3c75af07ec0013738f53a11d288fdd36dc7e9a73d0307104319aac4e21031bbb",
+        "current": "sha256:89d0b075b41806eb8d1005ba49fd107134999f5ef8c2e442b99424b484fb142d",
+        "invalidated_milestones": [],
+        "preserved_milestones": [],
+        "preservation_reason": null
+      }
     }
   ]
 }

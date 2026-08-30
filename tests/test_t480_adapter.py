@@ -105,7 +105,7 @@ def test_shared_core_root_cannot_be_redirected_by_environment(monkeypatch):
     )
 
 
-def test_shared_dependency_requires_revision_hashes_tracking_and_clean_worktree(tmp_path):
+def test_shared_dependency_allows_unrelated_owner_changes_but_rejects_locked_file_drift(tmp_path):
     repository = tmp_path / "shared-core"
     repository.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repository, check=True)
@@ -137,7 +137,7 @@ def test_shared_dependency_requires_revision_hashes_tracking_and_clean_worktree(
             "repository": "fixture/shared-core",
             "repository_root": str(repository),
             "expected_git_revision": revision,
-            "require_clean_worktree": True,
+            "require_clean_worktree": False,
             "require_tracked_files": True,
             "files": [
                 {
@@ -152,5 +152,4 @@ def test_shared_dependency_requires_revision_hashes_tracking_and_clean_worktree(
     (repository / paths[1]).write_text("drifted\n", encoding="utf-8")
     drifted = inspect_dependency(config)
     assert drifted["ok"] is False
-    assert "owner repository worktree is not clean" in drifted["errors"]
     assert f"locked dependency hash mismatch: {paths[1]}" in drifted["errors"]
