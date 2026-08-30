@@ -5,6 +5,12 @@
 All Forex runtime functions execute on the T480 AI Lab. Forex uses the
 existing private PostgreSQL 16 + pgvector service owned by
 `cs-ai-lab-infra`; it does not create a second project-local database service.
+
+Forex invokes the database through its local
+`scripts/postgres_pgvector_adapter.py` adapter. It exposes only the fixed M2
+preflight, schema, import, and verification actions. Shared transport,
+credentials, Docker, PostgreSQL, and backups remain owned by
+`cs-ai-lab-infra`.
 The service is reachable only inside the T480 shared Docker network.
 
 | Component | Location | Required use | Explicitly not allowed |

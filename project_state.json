@@ -32,17 +32,17 @@
     "config/t480.json",
     "t480/command-catalog.json"
   ],
-  "configuration_fingerprint": "sha256:bc781288540a5e738143bcc90108aee288d00c184bf6b3fb8be1672563837f2d",
+  "configuration_fingerprint": "sha256:3d4193c6fc4a2c5c1b63b16916f7111ad82221d6345ddfc6f8c33bad8fdb7488",
   "important_architectural_decisions": [
     "Shared T480 transport belongs to cs-ai-lab-infra; Forex owns its catalog and adapter.",
     "Mutable execution state is separate from the declarative milestone registry.",
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-30T02:24:05Z",
+  "last_updated_at": "2026-08-30T02:41:56Z",
   "milestones": {
     "M0": {
-      "status": "PROVEN",
+      "status": "NEEDS_REVALIDATION",
       "started_at": "2026-08-29T05:22:27Z",
       "implementation_finished_at": "2026-08-29T05:06:30Z",
       "verification_passed_at": "2026-08-29T05:22:08Z",
@@ -398,7 +398,12 @@
         "verification_recorded_at": "2026-08-29T05:22:08Z",
         "recorded_at": "2026-08-29T05:32:26Z"
       },
-      "blockers": [],
+      "blockers": [
+        {
+          "reason": "Governed configuration fingerprint changed.",
+          "recorded_at": "2026-08-30T02:41:56Z"
+        }
+      ],
       "work_packages": {
         "M0.1": {
           "status": "VERIFIED",

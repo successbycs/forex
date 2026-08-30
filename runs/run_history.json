@@ -2606,6 +2606,21 @@
         "reason": "Operator accepts the demonstrated M1 Demo-only historical proof and directs progression to M2; a further capture caused solely by governance changes adds no meaningful value.",
         "revalidation_count": 1
       }
+    },
+    {
+      "event_id": "E000178",
+      "timestamp": "2026-08-30T02:41:56Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:bc781288540a5e738143bcc90108aee288d00c184bf6b3fb8be1672563837f2d",
+        "current": "sha256:3d4193c6fc4a2c5c1b63b16916f7111ad82221d6345ddfc6f8c33bad8fdb7488",
+        "invalidated_milestones": [
+          "M0"
+        ],
+        "preserved_milestones": [],
+        "preservation_reason": null
+      }
     }
   ]
 }

@@ -3,8 +3,7 @@ set -uo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
-shared_adapter="/home/chris/projects/cs-ai-lab-infra/scripts/postgres_pgvector_adapter.py"
-test -f "$shared_adapter" || { echo "shared PostgreSQL adapter is absent" >&2; exit 4; }
+postgres_adapter="python3 scripts/postgres_pgvector_adapter.py"
 run_id="$(date -u +%Y%m%dT%H%M%SZ)"
 bundle="${1:-$repo_root/runs/evidence/M2/$run_id}"
 mkdir -p "$bundle"
@@ -17,11 +16,11 @@ configuration_fingerprint="$(python3 scripts/forex_milestones.py status --json |
 python3 -m pytest -q tests/milestones/test_m2.py >"$bundle/m2-tests.stdout.txt" 2>"$bundle/m2-tests.stderr.txt"; tests_exit=$?
 python3 scripts/check_m2_schema.py --root . >"$bundle/postgres-schema.stdout.txt" 2>"$bundle/postgres-schema.stderr.txt"; schema_exit=$?
 git -C /home/chris/projects/cs-ai-lab-infra rev-parse HEAD >"$bundle/shared-postgres-adapter.txt" 2>&1
-sha256sum "$shared_adapter" >>"$bundle/shared-postgres-adapter.txt"
-python3 "$shared_adapter" preflight >"$bundle/postgres-preflight.stdout.json" 2>"$bundle/postgres-preflight.stderr.txt"; preflight_exit=$?
-python3 "$shared_adapter" forex-m2-apply-schema --approve >"$bundle/postgres-schema-apply.stdout.json" 2>"$bundle/postgres-schema-apply.stderr.txt"; apply_exit=$?
-python3 "$shared_adapter" forex-m2-import --approve >"$bundle/postgres-import.stdout.json" 2>"$bundle/postgres-import.stderr.txt"; import_exit=$?
-python3 "$shared_adapter" forex-m2-verify >"$bundle/postgres-verify.stdout.json" 2>"$bundle/postgres-verify.stderr.txt"; postgres_verify_exit=$?
+sha256sum /home/chris/projects/cs-ai-lab-infra/scripts/postgres_pgvector_adapter.py >>"$bundle/shared-postgres-adapter.txt"
+$postgres_adapter preflight >"$bundle/postgres-preflight.stdout.json" 2>"$bundle/postgres-preflight.stderr.txt"; preflight_exit=$?
+$postgres_adapter forex-m2-apply-schema --approve >"$bundle/postgres-schema-apply.stdout.json" 2>"$bundle/postgres-schema-apply.stderr.txt"; apply_exit=$?
+$postgres_adapter forex-m2-import --approve >"$bundle/postgres-import.stdout.json" 2>"$bundle/postgres-import.stderr.txt"; import_exit=$?
+$postgres_adapter forex-m2-verify >"$bundle/postgres-verify.stdout.json" 2>"$bundle/postgres-verify.stderr.txt"; postgres_verify_exit=$?
 python3 scripts/forex_milestones.py validate >"$bundle/governance.stdout.txt" 2>"$bundle/governance.stderr.txt"; governance_exit=$?
 python3 scripts/validate_config.py --root . --json >"$bundle/configuration.stdout.json" 2>"$bundle/configuration.stderr.txt"; configuration_exit=$?
 bash scripts/verify_project.sh >"$bundle/repository-verification.stdout.txt" 2>"$bundle/repository-verification.stderr.txt"; repository_exit=$?
