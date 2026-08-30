@@ -4,6 +4,34 @@
 
 ![High-level Forex repository architecture](assets/forex-architecture-overview.png)
 
+## Human-controlled development review
+
+An optional fresh Reviewer context can inspect a committed Builder revision
+before expensive evidence capture. It is advice for the human and Builder, not
+a new workflow gate or a completion claim.
+
+```text
+Milestone agreed
+     ↓
+Builder worktree: /home/chris/projects/forex
+     ↓
+human-approved commit
+     ↓
+read-only Reviewer worktree: /home/chris/projects/forex-reviewer
+     ↓
+review findings
+     ↓
+human-authorised Builder fixes, if required
+     ↓
+existing evidence → Triad → human sign-off → prove
+```
+
+Separate contexts provide logical review separation, not independently
+controlled provenance. The existing evidence-bound Triad remains the only
+structured completion recommendation, and only the human may approve a commit,
+sign off, or invoke `prove`. See
+[`docs/governance/review-workflow.md`](governance/review-workflow.md).
+
 ## T480 deployment boundary
 
 ```text
@@ -43,8 +71,9 @@ is a design overview, not evidence that any future adapter, source, Ollama
 task, real-time feed, or Demo execution capability is deployed.
 
 Amber ticks mean **built, but not proven**. They do not change milestone state:
-M0 remains `NEEDS_REVALIDATION` and M1 remains blocked until that revalidation
-is complete. All other phase components are planned.
+M0 is the recorded `PROVEN` standing baseline, M1 is
+`NEEDS_REVALIDATION`, and all later phase components remain planned or subject
+to their current contract state.
 
 ### Component-to-milestone map
 

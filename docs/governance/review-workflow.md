@@ -1,16 +1,13 @@
 # Builder, Reviewer, and human workflow
 
 The repository already has final evidence review through `forex_triad.py`.
-This lightweight handoff adds implementation-readiness review before real-world
-evidence capture; it does not replace the Triad.
+An extra implementation review is optional, human-invoked advice before
+real-world evidence capture; it does not create a new state or gate.
 
 ```text
-IN_PROGRESS
-  → finish implementation
-  → AWAITING_REAL_WORLD_PROOF
-  → fixed verification passes
-  → implementation-readiness request
-  → CHANGES_REQUIRED / BLOCKED / READY_FOR_EVIDENCE
+Builder implements and verifies
+  → human requests fresh read-only review when useful
+  → Builder addresses required findings only when human-authorised
   → declared evidence stage
   → existing evidence-bound Triad
   → human sign-off
@@ -18,13 +15,18 @@ IN_PROGRESS
   → PROVEN
 ```
 
-The handoff command requires the current active milestone, an implementation
-finish timestamp, current passing verification, a clean committed worktree, no
-open blockers, and fewer than three review cycles. `CHANGES_REQUIRED` maps to
-the existing `NEEDS_FIX`; `BLOCKED` maps to the existing `BLOCKED`. The human
-must explicitly authorise remediation.
+The human decides when an extra review is useful, receives its findings, and
+explicitly authorises any remediation. Findings may be retained in the Builder
+report or existing run history when relevant. Reviewers never sign off, prove,
+commit, deploy, mutate data, or close a milestone.
 
-The dispatcher is optional to invoke and always one-shot. It invokes Codex in
-read-only sandbox mode with a fixed structured-result schema. It never watches
-the repository, launches remediation, commits, deploys, mutates data, signs
-off, proves, or closes a milestone.
+To avoid manually copying a Reviewer prompt, run one fresh read-only review of
+the current Builder diff:
+
+```bash
+python3 scripts/ptr.py
+```
+
+`ptr.py` only starts the review and prints its response. It does not save a
+review record, change milestone state, launch a Builder, commit, or invoke any
+external Forex capability.

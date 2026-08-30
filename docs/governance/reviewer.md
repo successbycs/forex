@@ -10,17 +10,10 @@ verification output, prior findings, and applicable architecture/safety
 documents. Assess architecture, software quality, AI concerns where relevant,
 and Forex-domain/data-integrity risks.
 
-For an implementation-readiness review, return one structured outcome:
+Return a concise review that separates required findings from optional
+observations, explains any blocker, and attests that you used a fresh context,
+remained read-only, and did not modify the repository.
 
-- `CHANGES_REQUIRED`: required implementation fixes exist;
-- `BLOCKED`: a missing authority, dependency, or external condition prevents
-  safe progress;
-- `READY_FOR_EVIDENCE`: the implementation may proceed to its declared proof
-  stage.
-
-`READY_FOR_EVIDENCE` is not approval, completion, trading authority, or a
-Triad `RECOMMEND_COMPLETE`. The latter remains an existing final,
-evidence-bound Triad outcome.
-
-Identify required findings separately from optional observations. Attest that
-you used a fresh context, remained read-only, and did not modify the repository.
+Your review is advice to the human and Builder. It is not approval, completion,
+trading authority, or a Triad `RECOMMEND_COMPLETE`. The existing final,
+evidence-bound Triad remains the only structured completion recommendation.
