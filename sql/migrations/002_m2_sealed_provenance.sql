@@ -6,25 +6,27 @@ BEGIN;
 
 CREATE OR REPLACE FUNCTION forex.reject_sealed_provenance_mutation() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-    IF TG_TABLE_NAME = 'raw_observation' AND EXISTS (
-        SELECT 1
-        FROM forex.dataset_snapshot_observation link
-        JOIN forex.dataset_snapshot snapshot ON snapshot.snapshot_id = link.snapshot_id
-        WHERE link.observation_id = OLD.observation_id
-          AND snapshot.sealed_at_utc IS NOT NULL
-    ) THEN
-        RAISE EXCEPTION 'sealed snapshot provenance is immutable';
-    END IF;
-
-    IF TG_TABLE_NAME = 'source_registry' AND EXISTS (
-        SELECT 1
-        FROM forex.raw_observation observation
-        JOIN forex.dataset_snapshot_observation link ON link.observation_id = observation.observation_id
-        JOIN forex.dataset_snapshot snapshot ON snapshot.snapshot_id = link.snapshot_id
-        WHERE observation.source_id = OLD.source_id
-          AND snapshot.sealed_at_utc IS NOT NULL
-    ) THEN
-        RAISE EXCEPTION 'sealed snapshot provenance is immutable';
+    IF TG_TABLE_NAME = 'raw_observation' THEN
+        IF EXISTS (
+            SELECT 1
+            FROM forex.dataset_snapshot_observation link
+            JOIN forex.dataset_snapshot snapshot ON snapshot.snapshot_id = link.snapshot_id
+            WHERE link.observation_id = OLD.observation_id
+              AND snapshot.sealed_at_utc IS NOT NULL
+        ) THEN
+            RAISE EXCEPTION 'sealed snapshot provenance is immutable';
+        END IF;
+    ELSIF TG_TABLE_NAME = 'source_registry' THEN
+        IF EXISTS (
+            SELECT 1
+            FROM forex.raw_observation observation
+            JOIN forex.dataset_snapshot_observation link ON link.observation_id = observation.observation_id
+            JOIN forex.dataset_snapshot snapshot ON snapshot.snapshot_id = link.snapshot_id
+            WHERE observation.source_id = OLD.source_id
+              AND snapshot.sealed_at_utc IS NOT NULL
+        ) THEN
+            RAISE EXCEPTION 'sealed snapshot provenance is immutable';
+        END IF;
     END IF;
 
     IF TG_OP = 'DELETE' THEN

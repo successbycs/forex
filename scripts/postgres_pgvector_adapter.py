@@ -88,10 +88,8 @@ if [[ "$(docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_
   docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$schema_file"
   applied=true
 fi
-if [[ "$(docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE NOT tgisinternal AND tgname='raw_observation_sealed_provenance_immutable');" </dev/null)" != t ]]; then
-  docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$provenance_file"
-  applied=true
-fi
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$provenance_file"
+applied=true
 if [[ "$applied" == true ]]; then
   printf 'FOREX_M2_SCHEMA_APPLIED sha256:{combined_digest}\\n'
 else

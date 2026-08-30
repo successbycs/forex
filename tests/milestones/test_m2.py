@@ -72,6 +72,7 @@ def test_m2_postgres_migration_preserves_lineage_immutability_and_no_lookahead()
     assert "CREATE TRIGGER raw_observation_sealed_provenance_immutable" in migration
     assert "CREATE TRIGGER source_registry_sealed_provenance_immutable" in migration
     assert "sealed snapshot provenance is immutable" in migration
+    assert "ELSIF TG_TABLE_NAME = 'source_registry'" in migration
     assert "order_send" not in migration.lower()
     assert "gomarketsmu-live" not in migration.lower()
 
