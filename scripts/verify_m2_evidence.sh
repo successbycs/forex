@@ -13,7 +13,11 @@ root, bundle = Path(sys.argv[1]), Path(sys.argv[2])
 manifest = json.loads((bundle / 'manifest.json').read_text())
 if manifest.get('milestone_id') != 'M2' or manifest.get('schema_version') != '1.0.0': raise SystemExit('M2 manifest mismatch')
 if manifest.get('exit_code') != 0 or manifest.get('dirty_worktree') is not False: raise SystemExit('M2 capture was unsuccessful or dirty')
-if manifest.get('surface') != 'private T480 AI Lab PostgreSQL storing the retained M1 EUR/USD H1 snapshot in the Forex-owned schema': raise SystemExit('M2 proof surface mismatch')
+# The contract is the single source of truth for the declared proof surface.
+# Do not duplicate it as a second hard-coded wording gate.
+registry = json.loads((root / 'milestone_registry.json').read_text())
+m2 = next(item for item in registry['milestones'] if item['milestone_id'] == 'M2')
+if manifest.get('surface') != m2['real_world_proof']['surface']: raise SystemExit('M2 proof surface mismatch')
 captured = datetime.fromisoformat(manifest['captured_at'].replace('Z', '+00:00'))
 if (datetime.now(timezone.utc) - captured).total_seconds() > 168 * 3600: raise SystemExit('M2 evidence is stale')
 revision = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=root, text=True, capture_output=True).stdout.strip()
