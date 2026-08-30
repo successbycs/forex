@@ -48,6 +48,26 @@ Do not record approval on someone else's behalf. `prove` prepares `M1` as `READY
 - Use `invalidate` when a proven capability's implementation, dependency, surface, schema, or governed configuration materially changes.
 - `refresh-fingerprint` acknowledges current operator configuration but proves nothing. Re-run affected verification and real-world proof after a material change.
 
+### Revalidation limit and human exception
+
+The append-only run history permits at most three normal revalidation cycles
+for a milestone. On reaching the third cycle, do not continue endlessly: stop
+and reassess the value and cause of the repeated invalidation. A human may also
+exercise the explicit override below at any point when another proof cycle adds
+no meaningful value. It allows dependent work to proceed, but does **not** mark
+the milestone `PROVEN`, restore its proof, or remove its limitation from
+history:
+
+```text
+python3 scripts/forex_milestones.py human-override \
+  --id Mx --operator <identity> --reason <reassessment> --confirm-reassessment
+```
+
+This is an exceptional dependency waiver, not a substitute for evidence,
+Triad review, human sign-off, or proof. It requires an explicit operator,
+reason, and reassessment confirmation, and is recorded in state and run
+history. The three-cycle limit remains the automatic stop for normal retries.
+
 Evidence capture and evidence verification are separate. The verifier does not contact, modify, repair, or regenerate the observed system. Hash, freshness, revision, surface, configuration, runner-attestation, and signature mismatches fail closed. Its independence is logical separation within the repository, not a separate provenance authority.
 
 ## Durable evidence export

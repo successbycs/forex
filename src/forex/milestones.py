@@ -36,8 +36,10 @@ STATUSES = {
     "AWAITING_HUMAN_SIGNOFF",
     "PROVEN",
     "NEEDS_REVALIDATION",
+    "HUMAN_REVALIDATION_EXCEPTION",
     "SUPERSEDED",
 }
+MAX_REVALIDATION_CYCLES = 3
 DELIVERY_TYPES = {
     "FOUNDATION_ENABLING",
     "CAPABILITY_DELIVERING",
@@ -369,6 +371,17 @@ def validate_state(state: dict[str, Any], registry: dict[str, Any]) -> None:
             raise GovernanceError(f"{milestone_id}: PROVEN requires proven_at")
         if item["status"] != "PROVEN" and item.get("proven_at") and item["status"] != "NEEDS_REVALIDATION":
             raise GovernanceError(f"{milestone_id}: active proven_at is invalid for {item['status']}")
+        exception = item.get("revalidation_exception")
+        if item["status"] == "HUMAN_REVALIDATION_EXCEPTION":
+            if not isinstance(exception, dict) or set(exception) != {
+                "operator", "reason", "revalidation_count", "reassessed_at"
+            }:
+                raise GovernanceError(f"{milestone_id}: human revalidation exception is incomplete")
+            if not isinstance(exception["operator"], str) or not exception["operator"].strip():
+                raise GovernanceError(f"{milestone_id}: human revalidation exception requires an operator")
+            if not isinstance(exception["reason"], str) or not exception["reason"].strip():
+                raise GovernanceError(f"{milestone_id}: human revalidation exception requires a reason")
+            parse_utc(exception["reassessed_at"])
         if not isinstance(item.get("checks"), dict):
             raise GovernanceError(f"{milestone_id}: checks must be an object")
         if not isinstance(item.get("evidence"), list):
@@ -477,8 +490,18 @@ class MilestoneStore:
         return [
             dependency
             for dependency in milestone["dependencies"]
-            if self.milestone_state(dependency)["status"] != "PROVEN"
+            if self.milestone_state(dependency)["status"] not in {"PROVEN", "HUMAN_REVALIDATION_EXCEPTION"}
         ]
+
+    def revalidation_count(self, milestone_id: str) -> int:
+        """Count required revalidations from the append-only event history."""
+        count = 0
+        for event in self.history["events"]:
+            if event["milestone_id"] == milestone_id and event["action"] == "INVALIDATE":
+                count += 1
+            if event["action"] == "CONFIGURATION_FINGERPRINT_REFRESHED":
+                count += event.get("detail", {}).get("invalidated_milestones", []).count(milestone_id)
+        return count
 
     def transition(self, milestone_id: str, new_status: str, action: str, detail: dict[str, Any]) -> None:
         if new_status not in STATUSES:
@@ -759,6 +782,14 @@ def _build_parser() -> argparse.ArgumentParser:
         command = subparsers.add_parser(name)
         command.add_argument("--id", required=True)
         command.add_argument("--reason", required=True)
+    exception = subparsers.add_parser(
+        "human-override",
+        help="record a human revalidation exception without claiming proof",
+    )
+    exception.add_argument("--id", required=True)
+    exception.add_argument("--operator", required=True)
+    exception.add_argument("--reason", required=True)
+    exception.add_argument("--confirm-reassessment", action="store_true")
     refresh = subparsers.add_parser("refresh-fingerprint", help="record current config fingerprint without proving anything")
     refresh.add_argument(
         "--preserve-proven-id",
@@ -884,6 +915,26 @@ def run_cli(args: argparse.Namespace) -> int:
 
     milestone = store.milestone(args.id)
     item = store.milestone_state(args.id)
+    if args.command == "human-override":
+        count = store.revalidation_count(args.id)
+        if not args.confirm_reassessment:
+            raise GovernanceError("human override requires --confirm-reassessment")
+        if item["status"] not in {"NEEDS_REVALIDATION", "BLOCKED", "NEEDS_FIX"}:
+            raise GovernanceError(f"cannot record a human revalidation exception from {item['status']}")
+        item["proven_at"] = None
+        item["revalidation_exception"] = {
+            "operator": args.operator,
+            "reason": args.reason,
+            "revalidation_count": count,
+            "reassessed_at": utc_now(),
+        }
+        store.transition(
+            args.id,
+            "HUMAN_REVALIDATION_EXCEPTION",
+            "HUMAN_REVALIDATION_EXCEPTION_RECORDED",
+            {"operator": args.operator, "reason": args.reason, "revalidation_count": count},
+        )
+        return 0
     if args.command == "ready":
         if item["status"] not in {"PLANNED", "BLOCKED", "NEEDS_FIX"}:
             raise GovernanceError(f"cannot mark {args.id} READY from {item['status']}")
@@ -895,6 +946,10 @@ def run_cli(args: argparse.Namespace) -> int:
     elif args.command == "start":
         if item["status"] not in {"READY", "NEEDS_REVALIDATION"}:
             raise GovernanceError(f"cannot start {args.id} from {item['status']}")
+        if item["status"] == "NEEDS_REVALIDATION" and store.revalidation_count(args.id) >= MAX_REVALIDATION_CYCLES:
+            raise GovernanceError(
+                f"{args.id} reached the {MAX_REVALIDATION_CYCLES}-cycle revalidation limit; reassess and use human-revalidation-exception if progression is justified"
+            )
         unmet = store.dependencies_proven(milestone)
         if unmet:
             raise GovernanceError(f"dependencies are not PROVEN: {', '.join(unmet)}")
@@ -1053,6 +1108,8 @@ def run_cli(args: argparse.Namespace) -> int:
         store.event(args.id, "HUMAN_SIGNOFF_RECORDED", {"operator": args.operator, "decision": decision})
         store.save()
     elif args.command == "prove":
+        if item["status"] == "HUMAN_REVALIDATION_EXCEPTION":
+            raise GovernanceError("a human revalidation exception is not proof and cannot be proved")
         if item["status"] in {"PLANNED", "READY", "SUPERSEDED"}:
             raise GovernanceError(f"cannot prove {args.id} from {item['status']}")
         errors = _gate_errors(store, args.id)

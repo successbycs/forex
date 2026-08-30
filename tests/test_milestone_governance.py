@@ -231,6 +231,89 @@ def test_refresh_fingerprint_can_preserve_only_the_approved_m0_standing_baseline
     assert event["detail"]["invalidated_milestones"] == ["M1"]
 
 
+def test_revalidation_limit_stops_normal_retries_and_records_non_proof_exception(tmp_path: Path) -> None:
+    root = _copy_governance(tmp_path)
+    state_path = root / "project_state.json"
+    history_path = root / "runs" / "run_history.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    history = json.loads(history_path.read_text(encoding="utf-8"))
+    state["milestones"]["M1"]["status"] = "NEEDS_REVALIDATION"
+    # The copied repository already contains one M1 configuration invalidation.
+    for _ in range(2):
+        history["events"].append(
+            {
+                "event_id": f"E{len(history['events']) + 1:06d}",
+                "timestamp": utc_now(),
+                "milestone_id": "M1",
+                "action": "INVALIDATE",
+                "detail": {"from": "PROVEN", "to": "NEEDS_REVALIDATION"},
+            }
+        )
+    state_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+    history_path.write_text(json.dumps(history, indent=2) + "\n", encoding="utf-8")
+
+    assert main(["--root", str(root), "start", "--id", "M1"]) == 2
+    assert main(
+        [
+            "--root",
+            str(root),
+            "human-override",
+            "--id",
+            "M1",
+            "--operator",
+            "test-operator",
+            "--reason",
+            "Three invalidations were reassessed; dependent planning may proceed.",
+        ]
+    ) == 2
+    assert main(
+        [
+            "--root",
+            str(root),
+            "human-override",
+            "--id",
+            "M1",
+            "--operator",
+            "test-operator",
+            "--reason",
+            "Three invalidations were reassessed; dependent planning may proceed.",
+            "--confirm-reassessment",
+        ]
+    ) == 0
+
+    refreshed = json.loads(state_path.read_text(encoding="utf-8"))
+    m1 = refreshed["milestones"]["M1"]
+    assert m1["status"] == "HUMAN_REVALIDATION_EXCEPTION"
+    assert m1["proven_at"] is None
+    assert m1["revalidation_exception"]["revalidation_count"] == 3
+    assert MilestoneStore(root).dependencies_proven(MilestoneStore(root).milestone("M2")) == []
+
+
+def test_human_override_is_available_before_three_cycles(tmp_path: Path) -> None:
+    root = _copy_governance(tmp_path)
+    state_path = root / "project_state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["milestones"]["M1"]["status"] = "NEEDS_REVALIDATION"
+    state_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+
+    assert main(
+        [
+            "--root",
+            str(root),
+            "human-override",
+            "--id",
+            "M1",
+            "--operator",
+            "test-operator",
+            "--reason",
+            "Attempting an exception before the policy threshold.",
+            "--confirm-reassessment",
+        ]
+    ) == 0
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert state["milestones"]["M1"]["status"] == "HUMAN_REVALIDATION_EXCEPTION"
+
+
 def test_json_schema_validation_rejects_registry_shape_drift(tmp_path: Path) -> None:
     root = _copy_governance(tmp_path)
     registry_path = root / "milestone_registry.json"

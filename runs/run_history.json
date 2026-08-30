@@ -2497,6 +2497,115 @@
         ],
         "preservation_reason": "Operator approved the shared-lock update and M1 revalidation; the pre-existing M0 standing-baseline exception remains in force."
       }
+    },
+    {
+      "event_id": "E000170",
+      "timestamp": "2026-08-30T02:05:09Z",
+      "milestone_id": "M1",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M1/20260830T020446Z-aIYBLZ/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000171",
+      "timestamp": "2026-08-30T02:05:10Z",
+      "milestone_id": "M1",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M1-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000172",
+      "timestamp": "2026-08-30T02:05:10Z",
+      "milestone_id": "M1",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M1-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000173",
+      "timestamp": "2026-08-30T02:05:10Z",
+      "milestone_id": "M1",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M1-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000174",
+      "timestamp": "2026-08-30T02:05:10Z",
+      "milestone_id": "M1",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M1-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000175",
+      "timestamp": "2026-08-30T02:05:11Z",
+      "milestone_id": "M1",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M1/20260830T020510Z/governance.stdout.txt",
+            "stderr": "runs/verification/M1/20260830T020510Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/test_t480_adapter.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M1/20260830T020510Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M1/20260830T020510Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000176",
+      "timestamp": "2026-08-30T02:13:40Z",
+      "milestone_id": "M1",
+      "action": "TRIAD_RECOMMENDATION_RECORDED",
+      "detail": {
+        "path": "runs/triad/M1/M1-20260830T020527Z-697b5f3c/recommendation.json",
+        "recommendation": "RECOMMEND_COMPLETE"
+      }
+    },
+    {
+      "event_id": "E000177",
+      "timestamp": "2026-08-30T02:24:05Z",
+      "milestone_id": "M1",
+      "action": "HUMAN_REVALIDATION_EXCEPTION_RECORDED",
+      "detail": {
+        "from": "NEEDS_REVALIDATION",
+        "to": "HUMAN_REVALIDATION_EXCEPTION",
+        "operator": "human-operator",
+        "reason": "Operator accepts the demonstrated M1 Demo-only historical proof and directs progression to M2; a further capture caused solely by governance changes adds no meaningful value.",
+        "revalidation_count": 1
+      }
     }
   ]
 }

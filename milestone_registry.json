@@ -588,8 +588,8 @@
     },
     {
       "milestone_id": "M3",
-      "title": "Bounded historical MT5 bridge proven",
-      "objective": "Prove the catalog-locked T480 and WSL bridge retrieves only declared historical EUR/USD data without a generic MT5 or shell surface.",
+      "title": "Bounded historical MT5 CLI bridge proven",
+      "objective": "Prove the catalog-locked T480 and WSL MT5 CLI bridge retrieves only declared historical EUR/USD data and semantically validates its raw payload without a generic MT5 or shell surface.",
       "delivery_type": "CAPABILITY_DELIVERING",
       "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
@@ -603,6 +603,8 @@
       "to_state": "Bounded historical MT5 bridge proven",
       "scope": [
         "Prove the catalog-locked T480 and WSL bridge retrieves only declared historical EUR/USD data without a generic MT5 or shell surface.",
+        "Harden the fixed MT5 CLI result contract: validate the Demo server, symbol, timeframe, closed-bar count, timestamp ordering, OHLC values, decoded payload hash, and absence of credentials, account data, positions, and order fields.",
+        "Make the versioned MT5 local configuration example complete for the fixed launcher, including its required Python interpreter path, and test the example against the launcher contract.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -616,6 +618,8 @@
       ],
       "expected_artifacts": [
         "docs/milestones/M3-proof.md",
+        "config/schemas/mt5-probe-result.schema.json",
+        "t480/mt5.local.example.json",
         "tests/milestones/test_m3.py"
       ],
       "acceptance_criteria": [
@@ -636,7 +640,7 @@
         },
         {
           "id": "M3-C4",
-          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
+          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue; the fixed CLI semantically validates the bounded raw MT5 result and its complete local configuration example without exposing credentials, account data, orders, a generic MT5 surface, or GOMarketsMU-Live.",
           "kind": "SAFETY"
         }
       ],

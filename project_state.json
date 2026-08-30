@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "HUMAN_REVALIDATION_EXCEPTION",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-29T22:45:27Z",
+  "last_updated_at": "2026-08-30T02:24:05Z",
   "milestones": {
     "M0": {
       "status": "PROVEN",
@@ -455,39 +455,39 @@
       }
     },
     "M1": {
-      "status": "NEEDS_REVALIDATION",
+      "status": "HUMAN_REVALIDATION_EXCEPTION",
       "started_at": "2026-08-29T05:10:58Z",
       "implementation_finished_at": "2026-08-29T05:34:58Z",
-      "verification_passed_at": "2026-08-29T06:48:49Z",
-      "real_world_proof_captured_at": "2026-08-29T06:42:09Z",
+      "verification_passed_at": "2026-08-30T02:05:11Z",
+      "real_world_proof_captured_at": "2026-08-30T02:04:48Z",
       "human_signed_off_at": "2026-08-29T06:49:59Z",
       "first_proven_at": "2026-08-29T06:50:01Z",
-      "proven_at": "2026-08-29T06:50:01Z",
+      "proven_at": null,
       "last_validated_at": "2026-08-29T06:50:01Z",
       "checks": {
         "M1-C1": {
           "result": "PASS",
-          "recorded_at": "2026-08-29T05:34:57Z",
-          "evidence": "runs/evidence/M1/20260829T053403Z/manifest.json",
-          "note": "Two retained fixed probe runs each report GOMarketsMU-Demo, EURUSD, H1, and exactly 720 closed bars."
+          "recorded_at": "2026-08-30T02:05:10Z",
+          "evidence": "runs/evidence/M1/20260830T020446Z-aIYBLZ/manifest.json",
+          "note": "Fresh fixed Demo-only probe and independent verification each returned exactly 720 closed EURUSD H1 bars."
         },
         "M1-C3": {
           "result": "PASS",
-          "recorded_at": "2026-08-29T05:34:57Z",
-          "evidence": "runs/evidence/M1/20260829T053403Z/manifest.json",
-          "note": "Fresh self-attested evidence is bound to current Git revision, governed configuration fingerprint, artifact hashes, and a clean implementation worktree."
+          "recorded_at": "2026-08-30T02:05:10Z",
+          "evidence": "runs/evidence/M1/20260830T020446Z-aIYBLZ/manifest.json",
+          "note": "Fresh self-attested evidence is bound to the current Git revision, governed configuration fingerprint, and raw artifact hashes."
         },
         "M1-C4": {
           "result": "PASS",
-          "recorded_at": "2026-08-29T05:34:57Z",
-          "evidence": "runs/evidence/M1/20260829T053403Z/manifest.json",
-          "note": "Fixed no-argument probe is Demo-gated before market-data access; retained output contains no credentials, balances, positions, or order data."
+          "recorded_at": "2026-08-30T02:05:10Z",
+          "evidence": "runs/evidence/M1/20260830T020446Z-aIYBLZ/manifest.json",
+          "note": "The fixed probe remained Demo-only and read-only; retained evidence contains no credentials, balances, positions, or order data."
         },
         "M1-C2": {
           "result": "PASS",
-          "recorded_at": "2026-08-29T05:34:58Z",
-          "evidence": "tests/test_t480_adapter.py",
-          "note": "Current governance and M1 adapter verification commands passed with inspectable versioned artifacts."
+          "recorded_at": "2026-08-30T02:05:10Z",
+          "evidence": "runs/evidence/M1/20260830T020446Z-aIYBLZ/repository-verification.stdout.txt",
+          "note": "Declared M1 checks and full repository verification passed on the current revision."
         }
       },
       "evidence": [
@@ -526,13 +526,22 @@
           "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
           "git_revision": "7c9242f23e04e3101faca041f899305e1ccbaf99",
           "summary": "FOREX_M1_PROOF_OK: self-attested capture and verification each returned exactly 720 closed EURUSD H1 bars from GOMarketsMU-Demo; repository verification passed."
+        },
+        {
+          "manifest_path": "runs/evidence/M1/20260830T020446Z-aIYBLZ/manifest.json",
+          "manifest_sha256": "ac552875ec629d8433acf79699c003c793ae97e037688c65b857ecfd9fe7426e",
+          "captured_at": "2026-08-30T02:04:48Z",
+          "recorded_at": "2026-08-30T02:05:09Z",
+          "configuration_fingerprint": "sha256:bc781288540a5e738143bcc90108aee288d00c184bf6b3fb8be1672563837f2d",
+          "git_revision": "697b5f3c26b52fa8b047fcd4b929b08aeb2c207c",
+          "summary": "FOREX_M1_PROOF_OK: fresh self-attested capture and verification each returned exactly 720 closed EURUSD H1 bars from GOMarketsMU-Demo; repository verification passed."
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-08-29T06:48:49Z",
-        "git_revision": "7c9242f23e04e3101faca041f899305e1ccbaf99",
-        "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+        "recorded_at": "2026-08-30T02:05:11Z",
+        "git_revision": "697b5f3c26b52fa8b047fcd4b929b08aeb2c207c",
+        "configuration_fingerprint": "sha256:bc781288540a5e738143bcc90108aee288d00c184bf6b3fb8be1672563837f2d",
         "commands": [
           {
             "id": "governance",
@@ -543,8 +552,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M1/20260829T064848Z/governance.stdout.txt",
-            "stderr": "runs/verification/M1/20260829T064848Z/governance.stderr.txt"
+            "stdout": "runs/verification/M1/20260830T020510Z/governance.stdout.txt",
+            "stderr": "runs/verification/M1/20260830T020510Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -557,8 +566,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M1/20260829T064848Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M1/20260829T064848Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M1/20260830T020510Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M1/20260830T020510Z/milestone-tests.stderr.txt"
           }
         ]
       },
@@ -581,21 +590,27 @@
         }
       ],
       "triad_recommendation": {
-        "path": "runs/triad/M1/M1-20260829T064222Z-7c9242f2/recommendation.json",
-        "sha256": "6c61530c55448143a604eea82c780bd4075a9ed0be4fa889b9586ae8c2ea8fc7",
-        "summary_path": "runs/triad/M1/M1-20260829T064222Z-7c9242f2/review-summary.md",
-        "summary_sha256": "558d3d031e5776bb179b78734e737fba689541945ca7c46d0c63d248448a05b1",
-        "review_cycle_id": "M1-20260829T064222Z-7c9242f2",
+        "path": "runs/triad/M1/M1-20260830T020527Z-697b5f3c/recommendation.json",
+        "sha256": "6e1b8410d3e22f58de1e8ed14a7065270a85875887f20c27e9609913adfbbcda",
+        "summary_path": "runs/triad/M1/M1-20260830T020527Z-697b5f3c/review-summary.md",
+        "summary_sha256": "6212ae8cbd607eae8903c4d6951d1643e2bac1891d59a3be05b664d45b4c3628",
+        "review_cycle_id": "M1-20260830T020527Z-697b5f3c",
         "recommendation": "RECOMMEND_COMPLETE",
         "binding": {
-          "request_sha256": "3de2b7c64daf72f3de2d822368baa29b72d1435b90135cf5cd57daebbb7bb4bd",
-          "git_revision": "7c9242f23e04e3101faca041f899305e1ccbaf99",
-          "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
-          "evidence_manifest_sha256": "39b61a5465267bde88b131418751b0f6c34671c858d2ea7117be8de208d9b001",
-          "verifier_fingerprint": "sha256:a94f7c4294d985ea8dc2e8e1b8063b0341ca08c6e033918dbd72192cdf6518cc",
+          "request_sha256": "387ddc732b7ef829c6e8ae7d2509986b74f715facb0ff69155c4d376577ac239",
+          "git_revision": "697b5f3c26b52fa8b047fcd4b929b08aeb2c207c",
+          "configuration_fingerprint": "sha256:bc781288540a5e738143bcc90108aee288d00c184bf6b3fb8be1672563837f2d",
+          "evidence_manifest_sha256": "ac552875ec629d8433acf79699c003c793ae97e037688c65b857ecfd9fe7426e",
+          "verifier_fingerprint": "sha256:9518ba3d3867006df4737372d3b28de38bfbe3dd3a1fcbef6557fbcef2f40b30",
           "milestone_contract_sha256": "37b951cb2841cb647381c6252999c45278afeb4def1e28a810d8741a8e50bfec"
         },
-        "recorded_at": "2026-08-29T06:48:48Z"
+        "recorded_at": "2026-08-30T02:13:40Z"
+      },
+      "revalidation_exception": {
+        "operator": "human-operator",
+        "reason": "Operator accepts the demonstrated M1 Demo-only historical proof and directs progression to M2; a further capture caused solely by governance changes adds no meaningful value.",
+        "revalidation_count": 1,
+        "reassessed_at": "2026-08-30T02:24:05Z"
       }
     },
     "M2": {

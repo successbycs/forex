@@ -23,7 +23,7 @@
       "type": "object",
       "required": ["status", "started_at", "implementation_finished_at", "verification_passed_at", "real_world_proof_captured_at", "human_signed_off_at", "first_proven_at", "proven_at", "last_validated_at", "checks", "evidence", "verification", "human_signoff", "blockers"],
       "properties": {
-        "status": {"enum": ["PLANNED", "READY", "IN_PROGRESS", "BLOCKED", "NEEDS_FIX", "AWAITING_REAL_WORLD_PROOF", "AWAITING_HUMAN_SIGNOFF", "PROVEN", "NEEDS_REVALIDATION", "SUPERSEDED"]},
+        "status": {"enum": ["PLANNED", "READY", "IN_PROGRESS", "BLOCKED", "NEEDS_FIX", "AWAITING_REAL_WORLD_PROOF", "AWAITING_HUMAN_SIGNOFF", "PROVEN", "NEEDS_REVALIDATION", "HUMAN_REVALIDATION_EXCEPTION", "SUPERSEDED"]},
         "started_at": {"$ref": "#/$defs/timestamp"},
         "implementation_finished_at": {"$ref": "#/$defs/timestamp"},
         "verification_passed_at": {"$ref": "#/$defs/timestamp"},
@@ -36,6 +36,7 @@
         "evidence": {"type": "array"},
         "verification": {"type": ["object", "null"]},
         "human_signoff": {"type": ["object", "null"]},
+        "revalidation_exception": {"type": ["object", "null"]},
         "blockers": {"type": "array"}
       }
     }
