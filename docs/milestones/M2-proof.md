@@ -42,9 +42,10 @@ external source qualification. Those are later M7 work.
 
 The proof surface is deterministic validation plus the private T480 shared
 PostgreSQL service. `capture_m2_evidence.sh` invokes only fixed,
-approval-gated operations in the `cs-ai-lab-infra` PostgreSQL adapter and
-retains their raw preflight, migration, import, verification, dependency, and
-repository-verification outputs. `verify_m2_evidence.sh` separately validates
+approval-gated operations in the Forex-owned PostgreSQL adapter, using the
+locked shared `cs-ai-lab-infra` transport, and retains raw preflight,
+migration, import, verification, dependency, and repository-verification
+outputs. `verify_m2_evidence.sh` separately validates
 manifest/artifact hashes, clean revision/configuration binding, success
 markers, and the M2 snapshot tests without contacting MT5 or any external
 source.
@@ -52,8 +53,14 @@ source.
 lineage, indexes, immutability, no-lookahead triggers, and forbidden
 capabilities. It is not a database-connection claim.
 
+The retained M2 bundle records one `DEMO_ONLY` source, one linked raw
+observation, one immutable EUR/USD:H1 snapshot, and 720 price bars. Its fixed
+T480 query also verifies source-to-snapshot linkage, bar availability against
+the decision cutoff, and both point-in-time triggers.
+
 `FOREX_M2_PROOF_OK` means these contracts and snapshot validations passed for
 the bound revision and the fixed T480 PostgreSQL query returned the expected
 dataset. It does **not** prove a market-data feed, current tick, source
-licence, trading edge, order capability, or independent remote execution
-provenance.
+licence, trading edge, order capability, independent remote execution
+provenance, or M2 completion. Completion still requires the evidence-bound
+Triad recommendation and explicit human sign-off before `proven_at`.

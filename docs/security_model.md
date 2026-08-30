@@ -1,6 +1,14 @@
 # Security model
 
-M0 has no trading, database, or model-provider capability. Its T480 adapter exposes catalogued read-only operations through the shared transport core. The sole MT5/data exception is the fixed `m1_mt5_demo_probe`: it is Demo-only and exports exactly 720 closed EUR/USD H1 bars solely to prepare M1. It does not provide generic MT5, generic market-data, arbitrary account, shell, deployment, or order access.
+M0 itself had no trading, database, or model-provider capability. The current
+M2 boundary adds only a fixed Forex-owned PostgreSQL adapter using the shared
+T480 transport core: `preflight`, `inspect`, `vector-probe`, and
+`forex-m2-verify` are read-only; the fixed schema/import operations require an
+explicit `--approve`. It has no caller-supplied SQL, URL, host, shell, MT5, or
+order argument. The sole MT5/data exception remains the fixed
+`m1_mt5_demo_probe`: it is Demo-only and exports exactly 720 closed EUR/USD H1
+bars solely to prepare M1. It does not provide generic MT5, generic
+market-data, arbitrary account, shell, deployment, or order access.
 
 Hard boundaries:
 

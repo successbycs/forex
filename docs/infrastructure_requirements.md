@@ -22,9 +22,11 @@ The service is reachable only inside the T480 shared Docker network.
 
 ## Readiness check
 
-Before a real import, the fixed Forex T480 `postgres_status` operation must
-show the shared PostgreSQL service and pgvector healthy. The database is not
-considered available merely because a migration exists.
+Before a controlled import, the fixed Forex adapter `preflight`, `inspect`,
+and `vector-probe` operations must show the shared PostgreSQL/pgvector service
+healthy. The M2-specific `forex-m2-apply-schema` and `forex-m2-import`
+operations require explicit `--approve`; `forex-m2-verify` is read-only. The
+database is not considered available merely because a migration exists.
 
 ## Controlled data path
 
@@ -35,3 +37,8 @@ snapshot, and price bars) → retained M2 migration/import/query evidence.
 No component in this path may fetch market data, accept an arbitrary source
 or SQL command, expose a network listener beyond localhost, or create an
 order.
+
+The retained M2 evidence confirms that this controlled path imported the
+single M1 snapshot: one `DEMO_ONLY` source, one linked raw observation, one
+EUR/USD:H1 snapshot, and 720 price bars. That does not create a generic
+ingestion service; M5 owns application-level idempotent reimport.

@@ -23,7 +23,7 @@ review findings
      ↓
 human-authorised Builder fixes, if required
      ↓
-existing evidence → Triad → human sign-off → prove
+existing evidence → evidence-bound Triad → human sign-off → prove
 ```
 
 Separate contexts provide logical review separation, not independently
@@ -31,6 +31,14 @@ controlled provenance. The existing evidence-bound Triad remains the only
 structured completion recommendation, and only the human may approve a commit,
 sign off, or invoke `prove`. See
 [`docs/governance/review-workflow.md`](governance/review-workflow.md).
+
+The final Triad has four isolated roles: Solution Architect, AI Engineer,
+Senior Software Developer, and Financial Domain Expert. `scripts/ptr.py
+--sequence` is only a convenience runner: it requests one fresh read-only
+role review, validates the JSON reply against its prepared packet, records it
+only when valid, then advances to the next missing role. A timeout, malformed
+reply, or failed validation stops the sequence. It cannot recommend
+completion, sign off, prove, or close a milestone.
 
 ## T480 deployment boundary
 
@@ -46,21 +54,27 @@ T480 WSL Ubuntu
     shared platform volume and T480-local credentials
 ```
 
-All runtime functions run on the T480 AI Lab. M2 owns the versioned `forex`
-PostgreSQL schema and the first controlled import of retained M1 historical
+All runtime functions run on the T480 AI Lab. Forex M2 owns the versioned
+`forex` PostgreSQL schema and first controlled import of retained M1 historical
 evidence; `cs-ai-lab-infra` owns the private PostgreSQL/pgvector service,
-Docker network, volumes, and credentials. The import has a fixed input: the
-retained 720 closed EUR/USD H1 M1 Demo observation. It records source,
-revision, timestamps, hashes, redaction and lineage; it does not provide a
-general download, database, MT5, shell, account, or order interface.
+Docker network, volumes, credentials, and backups. The M2 evidence bundle
+records one `DEMO_ONLY` source, one linked raw observation, one immutable
+EUR/USD:H1 snapshot, and 720 closed price bars. This is verified persistence
+evidence, not a completion claim: Triad recommendation and human sign-off
+still remain before `proven_at` can be written.
+
+The import has a fixed input: the retained 720 closed EUR/USD H1 M1 Demo
+observation. It records source, revision, timestamps, hashes, redaction and
+lineage; it does not provide a general download, database, MT5, shell,
+account, or order interface.
 
 The Windows MT5 terminal and shared PostgreSQL service are separate T480
 components. Forex code reaches MT5 only through its fixed Demo-only catalog
 operation and reaches PostgreSQL only through a fixed, approval-gated T480
 operation. PostgreSQL is internal to the shared Docker network and has no
 published host, LAN, or public port. M5 later proves application-level
-database integration and idempotent reimport. M2 does not claim persistence
-until the T480 service, migration, import, and retained query evidence pass.
+database integration and idempotent reimport; M2 is only the controlled initial
+snapshot.
 
 ## Historical market-intelligence roadmap
 
@@ -70,10 +84,12 @@ This diagram visualises the approved three-phase, historical-first roadmap. It
 is a design overview, not evidence that any future adapter, source, Ollama
 task, real-time feed, or Demo execution capability is deployed.
 
-Amber ticks mean **built, but not proven**. They do not change milestone state:
-M0 is the recorded `PROVEN` standing baseline, M1 is
-`NEEDS_REVALIDATION`, and all later phase components remain planned or subject
-to their current contract state.
+Amber ticks mean **built, but not proven**. They do not change milestone state.
+The current execution record is authoritative: M0 currently needs
+revalidation after later material changes, M1 has a recorded human
+revalidation exception rather than fresh `proven_at`, and M2 has verified
+T480 evidence while awaiting the final review/sign-off route. All later
+components remain planned or subject to their current contract state.
 
 ### Component-to-milestone map
 

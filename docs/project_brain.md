@@ -6,6 +6,13 @@ The approximately USD 300 monthly figure is an aspiration for research compariso
 
 Current state is authoritative in `project_state.json`; the milestone registry is the fixed contract. The approved roadmap has three phases: historical foundation and deterministic research (M0–M16), offline decision and safety controls (M17–M26), and real-time Demo operational validation (M27–M32). M1 is a read-only export of closed Demo history; fresh-tick proof is intentionally deferred to M27.
 
+M2 has persisted the retained M1 EUR/USD H1 historical observation in the
+private T480 shared PostgreSQL service. Its verified evidence records one
+`DEMO_ONLY` source, one raw observation, one immutable snapshot, and 720 bars
+with lineage and no-lookahead checks. This is historical research data only:
+it neither creates a live feed nor permits orders, and M2 is not complete
+until the evidence-bound Triad and human route has completed.
+
 ## Architecture knowledge
 
 The maintained visual overview is
@@ -20,6 +27,12 @@ The diagram is explanatory rather than an assertion that every shown future or
 shared component is deployed. `docs/architecture.md` is the narrative source
 of truth for the design, while the milestone registry and project state retain
 their respective contract and execution roles.
+
+Final evidence review uses four isolated roles. The `ptr.py` helper can either
+generate one reviewer prompt or run a visible sequential request/response
+handoff. It validates a role's JSON against its immutable packet before
+recording it and stops on failure. It adds no completion state, authority,
+trading capability, or substitute for human acceptance.
 
 The design-only prompt for the proposed historical market-intelligence and
 Ollama-assisted research capability is retained in

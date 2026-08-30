@@ -22,12 +22,9 @@ Required T480 setup:
    Forex-owned `forex` schema may contain historical data and provenance
    metadata but not account credentials or order information.
 
-After Docker integration is enabled, the controlled M2 procedure is:
-
-The controlled execution happens from the T16 through the fixed Forex T480
-operation after a separate approval. It runs within T480 WSL against the
-shared private service; it never accepts an operator-provided SQL statement,
-database URL, table name, or source path.
+The controlled M2 procedure runs from the Forex checkout in T480 WSL through
+the fixed Forex PostgreSQL adapter after a separate approval. It never accepts
+an operator-provided SQL statement, database URL, table name, or source path.
 
 The fixed operation applies `sql/migrations/001_m2_historical_data.sql` to
 the Forex-owned schema and imports only the retained M1 720-bar EUR/USD H1
@@ -38,3 +35,8 @@ data-download path.
 PostgreSQL and MT5 must not be publicly or LAN exposed. A real M2 proof must
 retain the T480 migration/import/query output and confirm the shared service
 is internal before it can claim database persistence.
+
+The retained M2 bundle now contains that migration/import/query evidence for
+the fixed 720-bar EUR/USD H1 snapshot. It proves only the declared historical
+database surface; it does not prove M3's MT5 CLI bridge, a current market tick,
+or any execution capability.

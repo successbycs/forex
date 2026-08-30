@@ -2717,6 +2717,92 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000186",
+      "timestamp": "2026-08-30T03:03:35Z",
+      "milestone_id": "M2",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M2/20260830T030304Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000187",
+      "timestamp": "2026-08-30T03:03:35Z",
+      "milestone_id": "M2",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M2-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000188",
+      "timestamp": "2026-08-30T03:03:35Z",
+      "milestone_id": "M2",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M2-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000189",
+      "timestamp": "2026-08-30T03:03:35Z",
+      "milestone_id": "M2",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M2-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000190",
+      "timestamp": "2026-08-30T03:03:35Z",
+      "milestone_id": "M2",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M2-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000191",
+      "timestamp": "2026-08-30T03:03:36Z",
+      "milestone_id": "M2",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M2/20260830T030335Z/governance.stdout.txt",
+            "stderr": "runs/verification/M2/20260830T030335Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m2.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M2/20260830T030335Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M2/20260830T030335Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
     }
   ]
 }
