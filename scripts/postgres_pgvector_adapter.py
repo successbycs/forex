@@ -30,6 +30,8 @@ TARGET = resolve_ssh_target(SETTINGS, [ROOT / ".env.t480.local", SHARED_ROOT / "
 REMOTE_LAB = "/home/chris/projects/cs-ai-lab-infra"
 REMOTE_FOREX = "/home/chris/projects/forex"
 ASSETS = {"schema": "sql/migrations/001_m2_historical_data.sql", "import": "scripts/build_m2_postgres_import.py"}
+M2_SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
+M2_SNAPSHOT_ARTIFACT_SHA256 = "sha256:dc5384732d71091aa2279aaf6d92e8e1780c8021eacde948432ad7bc68fdabaa"
 READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify"}
 MUTATING = {"forex-m2-apply-schema", "forex-m2-import"}
 
@@ -87,6 +89,12 @@ def import_snapshot() -> dict:
     body = f'''file="{REMOTE_FOREX}/{relative}"
 test -f "$file"
 [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+existing="$(docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT artifact_sha256 FROM forex.dataset_snapshot WHERE snapshot_id = '{M2_SNAPSHOT_ID}';" </dev/null)"
+if [[ -n "$existing" ]]; then
+  [[ "$existing" == "{M2_SNAPSHOT_ARTIFACT_SHA256}" ]] || {{ printf 'Existing M2 snapshot hash differs.\\n' >&2; exit 5; }}
+  printf 'FOREX_M2_IMPORT_ALREADY_PRESENT sha256:{digest}\\n'
+  exit 0
+fi
 cd "{REMOTE_FOREX}"
 python3 "$file" | docker compose -f "{REMOTE_LAB}/compose.yaml" exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 printf 'FOREX_M2_IMPORT_EXECUTED sha256:{digest}\\n' '''

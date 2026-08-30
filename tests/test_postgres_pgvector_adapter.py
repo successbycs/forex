@@ -20,3 +20,4 @@ def test_import_is_hash_bound():
     with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=("scripts/build_m2_postgres_import.py", "b" * 64)), mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
         assert postgres_pgvector_adapter.import_snapshot()["ok"]
     assert "sha256sum" in remote.call_args.args[0]
+    assert "FOREX_M2_IMPORT_ALREADY_PRESENT" in remote.call_args.args[0]
