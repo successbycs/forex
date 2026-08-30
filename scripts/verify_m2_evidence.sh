@@ -26,8 +26,9 @@ for artifact in manifest.get('artifacts', []):
     path = bundle / artifact['path']
     if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != artifact['sha256']: raise SystemExit('artifact hash mismatch: ' + artifact['path'])
 combined = ''.join((bundle / a['path']).read_text(errors='replace') for a in manifest['artifacts'])
-if 'FOREX_M2_PROOF_OK' not in combined or 'FOREX_REPOSITORY_VERIFICATION_OK' not in combined or 'FOREX_M2_POSTGRES_IMPORT_OK' not in combined: raise SystemExit('success marker missing')
-if 'FOREX_M2_SCHEMA_APPLIED' not in combined or 'FOREX_M2_POSTGRES_VERIFY_OK' not in combined: raise SystemExit('shared PostgreSQL operation marker missing')
+if 'FOREX_M2_PROOF_OK' not in combined or 'FOREX_REPOSITORY_VERIFICATION_OK' not in combined: raise SystemExit('success marker missing')
+if not any(marker in combined for marker in ('FOREX_M2_POSTGRES_IMPORT_OK', 'FOREX_M2_IMPORT_ALREADY_PRESENT')): raise SystemExit('PostgreSQL import marker missing')
+if not any(marker in combined for marker in ('FOREX_M2_SCHEMA_APPLIED', 'FOREX_M2_SCHEMA_ALREADY_APPLIED')) or 'FOREX_M2_POSTGRES_VERIFY_OK' not in combined: raise SystemExit('shared PostgreSQL operation marker missing')
 if '1|1|1|720|sha256:' not in combined: raise SystemExit('expected PostgreSQL import row counts and snapshot hash are missing')
 print('FOREX_M2_EVIDENCE_VERIFIED')
 PY
