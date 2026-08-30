@@ -41,6 +41,34 @@ The current M2 dataset is one sealed EUR/USD H1 snapshot containing 720
 historical price bars. It is `DEMO_ONLY` historical research data, not live
 pricing and not an order interface.
 
+## Read-only project adapter
+
+For a reliable project-local inspection path that does not depend on a desktop
+database client, use the Forex-owned adapter. It reads credentials from this
+repository's ignored `.env` and reaches PostgreSQL through the shared T480
+transport. It exposes every Forex table but accepts no arbitrary SQL or trading
+operation:
+
+```bash
+python3 scripts/postgres_admin_adapter.py status
+python3 scripts/postgres_admin_adapter.py tables
+python3 scripts/postgres_admin_adapter.py read --table price_bar --limit 20
+python3 scripts/postgres_admin_adapter.py schema --table dataset_snapshot
+python3 scripts/postgres_admin_adapter.py export-html
+```
+
+To write one validated row, create a JSON file beneath this repository whose
+fields exactly match the target table's columns, then use explicit approval:
+
+```bash
+python3 scripts/postgres_admin_adapter.py write \
+  --table source_registry --file local/source.json --approve
+```
+
+`source_registry` is upserted because its catalog metadata is editable. The
+other tables allow inserts only; sealed snapshots, their links, price bars, and
+raw observations remain protected by PostgreSQL constraints and triggers.
+
 ## Useful read-only queries
 
 ```sql
