@@ -60,7 +60,7 @@ def evidence_runner_payload(workflow_id: str) -> dict:
         "name": RUNNER_NAME,
         "nodes": [
             {"id": "m11-runner-manual", "name": "Run M11 evidence ingestion", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 300], "parameters": {}},
-            {"id": "m11-runner-call", "name": "Run fixed M11 workflow", "type": "n8n-nodes-base.executeWorkflow", "typeVersion": 1.3, "position": [240, 300], "parameters": {"source": "database", "workflowId": workflow_id, "mode": "once", "options": {}}},
+            {"id": "m11-runner-call", "name": "Run fixed M11 workflow", "type": "n8n-nodes-base.executeWorkflow", "typeVersion": 1.3, "position": [240, 300], "parameters": {"source": "database", "workflowId": {"__rl": True, "value": workflow_id, "mode": "list", "cachedResultName": NAME}, "mode": "once", "options": {}}},
         ],
         "connections": {"Run M11 evidence ingestion": {"main": [[{"node": "Run fixed M11 workflow", "type": "main", "index": 0}]]}},
         "settings": {"executionOrder": "v1", "timezone": "UTC"},
