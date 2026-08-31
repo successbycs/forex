@@ -28,7 +28,7 @@ def test_m7_candidate_registry_is_explicit_and_non_adopting():
 def test_m7_does_not_create_generic_download_or_execution_surface():
     capture = (ROOT / "scripts/capture_m7_evidence.sh").read_text()
     proof = (ROOT / "docs/milestones/M7-proof.md").read_text()
-    assert "urllib.request" in capture
+    assert "curl" in capture
     assert "GOMarketsMU-Live" not in capture
     assert "place_order" not in capture.lower()
     assert "not a downloader" in proof

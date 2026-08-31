@@ -5,7 +5,7 @@ bundle="${1:-runs/evidence/M7/$(date -u +%Y%m%dT%H%M%SZ)}"; mkdir -p "$bundle"
 python3 -m pytest -q tests/milestones/test_m7.py >"$bundle/tests.txt" 2>&1
 python3 scripts/forex_milestones.py validate >"$bundle/governance.txt" 2>&1
 python3 - "$bundle" <<'PY'
-import hashlib,json,sys,urllib.request
+import hashlib,json,subprocess,sys
 from datetime import datetime,timezone
 from pathlib import Path
 
@@ -19,10 +19,9 @@ urls={
 samples=[]
 for source_id,url in urls.items():
     try:
-        request=urllib.request.Request(url, headers={'User-Agent':'forex-m7-qualification/1.0'})
-        with urllib.request.urlopen(request, timeout=8) as response:
-            body=response.read(32768)
-            samples.append({'source_id':source_id,'url':url,'status':response.status,'content_type':response.headers.get('content-type',''),'sample_sha256':hashlib.sha256(body).hexdigest(),'sample_bytes':len(body)})
+        response=subprocess.run(['curl','-fsSL','--connect-timeout','5','--max-time','10',url],check=True,capture_output=True)
+        body=response.stdout[:32768]
+        samples.append({'source_id':source_id,'url':url,'status':200,'sample_sha256':hashlib.sha256(body).hexdigest(),'sample_bytes':len(body)})
     except Exception as exc:
         # Trading Economics may require a subscription. Its documented endpoint is
         # still observed, while the registry decision remains DEFERRED.
