@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
-  "last_proven_milestone": "M8",
-  "current_milestone": "M9",
+  "last_proven_milestone": "M9",
+  "current_milestone": null,
   "next_milestone": "M10",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-31T05:23:49Z",
+  "last_updated_at": "2026-08-31T05:25:31Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -1457,23 +1457,119 @@
       }
     },
     "M9": {
-      "status": "IN_PROGRESS",
+      "status": "PROVEN",
       "started_at": "2026-08-31T05:23:49Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
-      "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
-      "human_signoff": null,
-      "blockers": []
+      "implementation_finished_at": "2026-08-31T05:25:31Z",
+      "verification_passed_at": "2026-08-31T05:24:54Z",
+      "real_world_proof_captured_at": "2026-08-31T05:24:47.235033Z",
+      "human_signed_off_at": "2026-08-31T05:25:31Z",
+      "first_proven_at": "2026-08-31T05:25:31Z",
+      "proven_at": "2026-08-31T05:25:31Z",
+      "last_validated_at": "2026-08-31T05:25:31Z",
+      "checks": {
+        "M9-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T05:25:30Z",
+          "evidence": "runs/evidence/M9/20260831T052445Z/manifest.json",
+          "note": "M9 current ECB macro proof passed M9-C1."
+        },
+        "M9-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T05:25:30Z",
+          "evidence": "runs/evidence/M9/20260831T052445Z/manifest.json",
+          "note": "M9 current ECB macro proof passed M9-C2."
+        },
+        "M9-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T05:25:30Z",
+          "evidence": "runs/evidence/M9/20260831T052445Z/manifest.json",
+          "note": "M9 current ECB macro proof passed M9-C3."
+        },
+        "M9-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T05:25:30Z",
+          "evidence": "runs/evidence/M9/20260831T052445Z/manifest.json",
+          "note": "M9 current ECB macro proof passed M9-C4."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M9/20260831T052445Z/manifest.json",
+          "manifest_sha256": "f27159f81c5ad24aaefffdb37a8bdc3fb3e673602abac777725ae0db94798401",
+          "captured_at": "2026-08-31T05:24:47.235033Z",
+          "recorded_at": "2026-08-31T05:24:54Z",
+          "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+          "git_revision": "112292486ea927e5df2acc2cf1812a9d1fe9d0b1",
+          "summary": "FOREX_M9_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-08-31T05:24:54Z",
+        "git_revision": "112292486ea927e5df2acc2cf1812a9d1fe9d0b1",
+        "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M9/20260831T052454Z/governance.stdout.txt",
+            "stderr": "runs/verification/M9/20260831T052454Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m9.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M9/20260831T052454Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M9/20260831T052454Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
+      "human_signoff": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE",
+        "note": "Delegated human authority: M9 accepted after current delegated Triad plus Financial Domain Expert review; limitation recorded in submissions.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "112292486ea927e5df2acc2cf1812a9d1fe9d0b1",
+        "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+        "evidence_manifest_sha256": "f27159f81c5ad24aaefffdb37a8bdc3fb3e673602abac777725ae0db94798401",
+        "verification_recorded_at": "2026-08-31T05:24:54Z",
+        "recorded_at": "2026-08-31T05:25:31Z"
+      },
+      "blockers": [],
+      "triad_recommendation": {
+        "path": "runs/triad/M9/M9-20260831T052454Z-11229248/recommendation.json",
+        "sha256": "1e078e2875abd08b8548b293a822035199ff802457e9bb941df277da5d172e06",
+        "summary_path": "runs/triad/M9/M9-20260831T052454Z-11229248/review-summary.md",
+        "summary_sha256": "a4112ee0be78653d53d24831c2670ee028e169b8a06f3f8d3d9d2ca43b747622",
+        "review_cycle_id": "M9-20260831T052454Z-11229248",
+        "recommendation": "RECOMMEND_COMPLETE",
+        "binding": {
+          "request_sha256": "c6e53ae075839a7249eb62b9937198e70603c12daabaa893d945241cd80a40e8",
+          "git_revision": "112292486ea927e5df2acc2cf1812a9d1fe9d0b1",
+          "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+          "evidence_manifest_sha256": "f27159f81c5ad24aaefffdb37a8bdc3fb3e673602abac777725ae0db94798401",
+          "verifier_fingerprint": "sha256:22062530b8e824557bb8d8010ebeccb8b905257d9f9d154da1c5e18a240526b8",
+          "milestone_contract_sha256": "18b4bc4c0f1d8e15b286c33e55f2b31149f758fbea1d398fccde0adfbe4c9bd5"
+        },
+        "recorded_at": "2026-08-31T05:25:30Z"
+      }
     },
     "M10": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,
