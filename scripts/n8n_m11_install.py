@@ -47,7 +47,7 @@ def main() -> None:
     if workflow.get("name") != NAME or workflow.get("active") is not False:
         raise RuntimeError("fixed M11 workflow contract is invalid")
     lookup = subprocess.run(
-        ["docker", "compose", "exec", "-T", "postgres", "psql", "-U", "cs_ai_lab", "-d", "cs_ai_lab", "-Atqc", "SELECT id FROM credential_entity WHERE name = 'Forex M11 PostgreSQL' AND type = 'postgres' LIMIT 1"],
+        ["docker", "compose", "exec", "-T", "postgres", "psql", "-U", "cs_ai_lab", "-d", "cs_ai_lab", "-Atqc", "SELECT id FROM credentials_entity WHERE name = 'Forex M11 PostgreSQL' AND type = 'postgres' LIMIT 1"],
         cwd=LAB_ROOT, check=True, capture_output=True, text=True,
     )
     credential_id = lookup.stdout.strip()
