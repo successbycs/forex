@@ -4,9 +4,9 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
-  "last_proven_milestone": "M3",
-  "current_milestone": null,
-  "next_milestone": "M4",
+  "last_proven_milestone": "M4",
+  "current_milestone": "M5",
+  "next_milestone": "M6",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
   "broker": "GO Markets Mauritius",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "PROVEN",
+  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-31T01:47:11Z",
+  "last_updated_at": "2026-08-31T01:51:05Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -869,25 +869,104 @@
       "blockers": []
     },
     "M4": {
-      "status": "READY",
-      "started_at": null,
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
-      "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
-      "human_signoff": null,
+      "status": "PROVEN",
+      "started_at": "2026-08-31T01:49:00Z",
+      "implementation_finished_at": "2026-08-31T01:49:00Z",
+      "verification_passed_at": "2026-08-31T01:49:59Z",
+      "real_world_proof_captured_at": "2026-08-31T01:49:58.926407Z",
+      "human_signed_off_at": "2026-08-31T01:50:08Z",
+      "first_proven_at": "2026-08-31T01:50:09Z",
+      "proven_at": "2026-08-31T01:50:09Z",
+      "last_validated_at": "2026-08-31T01:50:09Z",
+      "checks": {
+        "M4-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T01:50:08Z",
+          "evidence": "runs/evidence/M4/20260831T014958Z/manifest.json",
+          "note": "Delegated MVP review: no material happy-path or safety finding."
+        },
+        "M4-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T01:50:08Z",
+          "evidence": "runs/evidence/M4/20260831T014958Z/manifest.json",
+          "note": "Delegated MVP review: no material happy-path or safety finding."
+        },
+        "M4-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T01:50:08Z",
+          "evidence": "runs/evidence/M4/20260831T014958Z/manifest.json",
+          "note": "Delegated MVP review: no material happy-path or safety finding."
+        },
+        "M4-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T01:50:08Z",
+          "evidence": "runs/evidence/M4/20260831T014958Z/manifest.json",
+          "note": "Delegated MVP review: no material happy-path or safety finding."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M4/20260831T014958Z/manifest.json",
+          "manifest_sha256": "37c0f5cbacc3882dc0bdc7e9632f3273820ec1e7adb2fbe952b6b48cffca3f8d",
+          "captured_at": "2026-08-31T01:49:58.926407Z",
+          "recorded_at": "2026-08-31T01:49:59Z",
+          "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+          "git_revision": "09d05781dcc5878c249aa49e110c205d10da1fad",
+          "summary": "FOREX_M4_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-08-31T01:49:59Z",
+        "git_revision": "09d05781dcc5878c249aa49e110c205d10da1fad",
+        "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M4/20260831T014959Z/governance.stdout.txt",
+            "stderr": "runs/verification/M4/20260831T014959Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m4.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M4/20260831T014959Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M4/20260831T014959Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
+      "human_signoff": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE",
+        "note": "Delegated human authority: M4 MVP review accepted.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "09d05781dcc5878c249aa49e110c205d10da1fad",
+        "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+        "evidence_manifest_sha256": "37c0f5cbacc3882dc0bdc7e9632f3273820ec1e7adb2fbe952b6b48cffca3f8d",
+        "verification_recorded_at": "2026-08-31T01:49:59Z",
+        "recorded_at": "2026-08-31T01:50:08Z"
+      },
       "blockers": []
     },
     "M5": {
-      "status": "PLANNED",
-      "started_at": null,
-      "implementation_finished_at": null,
+      "status": "AWAITING_REAL_WORLD_PROOF",
+      "started_at": "2026-08-31T01:51:05Z",
+      "implementation_finished_at": "2026-08-31T01:51:05Z",
       "verification_passed_at": null,
       "real_world_proof_captured_at": null,
       "human_signed_off_at": null,
