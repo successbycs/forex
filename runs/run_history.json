@@ -3964,6 +3964,109 @@
         ],
         "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
       }
+    },
+    {
+      "event_id": "E000268",
+      "timestamp": "2026-08-31T02:16:10Z",
+      "milestone_id": "M6",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M6/20260831T021608Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000269",
+      "timestamp": "2026-08-31T02:16:11Z",
+      "milestone_id": "M6",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M6/20260831T021610Z/governance.stdout.txt",
+            "stderr": "runs/verification/M6/20260831T021610Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m6.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M6/20260831T021610Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M6/20260831T021610Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000270",
+      "timestamp": "2026-08-31T02:19:07Z",
+      "milestone_id": "M6",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M6/20260831T021907Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000271",
+      "timestamp": "2026-08-31T02:19:07Z",
+      "milestone_id": "M6",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M6/20260831T021907Z/governance.stdout.txt",
+            "stderr": "runs/verification/M6/20260831T021907Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m6.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M6/20260831T021907Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M6/20260831T021907Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000272",
+      "timestamp": "2026-08-31T02:21:04Z",
+      "milestone_id": "M6",
+      "action": "BLOCK",
+      "detail": {
+        "from": "IN_PROGRESS",
+        "to": "BLOCKED",
+        "reason": "Fresh M6 evidence is verified; closure awaits required review submissions for the current bound cycle."
+      }
     }
   ]
 }

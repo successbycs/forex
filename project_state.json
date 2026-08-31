@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "BLOCKED",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-31T02:13:01Z",
+  "last_updated_at": "2026-08-31T02:21:04Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -1103,20 +1103,77 @@
       }
     },
     "M6": {
-      "status": "IN_PROGRESS",
+      "status": "BLOCKED",
       "started_at": "2026-08-31T02:10:40Z",
       "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
+      "verification_passed_at": "2026-08-31T02:19:07Z",
+      "real_world_proof_captured_at": "2026-08-31T02:19:07.289682Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
       "checks": {},
-      "evidence": [],
-      "verification": null,
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M6/20260831T021608Z/manifest.json",
+          "manifest_sha256": "8bde2a122639c0c248b8ba5c3326a4ac1493152a47ec5ebc51ecc8d854522a29",
+          "captured_at": "2026-08-31T02:16:10.665322Z",
+          "recorded_at": "2026-08-31T02:16:10Z",
+          "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+          "git_revision": "6315eec9a6b2a3b22cf48369d5f8fa6f248901e3",
+          "summary": "FOREX_M6_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M6/20260831T021907Z/manifest.json",
+          "manifest_sha256": "80ba889b11149cd2f0e7197327692a853666c8d6ceb4da5fddb80f41f03f509a",
+          "captured_at": "2026-08-31T02:19:07.289682Z",
+          "recorded_at": "2026-08-31T02:19:07Z",
+          "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+          "git_revision": "24e5d6d0e08ddeb908bfa20847d79fd9e01011a6",
+          "summary": "FOREX_M6_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-08-31T02:19:07Z",
+        "git_revision": "24e5d6d0e08ddeb908bfa20847d79fd9e01011a6",
+        "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M6/20260831T021907Z/governance.stdout.txt",
+            "stderr": "runs/verification/M6/20260831T021907Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m6.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M6/20260831T021907Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M6/20260831T021907Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
       "human_signoff": null,
-      "blockers": []
+      "blockers": [
+        {
+          "reason": "Fresh M6 evidence is verified; closure awaits required review submissions for the current bound cycle.",
+          "recorded_at": "2026-08-31T02:21:04Z"
+        }
+      ]
     },
     "M7": {
       "status": "PLANNED",
