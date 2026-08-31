@@ -17,6 +17,8 @@ assert {x['timeframe']:x['closed_bar_count'] for x in raw['datasets']}==expected
 for dataset in raw['datasets']:
  rows=json.loads(gzip.decompress(base64.b64decode(dataset['bars_payload']))); assert len(rows)==dataset['closed_bar_count']
  assert hashlib.sha256(json.dumps(rows,sort_keys=True,separators=(',',':')).encode()).hexdigest()==dataset['bars_sha256']
+ assert dataset['quality_label']=='CLOSED_OHLC_VALIDATED'
+ assert rows[-1]['time_utc'] < dataset['capture_cutoff_utc']
 (b/'summary.txt').write_text('FOREX_M6_PROOF_OK\n')
 status=json.loads(subprocess.check_output(['python3','scripts/forex_milestones.py','status','--json']))
 artifacts=[{'path':p.name,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in sorted(b.iterdir()) if p.is_file()]

@@ -16,5 +16,6 @@ assert {x['timeframe']:x['closed_bar_count'] for x in raw['datasets']}=={'M15':7
 for dataset in raw['datasets']:
  rows=json.loads(gzip.decompress(base64.b64decode(dataset['bars_payload']))); assert len(rows)==dataset['closed_bar_count']
  assert hashlib.sha256(json.dumps(rows,sort_keys=True,separators=(',',':')).encode()).hexdigest()==dataset['bars_sha256']
+ assert dataset['quality_label']=='CLOSED_OHLC_VALIDATED' and rows[-1]['time_utc'] < dataset['capture_cutoff_utc']
 assert 'FOREX_M6_PROOF_OK' in (b/'summary.txt').read_text(); print('FOREX_M6_EVIDENCE_VERIFIED')
 PY

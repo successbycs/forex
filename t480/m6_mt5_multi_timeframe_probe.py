@@ -32,10 +32,15 @@ def main(terminal_path: str) -> None:
         if not symbol or symbol.name != SYMBOL:
             raise SystemExit("required EURUSD symbol is unavailable")
         datasets = []
+        capture_cutoff = int(datetime.now(timezone.utc).timestamp())
         for name, timeframe, count in TIMEFRAMES:
-            rates = mt5.copy_rates_from_pos(SYMBOL, timeframe, 1, count)
-            if rates is None or len(rates) != count:
-                raise SystemExit(f"expected exactly {count} closed EURUSD {name} bars")
+            # Retrieve a fixed small surplus, then reject broker-clock future bars.
+            rates = mt5.copy_rates_from_pos(SYMBOL, timeframe, 1, count + 32)
+            if rates is None:
+                raise SystemExit(f"expected closed EURUSD {name} bars")
+            rates = [rate for rate in rates if int(rate["time"]) < capture_cutoff][-count:]
+            if len(rates) != count:
+                raise SystemExit(f"expected exactly {count} closed EURUSD {name} bars before capture cutoff")
             rows, previous = [], None
             for rate in rates:
                 timestamp = int(rate["time"])
@@ -53,6 +58,8 @@ def main(terminal_path: str) -> None:
                 "first_bar_utc": rows[0]["time_utc"],
                 "last_bar_utc": rows[-1]["time_utc"],
                 "bars_sha256": hashlib.sha256(encoded).hexdigest(),
+                "quality_label": "CLOSED_OHLC_VALIDATED",
+                "capture_cutoff_utc": utc(capture_cutoff),
                 "bars_encoding": "gzip+base64-json",
                 "bars_payload": base64.b64encode(gzip.compress(encoded)).decode("ascii"),
             })
