@@ -99,7 +99,7 @@ def upsert(activate: bool) -> dict[str, Any]:
     workflow()
     result = adapter.execute_remote(f"python3 {adapter.shell_quote(REMOTE_INSTALLER)}")
     response = adapter.result_json(result)
-    workflow_id = str(response.get("id") or "").strip()
+    workflow_id = str(response.get("workflow_id") or response.get("id") or "").strip()
     if activate:
         if not workflow_id:
             raise RuntimeError("n8n did not return the Forex M11 workflow id.")
