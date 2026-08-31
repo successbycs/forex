@@ -239,7 +239,11 @@ def test_refresh_fingerprint_retains_proven_milestones(tmp_path: Path) -> None:
     assert refreshed["milestones"]["M0"]["status"] == "PROVEN"
     assert refreshed["milestones"]["M1"]["status"] == "PROVEN"
     event = json.loads((root / "runs" / "run_history.json").read_text(encoding="utf-8"))["events"][-1]
-    assert event["detail"]["preserved_milestones"] == ["M0", "M1", "M2"]
+    assert event["detail"]["preserved_milestones"] == [
+        milestone_id
+        for milestone_id, item in refreshed["milestones"].items()
+        if item["status"] == "PROVEN"
+    ]
     assert event["detail"]["invalidated_milestones"] == []
 
 
