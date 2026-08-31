@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
-  "last_proven_milestone": "M9",
-  "current_milestone": "M10",
+  "last_proven_milestone": "M10",
+  "current_milestone": null,
   "next_milestone": "M11",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-31T06:43:00Z",
+  "last_updated_at": "2026-08-31T06:44:16Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -1569,23 +1569,119 @@
       }
     },
     "M10": {
-      "status": "IN_PROGRESS",
+      "status": "PROVEN",
       "started_at": "2026-08-31T06:43:00Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
-      "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
-      "human_signoff": null,
-      "blockers": []
+      "implementation_finished_at": "2026-08-31T06:44:16Z",
+      "verification_passed_at": "2026-08-31T06:43:25Z",
+      "real_world_proof_captured_at": "2026-08-31T06:43:18.081720Z",
+      "human_signed_off_at": "2026-08-31T06:44:16Z",
+      "first_proven_at": "2026-08-31T06:44:16Z",
+      "proven_at": "2026-08-31T06:44:16Z",
+      "last_validated_at": "2026-08-31T06:44:16Z",
+      "checks": {
+        "M10-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T06:44:15Z",
+          "evidence": "runs/evidence/M10/20260831T064316Z/manifest.json",
+          "note": "M10 MVP proof passed."
+        },
+        "M10-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T06:44:16Z",
+          "evidence": "runs/evidence/M10/20260831T064316Z/manifest.json",
+          "note": "M10 MVP proof passed."
+        },
+        "M10-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T06:44:16Z",
+          "evidence": "runs/evidence/M10/20260831T064316Z/manifest.json",
+          "note": "M10 MVP proof passed."
+        },
+        "M10-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T06:44:16Z",
+          "evidence": "runs/evidence/M10/20260831T064316Z/manifest.json",
+          "note": "M10 MVP proof passed."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M10/20260831T064316Z/manifest.json",
+          "manifest_sha256": "ef358c01d29810347ca16510e5ee43a4db31a51263ff5195b8198c44ad0f9efe",
+          "captured_at": "2026-08-31T06:43:18.081720Z",
+          "recorded_at": "2026-08-31T06:43:25Z",
+          "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+          "git_revision": "ec330e77ee4a14e62fbde7840327e8252ac4aa67",
+          "summary": "FOREX_M10_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-08-31T06:43:25Z",
+        "git_revision": "ec330e77ee4a14e62fbde7840327e8252ac4aa67",
+        "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M10/20260831T064325Z/governance.stdout.txt",
+            "stderr": "runs/verification/M10/20260831T064325Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m10.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M10/20260831T064325Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M10/20260831T064325Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
+      "human_signoff": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE",
+        "note": "Delegated authority; review limitation recorded.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "ec330e77ee4a14e62fbde7840327e8252ac4aa67",
+        "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+        "evidence_manifest_sha256": "ef358c01d29810347ca16510e5ee43a4db31a51263ff5195b8198c44ad0f9efe",
+        "verification_recorded_at": "2026-08-31T06:43:25Z",
+        "recorded_at": "2026-08-31T06:44:16Z"
+      },
+      "blockers": [],
+      "triad_recommendation": {
+        "path": "runs/triad/M10/M10-20260831T064326Z-ec330e77/recommendation.json",
+        "sha256": "5057af9bc66fb7b81dce8e3a6aab69f588ecae2159488c2843e2e561cbbb94a2",
+        "summary_path": "runs/triad/M10/M10-20260831T064326Z-ec330e77/review-summary.md",
+        "summary_sha256": "4c27777f69efa5ffeb2468dba0cdeeecde64f08a27eb23ee7fae3f1213dc8f4c",
+        "review_cycle_id": "M10-20260831T064326Z-ec330e77",
+        "recommendation": "RECOMMEND_COMPLETE",
+        "binding": {
+          "request_sha256": "6347b4ed2eff71320cc07618ff3517ab62d11db286acac66d00034e3f3c5affb",
+          "git_revision": "ec330e77ee4a14e62fbde7840327e8252ac4aa67",
+          "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+          "evidence_manifest_sha256": "ef358c01d29810347ca16510e5ee43a4db31a51263ff5195b8198c44ad0f9efe",
+          "verifier_fingerprint": "sha256:904051949ccff4864b68b9a44ee3f0b2f135d6f5a4a9991032bfe57f1000d115",
+          "milestone_contract_sha256": "c55e4a68ddbe2911cb68b5a4f94b9b26aa90fc6f86ca7d8b172cee86bf6c0334"
+        },
+        "recorded_at": "2026-08-31T06:44:15Z"
+      }
     },
     "M11": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,
