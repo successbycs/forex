@@ -42,6 +42,28 @@ The design-only prompt for the proposed historical market-intelligence and
 Ollama-assisted research capability is retained in
 [`docs/prompts/advanced-market-intelligence-milestone-prompt.md`](prompts/advanced-market-intelligence-milestone-prompt.md).
 
+### M11 GDELT experimental context data
+
+M11's sentiment prototype uses GDELT raw GKG files. Forex stores only
+attributable derived aggregates—UTC H1 article count and mean tone—alongside
+a source URL, source-file hash, retrieval/availability time, fixed query
+definition and uncertainty label. It does not retain article text or create a
+sentiment-driven trading claim.
+
+The target research join is an H1 UTC join between these aggregates and EUR/USD
+price bars. A GDELT value is eligible only when it was available before the
+decision cutoff; evaluation targets a later bar or session result. This gives
+historical replay and future daily collection the same no-lookahead shape.
+
+The T480 shared n8n service is the scheduler/operator surface using the
+existing Autonomous-Framework-derived adapter. The future workflow uses n8n
+nodes for schedule, download, ZIP extraction, aggregation and PostgreSQL
+persistence; it does not launch a Python scheduler or depend on a mounted
+Forex worktree. It is not active until an explicit workflow import, PostgreSQL
+credential setup and observed T480 execution.
+[`system_design.md`](system_design.md) is the technical design and
+[`architecture.md`](architecture.md) is the maintained overview.
+
 ## Inspected sources
 
 Inspected on 2026-08-17:

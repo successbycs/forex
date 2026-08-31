@@ -28,6 +28,7 @@ TABLES = (
     "dataset_snapshot",
     "dataset_snapshot_observation",
     "price_bar",
+    "gdelt_h1_aggregate",
 )
 ORDER_BY = {
     "source_registry": "source_id",
@@ -35,6 +36,7 @@ ORDER_BY = {
     "dataset_snapshot": "snapshot_id",
     "dataset_snapshot_observation": "snapshot_id, observation_id",
     "price_bar": "time_utc",
+    "gdelt_h1_aggregate": "bucket_time_utc",
 }
 ORDER_DIRECTION = {
     "source_registry": "ASC",
@@ -42,6 +44,7 @@ ORDER_DIRECTION = {
     "dataset_snapshot": "DESC",
     "dataset_snapshot_observation": "ASC",
     "price_bar": "DESC",
+    "gdelt_h1_aggregate": "DESC",
 }
 REQUIRED_ENV = ("FOREX_POSTGRES_HOST", "FOREX_POSTGRES_PORT", "FOREX_POSTGRES_DB", "FOREX_POSTGRES_USER", "FOREX_POSTGRES_PASSWORD")
 WRITE_COLUMNS = {
@@ -50,6 +53,7 @@ WRITE_COLUMNS = {
     "dataset_snapshot": ("snapshot_id", "contract_version", "instrument", "timeframe", "decision_cutoff_utc", "created_at_utc", "artifact_sha256", "no_lookahead"),
     "dataset_snapshot_observation": ("snapshot_id", "observation_id"),
     "price_bar": ("snapshot_id", "time_utc", "open", "high", "low", "close", "volume", "raw_observation_id", "available_at_utc"),
+    "gdelt_h1_aggregate": ("aggregate_id", "observation_id", "bucket_time_utc", "available_at_utc", "article_count", "mean_tone", "query_definition_version", "uncertainty_label"),
 }
 
 
@@ -127,7 +131,37 @@ def export_html(output: Path) -> Path:
     resolved = output.resolve()
     if not resolved.is_relative_to(ROOT.resolve()):
         raise RuntimeError("--output must remain beneath this repository")
-    rows_by_table = {table: run("read", table, 1000)["result"] for table in TABLES}
+    deployed_tables = set(run("tables", None, 1)["result"])
+    rows_by_table = {
+        table: run("read", table, 1000)["result"]
+        for table in TABLES
+        if table in deployed_tables
+    }
+
+    def coverage(rows: list[dict[str, object]], field: str) -> str:
+        values = sorted(str(row[field]) for row in rows if row.get(field) is not None)
+        return f"{values[0]} → {values[-1]}" if values else "No data yet"
+
+    def operator_summary() -> str:
+        price_rows = rows_by_table.get("price_bar", [])
+        gdelt_rows = rows_by_table.get("gdelt_h1_aggregate", [])
+        price_hours = {str(row.get("time_utc")) for row in price_rows}
+        gdelt_hours = {str(row.get("bucket_time_utc")) for row in gdelt_rows}
+        overlap = len(price_hours & gdelt_hours)
+        sources = rows_by_table.get("source_registry", [])
+        source_lineage = ", ".join(
+            f"{row.get('source_id', '?')} ({row.get('approval_status', '?')})"
+            for row in sources
+        ) or "No source catalogue rows"
+        return f'''<section class="summary"><h2>Read-only research summary</h2>
+<p class="boundary">DEMO_ONLY historical research data. No order controls, live-account access, trading signal, or write action is available in this report.</p>
+<div class="cards">
+<article><h3>EUR/USD H1 coverage</h3><p>{escape(coverage(price_rows, "time_utc"))}</p><small>{len(price_rows)} displayed price bars</small></article>
+<article><h3>Price freshness</h3><p>{escape(str(price_rows[0].get("available_at_utc", "No data yet")) if price_rows else "No data yet")}</p><small>Latest displayed price availability</small></article>
+<article><h3>GDELT H1 context</h3><p>{escape(coverage(gdelt_rows, "bucket_time_utc"))}</p><small>{len(gdelt_rows)} displayed aggregate rows; experimental context only</small></article>
+<article><h3>Alignment coverage</h3><p>{overlap} H1 buckets</p><small>Displayed UTC price/GDELT bucket overlap</small></article>
+</div>
+<h3>Source lineage</h3><p>{escape(source_lineage)}</p></section>'''
 
     def render_table(name: str, rows: list[dict[str, object]]) -> str:
         if not rows:
@@ -141,8 +175,8 @@ def export_html(output: Path) -> Path:
         return f"<h2>{escape(name)} <small>({len(rows)} rows)</small></h2><div class=\"table-wrap\"><table><thead><tr>{header}</tr></thead><tbody>{body}</tbody></table></div>"
 
     captured = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-    sections = "".join(render_table(table, rows_by_table[table]) for table in TABLES)
-    document = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Forex PostgreSQL export</title><style>body{{font:14px system-ui,sans-serif;margin:32px;color:#172033}}.muted{{color:#5b6475}}.table-wrap{{overflow:auto;border:1px solid #d9deea;border-radius:8px}}table{{border-collapse:collapse;width:100%;white-space:nowrap}}th{{background:#18263d;color:#fff;position:sticky;top:0}}th,td{{padding:8px 10px;text-align:left;border-bottom:1px solid #e6eaf0}}tr:nth-child(even){{background:#f7f9fc}}small{{color:#657086;font-weight:normal}}</style></head><body><h1>Forex PostgreSQL export</h1><p class="muted">Captured {escape(captured)} from the T480 shared PostgreSQL service. Historical Demo-only research data; no order surface.</p>{sections}</body></html>'''
+    sections = "".join(render_table(table, rows_by_table[table]) for table in TABLES if table in rows_by_table)
+    document = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Forex research data view</title><style>body{{font:14px system-ui,sans-serif;margin:32px;color:#172033}}.muted{{color:#5b6475}}.boundary{{background:#eef5ff;border-left:4px solid #2463b5;padding:12px}}.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}}article{{border:1px solid #d9deea;border-radius:8px;padding:12px;background:#fff}}article h3{{margin:0 0 8px}}article p{{font-weight:600;overflow-wrap:anywhere}}.table-wrap{{overflow:auto;border:1px solid #d9deea;border-radius:8px}}table{{border-collapse:collapse;width:100%;white-space:nowrap}}th{{background:#18263d;color:#fff;position:sticky;top:0}}th,td{{padding:8px 10px;text-align:left;border-bottom:1px solid #e6eaf0}}tr:nth-child(even){{background:#f7f9fc}}small{{color:#657086;font-weight:normal}}</style></head><body><h1>Forex research data view</h1><p class="muted">Captured {escape(captured)} from the T480 shared PostgreSQL service.</p>{operator_summary()}{sections}</body></html>'''
     resolved.parent.mkdir(parents=True, exist_ok=True)
     resolved.write_text(document, encoding="utf-8")
     return resolved

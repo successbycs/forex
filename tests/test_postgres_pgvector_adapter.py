@@ -3,9 +3,9 @@ from unittest import mock
 from scripts import postgres_pgvector_adapter
 
 
-def test_adapter_exposes_only_fixed_m2_operations():
+def test_adapter_exposes_only_fixed_m2_and_m11_operations():
     assert postgres_pgvector_adapter.READ_ONLY | postgres_pgvector_adapter.MUTATING == {
-        "preflight", "inspect", "vector-probe", "forex-m2-apply-schema", "forex-m2-import", "forex-m2-verify", "forex-m2-provenance-negative-control"
+        "preflight", "inspect", "vector-probe", "forex-m2-apply-schema", "forex-m2-import", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-apply-schema", "forex-m11-verify-schema"
     }
 
 
@@ -21,6 +21,22 @@ def test_import_is_hash_bound():
         assert postgres_pgvector_adapter.import_snapshot()["ok"]
     assert "sha256sum" in remote.call_args.args[0]
     assert "FOREX_M2_IMPORT_ALREADY_PRESENT" in remote.call_args.args[0]
+
+
+def test_m11_schema_application_is_hash_bound():
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=("sql/migrations/003_m11_gdelt_h1_aggregate.sql", "c" * 64)), mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+        assert postgres_pgvector_adapter.apply_m11_schema()["ok"]
+    query = remote.call_args.args[0]
+    assert "sha256sum" in query
+    assert "FOREX_M11_GDELT_SCHEMA_APPLIED" in query
+
+
+def test_m11_schema_verification_names_only_the_expected_table_and_index():
+    with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+        assert postgres_pgvector_adapter.verify_m11_schema()["ok"]
+    query = remote.call_args.args[0]
+    assert "gdelt_h1_aggregate" in query
+    assert "gdelt_h1_aggregate_alignment_idx" in query
 
 
 def test_verification_query_checks_m2_lineage_and_point_in_time_controls():

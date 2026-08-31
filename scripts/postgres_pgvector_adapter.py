@@ -32,12 +32,13 @@ REMOTE_FOREX = "/home/chris/projects/forex"
 ASSETS = {
     "schema": "sql/migrations/001_m2_historical_data.sql",
     "sealed_provenance": "sql/migrations/002_m2_sealed_provenance.sql",
+    "gdelt_schema": "sql/migrations/003_m11_gdelt_h1_aggregate.sql",
     "import": "scripts/build_m2_postgres_import.py",
 }
 M2_SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
 M2_SNAPSHOT_ARTIFACT_SHA256 = "sha256:dc5384732d71091aa2279aaf6d92e8e1780c8021eacde948432ad7bc68fdabaa"
-READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control"}
-MUTATING = {"forex-m2-apply-schema", "forex-m2-import"}
+READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema"}
+MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema"}
 
 
 def remote(body: str) -> dict:
@@ -150,6 +151,24 @@ SQL'''
     return wrap("forex_m2_provenance_negative_control", remote(body))
 
 
+def apply_m11_schema() -> dict:
+    relative, digest = asset("gdelt_schema")
+    body = f'''schema_file="{REMOTE_FOREX}/{relative}"
+test -f "$schema_file"
+[[ "$(sha256sum "$schema_file" | head -c 64)" == "{digest}" ]]
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$schema_file"
+printf 'FOREX_M11_GDELT_SCHEMA_APPLIED sha256:{digest}\\n' '''
+    return wrap("forex_m11_apply_schema", remote(body), digest)
+
+
+def verify_m11_schema() -> dict:
+    body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 'FOREX_M11_GDELT_SCHEMA_VERIFY_OK',
+  to_regclass('forex.gdelt_h1_aggregate') IS NOT NULL,
+  (SELECT count(*) FROM information_schema.columns WHERE table_schema='forex' AND table_name='gdelt_h1_aggregate'),
+  (SELECT count(*) FROM pg_indexes WHERE schemaname='forex' AND indexname='gdelt_h1_aggregate_alignment_idx');" </dev/null'''
+    return wrap("forex_m11_verify_schema", remote(body))
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Fixed Forex M2 PostgreSQL adapter.")
     parser.add_argument("command", choices=sorted(READ_ONLY | MUTATING))
@@ -157,7 +176,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command in MUTATING and not args.approve:
         parser.error("this mutating operation requires --approve")
-    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control}
+    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-verify-schema": verify_m11_schema}
     payload = actions[args.command]()
     print(json.dumps(payload, indent=2))
     return 0 if payload["ok"] else 1

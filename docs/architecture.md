@@ -42,6 +42,66 @@ observation. It records source, revision, timestamps, hashes, redaction and
 lineage; it does not provide a general download, database, MT5, shell,
 account, or order interface.
 
+## Current historical-data and sentiment design
+
+M11 uses GDELT 2.0 public raw GKG files as an *experimental context source*.
+The Forex collector downloads an attributable ZIP artifact, derives a bounded
+EUR/USD-relevant aggregate, and retains no article text. It is not a trading
+signal, recommendation, or execution surface.
+
+```text
+GDELT public raw GKG files
+        │
+fixed Forex collector
+        │  source URL, SHA-256, retrieval and availability times
+        ▼
+hourly GDELT aggregate (article count, mean tone, query version, uncertainty)
+        │
+        ├───────────────┐
+        ▼               ▼
+point-in-time join   provenance/audit
+        │
+        ▼
+EUR/USD H1 research dataset → replay, hypothesis and offline ML (M13–M16)
+```
+
+The price side already exists in the T480 PostgreSQL `forex` schema: one
+`DEMO_ONLY` EUR/USD H1 snapshot with 720 closed bars. The GDELT collector has
+successfully retrieved a raw GKG file and produced an H1 aggregate in the
+Forex worktree, but no GDELT row, sentiment table, backfill, n8n workflow, or
+price/sentiment join has yet been deployed to PostgreSQL.
+
+The join key is the UTC H1 bucket. A feature can be used only when its
+`available_at_utc` is at or before a decision cutoff; the target is a *later*
+bar or a pre-declared session outcome. This prevents future information from
+leaking into historical backtests.
+
+### Daily collection and n8n boundary
+
+The T480 shared lab has `scripts/n8n_adapter.py`, adapted from Autonomous
+Framework. It routes through the existing T16-to-T480 transport to n8n's
+private loopback API and can health-check, list, import/update, activate,
+deactivate, and inspect workflows. n8n credentials remain T480-local.
+
+The Forex workflow definition is currently an **inactive design artifact**.
+It must not be activated as-is: the shared n8n container does not mount
+`/home/chris/projects/forex` or promise a Python runtime. The deployable
+design is therefore:
+
+```text
+n8n daily schedule → n8n HTTP / Compression / Code / PostgreSQL nodes
+  → raw observation + GDELT H1 aggregate → n8n execution history
+```
+
+The daily job must retrieve all GKG intervals for the preceding closed UTC day
+(or collect every 15 minutes and roll up). Reading `lastupdate.txt` once per
+day captures one 15-minute slice, not a daily aggregate. The recommended MVP
+is a once-daily n8n workflow. It uses built-in n8n nodes rather than a Python
+scheduled job. Its PostgreSQL credential, workflow import and activation are
+still explicit future deployment actions.
+
+See [`system_design.md`](system_design.md) for database and adapter details.
+
 The Windows MT5 terminal and shared PostgreSQL service are separate T480
 components. Forex code reaches MT5 only through its fixed Demo-only catalog
 operation and reaches PostgreSQL only through a fixed, approval-gated T480

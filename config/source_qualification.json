@@ -38,9 +38,9 @@
       "decision": "EXPERIMENTAL_AGGREGATES_ONLY",
       "endpoint": "https://www.gdeltproject.org/data.html",
       "licence_constraint": "Use only derived, attributable aggregate measures until source and article-level retention rights are separately reviewed; do not retain article text.",
-      "timing_and_revisions": "Historical data is available, but an M11 adapter must make query time, source time, query definition and revisions explicit.",
+      "timing_and_revisions": "Historical data is available, but the M11 n8n workflow must make query time, source time, query definition and revisions explicit.",
       "retention": "Retain query definition, timestamps, aggregate output and hashes; no article text or trading-signal claim.",
-      "adoption_gate": "M11 must demonstrate a bounded reproducible aggregate sample and uncertainty labelling."
+      "adoption_gate": "M11 must demonstrate a bounded reproducible n8n aggregate sample, normalized H1 persistence and uncertainty labelling."
     }
   ]
 }

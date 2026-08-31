@@ -4,13 +4,14 @@
   "title": "Forex milestone registry",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "project", "repository", "triad_review_required", "completion_authority", "allowed_statuses", "roadmap_phases", "milestones"],
+  "required": ["schema_version", "project", "repository", "triad_review_required", "completion_authority", "operator_summary", "allowed_statuses", "roadmap_phases", "milestones"],
   "properties": {
     "schema_version": {"const": "1.0.0"},
     "project": {"const": "Forex"},
     "repository": {"type": "string", "minLength": 1},
     "triad_review_required": {"type": "boolean"},
     "completion_authority": {"type": "string", "minLength": 1},
+    "operator_summary": {"$ref": "#/$defs/operatorSummary"},
     "allowed_statuses": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
     "roadmap_phases": {
       "type": "array",
@@ -36,6 +37,26 @@
     }
   },
   "$defs": {
+    "operatorSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["purpose", "milestone_actions", "current_state"],
+      "properties": {
+        "purpose": {"type": "string", "minLength": 1},
+        "milestone_actions": {"$ref": "#/$defs/stringArray"},
+        "current_state": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["authoritative_record", "fields", "read_command", "non_duplication_rule"],
+          "properties": {
+            "authoritative_record": {"const": "project_state.json"},
+            "fields": {"$ref": "#/$defs/stringArray"},
+            "read_command": {"$ref": "#/$defs/stringArray"},
+            "non_duplication_rule": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
     "stringArray": {"type": "array", "items": {"type": "string", "minLength": 1}},
     "command": {
       "type": "object",

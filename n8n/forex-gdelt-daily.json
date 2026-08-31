@@ -1,0 +1,127 @@
+{
+  "name": "Forex GDELT daily H1 context ingestion",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "owner": "forex",
+    "runtime": "t480-private-n8n",
+    "purpose": "Experimental EUR/USD context aggregates only. No article text, trading signal, order, or execution authority.",
+    "deployment_prerequisites": [
+      "T480-local PostgreSQL n8n credential named Forex PostgreSQL T480",
+      "M11 GDELT schema migration applied",
+      "Manual n8n execution observed before schedule activation"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "schedule-closed-utc-day",
+      "name": "Schedule after UTC day closes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "15 0 * * *"
+            }
+          ]
+        }
+      },
+      "notes": "Runs at 00:15 UTC-equivalent instance time. Configure n8n to UTC before activation."
+    },
+    {
+      "id": "build-prior-day-gkg-urls",
+      "name": "Build prior-day GKG URLs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));\nconst rows = [];\nfor (let minuteOfDay = 0; minuteOfDay < 24 * 60; minuteOfDay += 15) {\n  const instant = new Date(day.getTime() + minuteOfDay * 60_000);\n  const stamp = instant.toISOString().slice(0, 19).replace(/[-:T]/g, '') + '00';\n  const sourceUrl = `https://data.gdeltproject.org/gdeltv2/${stamp}.gkg.csv.zip`;\n  const available = new Date(instant.getTime() + 15 * 60_000).toISOString();\n  rows.push({ json: { source_id: 'gdelt-sentiment-prototype', source_url: sourceUrl, source_revision: `${stamp}.gkg.csv.zip`, observation_id: `gdelt-gkg-${stamp}`, observed_at_utc: instant.toISOString(), available_at_utc: available, query_definition_version: 'eurusd-context-terms.v1', uncertainty_label: 'EXPERIMENTAL_CONTEXT_ONLY' } });\n}\nreturn rows;"
+      },
+      "notes": "Emits exactly 96 named GKG files for the preceding closed UTC day; it never uses lastupdate.txt as a daily dataset."
+    },
+    {
+      "id": "download-gkg-zip",
+      "name": "Download GKG ZIP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [480, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.source_url }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "response": {
+                "neverError": false,
+                "response": "file"
+              }
+            }
+          }
+        }
+      },
+      "notes": "Downloads one public GKG ZIP as binary data. No article text is retained after aggregation."
+    },
+    {
+      "id": "extract-gkg-zip",
+      "name": "Extract GKG ZIP",
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1,
+      "position": [720, 300],
+      "parameters": {
+        "operation": "decompress",
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "notes": "n8n-native ZIP extraction; no host command or mounted Forex worktree."
+    },
+    {
+      "id": "aggregate-gkg-h1",
+      "name": "Aggregate permitted GKG context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 300],
+      "parameters": {
+        "jsCode": "const { createHash } = require('crypto');\nconst terms = ['euro', 'eur', 'dollar', 'usd', 'currency', 'forex', 'ecb', 'federal reserve'];\nconst source = $('Build prior-day GKG URLs').item.json;\nconst binary = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst buckets = new Map();\nfor (const line of binary.toString('utf8').split(/\\r?\\n/)) {\n  const fields = line.split('\\t');\n  if (fields.length < 16) continue;\n  if (!terms.some((term) => fields.slice(5, 15).join(' ').toLowerCase().includes(term))) continue;\n  const tone = Number(fields[15].split(',', 1)[0]);\n  const timestamp = fields[1] || '';\n  if (!Number.isFinite(tone) || !/^\\d{10}/.test(timestamp)) continue;\n  const bucket = `${timestamp.slice(0, 8)}T${timestamp.slice(8, 10)}:00:00Z`;\n  const values = buckets.get(bucket) || [];\n  values.push(tone);\n  buckets.set(bucket, values);\n}\nconst payloadSha256 = `sha256:${createHash('sha256').update(binary).digest('hex')}`;\nreturn [...buckets.entries()].map(([bucket_time_utc, tones]) => ({ json: { ...source, payload_sha256: payloadSha256, payload_path: `n8n://gdelt/${source.source_revision}`, retrieved_at_utc: new Date().toISOString(), bucket_time_utc, article_count: tones.length, mean_tone: tones.reduce((sum, tone) => sum + tone, 0) / tones.length } }));"
+      },
+      "notes": "Bounded JavaScript aggregation returns only source provenance, count and mean tone. It emits no article text, headline, URL, signal or order instruction."
+    },
+    {
+      "id": "persist-gdelt-h1-context",
+      "name": "Persist GDELT H1 context",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1200, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO forex.source_registry (source_id, contract_version, owner, license, cost_model, api_version, endpoint_allowlist, rate_limit, retention_rule, historical_depth, revision_support, timezone_policy, outage_policy, approval_status, secrets_reference, provenance_note) VALUES ('gdelt-sentiment-prototype', 'forex.gdelt-context.v1', 'GDELT Project', 'Derived aggregates only; see source qualification', 'FREE_PUBLIC', 'GDELT 2.0 GKG', '[\"https://data.gdeltproject.org/gdeltv2/\"]'::jsonb, 'bounded daily workflow', 'No article text; retain derived aggregates and provenance only', 'historical GKG archive', 'source filename and SHA-256 retained', 'UTC-normalised', 'record failure in n8n execution and retry manually', 'PENDING_QUALIFICATION', 'NONE', 'Experimental EUR/USD context aggregate; not a trading signal') ON CONFLICT (source_id) DO UPDATE SET contract_version=EXCLUDED.contract_version, provenance_note=EXCLUDED.provenance_note; INSERT INTO forex.raw_observation (observation_id, contract_version, source_id, source_revision, observed_at_utc, available_at_utc, retrieved_at_utc, timezone, payload_sha256, payload_path, redacted) VALUES ('{{ $json.observation_id }}', 'forex.gdelt-context.v1', 'gdelt-sentiment-prototype', '{{ $json.source_revision }}', '{{ $json.observed_at_utc }}', '{{ $json.available_at_utc }}', '{{ $json.retrieved_at_utc }}', 'UTC', '{{ $json.payload_sha256 }}', '{{ $json.payload_path }}', true) ON CONFLICT (observation_id) DO NOTHING; INSERT INTO forex.gdelt_h1_aggregate (aggregate_id, observation_id, bucket_time_utc, available_at_utc, article_count, mean_tone, query_definition_version, uncertainty_label) VALUES ('{{ $json.observation_id }}-{{ $json.bucket_time_utc }}', '{{ $json.observation_id }}', '{{ $json.bucket_time_utc }}', '{{ $json.available_at_utc }}', {{ $json.article_count }}, {{ $json.mean_tone }}, '{{ $json.query_definition_version }}', '{{ $json.uncertainty_label }}') ON CONFLICT (observation_id, bucket_time_utc) DO UPDATE SET article_count=EXCLUDED.article_count, mean_tone=EXCLUDED.mean_tone, available_at_utc=EXCLUDED.available_at_utc;",
+        "options": {}
+      },
+      "notes": "Fixed n8n-owned PostgreSQL transaction. It writes only the approved source catalogue, raw-observation provenance and GDELT H1 aggregate fields. Configure the T480-local n8n credential after import."
+    },
+    {
+      "id": "summarise-daily-ingestion",
+      "name": "Summarise daily ingestion",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 300],
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nreturn [{ json: { result: 'FOREX_M11_N8N_DAILY_INGESTION_OK', source_id: 'gdelt-sentiment-prototype', aggregate_rows_written: rows.length, note: 'Experimental context only; no trading signal or order operation.' } }];"
+      },
+      "notes": "The n8n execution result is the operator-visible success/failure surface."
+    }
+  ],
+  "connections": {
+    "Schedule after UTC day closes": { "main": [[{ "node": "Build prior-day GKG URLs", "type": "main", "index": 0 }]] },
+    "Build prior-day GKG URLs": { "main": [[{ "node": "Download GKG ZIP", "type": "main", "index": 0 }]] },
+    "Download GKG ZIP": { "main": [[{ "node": "Extract GKG ZIP", "type": "main", "index": 0 }]] },
+    "Extract GKG ZIP": { "main": [[{ "node": "Aggregate permitted GKG context", "type": "main", "index": 0 }]] },
+    "Aggregate permitted GKG context": { "main": [[{ "node": "Persist GDELT H1 context", "type": "main", "index": 0 }]] },
+    "Persist GDELT H1 context": { "main": [[{ "node": "Summarise daily ingestion", "type": "main", "index": 0 }]] }
+  }
+}

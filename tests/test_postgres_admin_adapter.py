@@ -32,10 +32,19 @@ def test_write_rejects_unknown_columns():
 def test_export_html_writes_all_table_sections(tmp_path, monkeypatch):
     monkeypatch.setattr(postgres_admin_adapter, "ROOT", tmp_path)
     monkeypatch.setattr(postgres_admin_adapter, "load_local_env", lambda: {})
-    monkeypatch.setattr(postgres_admin_adapter, "run", lambda command, table, limit: {"result": [{"id": table}]})
+    def run(command, table, limit):
+        if command == "tables":
+            return {"result": list(postgres_admin_adapter.TABLES)}
+        return {"result": [{"id": table}]}
+    monkeypatch.setattr(postgres_admin_adapter, "run", run)
     output = postgres_admin_adapter.export_html(tmp_path / "reports" / "export.html")
     content = output.read_text(encoding="utf-8")
-    assert "Forex PostgreSQL export" in content
+    assert "Forex research data view" in content
+    assert "Read-only research summary" in content
+    assert "EUR/USD H1 coverage" in content
+    assert "GDELT H1 context" in content
+    assert "Alignment coverage" in content
+    assert "DEMO_ONLY historical research data" in content
     assert all(table in content for table in postgres_admin_adapter.TABLES)
 
 
