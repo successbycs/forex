@@ -19,6 +19,11 @@ def test_m11_n8n_workflow_is_daily_native_and_has_no_python_or_host_command_surf
     assert "https://data.gdeltproject.org/gdeltv2/lastupdate.txt" not in rendered
     assert "Build prior-day GKG URLs" in nodes
     assert "Persist GDELT H1 context" in nodes
+    assert nodes["Download GKG ZIP"]["parameters"]["options"]["response"]["response"] == {
+        "neverError": False,
+        "responseFormat": "file",
+        "outputPropertyName": "data",
+    }
     assert "gdelt_h1_aggregate" in rendered
     assert "article text" in rendered
     assert "order" in rendered
