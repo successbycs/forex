@@ -175,6 +175,7 @@ def verify_m11_data() -> dict:
   (SELECT count(*) FROM forex.raw_observation WHERE source_id='gdelt-sentiment-prototype'),
   (SELECT count(*) FROM forex.gdelt_h1_aggregate),
   (SELECT count(DISTINCT observation_id) FROM forex.gdelt_h1_aggregate),
+  'complete_interval_coverage=' || ((SELECT count(*) FROM forex.raw_observation WHERE source_id='gdelt-sentiment-prototype') = 96),
   'observed_range=' || coalesce((SELECT min(observed_at_utc)::text || ',' || max(observed_at_utc)::text FROM forex.raw_observation WHERE source_id='gdelt-sentiment-prototype'), 'none'),
   'aggregate_range=' || coalesce((SELECT min(bucket_time_utc)::text || ',' || max(bucket_time_utc)::text FROM forex.gdelt_h1_aggregate), 'none'),
   'no_article_columns=' || NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='forex' AND table_name='gdelt_h1_aggregate' AND column_name IN ('article_text','headline','url','content')),

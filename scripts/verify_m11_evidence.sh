@@ -29,7 +29,9 @@ if n8n.get("execution", {}).get("status") != "success":
     raise SystemExit("M11 n8n execution was not successful")
 if "FOREX_M11_GDELT_DATA_VERIFY_OK" not in postgres.get("result", {}).get("stdout", ""):
     raise SystemExit("M11 data result is absent")
-if "no_article_columns=t" not in postgres["result"]["stdout"] or "provenance_linkage_ok=t" not in postgres["result"]["stdout"]:
+if "complete_interval_coverage=true" not in postgres["result"]["stdout"]:
+    raise SystemExit("M11 evidence does not establish all 96 closed-day source observations")
+if "no_article_columns=true" not in postgres["result"]["stdout"] or "provenance_linkage_ok=true" not in postgres["result"]["stdout"]:
     raise SystemExit("M11 safety or provenance boundary failed")
 if "FOREX_M11_GDELT_SCHEMA_VERIFY_OK" not in schema.get("result", {}).get("stdout", ""):
     raise SystemExit("M11 schema result is absent")

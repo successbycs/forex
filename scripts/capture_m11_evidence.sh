@@ -29,6 +29,8 @@ if not n8n.get("ok") or execution.get("status") != "success":
     raise SystemExit("M11 requires a successful T480 n8n execution")
 if not postgres.get("ok") or "FOREX_M11_GDELT_DATA_VERIFY_OK" not in postgres.get("result", {}).get("stdout", ""):
     raise SystemExit("M11 PostgreSQL data verification did not pass")
+if "complete_interval_coverage=true" not in postgres["result"]["stdout"]:
+    raise SystemExit("M11 did not retain all 96 closed-day source observations")
 status = json.loads(subprocess.check_output(["python3", "scripts/forex_milestones.py", "status", "--json"]))
 (bundle / "summary.txt").write_text("FOREX_M11_PROOF_OK\n")
 artifacts = [{"path": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()} for path in sorted(bundle.iterdir()) if path.is_file()]
