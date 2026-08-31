@@ -1509,6 +1509,7 @@
         "docs/milestones/M11-proof.md",
         "docs/system_design.md",
         "n8n/forex-gdelt-daily.json",
+        "scripts/n8n_forex_adapter.py",
         "sql/migrations/003_m11_gdelt_h1_aggregate.sql",
         "tests/milestones/test_m11.py"
       ],

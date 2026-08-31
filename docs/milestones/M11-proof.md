@@ -7,3 +7,9 @@ signal, recommendation or order input. The daily workflow fetches the prior
 closed UTC day's GDELT intervals, normalizes H1 aggregates, and persists them
 through the n8n PostgreSQL credential. A single latest GDELT interval cannot
 be described as a daily dataset.
+
+The Forex-owned `scripts/n8n_forex_adapter.py` imports only this fixed
+workflow through the shared T480 transport. It does not copy the n8n API key
+or accept a generic workflow, shell, SQL, MT5, or order argument. The first
+real execution must be inspected in n8n execution history and verified against
+the normalised PostgreSQL rows before M11 evidence can be captured.

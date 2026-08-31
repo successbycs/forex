@@ -13,7 +13,7 @@ autonomous execution, or profitability claim.
 | Raw GDELT retrieval and H1 aggregate | Implemented locally for M11; raw sample retrieved |
 | GDELT PostgreSQL persistence and backfill | Designed; not deployed |
 | Price/GDELT join and replay | Designed; not deployed |
-| T480 n8n adapter | Shared adapter present; health not verified on 2026-08-31 (remote request reset) |
+| T480 n8n adapter | Fixed Forex M11 adapter added; deployment and first execution pending |
 | Daily Forex n8n schedule | n8n-native design; not deployed or activated |
 
 ## System topology and ownership
@@ -105,16 +105,19 @@ observation, not a market conclusion.
 
 ## n8n and adapter design
 
-The shared n8n adapter calls n8n's T480-loopback REST API through the existing
-transport. The n8n API key lives only on T480. Supported operations are:
+The fixed Forex M11 adapter calls the shared T480 n8n transport and the
+n8n-loopback REST API. The n8n API key lives only on T480; it is neither read
+nor copied into the Forex repository. The adapter has no caller-selected host,
+credential, workflow, command, SQL, MT5, or order parameter. Supported
+operations are:
 
 | Operation | Purpose | Mutates state |
 | --- | --- | --- |
 | `preflight` | Check private n8n health and key presence | No |
 | `list-workflows` | Inspect workflows | No |
 | `get-execution` | Inspect one execution | No |
-| `upsert-workflow` | Import/update a workflow | Yes, explicit approval |
-| `activate-workflow` / `deactivate-workflow` | Change schedule state | Yes, explicit approval |
+| `upsert` | Import/update the one fixed M11 workflow | Yes, explicit approval |
+| `activate` | Import/update and activate that fixed daily schedule | Yes, explicit approval |
 
 The deployable daily workflow is not an n8n command node pointing to the host
 worktree. That worktree is not mounted in the n8n container. It is n8n-native:
