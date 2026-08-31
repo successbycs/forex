@@ -4067,6 +4067,56 @@
         "to": "BLOCKED",
         "reason": "Fresh M6 evidence is verified; closure awaits required review submissions for the current bound cycle."
       }
+    },
+    {
+      "event_id": "E000273",
+      "timestamp": "2026-08-31T05:04:19Z",
+      "milestone_id": "M6",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M6-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000274",
+      "timestamp": "2026-08-31T05:04:19Z",
+      "milestone_id": "M6",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M6-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000275",
+      "timestamp": "2026-08-31T05:04:19Z",
+      "milestone_id": "M6",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M6-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000276",
+      "timestamp": "2026-08-31T05:04:19Z",
+      "milestone_id": "M6",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M6-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000277",
+      "timestamp": "2026-08-31T05:04:19Z",
+      "milestone_id": "M6",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE"
+      }
     }
   ]
 }

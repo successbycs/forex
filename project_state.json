@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-31T02:21:04Z",
+  "last_updated_at": "2026-08-31T05:04:19Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -1108,11 +1108,36 @@
       "implementation_finished_at": null,
       "verification_passed_at": "2026-08-31T02:19:07Z",
       "real_world_proof_captured_at": "2026-08-31T02:19:07.289682Z",
-      "human_signed_off_at": null,
+      "human_signed_off_at": "2026-08-31T05:04:19Z",
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
-      "checks": {},
+      "checks": {
+        "M6-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T05:04:19Z",
+          "evidence": "runs/evidence/M6/20260831T021907Z/manifest.json",
+          "note": "Fixed T480 M15/H1/D1 Demo dataset capture passed."
+        },
+        "M6-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T05:04:19Z",
+          "evidence": "runs/evidence/M6/20260831T021907Z/manifest.json",
+          "note": "M6 tests and governance verification passed."
+        },
+        "M6-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T05:04:19Z",
+          "evidence": "runs/evidence/M6/20260831T021907Z/manifest.json",
+          "note": "Fresh evidence is bound to current revision and config."
+        },
+        "M6-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T05:04:19Z",
+          "evidence": "runs/evidence/M6/20260831T021907Z/manifest.json",
+          "note": "Cutoff, quality, Demo-only and no-lookahead checks passed."
+        }
+      },
       "evidence": [
         {
           "manifest_path": "runs/evidence/M6/20260831T021608Z/manifest.json",
@@ -1167,7 +1192,18 @@
           }
         ]
       },
-      "human_signoff": null,
+      "human_signoff": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE",
+        "note": "Delegated human authority: M6 approved after delegated role reviews.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "e960e8df11585bb0037e27b4742220abca911285",
+        "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+        "evidence_manifest_sha256": "80ba889b11149cd2f0e7197327692a853666c8d6ceb4da5fddb80f41f03f509a",
+        "verification_recorded_at": "2026-08-31T02:19:07Z",
+        "recorded_at": "2026-08-31T05:04:19Z"
+      },
       "blockers": [
         {
           "reason": "Fresh M6 evidence is verified; closure awaits required review submissions for the current bound cycle.",
