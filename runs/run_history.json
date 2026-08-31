@@ -4284,6 +4284,169 @@
         "from": "READY",
         "to": "IN_PROGRESS"
       }
+    },
+    {
+      "event_id": "E000292",
+      "timestamp": "2026-08-31T05:12:22Z",
+      "milestone_id": "M7",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M7/20260831T051221Z/governance.stdout.txt",
+            "stderr": "runs/verification/M7/20260831T051221Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m7.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M7/20260831T051221Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M7/20260831T051221Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000293",
+      "timestamp": "2026-08-31T05:13:47Z",
+      "milestone_id": "M7",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M7/20260831T051335Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000294",
+      "timestamp": "2026-08-31T05:13:47Z",
+      "milestone_id": "M7",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M7/20260831T051347Z/governance.stdout.txt",
+            "stderr": "runs/verification/M7/20260831T051347Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m7.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M7/20260831T051347Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M7/20260831T051347Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000295",
+      "timestamp": "2026-08-31T05:14:29Z",
+      "milestone_id": "M7",
+      "action": "TRIAD_RECOMMENDATION_RECORDED",
+      "detail": {
+        "path": "runs/triad/M7/M7-20260831T051347Z-0a2fc10c/recommendation.json",
+        "recommendation": "RECOMMEND_COMPLETE"
+      }
+    },
+    {
+      "event_id": "E000296",
+      "timestamp": "2026-08-31T05:14:30Z",
+      "milestone_id": "M7",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M7-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000297",
+      "timestamp": "2026-08-31T05:14:30Z",
+      "milestone_id": "M7",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M7-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000298",
+      "timestamp": "2026-08-31T05:14:30Z",
+      "milestone_id": "M7",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M7-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000299",
+      "timestamp": "2026-08-31T05:14:30Z",
+      "milestone_id": "M7",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M7-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000300",
+      "timestamp": "2026-08-31T05:14:30Z",
+      "milestone_id": "M7",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "IN_PROGRESS",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
+    },
+    {
+      "event_id": "E000301",
+      "timestamp": "2026-08-31T05:14:30Z",
+      "milestone_id": "M7",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "event_id": "E000302",
+      "timestamp": "2026-08-31T05:14:30Z",
+      "milestone_id": "M7",
+      "action": "MILESTONE_PROVEN",
+      "detail": {
+        "proven_at": "2026-08-31T05:14:30Z",
+        "next_milestone": "M8"
+      }
     }
   ]
 }

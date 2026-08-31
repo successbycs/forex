@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
-  "last_proven_milestone": "M6",
-  "current_milestone": "M7",
+  "last_proven_milestone": "M7",
+  "current_milestone": null,
   "next_milestone": "M8",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-31T05:10:20Z",
+  "last_updated_at": "2026-08-31T05:14:30Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -1233,23 +1233,119 @@
       }
     },
     "M7": {
-      "status": "IN_PROGRESS",
+      "status": "PROVEN",
       "started_at": "2026-08-31T05:10:20Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
-      "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
-      "human_signoff": null,
-      "blockers": []
+      "implementation_finished_at": "2026-08-31T05:14:30Z",
+      "verification_passed_at": "2026-08-31T05:13:47Z",
+      "real_world_proof_captured_at": "2026-08-31T05:13:40.531784Z",
+      "human_signed_off_at": "2026-08-31T05:14:30Z",
+      "first_proven_at": "2026-08-31T05:14:30Z",
+      "proven_at": "2026-08-31T05:14:30Z",
+      "last_validated_at": "2026-08-31T05:14:30Z",
+      "checks": {
+        "M7-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T05:14:30Z",
+          "evidence": "runs/evidence/M7/20260831T051335Z/manifest.json",
+          "note": "Four bounded source-registry decisions and public qualification samples retained."
+        },
+        "M7-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T05:14:30Z",
+          "evidence": "runs/evidence/M7/20260831T051335Z/manifest.json",
+          "note": "M7 tests, governance validation, and evidence verification passed."
+        },
+        "M7-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T05:14:30Z",
+          "evidence": "runs/evidence/M7/20260831T051335Z/manifest.json",
+          "note": "Current sample capture is hash-bound to the committed revision and configuration."
+        },
+        "M7-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T05:14:30Z",
+          "evidence": "runs/evidence/M7/20260831T051335Z/manifest.json",
+          "note": "Deferred/aggregate-only source restrictions and point-in-time adoption gates hold."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M7/20260831T051335Z/manifest.json",
+          "manifest_sha256": "9df8d3f9ac0100a6e7eaad35ccd330e99233a2b4e1ac3ae8980641c46f6355ea",
+          "captured_at": "2026-08-31T05:13:40.531784Z",
+          "recorded_at": "2026-08-31T05:13:47Z",
+          "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+          "git_revision": "0a2fc10c0407cb89eb0eecd3afc5e89e3a46bda2",
+          "summary": "FOREX_M7_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-08-31T05:13:47Z",
+        "git_revision": "0a2fc10c0407cb89eb0eecd3afc5e89e3a46bda2",
+        "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M7/20260831T051347Z/governance.stdout.txt",
+            "stderr": "runs/verification/M7/20260831T051347Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m7.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M7/20260831T051347Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M7/20260831T051347Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
+      "human_signoff": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE",
+        "note": "Delegated human authority: M7 accepted after current delegated Triad plus Financial Domain Expert review; limitation recorded in submissions.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "0a2fc10c0407cb89eb0eecd3afc5e89e3a46bda2",
+        "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+        "evidence_manifest_sha256": "9df8d3f9ac0100a6e7eaad35ccd330e99233a2b4e1ac3ae8980641c46f6355ea",
+        "verification_recorded_at": "2026-08-31T05:13:47Z",
+        "recorded_at": "2026-08-31T05:14:30Z"
+      },
+      "blockers": [],
+      "triad_recommendation": {
+        "path": "runs/triad/M7/M7-20260831T051347Z-0a2fc10c/recommendation.json",
+        "sha256": "93a7c0f550a561aa358a2907ea35697173483e2da66467b34d2beec5282e53c0",
+        "summary_path": "runs/triad/M7/M7-20260831T051347Z-0a2fc10c/review-summary.md",
+        "summary_sha256": "459e224e5daa2ab2ab484ec17a567be0d954da279e01d67e636c813989a57fc9",
+        "review_cycle_id": "M7-20260831T051347Z-0a2fc10c",
+        "recommendation": "RECOMMEND_COMPLETE",
+        "binding": {
+          "request_sha256": "2e0dbb7d27621111fc4422b98f2a41fd6f303fa113255fb96df5b982b8ab47ab",
+          "git_revision": "0a2fc10c0407cb89eb0eecd3afc5e89e3a46bda2",
+          "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+          "evidence_manifest_sha256": "9df8d3f9ac0100a6e7eaad35ccd330e99233a2b4e1ac3ae8980641c46f6355ea",
+          "verifier_fingerprint": "sha256:a4deff9baa26aa194a3676a2cbc4fa8df813cef2ed6f16071864836be235d6a9",
+          "milestone_contract_sha256": "3ed12ae28d27fe8f80d0c770a97cf344a09b0cd33d231861594a02b252910022"
+        },
+        "recorded_at": "2026-08-31T05:14:29Z"
+      }
     },
     "M8": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,
