@@ -37,7 +37,7 @@ ASSETS = {
 }
 M2_SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
 M2_SNAPSHOT_ARTIFACT_SHA256 = "sha256:dc5384732d71091aa2279aaf6d92e8e1780c8021eacde948432ad7bc68fdabaa"
-READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema"}
+READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data"}
 MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema"}
 
 
@@ -169,6 +169,20 @@ def verify_m11_schema() -> dict:
     return wrap("forex_m11_verify_schema", remote(body))
 
 
+def verify_m11_data() -> dict:
+    body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 'FOREX_M11_GDELT_DATA_VERIFY_OK',
+  (SELECT count(*) FROM forex.source_registry WHERE source_id='gdelt-sentiment-prototype'),
+  (SELECT count(*) FROM forex.raw_observation WHERE source_id='gdelt-sentiment-prototype'),
+  (SELECT count(*) FROM forex.gdelt_h1_aggregate),
+  (SELECT count(DISTINCT observation_id) FROM forex.gdelt_h1_aggregate),
+  'observed_range=' || coalesce((SELECT min(observed_at_utc)::text || ',' || max(observed_at_utc)::text FROM forex.raw_observation WHERE source_id='gdelt-sentiment-prototype'), 'none'),
+  'aggregate_range=' || coalesce((SELECT min(bucket_time_utc)::text || ',' || max(bucket_time_utc)::text FROM forex.gdelt_h1_aggregate), 'none'),
+  'no_article_columns=' || NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='forex' AND table_name='gdelt_h1_aggregate' AND column_name IN ('article_text','headline','url','content')),
+  'provenance_linkage_ok=' || NOT EXISTS (SELECT 1 FROM forex.gdelt_h1_aggregate aggregate LEFT JOIN forex.raw_observation observation ON observation.observation_id=aggregate.observation_id WHERE observation.observation_id IS NULL),
+  'context_only=' || NOT EXISTS (SELECT 1 FROM forex.gdelt_h1_aggregate WHERE uncertainty_label <> 'EXPERIMENTAL_CONTEXT_ONLY');" </dev/null'''
+    return wrap("forex_m11_verify_data", remote(body))
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Fixed Forex M2 PostgreSQL adapter.")
     parser.add_argument("command", choices=sorted(READ_ONLY | MUTATING))
@@ -176,7 +190,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command in MUTATING and not args.approve:
         parser.error("this mutating operation requires --approve")
-    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-verify-schema": verify_m11_schema}
+    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data}
     payload = actions[args.command]()
     print(json.dumps(payload, indent=2))
     return 0 if payload["ok"] else 1

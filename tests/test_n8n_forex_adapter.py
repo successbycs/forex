@@ -32,3 +32,14 @@ def test_upsert_uses_the_deployed_fixed_forex_workflow_file(monkeypatch):
     result = n8n_forex_adapter.upsert(activate=False)
     assert result["workflow_id"] == "m11-workflow"
     assert result["ok"] is True
+
+
+def test_recent_execution_returns_only_fixed_workflow_summary(monkeypatch):
+    class Shared:
+        def api_request(self, method, path):
+            assert (method, path) == ("GET", "/executions?workflowId=rfIIE2BiPtppBbT2&limit=1")
+            return ({"data": [{"id": "42", "status": "success", "mode": "trigger", "startedAt": "start", "stoppedAt": "stop", "workflowId": "rfIIE2BiPtppBbT2", "data": "not returned"}]}, {"ok": True})
+
+    monkeypatch.setattr(n8n_forex_adapter, "shared_n8n", Shared)
+    result = n8n_forex_adapter.recent_execution()
+    assert result["execution"] == {"id": "42", "status": "success", "mode": "trigger", "startedAt": "start", "stoppedAt": "stop", "workflowId": "rfIIE2BiPtppBbT2"}

@@ -15,3 +15,8 @@ does not copy the n8n API key or database password into this repository or
 accept a generic workflow, shell, SQL, MT5, or order argument. The first
 real execution must be inspected in n8n execution history and verified against
 the normalised PostgreSQL rows before M11 evidence can be captured.
+
+`capture_m11_evidence.sh` records only the latest bounded n8n execution
+summary and fixed PostgreSQL schema/data verification. Its paired verifier
+checks revision, artifact hashes, 168-hour freshness, successful n8n
+execution, provenance linkage, and absence of article-text fields.

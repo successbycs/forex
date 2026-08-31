@@ -1511,6 +1511,8 @@
         "n8n/forex-gdelt-daily.json",
         "scripts/n8n_forex_adapter.py",
         "scripts/n8n_m11_install.py",
+        "scripts/capture_m11_evidence.sh",
+        "scripts/verify_m11_evidence.sh",
         "sql/migrations/003_m11_gdelt_h1_aggregate.sql",
         "tests/milestones/test_m11.py"
       ],

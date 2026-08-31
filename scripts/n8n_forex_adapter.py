@@ -115,15 +115,37 @@ def upsert(activate: bool) -> dict[str, Any]:
     }
 
 
+def recent_execution() -> dict[str, Any]:
+    """Return the latest bounded M11 execution summary, without raw payloads."""
+    adapter = shared_n8n()
+    response, result = adapter.api_request("GET", "/executions?workflowId=rfIIE2BiPtppBbT2&limit=1")
+    executions = response.get("data", [])
+    latest = executions[0] if isinstance(executions, list) and executions else {}
+    summary = {key: latest.get(key) for key in ("id", "status", "mode", "startedAt", "stoppedAt", "workflowId")}
+    return {
+        "tool_id": "forex_m11_n8n_t480",
+        "operation": "recent_execution",
+        "workflow_id": "rfIIE2BiPtppBbT2",
+        "execution": summary,
+        "result": result,
+        "ok": result.get("ok", False),
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Fixed Forex M11 n8n adapter.")
-    parser.add_argument("command", choices=("preflight", "upsert", "activate"))
+    parser.add_argument("command", choices=("preflight", "upsert", "activate", "recent-execution"))
     parser.add_argument("--approve", action="store_true")
     args = parser.parse_args(argv)
     if args.command in {"upsert", "activate"} and not args.approve:
         parser.error("upsert and activate require --approve")
     try:
-        result = preflight() if args.command == "preflight" else upsert(activate=args.command == "activate")
+        if args.command == "preflight":
+            result = preflight()
+        elif args.command == "recent-execution":
+            result = recent_execution()
+        else:
+            result = upsert(activate=args.command == "activate")
         print(json.dumps(result, indent=2))
         return 0 if result.get("ok") else 1
     except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as error:
