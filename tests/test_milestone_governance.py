@@ -244,7 +244,7 @@ def test_refresh_fingerprint_can_preserve_only_the_approved_m0_standing_baseline
     assert refreshed["milestones"]["M1"]["status"] == "NEEDS_REVALIDATION"
     event = json.loads((root / "runs" / "run_history.json").read_text(encoding="utf-8"))["events"][-1]
     assert event["detail"]["preserved_milestones"] == ["M0"]
-    assert event["detail"]["invalidated_milestones"] == ["M1"]
+    assert event["detail"]["invalidated_milestones"] == ["M1", "M2"]
 
 
 def test_revalidation_limit_stops_normal_retries_and_records_non_proof_exception(tmp_path: Path) -> None:
