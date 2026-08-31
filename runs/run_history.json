@@ -3641,6 +3641,102 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000247",
+      "timestamp": "2026-08-31T01:53:08Z",
+      "milestone_id": "M5",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M5/20260831T015258Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000248",
+      "timestamp": "2026-08-31T01:53:08Z",
+      "milestone_id": "M5",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M5/20260831T015308Z/governance.stdout.txt",
+            "stderr": "runs/verification/M5/20260831T015308Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m5.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M5/20260831T015308Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M5/20260831T015308Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000249",
+      "timestamp": "2026-08-31T01:53:17Z",
+      "milestone_id": "M5",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M5-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000250",
+      "timestamp": "2026-08-31T01:53:17Z",
+      "milestone_id": "M5",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M5-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000251",
+      "timestamp": "2026-08-31T01:53:18Z",
+      "milestone_id": "M5",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M5-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000252",
+      "timestamp": "2026-08-31T01:53:18Z",
+      "milestone_id": "M5",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M5-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000253",
+      "timestamp": "2026-08-31T01:53:18Z",
+      "milestone_id": "M5",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE"
+      }
     }
   ]
 }

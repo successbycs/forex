@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-31T01:52:07Z",
+  "last_updated_at": "2026-08-31T01:53:18Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -967,13 +967,38 @@
       "status": "NEEDS_FIX",
       "started_at": "2026-08-31T01:51:05Z",
       "implementation_finished_at": "2026-08-31T01:51:05Z",
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": "2026-08-31T01:52:06.599301Z",
-      "human_signed_off_at": null,
+      "verification_passed_at": "2026-08-31T01:53:08Z",
+      "real_world_proof_captured_at": "2026-08-31T01:53:08.090196Z",
+      "human_signed_off_at": "2026-08-31T01:53:18Z",
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
-      "checks": {},
+      "checks": {
+        "M5-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T01:53:17Z",
+          "evidence": "runs/evidence/M5/20260831T015258Z/manifest.json",
+          "note": "Delegated MVP review: idempotent T480 PostgreSQL reimport passed; no material finding."
+        },
+        "M5-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T01:53:17Z",
+          "evidence": "runs/evidence/M5/20260831T015258Z/manifest.json",
+          "note": "Delegated MVP review: idempotent T480 PostgreSQL reimport passed; no material finding."
+        },
+        "M5-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T01:53:18Z",
+          "evidence": "runs/evidence/M5/20260831T015258Z/manifest.json",
+          "note": "Delegated MVP review: idempotent T480 PostgreSQL reimport passed; no material finding."
+        },
+        "M5-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T01:53:18Z",
+          "evidence": "runs/evidence/M5/20260831T015258Z/manifest.json",
+          "note": "Delegated MVP review: idempotent T480 PostgreSQL reimport passed; no material finding."
+        }
+      },
       "evidence": [
         {
           "manifest_path": "runs/evidence/M5/20260831T015157Z/manifest.json",
@@ -983,12 +1008,21 @@
           "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
           "git_revision": "6dbe00bc86797839c93ec23540d4b738cbabbf43",
           "summary": "FOREX_M5_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M5/20260831T015258Z/manifest.json",
+          "manifest_sha256": "f2b17f414855eddebd390ce4b3154e53844df75c192208599405c38f7a19886e",
+          "captured_at": "2026-08-31T01:53:08.090196Z",
+          "recorded_at": "2026-08-31T01:53:08Z",
+          "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+          "git_revision": "517c32c827a2889266a66d3417e3afcb0e3bc32c",
+          "summary": "FOREX_M5_PROOF_OK"
         }
       ],
       "verification": {
-        "passed": false,
-        "recorded_at": "2026-08-31T01:52:07Z",
-        "git_revision": "6dbe00bc86797839c93ec23540d4b738cbabbf43",
+        "passed": true,
+        "recorded_at": "2026-08-31T01:53:08Z",
+        "git_revision": "517c32c827a2889266a66d3417e3afcb0e3bc32c",
         "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
         "commands": [
           {
@@ -1000,8 +1034,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M5/20260831T015207Z/governance.stdout.txt",
-            "stderr": "runs/verification/M5/20260831T015207Z/governance.stderr.txt"
+            "stdout": "runs/verification/M5/20260831T015308Z/governance.stdout.txt",
+            "stderr": "runs/verification/M5/20260831T015308Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -1012,14 +1046,25 @@
               "-q",
               "tests/milestones/test_m5.py"
             ],
-            "exit_code": 4,
-            "passed": false,
-            "stdout": "runs/verification/M5/20260831T015207Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M5/20260831T015207Z/milestone-tests.stderr.txt"
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M5/20260831T015308Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M5/20260831T015308Z/milestone-tests.stderr.txt"
           }
         ]
       },
-      "human_signoff": null,
+      "human_signoff": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE",
+        "note": "Delegated human authority: M5 accepted after MVP review.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "517c32c827a2889266a66d3417e3afcb0e3bc32c",
+        "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+        "evidence_manifest_sha256": "f2b17f414855eddebd390ce4b3154e53844df75c192208599405c38f7a19886e",
+        "verification_recorded_at": "2026-08-31T01:53:08Z",
+        "recorded_at": "2026-08-31T01:53:18Z"
+      },
       "blockers": []
     },
     "M6": {
