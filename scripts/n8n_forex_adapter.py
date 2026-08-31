@@ -59,7 +59,7 @@ def workflow() -> dict[str, Any]:
     if not required <= node_types or "n8n-nodes-base.executeCommand" in node_types:
         raise RuntimeError("The fixed Forex M11 workflow violates its n8n-native node contract.")
     webhook = next((node for node in nodes if node.get("id") == "m11-run-now-webhook"), None)
-    if not isinstance(webhook, dict) or webhook.get("type") != "n8n-nodes-base.webhook":
+    if not isinstance(webhook, dict) or webhook.get("type") != "n8n-nodes-base.webhook" or webhook.get("webhookId") != "2e9a7b9a-7a20-4ff3-8f5a-35d2a6890996":
         raise RuntimeError("The fixed Forex M11 run-now webhook is missing.")
     parameters = webhook.get("parameters")
     if not isinstance(parameters, dict) or parameters.get("httpMethod") != "POST" or parameters.get("path") != "forex-m11-run-now" or parameters.get("responseMode") != "onReceived":
