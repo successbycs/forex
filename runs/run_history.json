@@ -4117,6 +4117,17 @@
         "operator": "Chris Sparshott",
         "decision": "APPROVE"
       }
+    },
+    {
+      "event_id": "E000278",
+      "timestamp": "2026-08-31T05:04:41Z",
+      "milestone_id": "M6",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "BLOCKED",
+        "to": "NEEDS_FIX",
+        "reason": "Fresh evidence and delegated review will be recaptured against the current committed revision."
+      }
     }
   ]
 }
