@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,8 +36,12 @@ def api(method: str, path: str, payload: dict | None = None) -> dict:
         "http://127.0.0.1:5678/api/v1" + path, body, method=method,
         headers={"accept": "application/json", "content-type": "application/json", "X-N8N-API-KEY": KEY_FILE.read_text().strip()},
     )
-    with urlopen(request, timeout=60) as response:
-        value = json.loads(response.read())
+    try:
+        with urlopen(request, timeout=60) as response:
+            value = json.loads(response.read())
+    except HTTPError as error:
+        detail = error.read().decode("utf-8", errors="replace")[:500]
+        raise RuntimeError(f"n8n {method} {path} failed with HTTP {error.code}: {detail}") from error
     if not isinstance(value, dict):
         raise RuntimeError("n8n returned an invalid response")
     return value
