@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import subprocess
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,8 +46,11 @@ def main() -> None:
     workflow = json.loads(WORKFLOW.read_text(encoding="utf-8"))
     if workflow.get("name") != NAME or workflow.get("active") is not False:
         raise RuntimeError("fixed M11 workflow contract is invalid")
-    credentials = api("GET", "/credentials?limit=100").get("data", [])
-    credential_id = next((str(item.get("id")) for item in credentials if item.get("name") == CREDENTIAL_NAME and item.get("type") == "postgres"), "")
+    lookup = subprocess.run(
+        ["docker", "compose", "exec", "-T", "postgres", "psql", "-U", "cs_ai_lab", "-d", "cs_ai_lab", "-Atqc", "SELECT id FROM credential_entity WHERE name = 'Forex M11 PostgreSQL' AND type = 'postgres' LIMIT 1"],
+        cwd=LAB_ROOT, check=True, capture_output=True, text=True,
+    )
+    credential_id = lookup.stdout.strip()
     if not credential_id:
         values = env_file()
         credential = api("POST", "/credentials", {"name": CREDENTIAL_NAME, "type": "postgres", "data": {"host": "postgres", "port": 5432, "database": values["POSTGRES_DB"], "user": values["POSTGRES_USER"], "password": values["POSTGRES_PASSWORD"], "ssl": "disable"}})
