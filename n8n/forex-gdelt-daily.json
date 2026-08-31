@@ -17,6 +17,15 @@
   },
   "nodes": [
     {
+      "id": "m11-manual-execution-trigger",
+      "name": "M11 fixed manual execution trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [0, 480],
+      "parameters": {},
+      "notes": "M11-only evidence trigger for n8n CLI execution. It shares the same n8n-native path as the daily schedule."
+    },
+    {
       "id": "schedule-closed-utc-day",
       "name": "Schedule after UTC day closes",
       "type": "n8n-nodes-base.scheduleTrigger",
@@ -33,15 +42,6 @@
         }
       },
       "notes": "Runs at 00:15 UTC-equivalent instance time. Configure n8n to UTC before activation."
-    },
-    {
-      "id": "m11-manual-execution-trigger",
-      "name": "M11 fixed manual execution trigger",
-      "type": "n8n-nodes-base.executeWorkflowTrigger",
-      "typeVersion": 1,
-      "position": [0, 480],
-      "parameters": {},
-      "notes": "M11-only evidence trigger for n8n CLI execution. It shares the same n8n-native path as the daily schedule."
     },
     {
       "id": "build-prior-day-gkg-urls",
