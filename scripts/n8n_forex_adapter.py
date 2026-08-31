@@ -75,7 +75,9 @@ def remote_workflow_request(adapter: Any, method: str, path: str) -> tuple[dict[
             f"expected_sha256={adapter.shell_quote(expected_sha256)}",
             "[[ -r \"$key_file\" && -r \"$workflow_file\" ]] || { printf 'n8n API key or fixed Forex workflow file is unavailable.\\n' >&2; exit 3; }",
             "[[ \"$(sha256sum \"$workflow_file\" | awk '{print $1}')\" == \"$expected_sha256\" ]] || { printf 'Deployed Forex workflow differs from the bound revision.\\n' >&2; exit 4; }",
-            f"curl --fail-with-body --silent --show-error --max-time 60 -X {adapter.shell_quote(method.upper())} -H 'accept: application/json' -H 'content-type: application/json' -H \"X-N8N-API-KEY: $(<\"$key_file\")\" --data-binary @\"$workflow_file\" \"$base_url/api/v1{path}\"",
+            "payload_file=\"$(mktemp)\"; trap 'rm -f \"$payload_file\"' EXIT",
+            "python3 - \"$workflow_file\" > \"$payload_file\" <<'PY'\nimport json, sys\nworkflow = json.load(open(sys.argv[1], encoding='utf-8'))\nprint(json.dumps({key: workflow.get(key, {} if key in {'connections', 'settings'} else []) for key in ('name', 'nodes', 'connections', 'settings')}, separators=(',', ':')))\nPY",
+            f"curl --fail-with-body --silent --show-error --max-time 60 -X {adapter.shell_quote(method.upper())} -H 'accept: application/json' -H 'content-type: application/json' -H \"X-N8N-API-KEY: $(<\"$key_file\")\" --data-binary @\"$payload_file\" \"$base_url/api/v1{path}\"",
         ]
     )
     result = adapter.execute_remote(script)
