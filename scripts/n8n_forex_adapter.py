@@ -24,6 +24,7 @@ WORKFLOW_NAME = "Forex GDELT daily H1 context ingestion"
 REMOTE_WORKFLOW_FILE = "/home/chris/projects/forex/n8n/forex-gdelt-daily.json"
 CREDENTIAL_NAME = "Forex M11 PostgreSQL"
 REMOTE_LAB_ENV = "/home/chris/projects/cs-ai-lab-infra/.env"
+REMOTE_INSTALLER = "/home/chris/projects/forex/scripts/n8n_m11_install.py"
 
 
 def shared_n8n() -> Any:
@@ -95,16 +96,9 @@ def remote_workflow_request(adapter: Any, method: str, path: str) -> tuple[dict[
 
 def upsert(activate: bool) -> dict[str, Any]:
     adapter = shared_n8n()
-    definition = workflow()
-    existing, _ = adapter.list_workflows()
-    item = next((entry for entry in existing if entry.get("name") == WORKFLOW_NAME), None)
-    if item is None:
-        response, result = remote_workflow_request(adapter, "POST", "/workflows")
-    else:
-        workflow_id = str(item.get("id") or "").strip()
-        if not workflow_id:
-            raise RuntimeError("The existing Forex M11 n8n workflow has no id.")
-        response, result = remote_workflow_request(adapter, "PUT", f"/workflows/{workflow_id}")
+    workflow()
+    result = adapter.execute_remote(f"python3 {adapter.shell_quote(REMOTE_INSTALLER)}")
+    response = adapter.result_json(result)
     workflow_id = str(response.get("id") or "").strip()
     if activate:
         if not workflow_id:

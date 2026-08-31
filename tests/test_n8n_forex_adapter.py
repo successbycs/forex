@@ -18,15 +18,17 @@ def test_fixed_m11_workflow_contract_rejects_host_command_surface(tmp_path, monk
 
 def test_upsert_uses_the_deployed_fixed_forex_workflow_file(monkeypatch):
     class Shared:
-        def list_workflows(self):
-            return [], {}
+        def shell_quote(self, value):
+            return repr(value)
+
+        def execute_remote(self, script):
+            assert "n8n_m11_install.py" in script
+            return {"ok": True}
+
+        def result_json(self, result):
+            return {"id": "m11-workflow"}
 
     monkeypatch.setattr(n8n_forex_adapter, "shared_n8n", Shared)
-    monkeypatch.setattr(
-        n8n_forex_adapter,
-        "remote_workflow_request",
-        lambda adapter, method, path: ({"id": "m11-workflow"}, {"ok": True}),
-    )
     result = n8n_forex_adapter.upsert(activate=False)
     assert result["workflow_id"] == "m11-workflow"
     assert result["ok"] is True
