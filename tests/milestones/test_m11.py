@@ -24,6 +24,7 @@ def test_m11_n8n_workflow_is_daily_native_and_has_no_python_or_host_command_surf
     assert "https://data.gdeltproject.org/gdeltv2/lastupdate.txt" not in rendered
     assert "Build 24 closed UTC hours" in nodes
     assert "Persist hourly GDELT context" in nodes
+    assert nodes["One hourly job at a time"]["parameters"]["batchSize"] == 1
     assert nodes["M11 fixed manual execution trigger"]["type"] == "n8n-nodes-base.executeWorkflowTrigger"
     assert nodes["Download GKG ZIP"]["parameters"]["options"]["response"]["response"] == {
         "neverError": False,
