@@ -31,6 +31,7 @@ def test_m11_workflow_builds_all_96_prior_day_intervals_and_retains_no_article_f
 
     assert "minuteOfDay < 24 * 60" in code
     assert "minuteOfDay += 15" in code
+    assert " + '00'" not in code
     assert "payload_sha256" in aggregate_code
     assert "article_text" not in aggregate_code
     assert "headline" not in aggregate_code
