@@ -3946,6 +3946,24 @@
         "from": "READY",
         "to": "IN_PROGRESS"
       }
+    },
+    {
+      "event_id": "E000267",
+      "timestamp": "2026-08-31T02:13:01Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+        "current": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
     }
   ]
 }

@@ -147,6 +147,22 @@ def _m3_mt5_history_depth_probe_command() -> str:
     )
 
 
+def _m6_mt5_multi_timeframe_probe_command() -> str:
+    """Return the fixed read-only M6 multi-timeframe command for Windows."""
+    source = (ROOT / "t480" / "m6_mt5_multi_timeframe_probe.py").read_bytes()
+    digest = hashlib.sha256(source).hexdigest()
+    return (
+        "$ErrorActionPreference='Stop'; "
+        "$root=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe'; "
+        "$s=gc -Raw (Join-Path $root 'mt5.local.json')|ConvertFrom-Json; "
+        "if ([string]::IsNullOrWhiteSpace($s.python_path) -or !(Test-Path -LiteralPath $s.python_path)) { throw 'M6 local configured Python interpreter is absent' }; "
+        "$p=Join-Path $root 'm6_mt5_multi_timeframe_probe.py'; "
+        "if (!(Test-Path -LiteralPath $p)) { throw 'M6 fixed probe file is absent; stage the committed probe with the fixed OpenSSH copy step first' }; "
+        "if ((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLower() -ne '" + digest + "') { throw 'M6 fixed probe hash does not match the committed source' }; "
+        "$env:FOREX_M6_PROBE_SHA256='" + digest + "'; & $s.python_path $p $s.terminal_path; exit $LASTEXITCODE"
+    )
+
+
 OPERATIONS: dict[str, Operation] = {
     "health": Operation(
         "health",
@@ -263,6 +279,12 @@ OPERATIONS: dict[str, Operation] = {
         "m3_mt5_history_depth_probe",
         "Measure fixed closed EURUSD H1 history depth from GOMarketsMU-Demo without persisting or trading.",
         powershell_command=_m3_mt5_history_depth_probe_command(),
+        timeout_seconds=120,
+    ),
+    "m6_mt5_multi_timeframe_probe": Operation(
+        "m6_mt5_multi_timeframe_probe",
+        "Measure fixed closed EURUSD M15, H1, and D1 Demo history without persisting or trading.",
+        powershell_command=_m6_mt5_multi_timeframe_probe_command(),
         timeout_seconds=120,
     ),
 }

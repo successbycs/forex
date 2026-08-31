@@ -61,6 +61,11 @@
       "id": "m3_mt5_history_depth_probe",
       "purpose": "Measure fixed closed EURUSD H1 history depth from GOMarketsMU-Demo without persisting or trading.",
       "approval_required": false
+    },
+    {
+      "id": "m6_mt5_multi_timeframe_probe",
+      "purpose": "Measure fixed closed EURUSD M15, H1, and D1 Demo history without persisting or trading.",
+      "approval_required": false
     }
   ]
 }
