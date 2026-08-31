@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
-  "last_proven_milestone": "M5",
-  "current_milestone": "M6",
+  "last_proven_milestone": "M6",
+  "current_milestone": null,
   "next_milestone": "M7",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "NEEDS_FIX",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-31T05:04:41Z",
+  "last_updated_at": "2026-08-31T05:09:01Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -1103,39 +1103,39 @@
       }
     },
     "M6": {
-      "status": "NEEDS_FIX",
-      "started_at": "2026-08-31T02:10:40Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": "2026-08-31T02:19:07Z",
-      "real_world_proof_captured_at": "2026-08-31T02:19:07.289682Z",
-      "human_signed_off_at": "2026-08-31T05:04:19Z",
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
+      "status": "PROVEN",
+      "started_at": "2026-08-31T05:09:01Z",
+      "implementation_finished_at": "2026-08-31T05:09:01Z",
+      "verification_passed_at": "2026-08-31T05:04:44Z",
+      "real_world_proof_captured_at": "2026-08-31T05:04:44.295020Z",
+      "human_signed_off_at": "2026-08-31T05:08:26Z",
+      "first_proven_at": "2026-08-31T05:09:01Z",
+      "proven_at": "2026-08-31T05:09:01Z",
+      "last_validated_at": "2026-08-31T05:09:01Z",
       "checks": {
         "M6-C1": {
           "result": "PASS",
-          "recorded_at": "2026-08-31T05:04:19Z",
-          "evidence": "runs/evidence/M6/20260831T021907Z/manifest.json",
-          "note": "Fixed T480 M15/H1/D1 Demo dataset capture passed."
+          "recorded_at": "2026-08-31T05:08:26Z",
+          "evidence": "runs/evidence/M6/20260831T050441Z/manifest.json",
+          "note": "Fixed T480 probe retained closed, quality-labelled Demo-only EUR/USD M15/H1/D1 datasets."
         },
         "M6-C2": {
           "result": "PASS",
-          "recorded_at": "2026-08-31T05:04:19Z",
-          "evidence": "runs/evidence/M6/20260831T021907Z/manifest.json",
-          "note": "M6 tests and governance verification passed."
+          "recorded_at": "2026-08-31T05:08:26Z",
+          "evidence": "runs/evidence/M6/20260831T050441Z/manifest.json",
+          "note": "M6 tests, governance validation, and independent evidence verification passed."
         },
         "M6-C3": {
           "result": "PASS",
-          "recorded_at": "2026-08-31T05:04:19Z",
-          "evidence": "runs/evidence/M6/20260831T021907Z/manifest.json",
-          "note": "Fresh evidence is bound to current revision and config."
+          "recorded_at": "2026-08-31T05:08:26Z",
+          "evidence": "runs/evidence/M6/20260831T050441Z/manifest.json",
+          "note": "Current evidence is hash-bound to the committed revision and governed configuration."
         },
         "M6-C4": {
           "result": "PASS",
-          "recorded_at": "2026-08-31T05:04:19Z",
-          "evidence": "runs/evidence/M6/20260831T021907Z/manifest.json",
-          "note": "Cutoff, quality, Demo-only and no-lookahead checks passed."
+          "recorded_at": "2026-08-31T05:08:26Z",
+          "evidence": "runs/evidence/M6/20260831T050441Z/manifest.json",
+          "note": "Closed-bar cutoff, quality labels, no-lookahead, and Demo-only boundaries passed."
         }
       },
       "evidence": [
@@ -1156,12 +1156,21 @@
           "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
           "git_revision": "24e5d6d0e08ddeb908bfa20847d79fd9e01011a6",
           "summary": "FOREX_M6_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M6/20260831T050441Z/manifest.json",
+          "manifest_sha256": "399d8214b8209b35b82cc35d388550e910810f5aec6660e8e0b713bccfed0c70",
+          "captured_at": "2026-08-31T05:04:44.295020Z",
+          "recorded_at": "2026-08-31T05:04:44Z",
+          "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+          "git_revision": "b65dafb1a92c401c505f541e761a6e8d28f0f1c6",
+          "summary": "FOREX_M6_PROOF_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-08-31T02:19:07Z",
-        "git_revision": "24e5d6d0e08ddeb908bfa20847d79fd9e01011a6",
+        "recorded_at": "2026-08-31T05:04:44Z",
+        "git_revision": "b65dafb1a92c401c505f541e761a6e8d28f0f1c6",
         "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
         "commands": [
           {
@@ -1173,8 +1182,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M6/20260831T021907Z/governance.stdout.txt",
-            "stderr": "runs/verification/M6/20260831T021907Z/governance.stderr.txt"
+            "stdout": "runs/verification/M6/20260831T050444Z/governance.stdout.txt",
+            "stderr": "runs/verification/M6/20260831T050444Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -1187,36 +1196,44 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M6/20260831T021907Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M6/20260831T021907Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M6/20260831T050444Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M6/20260831T050444Z/milestone-tests.stderr.txt"
           }
         ]
       },
       "human_signoff": {
         "operator": "Chris Sparshott",
         "decision": "APPROVE",
-        "note": "Delegated human authority: M6 approved after delegated role reviews.",
+        "note": "Delegated human authority: M6 accepted after current delegated Triad plus Financial Domain Expert review; limitation recorded in submissions.",
         "inputs_reviewed": true,
         "outputs_reviewed": true,
-        "git_revision": "e960e8df11585bb0037e27b4742220abca911285",
+        "git_revision": "b65dafb1a92c401c505f541e761a6e8d28f0f1c6",
         "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
-        "evidence_manifest_sha256": "80ba889b11149cd2f0e7197327692a853666c8d6ceb4da5fddb80f41f03f509a",
-        "verification_recorded_at": "2026-08-31T02:19:07Z",
-        "recorded_at": "2026-08-31T05:04:19Z"
+        "evidence_manifest_sha256": "399d8214b8209b35b82cc35d388550e910810f5aec6660e8e0b713bccfed0c70",
+        "verification_recorded_at": "2026-08-31T05:04:44Z",
+        "recorded_at": "2026-08-31T05:08:26Z"
       },
-      "blockers": [
-        {
-          "reason": "Fresh M6 evidence is verified; closure awaits required review submissions for the current bound cycle.",
-          "recorded_at": "2026-08-31T02:21:04Z"
+      "blockers": [],
+      "triad_recommendation": {
+        "path": "runs/triad/M6/M6-20260831T050445Z-b65dafb1/recommendation.json",
+        "sha256": "a00a00155631ee29ea68285adbeeff6de98a7bbb6441d72941daeb6a3a8de3ee",
+        "summary_path": "runs/triad/M6/M6-20260831T050445Z-b65dafb1/review-summary.md",
+        "summary_sha256": "c3bfa88a5c6cc721ce64a635edb09274b89623e1ca676807396666c06abaafa2",
+        "review_cycle_id": "M6-20260831T050445Z-b65dafb1",
+        "recommendation": "RECOMMEND_COMPLETE",
+        "binding": {
+          "request_sha256": "c82235ea9a8b011babd026fbdc1857dff69673f5a964a5ed32966c3b4aa56201",
+          "git_revision": "b65dafb1a92c401c505f541e761a6e8d28f0f1c6",
+          "configuration_fingerprint": "sha256:7fac668a67d36a34818fd1d2df43eb6e56af9af05c8ea4ac581674538275d29f",
+          "evidence_manifest_sha256": "399d8214b8209b35b82cc35d388550e910810f5aec6660e8e0b713bccfed0c70",
+          "verifier_fingerprint": "sha256:be783f8d01b1e056ca777c9aa678665191095cf3578b61076e5726633ae2a6ce",
+          "milestone_contract_sha256": "7d9c62388d2a8bf2c192042f49512609301bfdea55e55a3f8b413fcd66433153"
         },
-        {
-          "reason": "Fresh evidence and delegated review will be recaptured against the current committed revision.",
-          "recorded_at": "2026-08-31T05:04:41Z"
-        }
-      ]
+        "recorded_at": "2026-08-31T05:08:26Z"
+      }
     },
     "M7": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,

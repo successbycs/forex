@@ -4128,6 +4128,152 @@
         "to": "NEEDS_FIX",
         "reason": "Fresh evidence and delegated review will be recaptured against the current committed revision."
       }
+    },
+    {
+      "event_id": "E000279",
+      "timestamp": "2026-08-31T05:04:44Z",
+      "milestone_id": "M6",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M6/20260831T050441Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000280",
+      "timestamp": "2026-08-31T05:04:44Z",
+      "milestone_id": "M6",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M6/20260831T050444Z/governance.stdout.txt",
+            "stderr": "runs/verification/M6/20260831T050444Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m6.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M6/20260831T050444Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M6/20260831T050444Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000281",
+      "timestamp": "2026-08-31T05:08:26Z",
+      "milestone_id": "M6",
+      "action": "TRIAD_RECOMMENDATION_RECORDED",
+      "detail": {
+        "path": "runs/triad/M6/M6-20260831T050445Z-b65dafb1/recommendation.json",
+        "recommendation": "RECOMMEND_COMPLETE"
+      }
+    },
+    {
+      "event_id": "E000282",
+      "timestamp": "2026-08-31T05:08:26Z",
+      "milestone_id": "M6",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M6-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000283",
+      "timestamp": "2026-08-31T05:08:26Z",
+      "milestone_id": "M6",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M6-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000284",
+      "timestamp": "2026-08-31T05:08:26Z",
+      "milestone_id": "M6",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M6-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000285",
+      "timestamp": "2026-08-31T05:08:26Z",
+      "milestone_id": "M6",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M6-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000286",
+      "timestamp": "2026-08-31T05:08:26Z",
+      "milestone_id": "M6",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "event_id": "E000287",
+      "timestamp": "2026-08-31T05:09:01Z",
+      "milestone_id": "M6",
+      "action": "MILESTONE_READY",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "READY"
+      }
+    },
+    {
+      "event_id": "E000288",
+      "timestamp": "2026-08-31T05:09:01Z",
+      "milestone_id": "M6",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
+    },
+    {
+      "event_id": "E000289",
+      "timestamp": "2026-08-31T05:09:01Z",
+      "milestone_id": "M6",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "IN_PROGRESS",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
+    },
+    {
+      "event_id": "E000290",
+      "timestamp": "2026-08-31T05:09:01Z",
+      "milestone_id": "M6",
+      "action": "MILESTONE_PROVEN",
+      "detail": {
+        "proven_at": "2026-08-31T05:09:01Z",
+        "next_milestone": "M7"
+      }
     }
   ]
 }
