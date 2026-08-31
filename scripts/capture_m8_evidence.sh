@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"; cd "$root"
+export PYTHONPATH="$root/src${PYTHONPATH:+:$PYTHONPATH}"
 bundle="${1:-runs/evidence/M8/$(date -u +%Y%m%dT%H%M%SZ)}"; mkdir -p "$bundle"
 # Read the one M8 secret from the ignored local environment file without
 # sourcing arbitrary shell content or emitting it into evidence/logs.
