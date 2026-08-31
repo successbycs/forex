@@ -2,7 +2,7 @@
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"; cd "$root"; b="${1:-runs/evidence/M4/$(date -u +%Y%m%dT%H%M%SZ)}"; mkdir -p "$b"
 python3 -m pytest -q tests/milestones/test_m4.py >"$b/tests.txt" 2>&1
-python3 - <<'PY' >"$b/application.txt"
+PYTHONPATH="$root/src" python3 - <<'PY' >"$b/application.txt"
 from forex.data_contracts import build_dataset_snapshot
 from forex.research_data import historical_bars
 s={'contract_version':'forex.historical-data.v1','source_id':'demo','owner':'demo','license':'demo','cost_model':'demo','api_version':'demo','endpoint_allowlist':[],'rate_limit':'demo','retention_rule':'demo','historical_depth':'demo','revision_support':'demo','timezone_policy':'UTC','outage_policy':'demo','approval_status':'DEMO_ONLY','secrets_reference':'NONE','provenance_note':'demo'}; o={'contract_version':'forex.historical-data.v1','observation_id':'o','source_id':'demo','source_revision':'x','observed_at_utc':'2026-01-01T00:00:00Z','available_at_utc':'2026-01-01T02:00:00Z','retrieved_at_utc':'2026-01-01T02:00:00Z','timezone':'UTC','payload_sha256':'sha256:x','payload_path':'x','redacted':True}; b={'time_utc':'2026-01-01T01:00:00Z','open':1.,'high':1.1,'low':.9,'close':1.,'volume':1,'raw_observation_id':'o','available_at_utc':'2026-01-01T02:00:00Z'}
