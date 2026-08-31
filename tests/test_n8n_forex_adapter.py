@@ -43,3 +43,17 @@ def test_recent_execution_returns_only_fixed_workflow_summary(monkeypatch):
     monkeypatch.setattr(n8n_forex_adapter, "shared_n8n", Shared)
     result = n8n_forex_adapter.recent_execution()
     assert result["execution"] == {"id": "42", "status": "success", "mode": "trigger", "startedAt": "start", "stoppedAt": "stop", "workflowId": "rfIIE2BiPtppBbT2"}
+
+
+def test_evidence_run_uses_only_the_fixed_runner_id(monkeypatch):
+    class Shared:
+        def shell_quote(self, value):
+            return repr(value)
+
+        def execute_remote(self, script):
+            assert "n8n execute --id='runner-fixed' --rawOutput" in script
+            return {"ok": True}
+
+    monkeypatch.setattr(n8n_forex_adapter, "shared_n8n", Shared)
+    monkeypatch.setattr(n8n_forex_adapter, "upsert", lambda activate: {"workflow_id": "m11-fixed", "evidence_runner_workflow_id": "runner-fixed"})
+    assert n8n_forex_adapter.evidence_run()["ok"] is True

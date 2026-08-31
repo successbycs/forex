@@ -19,11 +19,11 @@
     {
       "id": "m11-manual-execution-trigger",
       "name": "M11 fixed manual execution trigger",
-      "type": "n8n-nodes-base.manualTrigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
       "position": [0, 480],
       "parameters": {},
-      "notes": "M11-only native manual trigger for n8n CLI evidence execution. It shares the same n8n-native path as the daily schedule."
+      "notes": "M11-only sub-workflow trigger for the fixed n8n evidence runner. It shares the same n8n-native path as the daily schedule."
     },
     {
       "id": "schedule-closed-utc-day",

@@ -18,6 +18,7 @@ WORKFLOW = ROOT / "n8n" / "forex-gdelt-daily.json"
 LAB_ROOT = Path("/home/chris/projects/cs-ai-lab-infra")
 KEY_FILE = Path("/home/chris/.config/cs-ai-lab/n8n-api-key")
 NAME = "Forex GDELT daily H1 context ingestion"
+RUNNER_NAME = "Forex M11 fixed evidence runner"
 CREDENTIAL_NAME = "Forex M11 PostgreSQL"
 
 
@@ -47,6 +48,25 @@ def api(method: str, path: str, payload: dict | None = None) -> dict:
     return value
 
 
+def upsert_workflow(name: str, payload: dict) -> dict:
+    workflows = api("GET", "/workflows?limit=250").get("data", [])
+    existing = next((item for item in workflows if item.get("name") == name), None)
+    return api("PUT", f"/workflows/{existing['id']}", payload) if existing else api("POST", "/workflows", payload)
+
+
+def evidence_runner_payload(workflow_id: str) -> dict:
+    """A fixed n8n-native one-shot wrapper; it has no scheduler or host command."""
+    return {
+        "name": RUNNER_NAME,
+        "nodes": [
+            {"id": "m11-runner-manual", "name": "Run M11 evidence ingestion", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 300], "parameters": {}},
+            {"id": "m11-runner-call", "name": "Run fixed M11 workflow", "type": "n8n-nodes-base.executeWorkflow", "typeVersion": 1.3, "position": [240, 300], "parameters": {"source": "database", "workflowId": workflow_id, "mode": "once", "options": {}}},
+        ],
+        "connections": {"Run M11 evidence ingestion": {"main": [[{"node": "Run fixed M11 workflow", "type": "main", "index": 0}]]}},
+        "settings": {"executionOrder": "v1", "timezone": "UTC"},
+    }
+
+
 def main() -> None:
     workflow = json.loads(WORKFLOW.read_text(encoding="utf-8"))
     if workflow.get("name") != NAME or workflow.get("active") is not False:
@@ -66,10 +86,15 @@ def main() -> None:
         if node.get("id") == "persist-gdelt-h1-context":
             node["credentials"] = {"postgres": {"id": credential_id, "name": CREDENTIAL_NAME}}
     payload = {key: workflow.get(key, {} if key in {"connections", "settings"} else []) for key in ("name", "nodes", "connections", "settings")}
-    workflows = api("GET", "/workflows?limit=250").get("data", [])
-    existing = next((item for item in workflows if item.get("name") == NAME), None)
-    response = api("PUT", f"/workflows/{existing['id']}", payload) if existing else api("POST", "/workflows", payload)
-    print(json.dumps({"workflow_id": response.get("id"), "workflow_name": NAME, "credential_configured": True, "ok": True}))
+    response = upsert_workflow(NAME, payload)
+    workflow_id = str(response.get("id") or "")
+    if not workflow_id:
+        raise RuntimeError("n8n M11 workflow was not created")
+    runner = upsert_workflow(RUNNER_NAME, evidence_runner_payload(workflow_id))
+    runner_id = str(runner.get("id") or "")
+    if not runner_id:
+        raise RuntimeError("n8n M11 evidence runner was not created")
+    print(json.dumps({"workflow_id": workflow_id, "workflow_name": NAME, "evidence_runner_workflow_id": runner_id, "credential_configured": True, "ok": True}))
 
 
 if __name__ == "__main__":
