@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
-  "last_proven_milestone": "M4",
-  "current_milestone": "M5",
+  "last_proven_milestone": "M5",
+  "current_milestone": null,
   "next_milestone": "M6",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-31T01:53:18Z",
+  "last_updated_at": "2026-08-31T02:10:28Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -964,39 +964,39 @@
       "blockers": []
     },
     "M5": {
-      "status": "NEEDS_FIX",
+      "status": "PROVEN",
       "started_at": "2026-08-31T01:51:05Z",
       "implementation_finished_at": "2026-08-31T01:51:05Z",
-      "verification_passed_at": "2026-08-31T01:53:08Z",
-      "real_world_proof_captured_at": "2026-08-31T01:53:08.090196Z",
-      "human_signed_off_at": "2026-08-31T01:53:18Z",
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
+      "verification_passed_at": "2026-08-31T02:04:53Z",
+      "real_world_proof_captured_at": "2026-08-31T02:04:52.831553Z",
+      "human_signed_off_at": "2026-08-31T02:10:28Z",
+      "first_proven_at": "2026-08-31T02:10:28Z",
+      "proven_at": "2026-08-31T02:10:28Z",
+      "last_validated_at": "2026-08-31T02:10:28Z",
       "checks": {
         "M5-C1": {
           "result": "PASS",
-          "recorded_at": "2026-08-31T01:53:17Z",
-          "evidence": "runs/evidence/M5/20260831T015258Z/manifest.json",
-          "note": "Delegated MVP review: idempotent T480 PostgreSQL reimport passed; no material finding."
+          "recorded_at": "2026-08-31T02:10:27Z",
+          "evidence": "runs/evidence/M5/20260831T020440Z/manifest.json",
+          "note": "Current T480 reimport and verification passed."
         },
         "M5-C2": {
           "result": "PASS",
-          "recorded_at": "2026-08-31T01:53:17Z",
-          "evidence": "runs/evidence/M5/20260831T015258Z/manifest.json",
-          "note": "Delegated MVP review: idempotent T480 PostgreSQL reimport passed; no material finding."
+          "recorded_at": "2026-08-31T02:10:27Z",
+          "evidence": "runs/evidence/M5/20260831T020440Z/manifest.json",
+          "note": "Tests and repository verification passed."
         },
         "M5-C3": {
           "result": "PASS",
-          "recorded_at": "2026-08-31T01:53:18Z",
-          "evidence": "runs/evidence/M5/20260831T015258Z/manifest.json",
-          "note": "Delegated MVP review: idempotent T480 PostgreSQL reimport passed; no material finding."
+          "recorded_at": "2026-08-31T02:10:28Z",
+          "evidence": "runs/evidence/M5/20260831T020440Z/manifest.json",
+          "note": "Fresh evidence is revision and configuration bound."
         },
         "M5-C4": {
           "result": "PASS",
-          "recorded_at": "2026-08-31T01:53:18Z",
-          "evidence": "runs/evidence/M5/20260831T015258Z/manifest.json",
-          "note": "Delegated MVP review: idempotent T480 PostgreSQL reimport passed; no material finding."
+          "recorded_at": "2026-08-31T02:10:28Z",
+          "evidence": "runs/evidence/M5/20260831T020440Z/manifest.json",
+          "note": "Demo-only, no-lookahead and sealed provenance controls passed."
         }
       },
       "evidence": [
@@ -1017,12 +1017,30 @@
           "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
           "git_revision": "517c32c827a2889266a66d3417e3afcb0e3bc32c",
           "summary": "FOREX_M5_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M5/20260831T015742Z/manifest.json",
+          "manifest_sha256": "2289a76bd8e3e649f9a01a2e6b08a3ea3c01760cc25820fd9ec16dfcb54781b1",
+          "captured_at": "2026-08-31T01:57:52.974238Z",
+          "recorded_at": "2026-08-31T01:57:53Z",
+          "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+          "git_revision": "e5b35189269ae6d701616d81a15f3cc7086f8980",
+          "summary": "FOREX_M5_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M5/20260831T020440Z/manifest.json",
+          "manifest_sha256": "c59dc73c5dbc5cec407e87d5a227ade20882d509a82532ed98786f36c6d70156",
+          "captured_at": "2026-08-31T02:04:52.831553Z",
+          "recorded_at": "2026-08-31T02:04:53Z",
+          "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+          "git_revision": "79402c07f0f778509dbf06385b906993842c1984",
+          "summary": "FOREX_M5_PROOF_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-08-31T01:53:08Z",
-        "git_revision": "517c32c827a2889266a66d3417e3afcb0e3bc32c",
+        "recorded_at": "2026-08-31T02:04:53Z",
+        "git_revision": "79402c07f0f778509dbf06385b906993842c1984",
         "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
         "commands": [
           {
@@ -1034,8 +1052,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M5/20260831T015308Z/governance.stdout.txt",
-            "stderr": "runs/verification/M5/20260831T015308Z/governance.stderr.txt"
+            "stdout": "runs/verification/M5/20260831T020453Z/governance.stdout.txt",
+            "stderr": "runs/verification/M5/20260831T020453Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -1048,27 +1066,44 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M5/20260831T015308Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M5/20260831T015308Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M5/20260831T020453Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M5/20260831T020453Z/milestone-tests.stderr.txt"
           }
         ]
       },
       "human_signoff": {
         "operator": "Chris Sparshott",
         "decision": "APPROVE",
-        "note": "Delegated human authority: M5 accepted after MVP review.",
+        "note": "Delegated human authority: M5 accepted after current Triad plus domain MVP review.",
         "inputs_reviewed": true,
         "outputs_reviewed": true,
-        "git_revision": "517c32c827a2889266a66d3417e3afcb0e3bc32c",
+        "git_revision": "79402c07f0f778509dbf06385b906993842c1984",
         "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
-        "evidence_manifest_sha256": "f2b17f414855eddebd390ce4b3154e53844df75c192208599405c38f7a19886e",
-        "verification_recorded_at": "2026-08-31T01:53:08Z",
-        "recorded_at": "2026-08-31T01:53:18Z"
+        "evidence_manifest_sha256": "c59dc73c5dbc5cec407e87d5a227ade20882d509a82532ed98786f36c6d70156",
+        "verification_recorded_at": "2026-08-31T02:04:53Z",
+        "recorded_at": "2026-08-31T02:10:28Z"
       },
-      "blockers": []
+      "blockers": [],
+      "triad_recommendation": {
+        "path": "runs/triad/M5/M5-20260831T020508Z-79402c07/recommendation.json",
+        "sha256": "e79a388fd92ea3d329aaf0fb4885888e66e9de3ea6efbdf42d391393635aacc0",
+        "summary_path": "runs/triad/M5/M5-20260831T020508Z-79402c07/review-summary.md",
+        "summary_sha256": "f358588b936f34703bbff39a2b26f16e670114e5f928a470f67545342fd25922",
+        "review_cycle_id": "M5-20260831T020508Z-79402c07",
+        "recommendation": "RECOMMEND_COMPLETE",
+        "binding": {
+          "request_sha256": "bb5b7761ec3a59742854d13b66b68c700ba95b391d360e92cdd9cfa6b9e4f924",
+          "git_revision": "79402c07f0f778509dbf06385b906993842c1984",
+          "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+          "evidence_manifest_sha256": "c59dc73c5dbc5cec407e87d5a227ade20882d509a82532ed98786f36c6d70156",
+          "verifier_fingerprint": "sha256:68b14b4b31216055861adb76f9a77d5e05665f59004d59c11eec865c4d048cfa",
+          "milestone_contract_sha256": "9b5bb2045cf802c3e693b0e2d0274ad6e07a0ab2c0f023ff648632bda8a27040"
+        },
+        "recorded_at": "2026-08-31T02:10:27Z"
+      }
     },
     "M6": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,
