@@ -17,7 +17,7 @@
     "Run M11 now (T480-local only)": {"main": [[{"node": "Build 24 closed UTC hours", "type": "main", "index": 0}]]},
     "M11 fixed manual execution trigger": {"main": [[{"node": "Build 24 closed UTC hours", "type": "main", "index": 0}]]},
     "Build 24 closed UTC hours": {"main": [[{"node": "One hourly job at a time", "type": "main", "index": 0}]]},
-    "One hourly job at a time": {"main": [[{"node": "Run hourly download and aggregate", "type": "main", "index": 0}], [{"node": "Summarise daily ingestion", "type": "main", "index": 0}]]},
+    "One hourly job at a time": {"main": [[{"node": "Summarise daily ingestion", "type": "main", "index": 0}], [{"node": "Run hourly download and aggregate", "type": "main", "index": 0}]]},
     "Run hourly download and aggregate": {"main": [[{"node": "One hourly job at a time", "type": "main", "index": 0}]]}
   }
 }

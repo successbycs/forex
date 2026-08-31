@@ -25,6 +25,9 @@ def test_m11_n8n_workflow_is_daily_native_and_has_no_python_or_host_command_surf
     assert "Build 24 closed UTC hours" in nodes
     assert "Persist hourly GDELT context" in nodes
     assert nodes["One hourly job at a time"]["parameters"]["batchSize"] == 1
+    loop_outputs = workflow["connections"]["One hourly job at a time"]["main"]
+    assert loop_outputs[0][0]["node"] == "Summarise daily ingestion"
+    assert loop_outputs[1][0]["node"] == "Run hourly download and aggregate"
     assert nodes["M11 fixed manual execution trigger"]["type"] == "n8n-nodes-base.executeWorkflowTrigger"
     assert nodes["Download GKG ZIP"]["parameters"]["options"]["response"]["response"] == {
         "neverError": False,
