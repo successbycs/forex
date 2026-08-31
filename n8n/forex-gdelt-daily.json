@@ -35,7 +35,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "forex-m11-run-now",
-        "responseMode": "onReceived",
+        "responseMode": "lastNode",
         "options": {}
       },
       "notes": "Fixed local-only recovery trigger. The n8n service is bound to T480 loopback; it enters the same path as the UTC schedule."

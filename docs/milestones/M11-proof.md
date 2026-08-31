@@ -17,10 +17,10 @@ real execution must be inspected in n8n execution history and verified against
 the normalised PostgreSQL rows before M11 evidence can be captured.
 
 The fixed `trigger-now` adapter command may start the same workflow immediately
-through a T480-local n8n webhook. It is for an operator-run recovery or initial
-capture only; the normal production collection remains the UTC schedule. The
-webhook is not internet-exposed and accepts no caller-selected workflow, URL,
-SQL, or data payload.
+through a T480-local n8n webhook and waits for its normal n8n result. It is for
+an operator-run recovery or initial capture only; the normal production
+collection remains the UTC schedule. The webhook is not internet-exposed and
+accepts no caller-selected workflow, URL, SQL, or data payload.
 
 `capture_m11_evidence.sh` records only the latest bounded n8n execution
 summary and fixed PostgreSQL schema/data verification. Its paired verifier

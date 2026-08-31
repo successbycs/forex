@@ -62,7 +62,7 @@ def workflow() -> dict[str, Any]:
     if not isinstance(webhook, dict) or webhook.get("type") != "n8n-nodes-base.webhook" or webhook.get("webhookId") != "2e9a7b9a-7a20-4ff3-8f5a-35d2a6890996":
         raise RuntimeError("The fixed Forex M11 run-now webhook is missing.")
     parameters = webhook.get("parameters")
-    if not isinstance(parameters, dict) or parameters.get("httpMethod") != "POST" or parameters.get("path") != "forex-m11-run-now" or parameters.get("responseMode") != "onReceived":
+    if not isinstance(parameters, dict) or parameters.get("httpMethod") != "POST" or parameters.get("path") != "forex-m11-run-now" or parameters.get("responseMode") != "lastNode":
         raise RuntimeError("The fixed Forex M11 run-now webhook contract is invalid.")
     return payload
 
