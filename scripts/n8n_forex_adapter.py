@@ -9,6 +9,7 @@ caller-selected workflow surface is accepted.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import sys
@@ -20,6 +21,7 @@ WORKFLOW_FILE = ROOT / "n8n" / "forex-gdelt-daily.json"
 SHARED_ROOT = Path("/home/chris/projects/cs-ai-lab-infra")
 SHARED_ADAPTER = SHARED_ROOT / "scripts" / "n8n_adapter.py"
 WORKFLOW_NAME = "Forex GDELT daily H1 context ingestion"
+REMOTE_WORKFLOW_FILE = "/home/chris/projects/forex/n8n/forex-gdelt-daily.json"
 
 
 def shared_n8n() -> Any:
@@ -60,19 +62,38 @@ def preflight() -> dict[str, Any]:
     return adapter.preflight()
 
 
+def remote_workflow_request(adapter: Any, method: str, path: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Submit the one deployed workflow file without putting it on an SSH argv."""
+    expected_sha256 = hashlib.sha256(WORKFLOW_FILE.read_bytes()).hexdigest()
+    settings = adapter.config()
+    script = "\n".join(
+        [
+            "set -euo pipefail",
+            f"key_file={adapter.shell_quote(settings['key_file'])}",
+            f"base_url={adapter.shell_quote(settings['base_url'])}",
+            f"workflow_file={adapter.shell_quote(REMOTE_WORKFLOW_FILE)}",
+            f"expected_sha256={adapter.shell_quote(expected_sha256)}",
+            "[[ -r \"$key_file\" && -r \"$workflow_file\" ]] || { printf 'n8n API key or fixed Forex workflow file is unavailable.\\n' >&2; exit 3; }",
+            "[[ \"$(sha256sum \"$workflow_file\" | awk '{print $1}')\" == \"$expected_sha256\" ]] || { printf 'Deployed Forex workflow differs from the bound revision.\\n' >&2; exit 4; }",
+            f"curl --fail-with-body --silent --show-error --max-time 60 -X {adapter.shell_quote(method.upper())} -H 'accept: application/json' -H 'content-type: application/json' -H \"X-N8N-API-KEY: $(<\"$key_file\")\" --data-binary @\"$workflow_file\" \"$base_url/api/v1{path}\"",
+        ]
+    )
+    result = adapter.execute_remote(script)
+    return adapter.result_json(result), result
+
+
 def upsert(activate: bool) -> dict[str, Any]:
     adapter = shared_n8n()
     definition = workflow()
     existing, _ = adapter.list_workflows()
     item = next((entry for entry in existing if entry.get("name") == WORKFLOW_NAME), None)
-    payload = adapter.workflow_api_payload(definition)
     if item is None:
-        response, result = adapter.api_request("POST", "/workflows", payload)
+        response, result = remote_workflow_request(adapter, "POST", "/workflows")
     else:
         workflow_id = str(item.get("id") or "").strip()
         if not workflow_id:
             raise RuntimeError("The existing Forex M11 n8n workflow has no id.")
-        response, result = adapter.api_request("PUT", f"/workflows/{workflow_id}", payload)
+        response, result = remote_workflow_request(adapter, "PUT", f"/workflows/{workflow_id}")
     workflow_id = str(response.get("id") or "").strip()
     if activate:
         if not workflow_id:
