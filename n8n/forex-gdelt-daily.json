@@ -26,6 +26,20 @@
       "notes": "M11-only sub-workflow trigger for the fixed n8n evidence runner. It shares the same n8n-native path as the daily schedule."
     },
     {
+      "id": "m11-run-now-webhook",
+      "name": "Run M11 now (T480-local only)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 390],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "forex-m11-run-now",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "notes": "Fixed local-only recovery trigger. The n8n service is bound to T480 loopback; it enters the same path as the UTC schedule."
+    },
+    {
       "id": "schedule-closed-utc-day",
       "name": "Schedule after UTC day closes",
       "type": "n8n-nodes-base.scheduleTrigger",
@@ -128,6 +142,7 @@
   "connections": {
     "Schedule after UTC day closes": { "main": [[{ "node": "Build prior-day GKG URLs", "type": "main", "index": 0 }]] },
     "M11 fixed manual execution trigger": { "main": [[{ "node": "Build prior-day GKG URLs", "type": "main", "index": 0 }]] },
+    "Run M11 now (T480-local only)": { "main": [[{ "node": "Build prior-day GKG URLs", "type": "main", "index": 0 }]] },
     "Build prior-day GKG URLs": { "main": [[{ "node": "Download GKG ZIP", "type": "main", "index": 0 }]] },
     "Download GKG ZIP": { "main": [[{ "node": "Extract GKG ZIP", "type": "main", "index": 0 }]] },
     "Extract GKG ZIP": { "main": [[{ "node": "Aggregate permitted GKG context", "type": "main", "index": 0 }]] },

@@ -23,9 +23,9 @@ SHARED_ADAPTER = SHARED_ROOT / "scripts" / "n8n_adapter.py"
 WORKFLOW_NAME = "Forex GDELT daily H1 context ingestion"
 REMOTE_WORKFLOW_FILE = "/home/chris/projects/forex/n8n/forex-gdelt-daily.json"
 CREDENTIAL_NAME = "Forex M11 PostgreSQL"
-EVIDENCE_RUNNER_NAME = "Forex M11 fixed evidence runner"
 REMOTE_LAB_ENV = "/home/chris/projects/cs-ai-lab-infra/.env"
 REMOTE_INSTALLER = "/home/chris/projects/forex/scripts/n8n_m11_install.py"
+RUN_NOW_PATH = "/webhook/forex-m11-run-now"
 
 
 def shared_n8n() -> Any:
@@ -58,6 +58,12 @@ def workflow() -> dict[str, Any]:
     }
     if not required <= node_types or "n8n-nodes-base.executeCommand" in node_types:
         raise RuntimeError("The fixed Forex M11 workflow violates its n8n-native node contract.")
+    webhook = next((node for node in nodes if node.get("id") == "m11-run-now-webhook"), None)
+    if not isinstance(webhook, dict) or webhook.get("type") != "n8n-nodes-base.webhook":
+        raise RuntimeError("The fixed Forex M11 run-now webhook is missing.")
+    parameters = webhook.get("parameters")
+    if not isinstance(parameters, dict) or parameters.get("httpMethod") != "POST" or parameters.get("path") != "forex-m11-run-now" or parameters.get("responseMode") != "onReceived":
+        raise RuntimeError("The fixed Forex M11 run-now webhook contract is invalid.")
     return payload
 
 
@@ -101,7 +107,6 @@ def upsert(activate: bool) -> dict[str, Any]:
     result = adapter.execute_remote(f"python3 {adapter.shell_quote(REMOTE_INSTALLER)}")
     response = adapter.result_json(result)
     workflow_id = str(response.get("workflow_id") or response.get("id") or "").strip()
-    evidence_runner_workflow_id = str(response.get("evidence_runner_workflow_id") or "").strip()
     if activate:
         if not workflow_id:
             raise RuntimeError("n8n did not return the Forex M11 workflow id.")
@@ -111,24 +116,10 @@ def upsert(activate: bool) -> dict[str, Any]:
         "operation": "upsert_and_activate" if activate else "upsert",
         "workflow_name": WORKFLOW_NAME,
         "workflow_id": workflow_id,
-        "evidence_runner_workflow_id": evidence_runner_workflow_id,
         "workflow": response,
         "result": result,
         "ok": True,
     }
-
-
-def evidence_run() -> dict[str, Any]:
-    """Run the fixed M11 child workflow through its fixed n8n-only wrapper."""
-    adapter = shared_n8n()
-    installed = upsert(activate=False)
-    runner_id = installed["evidence_runner_workflow_id"]
-    if not runner_id:
-        raise RuntimeError("The fixed M11 evidence runner is unavailable.")
-    result = adapter.execute_remote(
-        f"docker compose -f /home/chris/projects/cs-ai-lab-infra/compose.yaml exec -T n8n n8n execute --id={adapter.shell_quote(runner_id)} --rawOutput </dev/null"
-    )
-    return {"tool_id": "forex_m11_n8n_t480", "operation": "evidence_run", "workflow_id": installed["workflow_id"], "evidence_runner_workflow_id": runner_id, "result": result, "ok": result.get("ok", False)}
 
 
 def recent_execution() -> dict[str, Any]:
@@ -148,20 +139,42 @@ def recent_execution() -> dict[str, Any]:
     }
 
 
+def trigger_now() -> dict[str, Any]:
+    """Start the one fixed workflow through T480-local n8n service mode."""
+    adapter = shared_n8n()
+    workflow()
+    settings = adapter.config()
+    script = "\n".join(
+        [
+            "set -euo pipefail",
+            f"base_url={adapter.shell_quote(settings['base_url'])}",
+            f"curl --fail-with-body --silent --show-error --max-time 30 -X POST \"$base_url{RUN_NOW_PATH}\"",
+        ]
+    )
+    result = adapter.execute_remote(script)
+    return {
+        "tool_id": "forex_m11_n8n_t480",
+        "operation": "trigger_now",
+        "workflow_id": "rfIIE2BiPtppBbT2",
+        "result": result,
+        "ok": result.get("ok", False),
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Fixed Forex M11 n8n adapter.")
-    parser.add_argument("command", choices=("preflight", "upsert", "activate", "recent-execution", "evidence-run"))
+    parser.add_argument("command", choices=("preflight", "upsert", "activate", "trigger-now", "recent-execution"))
     parser.add_argument("--approve", action="store_true")
     args = parser.parse_args(argv)
-    if args.command in {"upsert", "activate", "evidence-run"} and not args.approve:
-        parser.error("upsert, activate and evidence-run require --approve")
+    if args.command in {"upsert", "activate", "trigger-now"} and not args.approve:
+        parser.error("upsert, activate and trigger-now require --approve")
     try:
         if args.command == "preflight":
             result = preflight()
         elif args.command == "recent-execution":
             result = recent_execution()
-        elif args.command == "evidence-run":
-            result = evidence_run()
+        elif args.command == "trigger-now":
+            result = trigger_now()
         else:
             result = upsert(activate=args.command == "activate")
         print(json.dumps(result, indent=2))
