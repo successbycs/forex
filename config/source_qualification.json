@@ -1,0 +1,46 @@
+{
+  "schema_version": "forex.source-qualification.v1",
+  "decision_policy": "A candidate is not an adopted data feed. Later adapters must use only a qualified candidate and must retain the source-specific constraints below.",
+  "candidates": [
+    {
+      "source_id": "fred-alfred-us-macro",
+      "category": "macro",
+      "decision": "CONDITIONALLY_QUALIFIED",
+      "endpoint": "https://fred.stlouisfed.org/docs/api/fred/",
+      "licence_constraint": "API key required; each selected series must be checked for its owner and copyright restrictions before use.",
+      "timing_and_revisions": "ALFRED real-time periods and FRED vintage-date endpoints support point-in-time retrieval.",
+      "retention": "Retain identifiers, release/vintage timestamps, values, metadata and hashes; do not assume rights to redistribute third-party series.",
+      "adoption_gate": "M8 must name series and demonstrate vintage-aware retrieval."
+    },
+    {
+      "source_id": "ecb-data-portal-euro-macro",
+      "category": "macro",
+      "decision": "QUALIFIED",
+      "endpoint": "https://data-api.ecb.europa.eu/service/",
+      "licence_constraint": "Public ESCB statistics may be reused free of charge when source is quoted and data/metadata are not modified; third-party data needs separate permission.",
+      "timing_and_revisions": "SDMX supports updatedAfter and includeHistory for revisions; preserve observed release and retrieval times.",
+      "retention": "Retain original values, metadata, source attribution, release/revision lineage and hashes.",
+      "adoption_gate": "M9 must select dataflows and prove metadata and revision lineage."
+    },
+    {
+      "source_id": "trading-economics-calendar",
+      "category": "calendar",
+      "decision": "DEFERRED",
+      "endpoint": "https://api.tradingeconomics.com/documentation/",
+      "licence_constraint": "Do not adopt until the operator accepts the applicable plan, API terms, redistribution and historical forecast/revision rights.",
+      "timing_and_revisions": "Candidate only: M10 must prove stable event identity, UTC timing, forecast/actual/previous and revision handling.",
+      "retention": "No calendar payload retained or fetched by this project before approval.",
+      "adoption_gate": "M10 requires an explicit operator licence/cost decision plus proof."
+    },
+    {
+      "source_id": "gdelt-sentiment-prototype",
+      "category": "sentiment",
+      "decision": "EXPERIMENTAL_AGGREGATES_ONLY",
+      "endpoint": "https://www.gdeltproject.org/data.html",
+      "licence_constraint": "Use only derived, attributable aggregate measures until source and article-level retention rights are separately reviewed; do not retain article text.",
+      "timing_and_revisions": "Historical data is available, but an M11 adapter must make query time, source time, query definition and revisions explicit.",
+      "retention": "Retain query definition, timestamps, aggregate output and hashes; no article text or trading-signal claim.",
+      "adoption_gate": "M11 must demonstrate a bounded reproducible aggregate sample and uncertainty labelling."
+    }
+  ]
+}

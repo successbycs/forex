@@ -4274,6 +4274,16 @@
         "proven_at": "2026-08-31T05:09:01Z",
         "next_milestone": "M7"
       }
+    },
+    {
+      "event_id": "E000291",
+      "timestamp": "2026-08-31T05:10:20Z",
+      "milestone_id": "M7",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
     }
   ]
 }
