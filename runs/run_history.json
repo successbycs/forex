@@ -3343,6 +3343,112 @@
         "from": "IN_PROGRESS",
         "to": "AWAITING_REAL_WORLD_PROOF"
       }
+    },
+    {
+      "event_id": "E000225",
+      "timestamp": "2026-08-31T01:39:25Z",
+      "milestone_id": "M3",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M3/20260831T013923Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000226",
+      "timestamp": "2026-08-31T01:39:25Z",
+      "milestone_id": "M3",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M3/20260831T013925Z/governance.stdout.txt",
+            "stderr": "runs/verification/M3/20260831T013925Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m3.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M3/20260831T013925Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M3/20260831T013925Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000227",
+      "timestamp": "2026-08-31T01:47:02Z",
+      "milestone_id": "M3",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "event_id": "E000228",
+      "timestamp": "2026-08-31T01:47:10Z",
+      "milestone_id": "M3",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M3-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000229",
+      "timestamp": "2026-08-31T01:47:10Z",
+      "milestone_id": "M3",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M3-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000230",
+      "timestamp": "2026-08-31T01:47:10Z",
+      "milestone_id": "M3",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M3-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000231",
+      "timestamp": "2026-08-31T01:47:10Z",
+      "milestone_id": "M3",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M3-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000232",
+      "timestamp": "2026-08-31T01:47:11Z",
+      "milestone_id": "M3",
+      "action": "MILESTONE_PROVEN",
+      "detail": {
+        "proven_at": "2026-08-31T01:47:11Z",
+        "next_milestone": "M4"
+      }
     }
   ]
 }

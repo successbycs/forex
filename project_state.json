@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
-  "last_proven_milestone": "M2",
-  "current_milestone": "M3",
+  "last_proven_milestone": "M3",
+  "current_milestone": null,
   "next_milestone": "M4",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-31T01:35:13Z",
+  "last_updated_at": "2026-08-31T01:47:11Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -774,23 +774,102 @@
       "blockers": []
     },
     "M3": {
-      "status": "AWAITING_REAL_WORLD_PROOF",
+      "status": "PROVEN",
       "started_at": "2026-08-30T22:49:15Z",
       "implementation_finished_at": "2026-08-31T01:35:13Z",
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
-      "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
-      "human_signoff": null,
+      "verification_passed_at": "2026-08-31T01:39:25Z",
+      "real_world_proof_captured_at": "2026-08-31T01:39:25.211480Z",
+      "human_signed_off_at": "2026-08-31T01:47:02Z",
+      "first_proven_at": "2026-08-31T01:47:11Z",
+      "proven_at": "2026-08-31T01:47:11Z",
+      "last_validated_at": "2026-08-31T01:47:11Z",
+      "checks": {
+        "M3-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T01:47:10Z",
+          "evidence": "runs/evidence/M3/20260831T013923Z/manifest.json",
+          "note": "Human-approved MVP M3 T480 evidence."
+        },
+        "M3-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T01:47:10Z",
+          "evidence": "runs/evidence/M3/20260831T013923Z/manifest.json",
+          "note": "Human-approved MVP M3 T480 evidence."
+        },
+        "M3-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T01:47:10Z",
+          "evidence": "runs/evidence/M3/20260831T013923Z/manifest.json",
+          "note": "Human-approved MVP M3 T480 evidence."
+        },
+        "M3-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-08-31T01:47:10Z",
+          "evidence": "runs/evidence/M3/20260831T013923Z/manifest.json",
+          "note": "Human-approved MVP M3 T480 evidence."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M3/20260831T013923Z/manifest.json",
+          "manifest_sha256": "ef5b22c62be3836faaa95d74ade6286ef98662718ffcf41e28c0ae3aa9eb508e",
+          "captured_at": "2026-08-31T01:39:25.211480Z",
+          "recorded_at": "2026-08-31T01:39:25Z",
+          "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+          "git_revision": "6607035f45ca60575c1900699c021b6f55bc6bd5",
+          "summary": "FOREX_M3_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-08-31T01:39:25Z",
+        "git_revision": "6607035f45ca60575c1900699c021b6f55bc6bd5",
+        "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M3/20260831T013925Z/governance.stdout.txt",
+            "stderr": "runs/verification/M3/20260831T013925Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m3.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M3/20260831T013925Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M3/20260831T013925Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
+      "human_signoff": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE",
+        "note": "Human operator approved M3 after successful T480 probe, verified evidence, and relaxed single-session MVP review.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "6607035f45ca60575c1900699c021b6f55bc6bd5",
+        "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+        "evidence_manifest_sha256": "ef5b22c62be3836faaa95d74ade6286ef98662718ffcf41e28c0ae3aa9eb508e",
+        "verification_recorded_at": "2026-08-31T01:39:25Z",
+        "recorded_at": "2026-08-31T01:47:02Z"
+      },
       "blockers": []
     },
     "M4": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,
