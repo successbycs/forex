@@ -2,6 +2,11 @@
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"; cd "$root"
 bundle="${1:-runs/evidence/M8/$(date -u +%Y%m%dT%H%M%SZ)}"; mkdir -p "$bundle"
+# Read the one M8 secret from the ignored local environment file without
+# sourcing arbitrary shell content or emitting it into evidence/logs.
+if [[ -z "${FRED_API_KEY:-}" && -f .env ]]; then
+  export FRED_API_KEY="$(sed -n 's/^FRED_API_KEY=//p' .env | tail -n 1)"
+fi
 python3 -m pytest -q tests/milestones/test_m8.py >"$bundle/tests.txt" 2>&1
 python3 scripts/forex_milestones.py validate >"$bundle/governance.txt" 2>&1
 python3 - "$bundle" <<'PY'

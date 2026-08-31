@@ -1,4 +1,5 @@
 import pytest
+from pathlib import Path
 
 from forex.fred_vintage import VintageDataError, normalise_payload, observation_url
 
@@ -31,3 +32,9 @@ def test_m8_rejects_unbound_response_vintage():
     invalid = payload(); invalid["realtime_end"] = "2024-02-02"
     with pytest.raises(VintageDataError, match="vintage"):
         normalise_payload(invalid, "2024-02-01")
+
+
+def test_m8_capture_reads_only_the_declared_ignored_secret_key():
+    capture = (Path(__file__).parents[2] / "scripts/capture_m8_evidence.sh").read_text()
+    assert "FRED_API_KEY" in capture
+    assert "source .env" not in capture
