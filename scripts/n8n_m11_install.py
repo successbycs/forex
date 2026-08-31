@@ -58,7 +58,7 @@ def main() -> None:
     credential_id = lookup.stdout.strip()
     if not credential_id:
         values = env_file()
-        credential = api("POST", "/credentials", {"name": CREDENTIAL_NAME, "type": "postgres", "data": {"host": "postgres", "port": 5432, "database": values["POSTGRES_DB"], "user": values["POSTGRES_USER"], "password": values["POSTGRES_PASSWORD"], "ssl": "disable"}})
+        credential = api("POST", "/credentials", {"name": CREDENTIAL_NAME, "type": "postgres", "data": {"host": "postgres", "port": 5432, "database": values["POSTGRES_DB"], "user": values["POSTGRES_USER"], "password": values["POSTGRES_PASSWORD"], "ssl": "disable", "sshTunnel": False}})
         credential_id = str(credential.get("id") or "")
     if not credential_id:
         raise RuntimeError("n8n PostgreSQL credential was not created")
