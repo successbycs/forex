@@ -7,6 +7,7 @@ forming bar. The output retains only timeframe-level counts, time ranges and
 SHA-256 hashes; it contains no credentials, orders, balances or live-server
 access.
 
-The capability is incomplete until the committed probe is staged on the T480,
-the fixed adapter executes it successfully, and the resulting multi-timeframe
-dataset is imported and verified on the declared PostgreSQL surface.
+The capability is complete when the committed probe is staged on the T480, the
+fixed adapter executes it successfully, and the retained compressed datasets
+are independently hash-verified. PostgreSQL batch import is a compatible
+subsequent enhancement; M6 does not create a second persistence schema.
