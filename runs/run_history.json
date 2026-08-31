@@ -3252,6 +3252,87 @@
         ],
         "preservation_reason": "Human validation completed: M3-only MT5 bridge catalogue change does not alter the proven M2 PostgreSQL schema, snapshot, or retained historical bars."
       }
+    },
+    {
+      "event_id": "E000220",
+      "timestamp": "2026-08-31T01:04:08Z",
+      "milestone_id": "M0",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M0/20260831T010338Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000221",
+      "timestamp": "2026-08-31T01:04:09Z",
+      "milestone_id": "M0",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260831T010408Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260831T010408Z/governance.stderr.txt"
+          },
+          {
+            "id": "configuration",
+            "argv": [
+              "python3",
+              "scripts/validate_config.py",
+              "--root",
+              "."
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260831T010408Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260831T010408Z/configuration.stderr.txt"
+          },
+          {
+            "id": "tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M0/20260831T010408Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260831T010408Z/tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000222",
+      "timestamp": "2026-08-31T01:04:29Z",
+      "milestone_id": "M0",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "event_id": "E000223",
+      "timestamp": "2026-08-31T01:05:43Z",
+      "milestone_id": "M0",
+      "action": "HUMAN_REVALIDATION_EXCEPTION_RECORDED",
+      "detail": {
+        "from": "NEEDS_REVALIDATION",
+        "to": "HUMAN_REVALIDATION_EXCEPTION",
+        "operator": "Chris Sparshott",
+        "reason": "Human approval: M0 fresh evidence and independent verification passed; the remaining revalidation cycle is waived to avoid repeated foundation checks after an M3-only configuration update.",
+        "revalidation_count": 3
+      }
     }
   ]
 }

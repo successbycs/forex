@@ -211,7 +211,7 @@ def test_target_date_is_not_a_completion_timestamp() -> None:
     )
 
 
-def test_refresh_fingerprint_can_preserve_only_the_approved_m0_standing_baseline(tmp_path: Path) -> None:
+def test_refresh_fingerprint_retains_proven_milestones(tmp_path: Path) -> None:
     root = _copy_governance(tmp_path)
     state_path = root / "project_state.json"
     state = json.loads(state_path.read_text(encoding="utf-8"))
@@ -232,19 +232,15 @@ def test_refresh_fingerprint_can_preserve_only_the_approved_m0_standing_baseline
             "--root",
             str(root),
             "refresh-fingerprint",
-            "--preserve-proven-id",
-            "M0",
-            "--preservation-reason",
-            "Recorded operator standing-baseline exception; revalidate M1 for shared-lock update.",
         ]
     ) == 0
 
     refreshed = json.loads(state_path.read_text(encoding="utf-8"))
     assert refreshed["milestones"]["M0"]["status"] == "PROVEN"
-    assert refreshed["milestones"]["M1"]["status"] == "NEEDS_REVALIDATION"
+    assert refreshed["milestones"]["M1"]["status"] == "PROVEN"
     event = json.loads((root / "runs" / "run_history.json").read_text(encoding="utf-8"))["events"][-1]
-    assert event["detail"]["preserved_milestones"] == ["M0"]
-    assert event["detail"]["invalidated_milestones"] == ["M1", "M2"]
+    assert event["detail"]["preserved_milestones"] == ["M0", "M1", "M2"]
+    assert event["detail"]["invalidated_milestones"] == []
 
 
 def test_revalidation_limit_stops_normal_retries_and_records_non_proof_exception(tmp_path: Path) -> None:

@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "HUMAN_REVALIDATION_EXCEPTION",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,17 +39,17 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-30T23:29:40Z",
+  "last_updated_at": "2026-08-31T01:05:43Z",
   "milestones": {
     "M0": {
-      "status": "NEEDS_REVALIDATION",
+      "status": "HUMAN_REVALIDATION_EXCEPTION",
       "started_at": "2026-08-29T05:22:27Z",
       "implementation_finished_at": "2026-08-29T05:06:30Z",
-      "verification_passed_at": "2026-08-29T05:22:08Z",
-      "real_world_proof_captured_at": "2026-08-29T05:21:56Z",
-      "human_signed_off_at": "2026-08-29T05:32:26Z",
+      "verification_passed_at": "2026-08-31T01:04:09Z",
+      "real_world_proof_captured_at": "2026-08-31T01:03:49Z",
+      "human_signed_off_at": "2026-08-31T01:04:29Z",
       "first_proven_at": "2026-08-29T02:01:44Z",
-      "proven_at": "2026-08-29T05:32:38Z",
+      "proven_at": null,
       "last_validated_at": "2026-08-29T05:32:38Z",
       "checks": {
         "M0-C1": {
@@ -338,13 +338,22 @@
           "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
           "git_revision": "a7a43a240b213496a3568a287b91b461f5358d37",
           "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
+        },
+        {
+          "manifest_path": "runs/evidence/M0/20260831T010338Z/manifest.json",
+          "manifest_sha256": "39edf0de83853fda5d6f60ef5acf8a2270945458b4a7e3f0237692e3e9b81bed",
+          "captured_at": "2026-08-31T01:03:49Z",
+          "recorded_at": "2026-08-31T01:04:08Z",
+          "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+          "git_revision": "a1734d9ae4bfe9ccdf30cd0d8c58ce8bce1f6ff4",
+          "summary": "FOREX_M0_PROOF_OK: dependency-isolated installation, typed configuration, governance validation, non-empty tests, and repository verification passed in a fresh temporary virtual environment."
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-08-29T05:22:08Z",
-        "git_revision": "a7a43a240b213496a3568a287b91b461f5358d37",
-        "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
+        "recorded_at": "2026-08-31T01:04:09Z",
+        "git_revision": "a1734d9ae4bfe9ccdf30cd0d8c58ce8bce1f6ff4",
+        "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
         "commands": [
           {
             "id": "governance",
@@ -355,8 +364,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T052205Z/governance.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T052205Z/governance.stderr.txt"
+            "stdout": "runs/verification/M0/20260831T010408Z/governance.stdout.txt",
+            "stderr": "runs/verification/M0/20260831T010408Z/governance.stderr.txt"
           },
           {
             "id": "configuration",
@@ -368,8 +377,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T052205Z/configuration.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T052205Z/configuration.stderr.txt"
+            "stdout": "runs/verification/M0/20260831T010408Z/configuration.stdout.txt",
+            "stderr": "runs/verification/M0/20260831T010408Z/configuration.stderr.txt"
           },
           {
             "id": "tests",
@@ -381,22 +390,22 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M0/20260829T052205Z/tests.stdout.txt",
-            "stderr": "runs/verification/M0/20260829T052205Z/tests.stderr.txt"
+            "stdout": "runs/verification/M0/20260831T010408Z/tests.stdout.txt",
+            "stderr": "runs/verification/M0/20260831T010408Z/tests.stderr.txt"
           }
         ]
       },
       "human_signoff": {
-        "operator": "human-operator",
+        "operator": "Chris Sparshott",
         "decision": "APPROVE",
-        "note": "Operator approved the fresh M0 revalidation and authorizes M0 as the standing baseline; do not initiate further M0 revalidation without explicit operator direction.",
+        "note": "Human operator approved the fresh M0 revalidation evidence and closeout.",
         "inputs_reviewed": true,
         "outputs_reviewed": true,
-        "git_revision": "a7a43a240b213496a3568a287b91b461f5358d37",
-        "configuration_fingerprint": "sha256:5b897eb662601849e49c19f2ee89a82def6048250c2f875873a27c272b401080",
-        "evidence_manifest_sha256": "d9dc18a888b7e10e9a21f3e88b4df293f4004ab0d5a67f6eb0df602c2de1cb32",
-        "verification_recorded_at": "2026-08-29T05:22:08Z",
-        "recorded_at": "2026-08-29T05:32:26Z"
+        "git_revision": "a1734d9ae4bfe9ccdf30cd0d8c58ce8bce1f6ff4",
+        "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+        "evidence_manifest_sha256": "39edf0de83853fda5d6f60ef5acf8a2270945458b4a7e3f0237692e3e9b81bed",
+        "verification_recorded_at": "2026-08-31T01:04:09Z",
+        "recorded_at": "2026-08-31T01:04:29Z"
       },
       "blockers": [
         {
@@ -457,6 +466,12 @@
           "milestone_contract_sha256": "577d833c6de0652088fec0be183e5534ee433fed76e8eafbe9d9ebd8706c577a"
         },
         "recorded_at": "2026-08-29T05:30:02Z"
+      },
+      "revalidation_exception": {
+        "operator": "Chris Sparshott",
+        "reason": "Human approval: M0 fresh evidence and independent verification passed; the remaining revalidation cycle is waived to avoid repeated foundation checks after an M3-only configuration update.",
+        "revalidation_count": 3,
+        "reassessed_at": "2026-08-31T01:05:43Z"
       }
     },
     "M1": {

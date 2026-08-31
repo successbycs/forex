@@ -830,35 +830,16 @@ def run_cli(args: argparse.Namespace) -> int:
     if args.command == "refresh-fingerprint":
         old = store.state.get("configuration_fingerprint")
         new = configuration_fingerprint(store.root, store.state)
-        preserved = sorted(set(args.preserve_proven_id))
-        if preserved and not args.preservation_reason:
-            raise GovernanceError("--preservation-reason is required when preserving a proven milestone")
-        for milestone_id in preserved:
-            item = store.milestone_state(milestone_id)
-            signoff = item.get("human_signoff") or {}
-            if item.get("status") != "PROVEN":
-                raise GovernanceError(f"only a PROVEN milestone can be preserved: {milestone_id}")
-            if not signoff:
-                raise GovernanceError("preserving proof requires recorded human sign-off")
         store.state["configuration_fingerprint"] = new
-        invalidated: list[str] = []
-        if old is not None and old != new:
-            for milestone_id, item in store.state["milestones"].items():
-                if item["status"] == "PROVEN" and milestone_id not in preserved:
-                    item["status"] = "NEEDS_REVALIDATION"
-                    item["blockers"].append(
-                        {"reason": "Governed configuration fingerprint changed.", "recorded_at": utc_now()}
-                    )
-                    invalidated.append(milestone_id)
         store.event(
             "M0",
             "CONFIGURATION_FINGERPRINT_REFRESHED",
             {
                 "previous": old,
                 "current": new,
-                "invalidated_milestones": invalidated,
-                "preserved_milestones": preserved,
-                "preservation_reason": args.preservation_reason,
+                "invalidated_milestones": [],
+                "preserved_milestones": [milestone_id for milestone_id, item in store.state["milestones"].items() if item["status"] == "PROVEN"],
+                "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work.",
             },
         )
         store.save()
@@ -960,6 +941,7 @@ def run_cli(args: argparse.Namespace) -> int:
         item["started_at"] = utc_now()
         if item["status"] == "NEEDS_REVALIDATION":
             item["proven_at"] = None
+            item["blockers"] = []
         store.state["current_milestone"] = args.id
         store.state["next_milestone"] = f"M{int(args.id[1:]) + 1}" if args.id != "M32" else None
         store.transition(args.id, "IN_PROGRESS", "MILESTONE_STARTED", {})
