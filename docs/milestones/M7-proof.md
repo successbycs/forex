@@ -20,5 +20,5 @@ observed endpoints are the same ones named in the registry and that every
 candidate has an explicit decision and adoption gate.
 
 Official sources consulted at capture time are retained as bounded, hash-checked
-samples: FRED API documentation and terms, ECB SDMX dataflow metadata, Trading
+samples: FRED API documentation and terms, the ECB reuse policy, Trading
 Economics documentation availability, and GDELT data access documentation.

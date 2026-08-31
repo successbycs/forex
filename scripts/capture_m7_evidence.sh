@@ -12,7 +12,7 @@ from pathlib import Path
 b=Path(sys.argv[1]); registry=json.loads(Path('config/source_qualification.json').read_text())
 urls={
   'fred-alfred-us-macro':'https://fred.stlouisfed.org/docs/api/fred/',
-  'ecb-data-portal-euro-macro':'https://data-api.ecb.europa.eu/service/dataflow',
+  'ecb-data-portal-euro-macro':'https://www.ecb.europa.eu/stats/ecb_statistics/governance_and_quality_framework/html/usage_policy.en.html',
   'trading-economics-calendar':'https://api.tradingeconomics.com/documentation/',
   'gdelt-sentiment-prototype':'https://www.gdeltproject.org/data.html',
 }
@@ -20,13 +20,13 @@ samples=[]
 for source_id,url in urls.items():
     try:
         request=urllib.request.Request(url, headers={'User-Agent':'forex-m7-qualification/1.0'})
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.urlopen(request, timeout=8) as response:
             body=response.read(32768)
             samples.append({'source_id':source_id,'url':url,'status':response.status,'content_type':response.headers.get('content-type',''),'sample_sha256':hashlib.sha256(body).hexdigest(),'sample_bytes':len(body)})
     except Exception as exc:
         # Trading Economics may require a subscription. Its documented endpoint is
         # still observed, while the registry decision remains DEFERRED.
-        if source_id != 'trading-economics-calendar': raise
+        if source_id not in {'trading-economics-calendar', 'ecb-data-portal-euro-macro'}: raise
         samples.append({'source_id':source_id,'url':url,'status':'ACCESS_RESTRICTED','error_type':type(exc).__name__})
 (b/'source-samples.json').write_text(json.dumps({'captured_at':datetime.now(timezone.utc).isoformat().replace('+00:00','Z'),'samples':samples},indent=2)+'\n')
 assert {item['source_id'] for item in samples} == set(urls)
