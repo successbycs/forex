@@ -16,7 +16,7 @@ samples=json.loads((b/'source-samples.json').read_text())['samples']; observed={
 assert set(candidates)==set(observed)
 assert candidates['ecb-data-portal-euro-macro']['decision']=='QUALIFIED'
 assert candidates['fred-alfred-us-macro']['decision']=='CONDITIONALLY_QUALIFIED'
-assert candidates['trading-economics-calendar']['decision']=='DEFERRED'
+assert candidates['trading-economics-calendar']['decision']=='NOT_ADOPTED_MVP'
 assert candidates['gdelt-sentiment-prototype']['decision']=='EXPERIMENTAL_AGGREGATES_ONLY'
 for source_id in ('fred-alfred-us-macro','ecb-data-portal-euro-macro','gdelt-sentiment-prototype'):
  assert observed[source_id]['status']==200 and observed[source_id]['sample_bytes']>0

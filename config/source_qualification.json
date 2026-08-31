@@ -4,33 +4,33 @@
   "candidates": [
     {
       "source_id": "fred-alfred-us-macro",
-      "category": "macro",
+      "category": "macro_and_release_calendar",
       "decision": "CONDITIONALLY_QUALIFIED",
       "endpoint": "https://fred.stlouisfed.org/docs/api/fred/",
       "licence_constraint": "API key required; each selected series must be checked for its owner and copyright restrictions before use.",
       "timing_and_revisions": "ALFRED real-time periods and FRED vintage-date endpoints support point-in-time retrieval.",
       "retention": "Retain identifiers, release/vintage timestamps, values, metadata and hashes; do not assume rights to redistribute third-party series.",
-      "adoption_gate": "M8 must name series and demonstrate vintage-aware retrieval."
+      "adoption_gate": "M8 must name series and demonstrate vintage-aware retrieval; M10 may use release dates only as date-precision US event context."
     },
     {
       "source_id": "ecb-data-portal-euro-macro",
-      "category": "macro",
+      "category": "macro_and_release_calendar",
       "decision": "QUALIFIED",
       "endpoint": "https://data-api.ecb.europa.eu/service/",
       "licence_constraint": "Public ESCB statistics may be reused free of charge when source is quoted and data/metadata are not modified; third-party data needs separate permission.",
       "timing_and_revisions": "SDMX supports updatedAfter and includeHistory for revisions; preserve observed release and retrieval times.",
       "retention": "Retain original values, metadata, source attribution, release/revision lineage and hashes.",
-      "adoption_gate": "M9 must select dataflows and prove metadata and revision lineage."
+      "adoption_gate": "M9 must select dataflows and prove metadata and revision lineage; M10 may use the public statistical calendar as CET-timestamped euro-area event context."
     },
     {
       "source_id": "trading-economics-calendar",
       "category": "calendar",
-      "decision": "DEFERRED",
+      "decision": "NOT_ADOPTED_MVP",
       "endpoint": "https://api.tradingeconomics.com/documentation/",
-      "licence_constraint": "Do not adopt until the operator accepts the applicable plan, API terms, redistribution and historical forecast/revision rights.",
+      "licence_constraint": "Not adopted for the MVP because a paid plan is outside the operator budget.",
       "timing_and_revisions": "Candidate only: M10 must prove stable event identity, UTC timing, forecast/actual/previous and revision handling.",
       "retention": "No calendar payload retained or fetched by this project before approval.",
-      "adoption_gate": "M10 requires an explicit operator licence/cost decision plus proof."
+      "adoption_gate": "MVP commercial-calendar adoption requires an explicit operator licence/cost decision plus proof."
     },
     {
       "source_id": "gdelt-sentiment-prototype",

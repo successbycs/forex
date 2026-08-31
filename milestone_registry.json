@@ -1343,7 +1343,7 @@
     {
       "milestone_id": "M10",
       "title": "Economic-calendar event lifecycle proven",
-      "objective": "Model historical USD and EUR events with stable IDs, event and release times, forecasts, actuals, revisions, and cancellations.",
+      "objective": "Model free official USD and EUR release-calendar events with stable source identifiers, declared time precision, retrieval timestamps, and explicit limits before later commercial-calendar adoption.",
       "delivery_type": "CAPABILITY_DELIVERING",
       "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
@@ -1356,7 +1356,8 @@
       "from_state": "The milestone capability is not yet proven.",
       "to_state": "Economic-calendar event lifecycle proven",
       "scope": [
-        "Model historical USD and EUR events with stable IDs, event and release times, forecasts, actuals, revisions, and cancellations.",
+        "Model historical USD release dates from FRED and EUR statistical-calendar events from the ECB with source identifiers, declared time precision and retrieval timestamps.",
+        "Use date-precision FRED release dates only as historical context; use ECB CET schedules only where a published time is present; do not invent forecasts, actuals, revisions, cancellations or intraday availability.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -1375,7 +1376,7 @@
       "acceptance_criteria": [
         {
           "id": "M10-C1",
-          "description": "The capability works on the declared surface: historical economic-calendar adapter and event-lifecycle records.",
+          "description": "The capability works on the declared surface: free official USD/EUR release-calendar adapter and time-precision-labelled event records.",
           "kind": "CAPABILITY"
         },
         {
@@ -1417,7 +1418,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "historical economic-calendar adapter and event-lifecycle records",
+      "surface": "free official USD/EUR release-calendar adapter and time-precision-labelled event records",
         "capture_command": [
           "bash",
           "scripts/capture_m10_evidence.sh"
@@ -1435,7 +1436,7 @@
       "evidence_requirements": [
         "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
         "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
-        "A human-observable summary of the declared historical economic-calendar adapter and event-lifecycle records result containing FOREX_M10_PROOF_OK."
+        "A human-observable summary of the declared free official USD/EUR release-calendar adapter and time-precision-labelled event records result containing FOREX_M10_PROOF_OK."
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
@@ -1445,7 +1446,7 @@
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
+      "notes": "MVP free-source path: FRED release dates are date precision and are not a FRED availability timestamp; ECB statistical-calendar times are CET schedule times. Forecast/consensus, actuals, revisions and cancellations remain deferred to a separately approved commercial source. Historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M11",

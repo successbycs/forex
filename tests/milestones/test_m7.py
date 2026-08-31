@@ -15,7 +15,7 @@ def test_m7_candidate_registry_is_explicit_and_non_adopting():
         "trading-economics-calendar",
         "gdelt-sentiment-prototype",
     }
-    assert candidates["trading-economics-calendar"]["decision"] == "DEFERRED"
+    assert candidates["trading-economics-calendar"]["decision"] == "NOT_ADOPTED_MVP"
     assert candidates["gdelt-sentiment-prototype"]["decision"] == "EXPERIMENTAL_AGGREGATES_ONLY"
     for candidate in candidates.values():
         assert candidate["endpoint"].startswith("https://")
