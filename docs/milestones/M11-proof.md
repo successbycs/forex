@@ -3,13 +3,15 @@
 M11 uses a T480 n8n workflow, not a Python scheduler, to retain a fixed
 EUR/USD-relevant aggregate-tone query, source-file retrieval time, hash and
 uncertainty label. It retains no article text and is context only—not a
-signal, recommendation or order input. The daily workflow fetches the prior
-closed UTC day's GDELT intervals, normalizes H1 aggregates, and persists them
-through the n8n PostgreSQL credential. A single latest GDELT interval cannot
-be described as a daily dataset.
+signal, recommendation or order input. The daily coordinator creates 24
+closed UTC hour jobs. Each hourly worker fetches exactly four 15-minute GKG
+archives, derives one H1 aggregate, and hands one bounded redacted record to
+the import workflow. This makes every hour independently observable and
+retryable: one failed archive cannot remain hidden inside a 96-file run. A
+single latest GDELT interval cannot be described as a daily dataset.
 
-The Forex-owned `scripts/n8n_forex_adapter.py` imports only this fixed
-workflow through the shared T480 transport. Its T480-local installer creates
+The Forex-owned `scripts/n8n_forex_adapter.py` imports only these three fixed
+workflows through the shared T480 transport. Its T480-local installer creates
 or reuses the n8n PostgreSQL credential from the lab's existing `.env`; it
 does not copy the n8n API key or database password into this repository or
 accept a generic workflow, shell, SQL, MT5, or order argument. The first
@@ -22,7 +24,7 @@ an operator-run recovery or initial capture only; the normal production
 collection remains the UTC schedule. The webhook is not internet-exposed and
 accepts no caller-selected workflow, URL, SQL, or data payload.
 
-`capture_m11_evidence.sh` records only the latest bounded n8n execution
-summary and fixed PostgreSQL schema/data verification. Its paired verifier
+`capture_m11_evidence.sh` records the latest successful daily coordinator
+execution and fixed PostgreSQL schema/data verification. Its paired verifier
 checks revision, artifact hashes, 168-hour freshness, successful n8n
 execution, provenance linkage, and absence of article-text fields.

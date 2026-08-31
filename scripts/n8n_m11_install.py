@@ -14,7 +14,11 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW = ROOT / "n8n" / "forex-gdelt-daily.json"
+WORKFLOWS = {
+    "Forex GDELT daily H1 context ingestion": ROOT / "n8n" / "forex-gdelt-daily.json",
+    "Forex GDELT hourly download and aggregate": ROOT / "n8n" / "forex-gdelt-hourly-download.json",
+    "Forex GDELT aggregate import": ROOT / "n8n" / "forex-gdelt-hourly-import.json",
+}
 LAB_ROOT = Path("/home/chris/projects/cs-ai-lab-infra")
 KEY_FILE = Path("/home/chris/.config/cs-ai-lab/n8n-api-key")
 NAME = "Forex GDELT daily H1 context ingestion"
@@ -53,9 +57,21 @@ def upsert_workflow(name: str, payload: dict) -> dict:
     return api("PUT", f"/workflows/{existing['id']}", payload) if existing else api("POST", "/workflows", payload)
 
 
+def payload_for(workflow: dict, credential_id: str, workflow_ids: dict[str, str]) -> dict:
+    """Bind fixed internal references; callers cannot select workflows or SQL."""
+    for node in workflow["nodes"]:
+        if node.get("id") == "persist-hourly-context":
+            node["credentials"] = {"postgres": {"id": credential_id, "name": CREDENTIAL_NAME}}
+        if node.get("id") == "run-hourly-import":
+            node["parameters"]["workflowId"]["value"] = workflow_ids["Forex GDELT aggregate import"]
+        if node.get("id") == "run-hourly-download":
+            node["parameters"]["workflowId"]["value"] = workflow_ids["Forex GDELT hourly download and aggregate"]
+    return {key: workflow.get(key, {} if key in {"connections", "settings"} else []) for key in ("name", "nodes", "connections", "settings")}
+
+
 def main() -> None:
-    workflow = json.loads(WORKFLOW.read_text(encoding="utf-8"))
-    if workflow.get("name") != NAME or workflow.get("active") is not False:
+    workflows = {name: json.loads(path.read_text(encoding="utf-8")) for name, path in WORKFLOWS.items()}
+    if any(workflow.get("name") != name or workflow.get("active") is not False for name, workflow in workflows.items()):
         raise RuntimeError("fixed M11 workflow contract is invalid")
     lookup = subprocess.run(
         ["docker", "compose", "exec", "-T", "postgres", "psql", "-U", "cs_ai_lab", "-d", "cs_ai_lab", "-Atqc", "SELECT id FROM credentials_entity WHERE name = 'Forex M11 PostgreSQL' AND type = 'postgres' LIMIT 1"],
@@ -68,15 +84,16 @@ def main() -> None:
         credential_id = str(credential.get("id") or "")
     if not credential_id:
         raise RuntimeError("n8n PostgreSQL credential was not created")
-    for node in workflow["nodes"]:
-        if node.get("id") == "persist-gdelt-h1-context":
-            node["credentials"] = {"postgres": {"id": credential_id, "name": CREDENTIAL_NAME}}
-    payload = {key: workflow.get(key, {} if key in {"connections", "settings"} else []) for key in ("name", "nodes", "connections", "settings")}
-    response = upsert_workflow(NAME, payload)
-    workflow_id = str(response.get("id") or "")
-    if not workflow_id:
-        raise RuntimeError("n8n M11 workflow was not created")
-    print(json.dumps({"workflow_id": workflow_id, "workflow_name": NAME, "credential_configured": True, "ok": True}))
+    workflow_ids: dict[str, str] = {}
+    # A child must exist before its parent can be bound. The public daily
+    # coordinator remains the only workflow the Forex adapter activates.
+    for name in ("Forex GDELT aggregate import", "Forex GDELT hourly download and aggregate", NAME):
+        response = upsert_workflow(name, payload_for(workflows[name], credential_id, workflow_ids))
+        workflow_id = str(response.get("id") or "")
+        if not workflow_id:
+            raise RuntimeError(f"n8n M11 workflow was not created: {name}")
+        workflow_ids[name] = workflow_id
+    print(json.dumps({"workflow_id": workflow_ids[NAME], "workflow_name": NAME, "workflow_ids": workflow_ids, "credential_configured": True, "ok": True}))
 
 
 if __name__ == "__main__":

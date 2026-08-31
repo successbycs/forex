@@ -8,6 +8,7 @@ def test_fixed_m11_workflow_contract_rejects_host_command_surface(tmp_path, monk
     path = tmp_path / "workflow.json"
     path.write_text(json.dumps({"name": n8n_forex_adapter.WORKFLOW_NAME, "active": False, "nodes": [{"type": "n8n-nodes-base.executeCommand"}]}), encoding="utf-8")
     monkeypatch.setattr(n8n_forex_adapter, "WORKFLOW_FILE", path)
+    monkeypatch.setattr(n8n_forex_adapter, "WORKFLOW_FILES", (path,))
     try:
         n8n_forex_adapter.workflow()
     except RuntimeError as error:

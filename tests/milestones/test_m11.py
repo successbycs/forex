@@ -6,9 +6,14 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_m11_n8n_workflow_is_daily_native_and_has_no_python_or_host_command_surface():
-    workflow = json.loads((ROOT / "n8n/forex-gdelt-daily.json").read_text(encoding="utf-8"))
-    rendered = json.dumps(workflow).lower()
-    nodes = {node["name"]: node for node in workflow["nodes"]}
+    workflows = [json.loads(path.read_text(encoding="utf-8")) for path in (
+        ROOT / "n8n/forex-gdelt-daily.json",
+        ROOT / "n8n/forex-gdelt-hourly-download.json",
+        ROOT / "n8n/forex-gdelt-hourly-import.json",
+    )]
+    workflow = workflows[0]
+    rendered = json.dumps(workflows).lower()
+    nodes = {node["name"]: node for candidate in workflows for node in candidate["nodes"]}
 
     assert workflow["active"] is False
     assert "n8n-nodes-base.scheduletrigger" in rendered
@@ -17,9 +22,9 @@ def test_m11_n8n_workflow_is_daily_native_and_has_no_python_or_host_command_surf
     assert "n8n-nodes-base.postgres" in rendered
     assert "n8n-nodes-base.executecommand" not in rendered
     assert "https://data.gdeltproject.org/gdeltv2/lastupdate.txt" not in rendered
-    assert "Build prior-day GKG URLs" in nodes
-    assert "Persist GDELT H1 context" in nodes
-    assert workflow["nodes"][0]["type"] == "n8n-nodes-base.executeWorkflowTrigger"
+    assert "Build 24 closed UTC hours" in nodes
+    assert "Persist hourly GDELT context" in nodes
+    assert nodes["M11 fixed manual execution trigger"]["type"] == "n8n-nodes-base.executeWorkflowTrigger"
     assert nodes["Download GKG ZIP"]["parameters"]["options"]["response"]["response"] == {
         "neverError": False,
         "responseFormat": "file",
@@ -31,13 +36,14 @@ def test_m11_n8n_workflow_is_daily_native_and_has_no_python_or_host_command_surf
 
 
 def test_m11_workflow_builds_all_96_prior_day_intervals_and_retains_no_article_fields():
-    workflow = json.loads((ROOT / "n8n/forex-gdelt-daily.json").read_text(encoding="utf-8"))
-    code = next(node["parameters"]["jsCode"] for node in workflow["nodes"] if node["name"] == "Build prior-day GKG URLs")
-    aggregate_code = next(node["parameters"]["jsCode"] for node in workflow["nodes"] if node["name"] == "Aggregate permitted GKG context")
+    coordinator = json.loads((ROOT / "n8n/forex-gdelt-daily.json").read_text(encoding="utf-8"))
+    hourly = json.loads((ROOT / "n8n/forex-gdelt-hourly-download.json").read_text(encoding="utf-8"))
+    code = next(node["parameters"]["jsCode"] for node in coordinator["nodes"] if node["name"] == "Build 24 closed UTC hours")
+    aggregate_code = next(node["parameters"]["jsCode"] for node in hourly["nodes"] if node["name"] == "Aggregate one hour of context")
 
-    assert "minuteOfDay < 24 * 60" in code
-    assert "minuteOfDay += 15" in code
-    assert " + '00'" not in code
+    assert "length: 24" in code
+    assert "hour * 3600000" in code
+    assert "[0, 15, 30, 45]" in json.dumps(hourly)
     assert "payload_sha256" in aggregate_code
     assert "crypto.subtle.digest" in aggregate_code
     assert "require('crypto')" not in aggregate_code

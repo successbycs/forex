@@ -11,7 +11,7 @@ autonomous execution, or profitability claim.
 | T480 PostgreSQL and Forex schema | Implemented; price data present |
 | EUR/USD H1 data | One `DEMO_ONLY` 720-bar snapshot present |
 | Raw GDELT retrieval and H1 aggregate | Implemented locally for M11; raw sample retrieved |
-| GDELT PostgreSQL persistence and backfill | Designed; not deployed |
+| GDELT PostgreSQL persistence and backfill | Fixed three-workflow n8n design; deployment and first run pending |
 | Price/GDELT join and replay | Designed; not deployed |
 | T480 n8n adapter | Fixed Forex M11 adapter added; deployment and first execution pending |
 | Daily Forex n8n schedule | n8n-native design; not deployed or activated |
@@ -130,6 +130,8 @@ n8n Schedule Trigger, after UTC day closes
   → build every prior-day GKG interval URL
   → HTTP download + ZIP extraction + bounded JavaScript aggregation
   → PostgreSQL insert/upsert of raw-observation + H1 aggregate rows
+  → one hourly worker downloads four 15-minute archives and derives one H1 aggregate
+  → one import worker persists that bounded aggregate and four source records
   → return counts, source hashes, time range and failures to n8n
   → n8n retains execution history for the operator
 ```
