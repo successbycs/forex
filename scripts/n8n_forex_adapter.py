@@ -22,6 +22,8 @@ SHARED_ROOT = Path("/home/chris/projects/cs-ai-lab-infra")
 SHARED_ADAPTER = SHARED_ROOT / "scripts" / "n8n_adapter.py"
 WORKFLOW_NAME = "Forex GDELT daily H1 context ingestion"
 REMOTE_WORKFLOW_FILE = "/home/chris/projects/forex/n8n/forex-gdelt-daily.json"
+CREDENTIAL_NAME = "Forex M11 PostgreSQL"
+REMOTE_LAB_ENV = "/home/chris/projects/cs-ai-lab-infra/.env"
 
 
 def shared_n8n() -> Any:
@@ -73,10 +75,17 @@ def remote_workflow_request(adapter: Any, method: str, path: str) -> tuple[dict[
             f"base_url={adapter.shell_quote(settings['base_url'])}",
             f"workflow_file={adapter.shell_quote(REMOTE_WORKFLOW_FILE)}",
             f"expected_sha256={adapter.shell_quote(expected_sha256)}",
+            f"credential_name={adapter.shell_quote(CREDENTIAL_NAME)}",
+            f"lab_env={adapter.shell_quote(REMOTE_LAB_ENV)}",
             "[[ -r \"$key_file\" && -r \"$workflow_file\" ]] || { printf 'n8n API key or fixed Forex workflow file is unavailable.\\n' >&2; exit 3; }",
+            "[[ -r \"$lab_env\" ]] || { printf 'T480 lab environment file is unavailable.\\n' >&2; exit 3; }",
             "[[ \"$(sha256sum \"$workflow_file\" | awk '{print $1}')\" == \"$expected_sha256\" ]] || { printf 'Deployed Forex workflow differs from the bound revision.\\n' >&2; exit 4; }",
             "payload_file=\"$(mktemp)\"; trap 'rm -f \"$payload_file\"' EXIT",
-            "python3 - \"$workflow_file\" > \"$payload_file\" <<'PY'\nimport json, sys\nworkflow = json.load(open(sys.argv[1], encoding='utf-8'))\nprint(json.dumps({key: workflow.get(key, {} if key in {'connections', 'settings'} else []) for key in ('name', 'nodes', 'connections', 'settings')}, separators=(',', ':')))\nPY",
+            "credential_list=\"$(curl --fail-with-body --silent --show-error --max-time 30 -H 'accept: application/json' -H \"X-N8N-API-KEY: $(<\"$key_file\")\" \"$base_url/api/v1/credentials?limit=100\")\"",
+            "credential_id=\"$(printf '%s' \"$credential_list\" | python3 -c 'import json,sys; data=json.load(sys.stdin).get(\"data\", []); print(next((str(x.get(\"id\")) for x in data if x.get(\"name\")==sys.argv[1] and x.get(\"type\")==\"postgres\"), \"\"))' \"$credential_name\")\"",
+            "if [[ -z \"$credential_id\" ]]; then set -a; . \"$lab_env\"; set +a; credential_file=\"$(mktemp)\"; trap 'rm -f \"$payload_file\" \"$credential_file\"' EXIT; CREDENTIAL_NAME=\"$credential_name\" python3 - > \"$credential_file\" <<'PY'\nimport json, os\nprint(json.dumps({\"name\": os.environ[\"CREDENTIAL_NAME\"], \"type\": \"postgres\", \"data\": {\"host\": \"postgres\", \"port\": 5432, \"database\": os.environ[\"POSTGRES_DB\"], \"user\": os.environ[\"POSTGRES_USER\"], \"password\": os.environ[\"POSTGRES_PASSWORD\"], \"ssl\": \"disable\"}}, separators=(\",\", \":\")))\nPY\ncredential_response=\"$(curl --fail-with-body --silent --show-error --max-time 30 -X POST -H 'accept: application/json' -H 'content-type: application/json' -H \"X-N8N-API-KEY: $(<\"$key_file\")\" --data-binary @\"$credential_file\" \"$base_url/api/v1/credentials\")\"; credential_id=\"$(printf '%s' \"$credential_response\" | python3 -c 'import json,sys; print(json.load(sys.stdin).get(\"id\", \"\"))')\"; fi",
+            "[[ -n \"$credential_id\" ]] || { printf 'n8n PostgreSQL credential was not created or found.\\n' >&2; exit 5; }",
+            "FOREX_CREDENTIAL_ID=\"$credential_id\" python3 - \"$workflow_file\" > \"$payload_file\" <<'PY'\nimport json, os, sys\nworkflow = json.load(open(sys.argv[1], encoding='utf-8'))\nfor node in workflow[\"nodes\"]:\n    if node.get(\"id\") == \"persist-gdelt-h1-context\":\n        node[\"credentials\"] = {\"postgres\": {\"id\": os.environ[\"FOREX_CREDENTIAL_ID\"], \"name\": \"Forex M11 PostgreSQL\"}}\nprint(json.dumps({key: workflow.get(key, {} if key in {\"connections\", \"settings\"} else []) for key in (\"name\", \"nodes\", \"connections\", \"settings\")}, separators=(\",\", \":\")))\nPY",
             f"curl --fail-with-body --silent --show-error --max-time 60 -X {adapter.shell_quote(method.upper())} -H 'accept: application/json' -H 'content-type: application/json' -H \"X-N8N-API-KEY: $(<\"$key_file\")\" --data-binary @\"$payload_file\" \"$base_url/api/v1{path}\"",
         ]
     )
