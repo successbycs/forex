@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import gzip
 import hashlib
 import json
 import os
@@ -45,7 +47,15 @@ def main(terminal_path: str) -> None:
                     raise SystemExit(f"EURUSD {name} has invalid OHLC")
                 rows.append(row)
             encoded = json.dumps(rows, sort_keys=True, separators=(",", ":")).encode()
-            datasets.append({"timeframe": name, "closed_bar_count": len(rows), "first_bar_utc": rows[0]["time_utc"], "last_bar_utc": rows[-1]["time_utc"], "bars_sha256": hashlib.sha256(encoded).hexdigest()})
+            datasets.append({
+                "timeframe": name,
+                "closed_bar_count": len(rows),
+                "first_bar_utc": rows[0]["time_utc"],
+                "last_bar_utc": rows[-1]["time_utc"],
+                "bars_sha256": hashlib.sha256(encoded).hexdigest(),
+                "bars_encoding": "gzip+base64-json",
+                "bars_payload": base64.b64encode(gzip.compress(encoded)).decode("ascii"),
+            })
         print(json.dumps({"schema_version": "forex.mt5-multitimeframe.v1", "server": account.server, "symbol": SYMBOL, "datasets": datasets, "probe_sha256": os.environ.get("FOREX_M6_PROBE_SHA256", "UNDECLARED")}, separators=(",", ":")))
     finally:
         mt5.shutdown()
