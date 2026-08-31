@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-08-31T01:51:05Z",
+  "last_updated_at": "2026-08-31T01:52:07Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -964,18 +964,61 @@
       "blockers": []
     },
     "M5": {
-      "status": "AWAITING_REAL_WORLD_PROOF",
+      "status": "NEEDS_FIX",
       "started_at": "2026-08-31T01:51:05Z",
       "implementation_finished_at": "2026-08-31T01:51:05Z",
       "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
+      "real_world_proof_captured_at": "2026-08-31T01:52:06.599301Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
       "checks": {},
-      "evidence": [],
-      "verification": null,
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M5/20260831T015157Z/manifest.json",
+          "manifest_sha256": "16ba0ada10201a2db1130acca49974bfdcd251462d9b1ebceda9baac95b7f9c5",
+          "captured_at": "2026-08-31T01:52:06.599301Z",
+          "recorded_at": "2026-08-31T01:52:06Z",
+          "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+          "git_revision": "6dbe00bc86797839c93ec23540d4b738cbabbf43",
+          "summary": "FOREX_M5_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": false,
+        "recorded_at": "2026-08-31T01:52:07Z",
+        "git_revision": "6dbe00bc86797839c93ec23540d4b738cbabbf43",
+        "configuration_fingerprint": "sha256:1d4c9001d84646d1c8d7b879519e6b49454a422fa5f08039252ce8a73528957e",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M5/20260831T015207Z/governance.stdout.txt",
+            "stderr": "runs/verification/M5/20260831T015207Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m5.py"
+            ],
+            "exit_code": 4,
+            "passed": false,
+            "stdout": "runs/verification/M5/20260831T015207Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M5/20260831T015207Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
       "human_signoff": null,
       "blockers": []
     },
