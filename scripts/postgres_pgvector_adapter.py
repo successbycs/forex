@@ -218,7 +218,8 @@ def m13_replay_probe() -> dict:
     relative, digest = asset("m13_probe")
     body = f'''file="{REMOTE_FOREX}/{relative}"
 test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
-cd "{REMOTE_FOREX}"; PYTHONPATH=src python3 "$file"'''
+cd "{REMOTE_FOREX}"; PYTHONPATH=src python3 "$file"
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "WITH cutoff AS (SELECT '2026-09-01T08:00:00Z'::timestamptz AS value), snapshot AS (SELECT snapshot_id FROM forex.dataset_snapshot WHERE snapshot_id='m2-m1-eurusd-h1-720'), bars AS (SELECT count(*) AS count FROM forex.price_bar, cutoff WHERE snapshot_id='m2-m1-eurusd-h1-720' AND available_at_utc <= cutoff.value AND time_utc <= cutoff.value), context AS (SELECT count(*) AS count FROM forex.gdelt_h1_aggregate, cutoff WHERE available_at_utc <= cutoff.value AND bucket_time_utc <= cutoff.value), future AS (SELECT count(*) AS count FROM forex.price_bar, cutoff WHERE snapshot_id='m2-m1-eurusd-h1-720' AND (available_at_utc > cutoff.value OR time_utc > cutoff.value)) SELECT 'FOREX_M13_POSTGRES_REPLAY_OK','cutoff=2026-09-01T08:00:00Z','snapshot='||(SELECT snapshot_id FROM snapshot),'bars='||(SELECT count FROM bars),'contexts='||(SELECT count FROM context),'future_records='||(SELECT count FROM future);" </dev/null'''
     return wrap("forex_m13_replay_probe", remote(body), digest)
 
 
