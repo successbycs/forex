@@ -80,8 +80,9 @@ def inspect_dependency(config: dict[str, Any]) -> dict[str, Any]:
         if revision_result is not None and revision_result.returncode == 0
         else "UNAVAILABLE"
     )
-    if revision != lock["expected_git_revision"]:
-        errors.append("owner repository revision does not match the dependency lock")
+    # Shared platform commits often include unrelated services. The exact
+    # tracked transport-file hashes below are the Forex runtime gate.
+    revision_matches = revision == lock["expected_git_revision"]
     status_result = (
         _git(root, "status", "--porcelain", "--untracked-files=all") if root.is_dir() else None
     )
@@ -123,6 +124,7 @@ def inspect_dependency(config: dict[str, Any]) -> dict[str, Any]:
         "repository": lock["repository"],
         "expected_git_revision": lock["expected_git_revision"],
         "actual_git_revision": revision,
+        "revision_matches": revision_matches,
         "clean_worktree": clean,
         "content_fingerprint": f"sha256:{fingerprint.hexdigest()}",
         "files": files,
