@@ -32,7 +32,7 @@ if "FOREX_M11_R1_HOUR_VERIFY_OK" not in postgres.get("result", {}).get("stdout",
 required = ("source_count=4", "quarters_complete=true", "hashes_present=true", "availability_present=true", "one_aggregate=true", "lineage_ok=true")
 if not all(marker in postgres["result"]["stdout"] for marker in required):
     raise SystemExit("M11 evidence does not establish one complete provenance-linked closed-hour aggregate")
-if "no_article_columns=true" not in postgres["result"]["stdout"] or "provenance_linkage_ok=true" not in postgres["result"]["stdout"]:
+if "no_article_columns=true" not in postgres["result"]["stdout"] or "lineage_ok=true" not in postgres["result"]["stdout"]:
     raise SystemExit("M11 safety or provenance boundary failed")
 if "FOREX_M11_GDELT_SCHEMA_VERIFY_OK" not in schema.get("result", {}).get("stdout", ""):
     raise SystemExit("M11 schema result is absent")
