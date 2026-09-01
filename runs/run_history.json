@@ -5038,6 +5038,93 @@
         ],
         "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
       }
+    },
+    {
+      "event_id": "E000349",
+      "timestamp": "2026-09-01T10:51:31Z",
+      "milestone_id": "M12",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M12-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000350",
+      "timestamp": "2026-09-01T10:51:31Z",
+      "milestone_id": "M12",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M12-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000351",
+      "timestamp": "2026-09-01T10:51:31Z",
+      "milestone_id": "M12",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M12-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000352",
+      "timestamp": "2026-09-01T10:51:31Z",
+      "milestone_id": "M12",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M12-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000353",
+      "timestamp": "2026-09-01T10:51:31Z",
+      "milestone_id": "M12",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "IN_PROGRESS",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
+    },
+    {
+      "event_id": "E000354",
+      "timestamp": "2026-09-01T10:51:32Z",
+      "milestone_id": "M12",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M12/20260901T105132Z/governance.stdout.txt",
+            "stderr": "runs/verification/M12/20260901T105132Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m12.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M12/20260901T105132Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M12/20260901T105132Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
     }
   ]
 }
