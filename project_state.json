@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
-  "last_proven_milestone": "M10",
-  "current_milestone": "M11",
+  "last_proven_milestone": "M11",
+  "current_milestone": null,
   "next_milestone": "M12",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-01T09:52:46Z",
+  "last_updated_at": "2026-09-01T09:54:47Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -1681,23 +1681,102 @@
       }
     },
     "M11": {
-      "status": "IN_PROGRESS",
+      "status": "PROVEN",
       "started_at": "2026-08-31T06:44:26Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
-      "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
-      "human_signoff": null,
+      "implementation_finished_at": "2026-09-01T09:54:39Z",
+      "verification_passed_at": "2026-09-01T09:54:46Z",
+      "real_world_proof_captured_at": "2026-09-01T09:54:29.455734Z",
+      "human_signed_off_at": "2026-09-01T09:54:46Z",
+      "first_proven_at": "2026-09-01T09:54:47Z",
+      "proven_at": "2026-09-01T09:54:47Z",
+      "last_validated_at": "2026-09-01T09:54:47Z",
+      "checks": {
+        "M11-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T09:54:39Z",
+          "evidence": "runs/evidence/M11/20260901T095422Z/postgres-data.json",
+          "note": "T480 n8n hourly stage/finalise flow produced four provenance rows and one linked H1 aggregate."
+        },
+        "M11-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T09:54:39Z",
+          "evidence": "runs/evidence/M11/20260901T095422Z/tests.txt",
+          "note": "M11 tests and governance validation passed."
+        },
+        "M11-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T09:54:39Z",
+          "evidence": "runs/evidence/M11/20260901T095422Z/manifest.json",
+          "note": "Fresh self-attested T480 evidence is revision and configuration bound."
+        },
+        "M11-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T09:54:39Z",
+          "evidence": "runs/evidence/M11/20260901T095422Z/postgres-data.json",
+          "note": "Four source hashes, availability, lineage, no article columns and context-only boundary verified."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M11/20260901T095422Z/manifest.json",
+          "manifest_sha256": "dea16d0e2a10fd031c97ffd139f7cbc8faa2694c21d0743ee236f6789dae1e8c",
+          "captured_at": "2026-09-01T09:54:29.455734Z",
+          "recorded_at": "2026-09-01T09:54:39Z",
+          "configuration_fingerprint": "sha256:5d672eb47593e1880b5443bb8b6a62a6b43f5aec626fbee3ca0057a5661d3421",
+          "git_revision": "ddcf88be3ba29767fb4ee59801ed64a09e4b996d",
+          "summary": "FOREX_M11_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-01T09:54:46Z",
+        "git_revision": "ddcf88be3ba29767fb4ee59801ed64a09e4b996d",
+        "configuration_fingerprint": "sha256:5d672eb47593e1880b5443bb8b6a62a6b43f5aec626fbee3ca0057a5661d3421",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M11/20260901T095446Z/governance.stdout.txt",
+            "stderr": "runs/verification/M11/20260901T095446Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m11.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M11/20260901T095446Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M11/20260901T095446Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
+      "human_signoff": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE",
+        "note": "Operator requested M11 closeout after reviewing the proven hourly T480 pipeline.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "ddcf88be3ba29767fb4ee59801ed64a09e4b996d",
+        "configuration_fingerprint": "sha256:5d672eb47593e1880b5443bb8b6a62a6b43f5aec626fbee3ca0057a5661d3421",
+        "evidence_manifest_sha256": "dea16d0e2a10fd031c97ffd139f7cbc8faa2694c21d0743ee236f6789dae1e8c",
+        "verification_recorded_at": "2026-09-01T09:54:46Z",
+        "recorded_at": "2026-09-01T09:54:46Z"
+      },
       "blockers": []
     },
     "M12": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,

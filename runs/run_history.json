@@ -4888,6 +4888,122 @@
         ],
         "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
       }
+    },
+    {
+      "event_id": "E000338",
+      "timestamp": "2026-09-01T09:54:39Z",
+      "milestone_id": "M11",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M11-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000339",
+      "timestamp": "2026-09-01T09:54:39Z",
+      "milestone_id": "M11",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M11-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000340",
+      "timestamp": "2026-09-01T09:54:39Z",
+      "milestone_id": "M11",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M11-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000341",
+      "timestamp": "2026-09-01T09:54:39Z",
+      "milestone_id": "M11",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M11-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000342",
+      "timestamp": "2026-09-01T09:54:39Z",
+      "milestone_id": "M11",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M11/20260901T095422Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000343",
+      "timestamp": "2026-09-01T09:54:39Z",
+      "milestone_id": "M11",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "IN_PROGRESS",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
+    },
+    {
+      "event_id": "E000344",
+      "timestamp": "2026-09-01T09:54:46Z",
+      "milestone_id": "M11",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M11/20260901T095446Z/governance.stdout.txt",
+            "stderr": "runs/verification/M11/20260901T095446Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m11.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M11/20260901T095446Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M11/20260901T095446Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000345",
+      "timestamp": "2026-09-01T09:54:46Z",
+      "milestone_id": "M11",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "event_id": "E000346",
+      "timestamp": "2026-09-01T09:54:47Z",
+      "milestone_id": "M11",
+      "action": "MILESTONE_PROVEN",
+      "detail": {
+        "proven_at": "2026-09-01T09:54:47Z",
+        "next_milestone": "M12"
+      }
     }
   ]
 }
