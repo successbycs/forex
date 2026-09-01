@@ -22,6 +22,7 @@ LAB_ROOT = Path("/home/chris/projects/cs-ai-lab-infra")
 KEY_FILE = Path("/home/chris/.config/cs-ai-lab/n8n-api-key")
 NAME = "Forex GDELT hourly download and stage"
 CREDENTIAL_NAME = "Forex M11 PostgreSQL"
+LEGACY_WORKFLOW_NAME = "Forex GDELT daily H1 context ingestion"
 
 
 def env_file() -> dict[str, str]:
@@ -56,6 +57,18 @@ def upsert_workflow(name: str, payload: dict) -> dict:
     return api("PUT", f"/workflows/{existing['id']}", payload) if existing else api("POST", "/workflows", payload)
 
 
+def deactivate_legacy_workflow() -> None:
+    """Remove only the known obsolete webhook owner before activating M11-R1."""
+    workflows = api("GET", "/workflows?limit=250").get("data", [])
+    legacy = next((item for item in workflows if item.get("name") == LEGACY_WORKFLOW_NAME), None)
+    if legacy and legacy.get("active"):
+        api("POST", f"/workflows/{legacy['id']}/deactivate")
+
+
+def activate_workflow(workflow_id: str) -> None:
+    api("POST", f"/workflows/{workflow_id}/activate")
+
+
 def payload_for(workflow: dict, credential_id: str) -> dict:
     """Bind the one fixed credential; no caller selects workflows or SQL."""
     for node in workflow["nodes"]:
@@ -79,13 +92,16 @@ def main() -> None:
         credential_id = str(credential.get("id") or "")
     if not credential_id:
         raise RuntimeError("n8n PostgreSQL credential was not created")
+    deactivate_legacy_workflow()
     ids = {}
     for name, workflow in workflows.items():
         response = upsert_workflow(name, payload_for(workflow, credential_id))
         if not (workflow_id := str(response.get("id") or "")):
             raise RuntimeError(f"n8n M11 workflow was not created: {name}")
         ids[name] = workflow_id
-    print(json.dumps({"workflow_id": ids[NAME], "workflow_name": NAME, "workflow_ids": ids, "credential_configured": True, "ok": True}))
+    for workflow_id in ids.values():
+        activate_workflow(workflow_id)
+    print(json.dumps({"workflow_id": ids[NAME], "workflow_name": NAME, "workflow_ids": ids, "credential_configured": True, "activated": True, "ok": True}))
 
 
 if __name__ == "__main__":

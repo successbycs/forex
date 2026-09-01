@@ -107,10 +107,8 @@ def upsert(activate: bool) -> dict[str, Any]:
     result = adapter.execute_remote(f"python3 {adapter.shell_quote(REMOTE_INSTALLER)}")
     response = adapter.result_json(result)
     workflow_id = str(response.get("workflow_id") or response.get("id") or "").strip()
-    if activate:
-        if not workflow_id:
-            raise RuntimeError("n8n did not return the Forex M11 workflow id.")
-        response, result = adapter.api_request("POST", f"/workflows/{workflow_id}/activate")
+    if activate and not workflow_id:
+        raise RuntimeError("n8n did not return the Forex M11 workflow id.")
     return {
         "tool_id": "forex_m11_n8n_t480",
         "operation": "upsert_and_activate" if activate else "upsert",
@@ -122,17 +120,37 @@ def upsert(activate: bool) -> dict[str, Any]:
     }
 
 
+def installed_workflow_id(adapter: Any) -> str:
+    """Read the ID of the one fixed M11 download workflow without mutation."""
+    settings = adapter.config()
+    script = "\n".join(
+        [
+            "set -euo pipefail",
+            f"key_file={adapter.shell_quote(settings['key_file'])}",
+            f"base_url={adapter.shell_quote(settings['base_url'])}",
+            f"workflow_name={adapter.shell_quote(WORKFLOW_NAME)}",
+            "curl --fail-with-body --silent --show-error --max-time 30 -H 'accept: application/json' -H \"X-N8N-API-KEY: $(<\"$key_file\")\" \"$base_url/api/v1/workflows?limit=250\" | python3 -c 'import json,sys; rows=json.load(sys.stdin).get(\"data\", []); print(next((str(row.get(\"id\")) for row in rows if row.get(\"name\")==sys.argv[1]), \"\"))' \"$workflow_name\"",
+        ]
+    )
+    result = adapter.execute_remote(script)
+    workflow_id = str(result.get("stdout", "")).strip()
+    if not result.get("ok") or not workflow_id:
+        raise RuntimeError("The fixed M11 n8n workflow is not installed.")
+    return workflow_id
+
+
 def recent_execution() -> dict[str, Any]:
     """Return the latest bounded M11 execution summary, without raw payloads."""
     adapter = shared_n8n()
-    response, result = adapter.api_request("GET", "/executions?workflowId=rfIIE2BiPtppBbT2&limit=1")
+    workflow_id = installed_workflow_id(adapter)
+    response, result = adapter.api_request("GET", f"/executions?workflowId={workflow_id}&limit=1")
     executions = response.get("data", [])
     latest = executions[0] if isinstance(executions, list) and executions else {}
     summary = {key: latest.get(key) for key in ("id", "status", "mode", "startedAt", "stoppedAt", "workflowId")}
     return {
         "tool_id": "forex_m11_n8n_t480",
         "operation": "recent_execution",
-        "workflow_id": "rfIIE2BiPtppBbT2",
+        "workflow_id": workflow_id,
         "execution": summary,
         "result": result,
         "ok": result.get("ok", False),
@@ -155,7 +173,7 @@ def trigger_now() -> dict[str, Any]:
     return {
         "tool_id": "forex_m11_n8n_t480",
         "operation": "trigger_now",
-        "workflow_id": "rfIIE2BiPtppBbT2",
+        "workflow_id": WORKFLOW_NAME,
         "result": result,
         "ok": result.get("ok", False),
     }

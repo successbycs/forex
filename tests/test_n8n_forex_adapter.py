@@ -36,13 +36,24 @@ def test_upsert_uses_the_deployed_fixed_forex_workflow_file(monkeypatch):
 
 def test_recent_execution_returns_only_fixed_workflow_summary(monkeypatch):
     class Shared:
+        def config(self):
+            return {"base_url": "http://127.0.0.1:5678", "key_file": "/tmp/n8n-key"}
+
+        def shell_quote(self, value):
+            return repr(value)
+
+        def execute_remote(self, script):
+            assert "/api/v1/workflows?limit=250" in script
+            return {"ok": True, "stdout": "m11-workflow\n"}
+
         def api_request(self, method, path):
-            assert (method, path) == ("GET", "/executions?workflowId=rfIIE2BiPtppBbT2&limit=1")
-            return ({"data": [{"id": "42", "status": "success", "mode": "trigger", "startedAt": "start", "stoppedAt": "stop", "workflowId": "rfIIE2BiPtppBbT2", "data": "not returned"}]}, {"ok": True})
+            assert (method, path) == ("GET", "/executions?workflowId=m11-workflow&limit=1")
+            return ({"data": [{"id": "42", "status": "success", "mode": "trigger", "startedAt": "start", "stoppedAt": "stop", "workflowId": "m11-workflow", "data": "not returned"}]}, {"ok": True})
 
     monkeypatch.setattr(n8n_forex_adapter, "shared_n8n", Shared)
     result = n8n_forex_adapter.recent_execution()
-    assert result["execution"] == {"id": "42", "status": "success", "mode": "trigger", "startedAt": "start", "stoppedAt": "stop", "workflowId": "rfIIE2BiPtppBbT2"}
+    assert result["workflow_id"] == "m11-workflow"
+    assert result["execution"] == {"id": "42", "status": "success", "mode": "trigger", "startedAt": "start", "stoppedAt": "stop", "workflowId": "m11-workflow"}
 
 
 def test_trigger_now_uses_only_the_fixed_t480_local_webhook(monkeypatch):

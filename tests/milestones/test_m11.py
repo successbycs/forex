@@ -39,6 +39,18 @@ def test_m11_r1_uses_last_closed_hour_and_exactly_four_sources_with_no_article_f
     assert "headline" not in aggregate
 
 
+def test_m11_r1_persists_four_source_records_before_the_stage_handoff():
+    download = json.loads((ROOT / "n8n/forex-gdelt-daily.json").read_text(encoding="utf-8"))
+    importer = json.loads((ROOT / "n8n/forex-gdelt-hourly-import.json").read_text(encoding="utf-8"))
+    stage_query = next(node for node in download["nodes"] if node["id"] == "stage")["parameters"]["query"]
+    import_query = next(node for node in importer["nodes"] if node["id"] == "import-staged-hour")["parameters"]["query"]
+
+    assert "persisted_sources AS (INSERT INTO forex.raw_observation" in stage_query
+    assert "INSERT INTO forex.gdelt_hourly_stage" in stage_query
+    assert "inserted_sources" not in import_query
+    assert "INSERT INTO forex.gdelt_h1_aggregate" in import_query
+
+
 def test_m11_r1_import_workflow_is_independent_and_has_no_subworkflow_or_host_surface():
     workflow = json.loads((ROOT / "n8n/forex-gdelt-hourly-import.json").read_text(encoding="utf-8"))
     rendered = json.dumps(workflow).lower()
