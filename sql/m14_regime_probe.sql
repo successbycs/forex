@@ -12,9 +12,9 @@ WITH session_contract AS (
   FROM forex.price_bar bar
   JOIN forex.raw_observation raw ON raw.observation_id = bar.raw_observation_id,
        session_contract
-  WHERE snapshot_id='m2-m1-eurusd-h1-720'
-    AND time_utc <= decision_at_utc AND available_at_utc <= decision_at_utc
-  ORDER BY time_utc DESC LIMIT 6
+  WHERE bar.snapshot_id='m2-m1-eurusd-h1-720'
+    AND bar.time_utc <= decision_at_utc AND bar.available_at_utc <= decision_at_utc
+  ORDER BY bar.time_utc DESC LIMIT 6
 ), ordered AS (
   SELECT * FROM bars ORDER BY time_utc
 ), stats AS (
