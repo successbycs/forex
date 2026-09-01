@@ -5802,6 +5802,122 @@
         "to": "NEEDS_FIX",
         "reason": "M14 review found that the prior fixed probe did not evaluate an event window or point-in-time cutoff; replacing it with the smallest fixed historical query and boundary tests."
       }
+    },
+    {
+      "event_id": "E000403",
+      "timestamp": "2026-09-01T11:42:43Z",
+      "milestone_id": "M14",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M14-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000404",
+      "timestamp": "2026-09-01T11:42:43Z",
+      "milestone_id": "M14",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M14-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000405",
+      "timestamp": "2026-09-01T11:42:43Z",
+      "milestone_id": "M14",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M14-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000406",
+      "timestamp": "2026-09-01T11:42:43Z",
+      "milestone_id": "M14",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M14-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000407",
+      "timestamp": "2026-09-01T11:42:43Z",
+      "milestone_id": "M14",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M14/20260901T114230Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000408",
+      "timestamp": "2026-09-01T11:42:44Z",
+      "milestone_id": "M14",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M14/20260901T114244Z/governance.stdout.txt",
+            "stderr": "runs/verification/M14/20260901T114244Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m14.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M14/20260901T114244Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M14/20260901T114244Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000409",
+      "timestamp": "2026-09-01T11:42:44Z",
+      "milestone_id": "M14",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
+    },
+    {
+      "event_id": "E000410",
+      "timestamp": "2026-09-01T11:46:53Z",
+      "milestone_id": "M14",
+      "action": "TRIAD_RECOMMENDATION_RECORDED",
+      "detail": {
+        "path": "runs/triad/M14/M14-20260901T114257Z-0ff15320/recommendation.json",
+        "recommendation": "RECOMMEND_COMPLETE"
+      }
+    },
+    {
+      "event_id": "E000411",
+      "timestamp": "2026-09-01T11:46:53Z",
+      "milestone_id": "M14",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris Sparshott (delegated overnight authority)",
+        "decision": "APPROVE"
+      }
     }
   ]
 }

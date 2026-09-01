@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "NEEDS_FIX",
+  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-01T11:39:20Z",
+  "last_updated_at": "2026-09-01T11:46:53Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2019,39 +2019,39 @@
       }
     },
     "M14": {
-      "status": "NEEDS_FIX",
+      "status": "AWAITING_REAL_WORLD_PROOF",
       "started_at": "2026-09-01T11:31:20Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": "2026-09-01T11:35:28Z",
-      "real_world_proof_captured_at": "2026-09-01T11:35:14.512515Z",
-      "human_signed_off_at": null,
+      "implementation_finished_at": "2026-09-01T11:42:44Z",
+      "verification_passed_at": "2026-09-01T11:42:44Z",
+      "real_world_proof_captured_at": "2026-09-01T11:42:33.018086Z",
+      "human_signed_off_at": "2026-09-01T11:46:53Z",
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
       "checks": {
         "M14-C1": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:35:27Z",
-          "evidence": "runs/evidence/M14/20260901T113512Z/regime-probe.json",
-          "note": "Fixed T480 probe classified six retained EUR/USD H1 bars and emitted the UTC session/event-window contract."
+          "recorded_at": "2026-09-01T11:42:43Z",
+          "evidence": "runs/evidence/M14/20260901T114230Z/regime-probe.json",
+          "note": "Fixed T480 PostgreSQL probe classified six point-in-time-eligible EUR/USD H1 bars and evaluated the retained fixed blackout case."
         },
         "M14-C2": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:35:27Z",
-          "evidence": "runs/evidence/M14/20260901T113512Z/tests.txt",
-          "note": "Focused M14 test and governance validation passed."
+          "recorded_at": "2026-09-01T11:42:43Z",
+          "evidence": "runs/evidence/M14/20260901T114230Z/tests.txt",
+          "note": "Focused M14 tests and governance validation passed."
         },
         "M14-C3": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:35:27Z",
-          "evidence": "runs/evidence/M14/20260901T113512Z/manifest.json",
-          "note": "Fresh clean-revision T480 evidence was independently verified."
+          "recorded_at": "2026-09-01T11:42:43Z",
+          "evidence": "runs/evidence/M14/20260901T114230Z/manifest.json",
+          "note": "Fresh clean-revision T480 evidence passed independent hash, revision, configuration, and freshness verification."
         },
         "M14-C4": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:35:27Z",
-          "evidence": "runs/evidence/M14/20260901T113512Z/regime-probe.json",
-          "note": "M14 has only a fixed historical read-only surface; no model, live data or order authority."
+          "recorded_at": "2026-09-01T11:42:43Z",
+          "evidence": "runs/evidence/M14/20260901T114230Z/regime-probe.json",
+          "note": "Fixed read-only historical probe enforces availability cutoff and reports snapshot and Demo source; no trading or order surface."
         }
       },
       "evidence": [
@@ -2063,12 +2063,21 @@
           "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
           "git_revision": "8bba8959c56e9de7d397b8be812bbe9fda6aba76",
           "summary": "FOREX_M14_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M14/20260901T114230Z/manifest.json",
+          "manifest_sha256": "1039a70394a1f36d88c0125ef57d0dc16521b05a1e36e7f9c5fafde8ab48691e",
+          "captured_at": "2026-09-01T11:42:33.018086Z",
+          "recorded_at": "2026-09-01T11:42:43Z",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "git_revision": "0ff15320d9b1ed84ff1b934d81079580778868c5",
+          "summary": "FOREX_M14_PROOF_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-01T11:35:28Z",
-        "git_revision": "8bba8959c56e9de7d397b8be812bbe9fda6aba76",
+        "recorded_at": "2026-09-01T11:42:44Z",
+        "git_revision": "0ff15320d9b1ed84ff1b934d81079580778868c5",
         "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
         "commands": [
           {
@@ -2080,8 +2089,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M14/20260901T113528Z/governance.stdout.txt",
-            "stderr": "runs/verification/M14/20260901T113528Z/governance.stderr.txt"
+            "stdout": "runs/verification/M14/20260901T114244Z/governance.stdout.txt",
+            "stderr": "runs/verification/M14/20260901T114244Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -2094,18 +2103,46 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M14/20260901T113528Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M14/20260901T113528Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M14/20260901T114244Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M14/20260901T114244Z/milestone-tests.stderr.txt"
           }
         ]
       },
-      "human_signoff": null,
+      "human_signoff": {
+        "operator": "Chris Sparshott (delegated overnight authority)",
+        "decision": "APPROVE",
+        "note": "Delegated authority: fresh T480 evidence and all four read-only reviews support M14 closeout.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "0ff15320d9b1ed84ff1b934d81079580778868c5",
+        "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+        "evidence_manifest_sha256": "1039a70394a1f36d88c0125ef57d0dc16521b05a1e36e7f9c5fafde8ab48691e",
+        "verification_recorded_at": "2026-09-01T11:42:44Z",
+        "recorded_at": "2026-09-01T11:46:53Z"
+      },
       "blockers": [
         {
           "reason": "M14 review found that the prior fixed probe did not evaluate an event window or point-in-time cutoff; replacing it with the smallest fixed historical query and boundary tests.",
           "recorded_at": "2026-09-01T11:39:20Z"
         }
-      ]
+      ],
+      "triad_recommendation": {
+        "path": "runs/triad/M14/M14-20260901T114257Z-0ff15320/recommendation.json",
+        "sha256": "96a36509cfaae9e756f424f03fc99b463ab71eb86a00aa4275898d879f586e50",
+        "summary_path": "runs/triad/M14/M14-20260901T114257Z-0ff15320/review-summary.md",
+        "summary_sha256": "22357c05dd12a835ff09208874519f23fd811865a7297802988b471d1c00e521",
+        "review_cycle_id": "M14-20260901T114257Z-0ff15320",
+        "recommendation": "RECOMMEND_COMPLETE",
+        "binding": {
+          "request_sha256": "80005cadb1b05950185f6a70dc3b1e85cc0b0046b56fc59544e0f9d874f9ca25",
+          "git_revision": "0ff15320d9b1ed84ff1b934d81079580778868c5",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "evidence_manifest_sha256": "1039a70394a1f36d88c0125ef57d0dc16521b05a1e36e7f9c5fafde8ab48691e",
+          "verifier_fingerprint": "sha256:6eb7aeb665fc211fd5e26bd9a51f6fc138f186b5556f7bf86087553b8a641c39",
+          "milestone_contract_sha256": "7404c02882301f78afec6ea714243014e6604692c790b2ac14f0011533a0ea9e"
+        },
+        "recorded_at": "2026-09-01T11:46:53Z"
+      }
     },
     "M15": {
       "status": "PLANNED",
