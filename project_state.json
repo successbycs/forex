@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-01T10:54:15Z",
+  "last_updated_at": "2026-09-01T10:56:55Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -1871,18 +1871,86 @@
       "blockers": []
     },
     "M13": {
-      "status": "IN_PROGRESS",
+      "status": "AWAITING_REAL_WORLD_PROOF",
       "started_at": "2026-09-01T10:54:15Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
+      "implementation_finished_at": "2026-09-01T10:56:54Z",
+      "verification_passed_at": "2026-09-01T10:56:55Z",
+      "real_world_proof_captured_at": "2026-09-01T10:56:11.614037Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
+      "checks": {
+        "M13-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T10:56:53Z",
+          "evidence": "runs/evidence/M13/20260901T105609Z/replay-probe.json",
+          "note": "T480 replay drill accepted only records available at the UTC cutoff."
+        },
+        "M13-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T10:56:53Z",
+          "evidence": "runs/evidence/M13/20260901T105609Z/tests.txt",
+          "note": "M13 tests and governance validation passed."
+        },
+        "M13-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T10:56:54Z",
+          "evidence": "runs/evidence/M13/20260901T105609Z/manifest.json",
+          "note": "Fresh T480 evidence is revision and configuration bound."
+        },
+        "M13-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T10:56:54Z",
+          "evidence": "runs/evidence/M13/20260901T105609Z/replay-probe.json",
+          "note": "Future context is excluded at cutoff; no trading capability exists."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M13/20260901T105609Z/manifest.json",
+          "manifest_sha256": "9ae8b83ffe348e1eea33d367581c9a3355f86ec1e4fe20977d9289e67a44dc3f",
+          "captured_at": "2026-09-01T10:56:11.614037Z",
+          "recorded_at": "2026-09-01T10:56:54Z",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "git_revision": "d5337b4948afa523d7a6075d9f9d9f287383b6d8",
+          "summary": "FOREX_M13_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-01T10:56:55Z",
+        "git_revision": "d5337b4948afa523d7a6075d9f9d9f287383b6d8",
+        "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M13/20260901T105654Z/governance.stdout.txt",
+            "stderr": "runs/verification/M13/20260901T105654Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m13.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M13/20260901T105654Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M13/20260901T105654Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
       "human_signoff": null,
       "blockers": []
     },

@@ -5225,6 +5225,102 @@
         "from": "READY",
         "to": "IN_PROGRESS"
       }
+    },
+    {
+      "event_id": "E000361",
+      "timestamp": "2026-09-01T10:56:53Z",
+      "milestone_id": "M13",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M13-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000362",
+      "timestamp": "2026-09-01T10:56:53Z",
+      "milestone_id": "M13",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M13-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000363",
+      "timestamp": "2026-09-01T10:56:54Z",
+      "milestone_id": "M13",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M13-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000364",
+      "timestamp": "2026-09-01T10:56:54Z",
+      "milestone_id": "M13",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M13-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000365",
+      "timestamp": "2026-09-01T10:56:54Z",
+      "milestone_id": "M13",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M13/20260901T105609Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000366",
+      "timestamp": "2026-09-01T10:56:54Z",
+      "milestone_id": "M13",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "IN_PROGRESS",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
+    },
+    {
+      "event_id": "E000367",
+      "timestamp": "2026-09-01T10:56:55Z",
+      "milestone_id": "M13",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M13/20260901T105654Z/governance.stdout.txt",
+            "stderr": "runs/verification/M13/20260901T105654Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m13.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M13/20260901T105654Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M13/20260901T105654Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
     }
   ]
 }
