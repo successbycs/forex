@@ -12,7 +12,7 @@ python3 -m pytest -q tests/milestones/test_m11.py tests/test_n8n_forex_adapter.p
 python3 scripts/forex_milestones.py validate >"$bundle/governance.txt" 2>&1
 python3 scripts/n8n_forex_adapter.py recent-execution >"$bundle/n8n-execution.json"
 python3 scripts/postgres_pgvector_adapter.py forex-m11-verify-schema >"$bundle/postgres-schema.json"
-python3 scripts/postgres_pgvector_adapter.py forex-m11-verify-data >"$bundle/postgres-data.json"
+python3 scripts/postgres_pgvector_adapter.py forex-m11-r1-verify-hour >"$bundle/postgres-data.json"
 git rev-parse HEAD >"$bundle/revision.txt"
 git diff --quiet
 
@@ -29,8 +29,9 @@ if not n8n.get("ok") or execution.get("status") != "success":
     raise SystemExit("M11 requires a successful T480 n8n execution")
 if not postgres.get("ok") or "FOREX_M11_GDELT_DATA_VERIFY_OK" not in postgres.get("result", {}).get("stdout", ""):
     raise SystemExit("M11 PostgreSQL data verification did not pass")
-if "complete_interval_coverage=true" not in postgres["result"]["stdout"]:
-    raise SystemExit("M11 did not retain all 96 closed-day source observations")
+required = ("source_count=4", "quarters_complete=true", "hashes_present=true", "availability_present=true", "one_aggregate=true", "lineage_ok=true")
+if not all(marker in postgres["result"]["stdout"] for marker in required):
+    raise SystemExit("M11 did not retain one complete provenance-linked closed-hour aggregate")
 status = json.loads(subprocess.check_output(["python3", "scripts/forex_milestones.py", "status", "--json"]))
 (bundle / "summary.txt").write_text("FOREX_M11_PROOF_OK\n")
 artifacts = [{"path": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()} for path in sorted(bundle.iterdir()) if path.is_file()]
@@ -43,7 +44,7 @@ manifest = {
     "configuration_fingerprint": status["configuration_fingerprint"],
     "surface": "T480 n8n GDELT workflow and normalised H1 aggregate records",
     "operation": "fixed M11 n8n execution summary plus fixed PostgreSQL verification",
-    "expected_result": "successful n8n daily ingestion and provenance-linked derived GDELT context records",
+    "expected_result": "successful independent n8n hourly stage/finalise flow and one provenance-linked derived GDELT H1 context record",
     "observed_result": "FOREX_M11_PROOF_OK",
     "exit_code": 0,
     "redactions": ["No article text, credentials, accounts, signals or order data retained."],

@@ -54,6 +54,5 @@ count an execution merely because n8n assigned it an ID.
 
 ## Exit
 
-M11-R1 is complete only when the six checks above pass and the Senior Developer
-has reviewed the implemented lean design. M11 itself still requires its full
-96-interval daily evidence, required reviews, and closeout route.
+M11 is complete when the six checks above pass, the bound evidence verifies,
+the required human review is recorded, and the closeout route succeeds.

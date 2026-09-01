@@ -85,8 +85,8 @@ data, order data, trade direction, score or model output.
 5. The fixed verifier reports source count, expected quarters, hashes,
    availability timestamps, one aggregate, lineage, no article columns and
    context-only status.
-6. A full M11 proof remains a separate later requirement: 96 archives and 24
-   aggregates for one full closed UTC day, plus bound evidence and review.
+6. M11 proof requires one complete closed UTC hour: four source archives and
+   one linked final aggregate, plus bound evidence and review.
 
 ## Operations and failure policy
 
@@ -184,14 +184,14 @@ placement or live trading. Those are later milestones.
 4. Run the read-only M11-R1 verifier. It must report four expected quarters,
    hashes, availability timestamps, one linked aggregate, no article fields
    and `EXPERIMENTAL_CONTEXT_ONLY`.
-5. Record the result as M11-R1 readiness only. It is not full M11 proof.
+5. Record the result as M11 evidence readiness.
 6. If any check fails, record its execution ID and diagnostic output. After
    three failures of the same design, disable further runs and redesign.
 
 ### D. M11 completion path after readiness
 
-1. Use the working hourly collection to retain a full closed UTC day: 96
-   source archives and 24 final aggregates.
+1. Use the working hourly collection to retain one complete closed UTC hour:
+   four source archives and one final aggregate.
 2. Capture a fresh M11 evidence bundle bound to the commit, configuration and
    fixed verification results.
 3. Independently verify that bundle.

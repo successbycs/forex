@@ -11,12 +11,12 @@ workflows, PostgreSQL staging hand-off, verification checks and recovery cap.
 M11 uses a T480 n8n workflow, not a Python scheduler, to retain a fixed
 EUR/USD-relevant aggregate-tone query, source-file retrieval time, hash and
 uncertainty label. It retains no article text and is context only—not a
-signal, recommendation or order input. The daily coordinator creates 24
-closed UTC hour jobs. Each hourly worker fetches exactly four 15-minute GKG
+signal, recommendation or order input. Each scheduled hourly worker fetches
+exactly four 15-minute GKG
 archives, derives one H1 aggregate, and hands one bounded redacted record to
 the import workflow. This makes every hour independently observable and
-retryable: one failed archive cannot remain hidden inside a 96-file run. A
-single latest GDELT interval cannot be described as a daily dataset.
+retryable: one failed archive cannot remain hidden inside a closed-hour unit.
+A single latest GDELT interval cannot be described as a complete H1 dataset.
 
 The Forex-owned `scripts/n8n_forex_adapter.py` imports only these three fixed
 workflows through the shared T480 transport. Its T480-local installer creates

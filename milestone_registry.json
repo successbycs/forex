@@ -1493,7 +1493,7 @@
       "to_state": "n8n-native experimental historical sentiment adapter proven",
       "scope": [
         "Use n8n-native schedule, HTTP, ZIP extraction, Code, aggregation, and PostgreSQL nodes to create a licence-aware, attributable historical GDELT context prototype.",
-        "Retrieve every GDELT interval for a closed UTC collection day; a single latest interval is not a daily aggregate.",
+        "For each fully closed UTC hour, retrieve exactly four GDELT 15-minute intervals (:00, :15, :30, :45), persist their provenance, then finalise one linked H1 aggregate through an independent n8n workflow.",
         "Record relevance and uncertainty rather than trading signals, and retain no article text.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
@@ -1593,7 +1593,7 @@
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "Three-phase historical-first roadmap. M11's scheduled collection is n8n-native: no Python scheduler or host-worktree command node. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
+      "notes": "Three-phase historical-first roadmap. M11's scheduled collection is n8n-native and hourly: Workflow A stages four closed-hour archives and Workflow B independently finalises one aggregate. No Python scheduler or host-worktree command node is used. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M12",
