@@ -34,6 +34,7 @@ def test_m11_r1_uses_last_closed_hour_and_exactly_four_sources_with_no_article_f
     assert "[0,15,30,45]" in build
     assert "payload_sha256" in aggregate
     assert "crypto.subtle.digest" in aggregate
+    assert "getBinaryDataBuffer(i,'file_0')" in aggregate
     assert "require('crypto')" not in aggregate
     assert "article_text" not in aggregate
     assert "headline" not in aggregate
