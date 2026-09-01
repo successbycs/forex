@@ -22,7 +22,7 @@ def test_m13_excludes_future_price_timestamp_even_if_available_early():
 
 
 def test_m13_fixed_t480_query_requires_daily_alignment_and_lineage():
-    adapter=(Path(__file__).parents[2]/'scripts'/'postgres_pgvector_adapter.py').read_text()
-    assert "price_daily AS" in adapter and "context_daily AS" in adapter and "aligned AS" in adapter
-    assert "dataset_snapshot_observation" in adapter
-    assert "context_lineage_ok" in adapter and "future_context_records" in adapter
+    query=(Path(__file__).parents[2]/'sql'/'m13_postgres_replay.sql').read_text()
+    assert "price_daily AS" in query and "context_daily AS" in query and "aligned AS" in query
+    assert "dataset_snapshot_observation" in query
+    assert "context_lineage_ok" in query and "future_context_records" in query
