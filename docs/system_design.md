@@ -10,10 +10,10 @@ autonomous execution, or profitability claim.
 | --- | --- |
 | T480 PostgreSQL and Forex schema | Implemented; price data present |
 | EUR/USD H1 data | One `DEMO_ONLY` 720-bar snapshot present |
-| Raw GDELT retrieval and H1 aggregate | Implemented locally for M11; raw sample retrieved |
-| GDELT PostgreSQL persistence and backfill | Fixed three-workflow n8n design; deployment and first run pending |
-| Price/GDELT join and replay | Designed; not deployed |
-| T480 n8n adapter | Fixed Forex M11 adapter added; deployment and first execution pending |
+| Raw GDELT retrieval and H1 aggregate | T480 n8n workflows stage and finalise bounded H1 aggregates |
+| GDELT PostgreSQL persistence and backfill | Proven for retained hourly aggregate/provenance rows; scheduled operation remains bounded and Demo-only |
+| Price/GDELT join and replay | M13 fixed read-only T480 replay probe deployed; it applies a UTC availability and event-time cutoff |
+| T480 n8n adapter | Fixed Forex M11 adapter is deployed to the T480 |
 | Daily Forex n8n schedule | n8n-native design; not deployed or activated |
 
 ## System topology and ownership
@@ -165,10 +165,9 @@ should show:
 | Research boundary | `DEMO_ONLY`, historical/context-only, no order controls, and no demonstrated edge |
 
 The existing `postgres_admin_adapter.py export-html` command is the first
-version of this surface. It exports only the allowlisted Forex tables. After
-the M11 migration, it will include the GDELT aggregate table; later M13 may add
-an explicit fixed read-only alignment report. A browser report has no database
-credentials and no write operation.
+version of this surface. It exports only the allowlisted Forex tables, including
+the GDELT aggregate table. M13 also has a fixed read-only alignment report on
+the T480. A browser report has no database credentials and no write operation.
 
 ### ML: what we will train and when
 

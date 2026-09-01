@@ -65,11 +65,12 @@ point-in-time join   provenance/audit
 EUR/USD H1 research dataset → replay, hypothesis and offline ML (M13–M16)
 ```
 
-The price side already exists in the T480 PostgreSQL `forex` schema: one
-`DEMO_ONLY` EUR/USD H1 snapshot with 720 closed bars. The GDELT collector has
-successfully retrieved a raw GKG file and produced an H1 aggregate in the
-Forex worktree, but no GDELT row, sentiment table, backfill, n8n workflow, or
-price/sentiment join has yet been deployed to PostgreSQL.
+The price side exists in the T480 PostgreSQL `forex` schema: one `DEMO_ONLY`
+EUR/USD H1 snapshot with 720 closed bars. M11 also persists bounded GDELT H1
+aggregates and their raw provenance. M13's fixed, read-only T480 replay probe
+uses both sources: at its UTC cutoff it observed the 720 price bars and five
+eligible context aggregates, while excluding future price records. This is
+historical research plumbing, not a trading or forecasting capability.
 
 The join key is the UTC H1 bucket. A feature can be used only when its
 `available_at_utc` is at or before a decision cutoff; the target is a *later*
