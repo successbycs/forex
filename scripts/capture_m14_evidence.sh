@@ -11,7 +11,7 @@ import hashlib,json,subprocess,sys
 from datetime import datetime,timezone
 from pathlib import Path
 b=Path(sys.argv[1]); p=json.loads((b/'regime-probe.json').read_text()); out=p['result']['stdout']
-assert p['ok'] and 'FOREX_M14_REGIME_PROBE_OK' in out and 'bars=6' in out and 'regime=' in out and 'event_window=' in out and 'session=08:00Z-20:00Z' in out and 'daylight_saving=UTC_FIXED' in out
+assert p['ok'] and 'FOREX_M14_REGIME_PROBE_OK' in out and 'bars=6' in out and 'regime=' in out and 'event_window=EVENT_BLACKOUT' in out and 'decision_at=2026-08-28 08:00:00+00' in out and 'flat_by=2026-08-28 20:00:00+00' in out and 'daylight_saving=UTC_FIXED' in out
 s=json.loads(subprocess.check_output(['python3','scripts/forex_milestones.py','status','--json']))
 (b/'summary.txt').write_text('FOREX_M14_PROOF_OK\n')
 a=[{'path':x.name,'sha256':hashlib.sha256(x.read_bytes()).hexdigest()} for x in sorted(b.iterdir()) if x.is_file()]

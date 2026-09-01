@@ -1,3 +1,5 @@
+import pytest
+
 from forex.regime import classify_context, classify_regime, event_window, session_contract
 
 
@@ -10,3 +12,20 @@ def test_m14_regimes_and_event_blackout_are_deterministic():
     assert event_window("2026-08-28T08:00:00Z", [{"scheduled_at_utc":"2026-08-28T08:30:00Z"}], 60)=="EVENT_BLACKOUT"
     assert classify_context(bars,"2026-08-28T08:00:00Z",[],CONFIG)["event_window"]=="NO_SCHEDULED_EVENT_BLACKOUT"
     assert session_contract(CONFIG)["daylight_saving_policy"]=="UTC_FIXED"
+
+
+@pytest.mark.parametrize(
+    ("event_at", "expected"),
+    [
+        ("2026-08-28T07:00:00Z", "EVENT_BLACKOUT"),
+        ("2026-08-28T09:00:00Z", "EVENT_BLACKOUT"),
+        ("2026-08-28T09:00:01Z", "NO_SCHEDULED_EVENT_BLACKOUT"),
+    ],
+)
+def test_m14_blackout_boundary_is_inclusive(event_at, expected):
+    assert event_window("2026-08-28T08:00:00Z", [{"scheduled_at_utc": event_at}], 60) == expected
+
+
+def test_m14_rejects_malformed_event_time():
+    with pytest.raises(ValueError):
+        event_window("2026-08-28T08:00:00Z", [{"scheduled_at_utc": "not-a-time"}], 60)

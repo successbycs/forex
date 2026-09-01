@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "NEEDS_FIX",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-01T11:31:20Z",
+  "last_updated_at": "2026-09-01T11:39:20Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2019,20 +2019,93 @@
       }
     },
     "M14": {
-      "status": "IN_PROGRESS",
+      "status": "NEEDS_FIX",
       "started_at": "2026-09-01T11:31:20Z",
       "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
+      "verification_passed_at": "2026-09-01T11:35:28Z",
+      "real_world_proof_captured_at": "2026-09-01T11:35:14.512515Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
+      "checks": {
+        "M14-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T11:35:27Z",
+          "evidence": "runs/evidence/M14/20260901T113512Z/regime-probe.json",
+          "note": "Fixed T480 probe classified six retained EUR/USD H1 bars and emitted the UTC session/event-window contract."
+        },
+        "M14-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T11:35:27Z",
+          "evidence": "runs/evidence/M14/20260901T113512Z/tests.txt",
+          "note": "Focused M14 test and governance validation passed."
+        },
+        "M14-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T11:35:27Z",
+          "evidence": "runs/evidence/M14/20260901T113512Z/manifest.json",
+          "note": "Fresh clean-revision T480 evidence was independently verified."
+        },
+        "M14-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T11:35:27Z",
+          "evidence": "runs/evidence/M14/20260901T113512Z/regime-probe.json",
+          "note": "M14 has only a fixed historical read-only surface; no model, live data or order authority."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M14/20260901T113512Z/manifest.json",
+          "manifest_sha256": "5942f95f0404e2ef049db43432d46a299ce607a98af162302dc714243a37986f",
+          "captured_at": "2026-09-01T11:35:14.512515Z",
+          "recorded_at": "2026-09-01T11:35:27Z",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "git_revision": "8bba8959c56e9de7d397b8be812bbe9fda6aba76",
+          "summary": "FOREX_M14_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-01T11:35:28Z",
+        "git_revision": "8bba8959c56e9de7d397b8be812bbe9fda6aba76",
+        "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M14/20260901T113528Z/governance.stdout.txt",
+            "stderr": "runs/verification/M14/20260901T113528Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m14.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M14/20260901T113528Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M14/20260901T113528Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
       "human_signoff": null,
-      "blockers": []
+      "blockers": [
+        {
+          "reason": "M14 review found that the prior fixed probe did not evaluate an event window or point-in-time cutoff; replacing it with the smallest fixed historical query and boundary tests.",
+          "recorded_at": "2026-09-01T11:39:20Z"
+        }
+      ]
     },
     "M15": {
       "status": "PLANNED",
