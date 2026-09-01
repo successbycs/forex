@@ -60,3 +60,4 @@ def test_m11_r1_import_workflow_is_independent_and_has_no_subworkflow_or_host_su
     assert "n8n-nodes-base.executeworkflow" not in rendered
     assert "n8n-nodes-base.executecommand" not in rendered
     assert "gdelt_hourly_stage" in rendered
+    assert "forex-m11-import-now" in rendered

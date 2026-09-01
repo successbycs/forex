@@ -26,6 +26,7 @@ CREDENTIAL_NAME = "Forex M11 PostgreSQL"
 REMOTE_LAB_ENV = "/home/chris/projects/cs-ai-lab-infra/.env"
 REMOTE_INSTALLER = "/home/chris/projects/forex/scripts/n8n_m11_install.py"
 RUN_NOW_PATH = "/webhook/forex-m11-run-now"
+RUN_IMPORT_NOW_PATH = "/webhook/forex-m11-import-now"
 
 
 def shared_n8n() -> Any:
@@ -157,8 +158,8 @@ def recent_execution() -> dict[str, Any]:
     }
 
 
-def trigger_now() -> dict[str, Any]:
-    """Start the one fixed workflow through T480-local n8n service mode."""
+def trigger_webhook(path: str, operation: str) -> dict[str, Any]:
+    """Start one fixed M11 workflow through its T480-local webhook only."""
     adapter = shared_n8n()
     workflow()
     settings = adapter.config()
@@ -166,26 +167,34 @@ def trigger_now() -> dict[str, Any]:
         [
             "set -euo pipefail",
             f"base_url={adapter.shell_quote(settings['base_url'])}",
-            f"curl --fail-with-body --silent --show-error --max-time 30 -X POST \"$base_url{RUN_NOW_PATH}\"",
+            f"curl --fail-with-body --silent --show-error --max-time 30 -X POST \"$base_url{path}\"",
         ]
     )
     result = adapter.execute_remote(script)
     return {
         "tool_id": "forex_m11_n8n_t480",
-        "operation": "trigger_now",
-        "workflow_id": WORKFLOW_NAME,
+        "operation": operation,
+        "workflow_id": WORKFLOW_NAME if operation == "trigger_now" else "Forex GDELT hourly context import",
         "result": result,
         "ok": result.get("ok", False),
     }
 
 
+def trigger_now() -> dict[str, Any]:
+    return trigger_webhook(RUN_NOW_PATH, "trigger_now")
+
+
+def trigger_import_now() -> dict[str, Any]:
+    return trigger_webhook(RUN_IMPORT_NOW_PATH, "trigger_import_now")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Fixed Forex M11 n8n adapter.")
-    parser.add_argument("command", choices=("preflight", "upsert", "activate", "trigger-now", "recent-execution"))
+    parser.add_argument("command", choices=("preflight", "upsert", "activate", "trigger-now", "trigger-import-now", "recent-execution"))
     parser.add_argument("--approve", action="store_true")
     args = parser.parse_args(argv)
-    if args.command in {"upsert", "activate", "trigger-now"} and not args.approve:
-        parser.error("upsert, activate and trigger-now require --approve")
+    if args.command in {"upsert", "activate", "trigger-now", "trigger-import-now"} and not args.approve:
+        parser.error("upsert, activate and trigger commands require --approve")
     try:
         if args.command == "preflight":
             result = preflight()
@@ -193,6 +202,8 @@ def main(argv: list[str] | None = None) -> int:
             result = recent_execution()
         elif args.command == "trigger-now":
             result = trigger_now()
+        elif args.command == "trigger-import-now":
+            result = trigger_import_now()
         else:
             result = upsert(activate=args.command == "activate")
         print(json.dumps(result, indent=2))
