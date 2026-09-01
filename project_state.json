@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
-  "last_proven_milestone": "M11",
-  "current_milestone": "M12",
+  "last_proven_milestone": "M12",
+  "current_milestone": null,
   "next_milestone": "M13",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-01T10:52:12Z",
+  "last_updated_at": "2026-09-01T10:52:39Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -1776,15 +1776,15 @@
       "blockers": []
     },
     "M12": {
-      "status": "AWAITING_REAL_WORLD_PROOF",
+      "status": "PROVEN",
       "started_at": "2026-09-01T10:50:15Z",
       "implementation_finished_at": "2026-09-01T10:51:31Z",
-      "verification_passed_at": "2026-09-01T10:51:32Z",
-      "real_world_proof_captured_at": null,
-      "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
+      "verification_passed_at": "2026-09-01T10:52:39Z",
+      "real_world_proof_captured_at": "2026-09-01T10:52:31.662913Z",
+      "human_signed_off_at": "2026-09-01T10:52:39Z",
+      "first_proven_at": "2026-09-01T10:52:39Z",
+      "proven_at": "2026-09-01T10:52:39Z",
+      "last_validated_at": "2026-09-01T10:52:39Z",
       "checks": {
         "M12-C1": {
           "result": "PASS",
@@ -1811,12 +1811,22 @@
           "note": "Processing is historical-only and has no market, model, order or live-trading surface."
         }
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M12/20260901T105230Z/manifest.json",
+          "manifest_sha256": "231aa6deb14cfcb56f1a0f7fcf460c98fe5ad5ffa12d2cf37b2b6155cd073e9a",
+          "captured_at": "2026-09-01T10:52:31.662913Z",
+          "recorded_at": "2026-09-01T10:52:38Z",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "git_revision": "b61c789873c8449eb368b9c17b704ffd4dc2f2bb",
+          "summary": "FOREX_M12_PROOF_OK"
+        }
+      ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-01T10:51:32Z",
-        "git_revision": "f1fef40fa57f4872c853418342300a41184084e6",
-        "configuration_fingerprint": "sha256:8f50079371de21e3b431122abc6c39f8601bc6242a58f0c03d6851094b87c828",
+        "recorded_at": "2026-09-01T10:52:39Z",
+        "git_revision": "b61c789873c8449eb368b9c17b704ffd4dc2f2bb",
+        "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
         "commands": [
           {
             "id": "governance",
@@ -1827,8 +1837,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M12/20260901T105132Z/governance.stdout.txt",
-            "stderr": "runs/verification/M12/20260901T105132Z/governance.stderr.txt"
+            "stdout": "runs/verification/M12/20260901T105238Z/governance.stdout.txt",
+            "stderr": "runs/verification/M12/20260901T105238Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -1841,16 +1851,27 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M12/20260901T105132Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M12/20260901T105132Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M12/20260901T105238Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M12/20260901T105238Z/milestone-tests.stderr.txt"
           }
         ]
       },
-      "human_signoff": null,
+      "human_signoff": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE",
+        "note": "Delegated overnight operator authority: M12 T480 quality proof reviewed.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "b61c789873c8449eb368b9c17b704ffd4dc2f2bb",
+        "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+        "evidence_manifest_sha256": "231aa6deb14cfcb56f1a0f7fcf460c98fe5ad5ffa12d2cf37b2b6155cd073e9a",
+        "verification_recorded_at": "2026-09-01T10:52:39Z",
+        "recorded_at": "2026-09-01T10:52:39Z"
+      },
       "blockers": []
     },
     "M13": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,

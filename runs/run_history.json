@@ -5149,6 +5149,72 @@
         ],
         "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
       }
+    },
+    {
+      "event_id": "E000356",
+      "timestamp": "2026-09-01T10:52:38Z",
+      "milestone_id": "M12",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M12/20260901T105230Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000357",
+      "timestamp": "2026-09-01T10:52:39Z",
+      "milestone_id": "M12",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M12/20260901T105238Z/governance.stdout.txt",
+            "stderr": "runs/verification/M12/20260901T105238Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m12.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M12/20260901T105238Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M12/20260901T105238Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000358",
+      "timestamp": "2026-09-01T10:52:39Z",
+      "milestone_id": "M12",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "event_id": "E000359",
+      "timestamp": "2026-09-01T10:52:39Z",
+      "milestone_id": "M12",
+      "action": "MILESTONE_PROVEN",
+      "detail": {
+        "proven_at": "2026-09-01T10:52:39Z",
+        "next_milestone": "M13"
+      }
     }
   ]
 }
