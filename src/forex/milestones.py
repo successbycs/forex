@@ -948,6 +948,12 @@ def run_cli(args: argparse.Namespace) -> int:
     elif args.command == "finish-implementation":
         if item["status"] not in {"IN_PROGRESS", "NEEDS_FIX"}:
             raise GovernanceError(f"cannot finish implementation from {item['status']}")
+        # A new implementation finish after NEEDS_FIX is the explicit record
+        # that its listed implementation blockers were addressed.  Retain the
+        # earlier event in run history, but do not make it impossible to prove
+        # the repaired milestone.
+        if item["status"] == "NEEDS_FIX":
+            item["blockers"] = []
         item["implementation_finished_at"] = utc_now()
         store.transition(args.id, "AWAITING_REAL_WORLD_PROOF", "IMPLEMENTATION_FINISHED", {})
     elif args.command == "record-check":
