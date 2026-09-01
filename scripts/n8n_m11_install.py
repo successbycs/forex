@@ -96,6 +96,9 @@ def m13_historical_seed(workflow: dict) -> dict:
                 "const h=new Date('2026-08-28T00:00:00Z');",
             )
     seed["connections"].pop("Schedule after UTC hour closes", None)
+    seed["connections"]["Run fixed M13 historical seed (T480-local only)"] = seed["connections"].pop(
+        "Run M11 now (T480-local only)"
+    )
     return seed
 
 
