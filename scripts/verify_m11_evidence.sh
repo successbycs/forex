@@ -27,7 +27,7 @@ postgres = json.loads((bundle / "postgres-data.json").read_text())
 schema = json.loads((bundle / "postgres-schema.json").read_text())
 if n8n.get("execution", {}).get("status") != "success":
     raise SystemExit("M11 n8n execution was not successful")
-if "FOREX_M11_GDELT_DATA_VERIFY_OK" not in postgres.get("result", {}).get("stdout", ""):
+if "FOREX_M11_R1_HOUR_VERIFY_OK" not in postgres.get("result", {}).get("stdout", ""):
     raise SystemExit("M11 data result is absent")
 required = ("source_count=4", "quarters_complete=true", "hashes_present=true", "availability_present=true", "one_aggregate=true", "lineage_ok=true")
 if not all(marker in postgres["result"]["stdout"] for marker in required):

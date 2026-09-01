@@ -27,7 +27,7 @@ postgres = json.loads((bundle / "postgres-data.json").read_text())
 execution = n8n.get("execution", {})
 if not n8n.get("ok") or execution.get("status") != "success":
     raise SystemExit("M11 requires a successful T480 n8n execution")
-if not postgres.get("ok") or "FOREX_M11_GDELT_DATA_VERIFY_OK" not in postgres.get("result", {}).get("stdout", ""):
+if not postgres.get("ok") or "FOREX_M11_R1_HOUR_VERIFY_OK" not in postgres.get("result", {}).get("stdout", ""):
     raise SystemExit("M11 PostgreSQL data verification did not pass")
 required = ("source_count=4", "quarters_complete=true", "hashes_present=true", "availability_present=true", "one_aggregate=true", "lineage_ok=true")
 if not all(marker in postgres["result"]["stdout"] for marker in required):
