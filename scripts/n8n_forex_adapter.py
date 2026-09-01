@@ -27,6 +27,7 @@ REMOTE_LAB_ENV = "/home/chris/projects/cs-ai-lab-infra/.env"
 REMOTE_INSTALLER = "/home/chris/projects/forex/scripts/n8n_m11_install.py"
 RUN_NOW_PATH = "/webhook/forex-m11-run-now"
 RUN_IMPORT_NOW_PATH = "/webhook/forex-m11-import-now"
+RUN_M13_SEED_PATH = "/webhook/forex-m13-historical-context-seed"
 
 
 def shared_n8n() -> Any:
@@ -188,12 +189,16 @@ def trigger_import_now() -> dict[str, Any]:
     return trigger_webhook(RUN_IMPORT_NOW_PATH, "trigger_import_now")
 
 
+def trigger_m13_seed() -> dict[str, Any]:
+    return trigger_webhook(RUN_M13_SEED_PATH, "trigger_m13_historical_seed")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Fixed Forex M11 n8n adapter.")
-    parser.add_argument("command", choices=("preflight", "upsert", "activate", "trigger-now", "trigger-import-now", "recent-execution"))
+    parser.add_argument("command", choices=("preflight", "upsert", "activate", "trigger-now", "trigger-import-now", "trigger-m13-seed", "recent-execution"))
     parser.add_argument("--approve", action="store_true")
     args = parser.parse_args(argv)
-    if args.command in {"upsert", "activate", "trigger-now", "trigger-import-now"} and not args.approve:
+    if args.command in {"upsert", "activate", "trigger-now", "trigger-import-now", "trigger-m13-seed"} and not args.approve:
         parser.error("upsert, activate and trigger commands require --approve")
     try:
         if args.command == "preflight":
@@ -204,6 +209,8 @@ def main(argv: list[str] | None = None) -> int:
             result = trigger_now()
         elif args.command == "trigger-import-now":
             result = trigger_import_now()
+        elif args.command == "trigger-m13-seed":
+            result = trigger_m13_seed()
         else:
             result = upsert(activate=args.command == "activate")
         print(json.dumps(result, indent=2))

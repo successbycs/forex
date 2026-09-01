@@ -18,6 +18,8 @@ WORKFLOWS = {
     "Forex GDELT hourly download and stage": ROOT / "n8n" / "forex-gdelt-daily.json",
     "Forex GDELT hourly context import": ROOT / "n8n" / "forex-gdelt-hourly-import.json",
 }
+M13_SEED_NAME = "Forex M13 historical GDELT seed"
+M13_SEED_WEBHOOK_ID = "31f35b0f-0b6e-4778-809f-14d13e8b0430"
 LAB_ROOT = Path("/home/chris/projects/cs-ai-lab-infra")
 KEY_FILE = Path("/home/chris/.config/cs-ai-lab/n8n-api-key")
 NAME = "Forex GDELT hourly download and stage"
@@ -77,8 +79,29 @@ def payload_for(workflow: dict, credential_id: str) -> dict:
     return {key: workflow.get(key, {} if key in {"connections", "settings"} else []) for key in ("name", "nodes", "connections", "settings")}
 
 
+def m13_historical_seed(workflow: dict) -> dict:
+    """Derive one non-scheduled, fixed M13 seed from the proven M11 stage flow."""
+    seed = json.loads(json.dumps(workflow))
+    seed["name"] = M13_SEED_NAME
+    seed["nodes"] = [node for node in seed["nodes"] if node.get("id") != "schedule"]
+    for node in seed["nodes"]:
+        if node.get("id") == "webhook":
+            node["name"] = "Run fixed M13 historical seed (T480-local only)"
+            node["webhookId"] = M13_SEED_WEBHOOK_ID
+            node["parameters"]["path"] = "forex-m13-historical-context-seed"
+        elif node.get("id") == "build":
+            node["name"] = "Build four fixed historical GKG URLs"
+            node["parameters"]["jsCode"] = node["parameters"]["jsCode"].replace(
+                "const n=new Date(),h=new Date(Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate(),n.getUTCHours()-1));",
+                "const h=new Date('2026-08-28T00:00:00Z');",
+            )
+    seed["connections"].pop("Schedule after UTC hour closes", None)
+    return seed
+
+
 def main() -> None:
     workflows = {name: json.loads(path.read_text(encoding="utf-8")) for name, path in WORKFLOWS.items()}
+    workflows[M13_SEED_NAME] = m13_historical_seed(workflows[NAME])
     if any(item.get("name") != name or item.get("active") is not False for name, item in workflows.items()):
         raise RuntimeError("fixed M11 workflow contract is invalid")
     lookup = subprocess.run(
