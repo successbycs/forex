@@ -56,6 +56,8 @@ def api(method: str, path: str, payload: dict | None = None) -> dict:
 def upsert_workflow(name: str, payload: dict) -> dict:
     workflows = api("GET", "/workflows?limit=250").get("data", [])
     existing = next((item for item in workflows if item.get("name") == name), None)
+    if existing and existing.get("active"):
+        api("POST", f"/workflows/{existing['id']}/deactivate")
     return api("PUT", f"/workflows/{existing['id']}", payload) if existing else api("POST", "/workflows", payload)
 
 
