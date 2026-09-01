@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
-  "last_proven_milestone": "M12",
-  "current_milestone": "M13",
+  "last_proven_milestone": "M13",
+  "current_milestone": null,
   "next_milestone": "M14",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-01T11:12:58Z",
+  "last_updated_at": "2026-09-01T11:31:03Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -1871,39 +1871,39 @@
       "blockers": []
     },
     "M13": {
-      "status": "AWAITING_REAL_WORLD_PROOF",
+      "status": "PROVEN",
       "started_at": "2026-09-01T10:54:15Z",
       "implementation_finished_at": "2026-09-01T10:56:54Z",
-      "verification_passed_at": "2026-09-01T11:12:58Z",
-      "real_world_proof_captured_at": "2026-09-01T11:12:44.632664Z",
-      "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
+      "verification_passed_at": "2026-09-01T11:23:21Z",
+      "real_world_proof_captured_at": "2026-09-01T11:23:08.634540Z",
+      "human_signed_off_at": "2026-09-01T11:31:03Z",
+      "first_proven_at": "2026-09-01T11:31:03Z",
+      "proven_at": "2026-09-01T11:31:03Z",
+      "last_validated_at": "2026-09-01T11:31:03Z",
       "checks": {
         "M13-C1": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:12:57Z",
-          "evidence": "runs/evidence/M13/20260901T111242Z/replay-probe.json",
-          "note": "Fixed T480 query constructed 37 daily price replay rows with UTC cutoff, source lineage, and explicit context coverage."
+          "recorded_at": "2026-09-01T11:23:20Z",
+          "evidence": "runs/evidence/M13/20260901T112306Z/replay-probe.json",
+          "note": "Fixed T480 replay constructed 37 daily price rows with one provenance-linked GDELT context day."
         },
         "M13-C2": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:12:57Z",
-          "evidence": "runs/evidence/M13/20260901T111242Z/tests.txt",
-          "note": "M13 tests and milestone governance validation passed."
+          "recorded_at": "2026-09-01T11:23:20Z",
+          "evidence": "runs/evidence/M13/20260901T112306Z/tests.txt",
+          "note": "Focused M13 tests and governance validation passed."
         },
         "M13-C3": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:12:57Z",
-          "evidence": "runs/evidence/M13/20260901T111242Z/manifest.json",
+          "recorded_at": "2026-09-01T11:23:20Z",
+          "evidence": "runs/evidence/M13/20260901T112306Z/manifest.json",
           "note": "Fresh clean-revision T480 evidence was independently verified."
         },
         "M13-C4": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:12:57Z",
-          "evidence": "runs/evidence/M13/20260901T111242Z/replay-probe.json",
-          "note": "Price and GDELT provenance are asserted; post-cutoff GDELT records are counted and excluded."
+          "recorded_at": "2026-09-01T11:23:20Z",
+          "evidence": "runs/evidence/M13/20260901T112306Z/replay-probe.json",
+          "note": "Price and GDELT lineage pass; post-cutoff context is explicitly excluded."
         }
       },
       "evidence": [
@@ -1942,12 +1942,21 @@
           "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
           "git_revision": "6f79355d1c0d7dcbcb546ffd791bfe73da679b0f",
           "summary": "FOREX_M13_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M13/20260901T112306Z/manifest.json",
+          "manifest_sha256": "b70b6f5967bec90e3cd733fb7ea728ad45b8cee0574e0fcb1651ade343f3764f",
+          "captured_at": "2026-09-01T11:23:08.634540Z",
+          "recorded_at": "2026-09-01T11:23:20Z",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "git_revision": "14e727493ee039e7f6693838e26bf1766759cefe",
+          "summary": "FOREX_M13_PROOF_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-01T11:12:58Z",
-        "git_revision": "6f79355d1c0d7dcbcb546ffd791bfe73da679b0f",
+        "recorded_at": "2026-09-01T11:23:21Z",
+        "git_revision": "14e727493ee039e7f6693838e26bf1766759cefe",
         "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
         "commands": [
           {
@@ -1959,8 +1968,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M13/20260901T111258Z/governance.stdout.txt",
-            "stderr": "runs/verification/M13/20260901T111258Z/governance.stderr.txt"
+            "stdout": "runs/verification/M13/20260901T112320Z/governance.stdout.txt",
+            "stderr": "runs/verification/M13/20260901T112320Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -1973,16 +1982,44 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M13/20260901T111258Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M13/20260901T111258Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M13/20260901T112320Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M13/20260901T112320Z/milestone-tests.stderr.txt"
           }
         ]
       },
-      "human_signoff": null,
-      "blockers": []
+      "human_signoff": {
+        "operator": "Chris Sparshott (delegated overnight authority)",
+        "decision": "APPROVE",
+        "note": "Delegated overnight authority: approved the reviewed M13 historical point-in-time replay evidence and outputs.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "14e727493ee039e7f6693838e26bf1766759cefe",
+        "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+        "evidence_manifest_sha256": "b70b6f5967bec90e3cd733fb7ea728ad45b8cee0574e0fcb1651ade343f3764f",
+        "verification_recorded_at": "2026-09-01T11:23:21Z",
+        "recorded_at": "2026-09-01T11:31:03Z"
+      },
+      "blockers": [],
+      "triad_recommendation": {
+        "path": "runs/triad/M13/M13-20260901T112321Z-14e72749/recommendation.json",
+        "sha256": "03d2689fd2bc5bdd175a84701afd1ce7d689db2fba5f55a7e2b0c6daca37177c",
+        "summary_path": "runs/triad/M13/M13-20260901T112321Z-14e72749/review-summary.md",
+        "summary_sha256": "3484aacaa1f06bc87438c5f417e499645de2f60c718c2a20931817422911bd42",
+        "review_cycle_id": "M13-20260901T112321Z-14e72749",
+        "recommendation": "RECOMMEND_COMPLETE",
+        "binding": {
+          "request_sha256": "5eb9597e62d8320ef484dec665b237cd5d365bfde3fb55183efb73c7b0ccda17",
+          "git_revision": "14e727493ee039e7f6693838e26bf1766759cefe",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "evidence_manifest_sha256": "b70b6f5967bec90e3cd733fb7ea728ad45b8cee0574e0fcb1651ade343f3764f",
+          "verifier_fingerprint": "sha256:1891d75486c953d4d9f1dc6c490586b8c6b880b6450c4dd143c0da63118b94c0",
+          "milestone_contract_sha256": "6203088cb0c374e7c45f09705e7cf88699eef6d844473991f16afa921bfe8c90"
+        },
+        "recorded_at": "2026-09-01T11:30:54Z"
+      }
     },
     "M14": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,

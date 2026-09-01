@@ -5579,6 +5579,122 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000386",
+      "timestamp": "2026-09-01T11:23:20Z",
+      "milestone_id": "M13",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M13-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000387",
+      "timestamp": "2026-09-01T11:23:20Z",
+      "milestone_id": "M13",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M13-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000388",
+      "timestamp": "2026-09-01T11:23:20Z",
+      "milestone_id": "M13",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M13-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000389",
+      "timestamp": "2026-09-01T11:23:20Z",
+      "milestone_id": "M13",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M13-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000390",
+      "timestamp": "2026-09-01T11:23:20Z",
+      "milestone_id": "M13",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M13/20260901T112306Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000391",
+      "timestamp": "2026-09-01T11:23:21Z",
+      "milestone_id": "M13",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M13/20260901T112320Z/governance.stdout.txt",
+            "stderr": "runs/verification/M13/20260901T112320Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m13.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M13/20260901T112320Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M13/20260901T112320Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000392",
+      "timestamp": "2026-09-01T11:30:54Z",
+      "milestone_id": "M13",
+      "action": "TRIAD_RECOMMENDATION_RECORDED",
+      "detail": {
+        "path": "runs/triad/M13/M13-20260901T112321Z-14e72749/recommendation.json",
+        "recommendation": "RECOMMEND_COMPLETE"
+      }
+    },
+    {
+      "event_id": "E000393",
+      "timestamp": "2026-09-01T11:31:03Z",
+      "milestone_id": "M13",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris Sparshott (delegated overnight authority)",
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "event_id": "E000394",
+      "timestamp": "2026-09-01T11:31:03Z",
+      "milestone_id": "M13",
+      "action": "MILESTONE_PROVEN",
+      "detail": {
+        "proven_at": "2026-09-01T11:31:03Z",
+        "next_milestone": "M14"
+      }
     }
   ]
 }
