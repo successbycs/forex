@@ -99,6 +99,12 @@ def m13_historical_seed(workflow: dict) -> dict:
     seed["connections"]["Run fixed M13 historical seed (T480-local only)"] = seed["connections"].pop(
         "Run M11 now (T480-local only)"
     )
+    seed["connections"]["Run fixed M13 historical seed (T480-local only)"]["main"][0][0]["node"] = (
+        "Build four fixed historical GKG URLs"
+    )
+    seed["connections"]["Build four fixed historical GKG URLs"] = seed["connections"].pop(
+        "Build four closed-hour GKG URLs"
+    )
     return seed
 
 
