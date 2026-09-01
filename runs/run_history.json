@@ -5918,6 +5918,143 @@
         "operator": "Chris Sparshott (delegated overnight authority)",
         "decision": "APPROVE"
       }
+    },
+    {
+      "event_id": "E000412",
+      "timestamp": "2026-09-01T11:48:33Z",
+      "milestone_id": "M14",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "AWAITING_REAL_WORLD_PROOF",
+        "to": "NEEDS_FIX",
+        "reason": "Resolved prior M14 blocker: the repaired T480 probe and fresh evidence now evaluate the event window and availability cutoff."
+      }
+    },
+    {
+      "event_id": "E000413",
+      "timestamp": "2026-09-01T11:48:33Z",
+      "milestone_id": "M14",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
+    },
+    {
+      "event_id": "E000414",
+      "timestamp": "2026-09-01T11:48:33Z",
+      "milestone_id": "M14",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M14-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000415",
+      "timestamp": "2026-09-01T11:48:33Z",
+      "milestone_id": "M14",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M14-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000416",
+      "timestamp": "2026-09-01T11:48:33Z",
+      "milestone_id": "M14",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M14-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000417",
+      "timestamp": "2026-09-01T11:48:33Z",
+      "milestone_id": "M14",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M14-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000418",
+      "timestamp": "2026-09-01T11:48:32Z",
+      "milestone_id": "M14",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M14/20260901T114817Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000419",
+      "timestamp": "2026-09-01T11:48:32Z",
+      "milestone_id": "M14",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M14/20260901T114832Z/governance.stdout.txt",
+            "stderr": "runs/verification/M14/20260901T114832Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m14.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M14/20260901T114832Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M14/20260901T114832Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000420",
+      "timestamp": "2026-09-01T11:52:56Z",
+      "milestone_id": "M14",
+      "action": "TRIAD_RECOMMENDATION_RECORDED",
+      "detail": {
+        "path": "runs/triad/M14/M14-20260901T114838Z-6ba77c43/recommendation.json",
+        "recommendation": "RECOMMEND_COMPLETE"
+      }
+    },
+    {
+      "event_id": "E000421",
+      "timestamp": "2026-09-01T11:52:56Z",
+      "milestone_id": "M14",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris Sparshott (delegated overnight authority)",
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "event_id": "E000422",
+      "timestamp": "2026-09-01T11:52:56Z",
+      "milestone_id": "M14",
+      "action": "MILESTONE_PROVEN",
+      "detail": {
+        "proven_at": "2026-09-01T11:52:56Z",
+        "next_milestone": "M15"
+      }
     }
   ]
 }
