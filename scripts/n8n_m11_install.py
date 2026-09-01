@@ -59,7 +59,7 @@ def upsert_workflow(name: str, payload: dict) -> dict:
 def payload_for(workflow: dict, credential_id: str) -> dict:
     """Bind the one fixed credential; no caller selects workflows or SQL."""
     for node in workflow["nodes"]:
-        if node.get("id") == "persist-hourly-context":
+        if node.get("id") in {"stage", "persist-hourly-context", "import-staged-hour"}:
             node["credentials"] = {"postgres": {"id": credential_id, "name": CREDENTIAL_NAME}}
     return {key: workflow.get(key, {} if key in {"connections", "settings"} else []) for key in ("name", "nodes", "connections", "settings")}
 
