@@ -1507,13 +1507,17 @@
       ],
       "expected_artifacts": [
         "docs/milestones/M11-proof.md",
+        "docs/milestones/M11-recovery-plan.md",
+        "docs/milestones/M11-system-design.md",
         "docs/system_design.md",
         "n8n/forex-gdelt-daily.json",
+        "n8n/forex-gdelt-hourly-import.json",
         "scripts/n8n_forex_adapter.py",
         "scripts/n8n_m11_install.py",
         "scripts/capture_m11_evidence.sh",
         "scripts/verify_m11_evidence.sh",
         "sql/migrations/003_m11_gdelt_h1_aggregate.sql",
+        "sql/migrations/004_m11_gdelt_hourly_stage.sql",
         "tests/milestones/test_m11.py"
       ],
       "acceptance_criteria": [

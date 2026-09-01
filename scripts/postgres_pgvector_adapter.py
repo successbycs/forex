@@ -33,12 +33,13 @@ ASSETS = {
     "schema": "sql/migrations/001_m2_historical_data.sql",
     "sealed_provenance": "sql/migrations/002_m2_sealed_provenance.sql",
     "gdelt_schema": "sql/migrations/003_m11_gdelt_h1_aggregate.sql",
+    "gdelt_stage_schema": "sql/migrations/004_m11_gdelt_hourly_stage.sql",
     "import": "scripts/build_m2_postgres_import.py",
 }
 M2_SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
 M2_SNAPSHOT_ARTIFACT_SHA256 = "sha256:dc5384732d71091aa2279aaf6d92e8e1780c8021eacde948432ad7bc68fdabaa"
-READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data"}
-MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema"}
+READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour"}
+MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema"}
 
 
 def remote(body: str) -> dict:
@@ -161,6 +162,16 @@ printf 'FOREX_M11_GDELT_SCHEMA_APPLIED sha256:{digest}\\n' '''
     return wrap("forex_m11_apply_schema", remote(body), digest)
 
 
+def apply_m11_r1_stage_schema() -> dict:
+    relative, digest = asset("gdelt_stage_schema")
+    body = f'''schema_file="{REMOTE_FOREX}/{relative}"
+test -f "$schema_file"
+[[ "$(sha256sum "$schema_file" | head -c 64)" == "{digest}" ]]
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$schema_file"
+printf 'FOREX_M11_R1_STAGE_SCHEMA_APPLIED sha256:{digest}\\n' '''
+    return wrap("forex_m11_r1_apply_stage_schema", remote(body), digest)
+
+
 def verify_m11_schema() -> dict:
     body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 'FOREX_M11_GDELT_SCHEMA_VERIFY_OK',
   to_regclass('forex.gdelt_h1_aggregate') IS NOT NULL,
@@ -184,6 +195,12 @@ def verify_m11_data() -> dict:
     return wrap("forex_m11_verify_data", remote(body))
 
 
+def verify_m11_r1_hour() -> dict:
+    """Inspect the most recently imported H1 context unit; no caller input."""
+    body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "WITH latest AS (SELECT max(bucket_time_utc) AS bucket FROM forex.gdelt_h1_aggregate), sources AS (SELECT observation_id, source_revision, payload_sha256, available_at_utc FROM forex.raw_observation, latest WHERE source_id='gdelt-sentiment-prototype' AND observation_id LIKE 'gdelt-gkg-%' AND observed_at_utc >= latest.bucket AND observed_at_utc < latest.bucket + interval '1 hour'), aggregate AS (SELECT aggregate.observation_id, aggregate.bucket_time_utc FROM forex.gdelt_h1_aggregate aggregate, latest WHERE aggregate.bucket_time_utc=latest.bucket) SELECT 'FOREX_M11_R1_HOUR_VERIFY_OK', 'bucket=' || COALESCE((SELECT bucket::text FROM latest), 'none'), 'source_count=' || (SELECT count(*) FROM sources), 'quarters_complete=' || ((SELECT array_agg(extract(minute FROM available_at_utc - interval '15 minutes')::integer ORDER BY available_at_utc) FROM sources) = ARRAY[0,15,30,45]), 'hashes_present=' || (SELECT bool_and(payload_sha256 LIKE 'sha256:%') FROM sources), 'availability_present=' || (SELECT bool_and(available_at_utc IS NOT NULL) FROM sources), 'one_aggregate=' || ((SELECT count(*) FROM aggregate)=1), 'lineage_ok=' || EXISTS (SELECT 1 FROM aggregate JOIN forex.raw_observation observation ON observation.observation_id=aggregate.observation_id WHERE observation.observation_id LIKE 'gdelt-h1-%'), 'no_article_columns=' || NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='forex' AND table_name='gdelt_h1_aggregate' AND column_name IN ('article_text','headline','url','content')), 'context_only=' || NOT EXISTS (SELECT 1 FROM forex.gdelt_h1_aggregate WHERE uncertainty_label <> 'EXPERIMENTAL_CONTEXT_ONLY');" </dev/null'''
+    return wrap("forex_m11_r1_verify_hour", remote(body))
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Fixed Forex M2 PostgreSQL adapter.")
     parser.add_argument("command", choices=sorted(READ_ONLY | MUTATING))
@@ -191,7 +208,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command in MUTATING and not args.approve:
         parser.error("this mutating operation requires --approve")
-    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data}
+    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-r1-apply-stage-schema": apply_m11_r1_stage_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data, "forex-m11-r1-verify-hour": verify_m11_r1_hour}
     payload = actions[args.command]()
     print(json.dumps(payload, indent=2))
     return 0 if payload["ok"] else 1

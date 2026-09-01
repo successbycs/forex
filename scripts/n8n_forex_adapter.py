@@ -18,14 +18,9 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW_FILE = ROOT / "n8n" / "forex-gdelt-daily.json"
-WORKFLOW_FILES = (
-    WORKFLOW_FILE,
-    ROOT / "n8n" / "forex-gdelt-hourly-download.json",
-    ROOT / "n8n" / "forex-gdelt-hourly-import.json",
-)
 SHARED_ROOT = Path("/home/chris/projects/cs-ai-lab-infra")
 SHARED_ADAPTER = SHARED_ROOT / "scripts" / "n8n_adapter.py"
-WORKFLOW_NAME = "Forex GDELT daily H1 context ingestion"
+WORKFLOW_NAME = "Forex GDELT hourly download and stage"
 REMOTE_WORKFLOW_FILE = "/home/chris/projects/forex/n8n/forex-gdelt-daily.json"
 CREDENTIAL_NAME = "Forex M11 PostgreSQL"
 REMOTE_LAB_ENV = "/home/chris/projects/cs-ai-lab-infra/.env"
@@ -50,14 +45,10 @@ def workflow() -> dict[str, Any]:
     payload = json.loads(WORKFLOW_FILE.read_text(encoding="utf-8"))
     if payload.get("name") != WORKFLOW_NAME or payload.get("active") is not False:
         raise RuntimeError("The fixed Forex M11 workflow name or inactive default is invalid.")
-    all_nodes: list[dict[str, Any]] = []
-    for path in WORKFLOW_FILES:
-        candidate = json.loads(path.read_text(encoding="utf-8"))
-        nodes = candidate.get("nodes")
-        if not isinstance(nodes, list) or not nodes or candidate.get("active") is not False:
-            raise RuntimeError("A fixed Forex M11 workflow is invalid.")
-        all_nodes.extend(node for node in nodes if isinstance(node, dict))
-    node_types = {str(node.get("type", "")) for node in all_nodes}
+    nodes = payload.get("nodes")
+    if not isinstance(nodes, list) or not nodes:
+        raise RuntimeError("The fixed Forex M11 workflow has no nodes.")
+    node_types = {str(node.get("type", "")) for node in nodes if isinstance(node, dict)}
     required = {
         "n8n-nodes-base.scheduleTrigger",
         "n8n-nodes-base.httpRequest",
@@ -65,9 +56,9 @@ def workflow() -> dict[str, Any]:
         "n8n-nodes-base.code",
         "n8n-nodes-base.postgres",
     }
-    if not required <= node_types or "n8n-nodes-base.executeCommand" in node_types:
+    if not required <= node_types or "n8n-nodes-base.executeCommand" in node_types or "n8n-nodes-base.executeWorkflow" in node_types:
         raise RuntimeError("The fixed Forex M11 workflow violates its n8n-native node contract.")
-    webhook = next((node for node in payload["nodes"] if node.get("id") == "m11-run-now-webhook"), None)
+    webhook = next((node for node in payload["nodes"] if node.get("name") == "Run M11 now (T480-local only)"), None)
     if not isinstance(webhook, dict) or webhook.get("type") != "n8n-nodes-base.webhook" or webhook.get("webhookId") != "2e9a7b9a-7a20-4ff3-8f5a-35d2a6890996":
         raise RuntimeError("The fixed Forex M11 run-now webhook is missing.")
     parameters = webhook.get("parameters")

@@ -54,6 +54,12 @@ MT5, shell or order interface.
 
 ## Proposed GDELT extension
 
+M11-R1 separates n8n responsibilities without nesting workflows: the hourly
+download-and-stage workflow stores a bounded four-file hand-off in
+`forex.gdelt_hourly_stage`; the independently scheduled import workflow
+finalises only complete stage records into `forex.gdelt_h1_aggregate`. The
+handoff is PostgreSQL, never an n8n subworkflow call.
+
 GDELT source-file lineage uses the existing `source_registry` and
 `raw_observation` tables. M11 then adds one lean derived table:
 

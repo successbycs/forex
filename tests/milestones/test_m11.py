@@ -5,15 +5,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_m11_n8n_workflow_is_daily_native_and_has_no_python_or_host_command_surface():
-    workflows = [json.loads(path.read_text(encoding="utf-8")) for path in (
-        ROOT / "n8n/forex-gdelt-daily.json",
-        ROOT / "n8n/forex-gdelt-hourly-download.json",
-        ROOT / "n8n/forex-gdelt-hourly-import.json",
-    )]
-    workflow = workflows[0]
-    rendered = json.dumps(workflows).lower()
-    nodes = {node["name"]: node for candidate in workflows for node in candidate["nodes"]}
+def test_m11_r1_is_one_flat_hourly_native_workflow_without_host_or_subworkflow_surface():
+    workflow = json.loads((ROOT / "n8n/forex-gdelt-daily.json").read_text(encoding="utf-8"))
+    rendered = json.dumps(workflow).lower()
+    nodes = {node["name"]: node for node in workflow["nodes"]}
 
     assert workflow["active"] is False
     assert "n8n-nodes-base.scheduletrigger" in rendered
@@ -21,35 +16,35 @@ def test_m11_n8n_workflow_is_daily_native_and_has_no_python_or_host_command_surf
     assert "n8n-nodes-base.compression" in rendered
     assert "n8n-nodes-base.postgres" in rendered
     assert "n8n-nodes-base.executecommand" not in rendered
+    assert "n8n-nodes-base.executeworkflow\"" not in rendered
     assert "https://data.gdeltproject.org/gdeltv2/lastupdate.txt" not in rendered
-    assert "Build 24 closed UTC hours" in nodes
-    assert "Persist hourly GDELT context" in nodes
-    assert nodes["One hourly job at a time"]["parameters"]["batchSize"] == 1
-    loop_outputs = workflow["connections"]["One hourly job at a time"]["main"]
-    assert loop_outputs[0][0]["node"] == "Summarise daily ingestion"
-    assert loop_outputs[1][0]["node"] == "Run hourly download and aggregate"
-    assert nodes["M11 fixed manual execution trigger"]["type"] == "n8n-nodes-base.executeWorkflowTrigger"
+    assert nodes["Schedule after UTC hour closes"]["parameters"]["rule"]["interval"][0]["expression"] == "5 * * * *"
     assert nodes["Download GKG ZIP"]["parameters"]["options"]["response"]["response"] == {
-        "neverError": False,
-        "responseFormat": "file",
-        "outputPropertyName": "data",
+        "neverError": False, "responseFormat": "file", "outputPropertyName": "data"
     }
-    assert "gdelt_h1_aggregate" in rendered
-    assert "article text" in rendered
-    assert "order" in rendered
 
 
-def test_m11_workflow_builds_all_96_prior_day_intervals_and_retains_no_article_fields():
-    coordinator = json.loads((ROOT / "n8n/forex-gdelt-daily.json").read_text(encoding="utf-8"))
-    hourly = json.loads((ROOT / "n8n/forex-gdelt-hourly-download.json").read_text(encoding="utf-8"))
-    code = next(node["parameters"]["jsCode"] for node in coordinator["nodes"] if node["name"] == "Build 24 closed UTC hours")
-    aggregate_code = next(node["parameters"]["jsCode"] for node in hourly["nodes"] if node["name"] == "Aggregate one hour of context")
+def test_m11_r1_uses_last_closed_hour_and_exactly_four_sources_with_no_article_fields():
+    workflow = json.loads((ROOT / "n8n/forex-gdelt-daily.json").read_text(encoding="utf-8"))
+    nodes = {node["name"]: node for node in workflow["nodes"]}
+    build = nodes["Build four closed-hour GKG URLs"]["parameters"]["jsCode"]
+    aggregate = nodes["Aggregate one closed hour of context"]["parameters"]["jsCode"]
 
-    assert "length: 24" in code
-    assert "hour * 3600000" in code
-    assert "[0, 15, 30, 45]" in json.dumps(hourly)
-    assert "payload_sha256" in aggregate_code
-    assert "crypto.subtle.digest" in aggregate_code
-    assert "require('crypto')" not in aggregate_code
-    assert "article_text" not in aggregate_code
-    assert "headline" not in aggregate_code
+    assert "getUTCHours()-1" in build
+    assert "[0,15,30,45]" in build
+    assert "payload_sha256" in aggregate
+    assert "crypto.subtle.digest" in aggregate
+    assert "require('crypto')" not in aggregate
+    assert "article_text" not in aggregate
+    assert "headline" not in aggregate
+
+
+def test_m11_r1_import_workflow_is_independent_and_has_no_subworkflow_or_host_surface():
+    workflow = json.loads((ROOT / "n8n/forex-gdelt-hourly-import.json").read_text(encoding="utf-8"))
+    rendered = json.dumps(workflow).lower()
+
+    assert workflow["active"] is False
+    assert "n8n-nodes-base.postgres" in rendered
+    assert "n8n-nodes-base.executeworkflow" not in rendered
+    assert "n8n-nodes-base.executecommand" not in rendered
+    assert "gdelt_hourly_stage" in rendered

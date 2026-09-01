@@ -1,5 +1,13 @@
 # M11 — n8n-native experimental GDELT aggregate sentiment
 
+Current recovery work is sequenced in [M11-R1 — bounded n8n recovery and
+real-world check](M11-recovery-plan.md). It is a work package, not a second
+milestone state machine.
+
+The required supporting implementation and deployment guide is
+[M11 system design](M11-system-design.md). It defines the decoupled T480 n8n
+workflows, PostgreSQL staging hand-off, verification checks and recovery cap.
+
 M11 uses a T480 n8n workflow, not a Python scheduler, to retain a fixed
 EUR/USD-relevant aggregate-tone query, source-file retrieval time, hash and
 uncertainty label. It retains no article text and is context only—not a
