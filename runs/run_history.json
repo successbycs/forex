@@ -5695,6 +5695,16 @@
         "proven_at": "2026-09-01T11:31:03Z",
         "next_milestone": "M14"
       }
+    },
+    {
+      "event_id": "E000395",
+      "timestamp": "2026-09-01T11:31:20Z",
+      "milestone_id": "M14",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
     }
   ]
 }
