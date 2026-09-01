@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-01T11:53:10Z",
+  "last_updated_at": "2026-09-01T11:57:55Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2149,18 +2149,86 @@
       }
     },
     "M15": {
-      "status": "IN_PROGRESS",
+      "status": "AWAITING_REAL_WORLD_PROOF",
       "started_at": "2026-09-01T11:53:10Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
+      "implementation_finished_at": "2026-09-01T11:57:55Z",
+      "verification_passed_at": "2026-09-01T11:57:55Z",
+      "real_world_proof_captured_at": "2026-09-01T11:57:48.011626Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
+      "checks": {
+        "M15-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T11:57:54Z",
+          "evidence": "runs/evidence/M15/20260901T115745Z/manifest.json",
+          "note": "Fresh fixed T480 historical M15 baseline evidence passed."
+        },
+        "M15-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T11:57:54Z",
+          "evidence": "runs/evidence/M15/20260901T115745Z/manifest.json",
+          "note": "Fresh fixed T480 historical M15 baseline evidence passed."
+        },
+        "M15-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T11:57:54Z",
+          "evidence": "runs/evidence/M15/20260901T115745Z/manifest.json",
+          "note": "Fresh fixed T480 historical M15 baseline evidence passed."
+        },
+        "M15-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-01T11:57:54Z",
+          "evidence": "runs/evidence/M15/20260901T115745Z/manifest.json",
+          "note": "Fresh fixed T480 historical M15 baseline evidence passed."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M15/20260901T115745Z/manifest.json",
+          "manifest_sha256": "b7aa178311513f25877b7b6520b7aecf0bbaa56a8525a31a3dc1337413123223",
+          "captured_at": "2026-09-01T11:57:48.011626Z",
+          "recorded_at": "2026-09-01T11:57:54Z",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "git_revision": "c7d5c38231266c9f31567da5ad9783de374b8d14",
+          "summary": "FOREX_M15_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-01T11:57:55Z",
+        "git_revision": "c7d5c38231266c9f31567da5ad9783de374b8d14",
+        "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M15/20260901T115754Z/governance.stdout.txt",
+            "stderr": "runs/verification/M15/20260901T115754Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m15.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M15/20260901T115754Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M15/20260901T115754Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
       "human_signoff": null,
       "blockers": []
     },

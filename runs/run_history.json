@@ -6065,6 +6065,102 @@
         "from": "READY",
         "to": "IN_PROGRESS"
       }
+    },
+    {
+      "event_id": "E000424",
+      "timestamp": "2026-09-01T11:57:54Z",
+      "milestone_id": "M15",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M15-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000425",
+      "timestamp": "2026-09-01T11:57:54Z",
+      "milestone_id": "M15",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M15-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000426",
+      "timestamp": "2026-09-01T11:57:54Z",
+      "milestone_id": "M15",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M15-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000427",
+      "timestamp": "2026-09-01T11:57:54Z",
+      "milestone_id": "M15",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M15-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000428",
+      "timestamp": "2026-09-01T11:57:54Z",
+      "milestone_id": "M15",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M15/20260901T115745Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000429",
+      "timestamp": "2026-09-01T11:57:55Z",
+      "milestone_id": "M15",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M15/20260901T115754Z/governance.stdout.txt",
+            "stderr": "runs/verification/M15/20260901T115754Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m15.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M15/20260901T115754Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M15/20260901T115754Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000430",
+      "timestamp": "2026-09-01T11:57:55Z",
+      "milestone_id": "M15",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "IN_PROGRESS",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
     }
   ]
 }
