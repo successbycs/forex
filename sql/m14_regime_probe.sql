@@ -29,7 +29,7 @@ SELECT 'FOREX_M14_REGIME_PROBE_OK', 'bars=' || n,
                    ELSE 'RANGE_BOUND' END,
  'event_window=' || CASE WHEN EXISTS (SELECT 1 FROM declared_event, session_contract WHERE abs(extract(epoch FROM scheduled_at_utc-decision_at_utc)) <= blackout_minutes*60) THEN 'EVENT_BLACKOUT' ELSE 'NO_SCHEDULED_EVENT_BLACKOUT' END,
  'decision_at=' || (SELECT decision_at_utc::text FROM session_contract),
- 'flat_by=' || (SELECT flat_by_utc::text FROM session_contract), 'daylight_saving=UTC_FIXED'
+ 'flat_by=' || (SELECT flat_by_utc::text FROM session_contract), 'daylight_saving=UTC_FIXED',
        'snapshot=m2-m1-eurusd-h1-720',
        'source=' || coalesce((SELECT min(source_id) FROM bars), 'NONE'),
        'eligible_bars=' || n
