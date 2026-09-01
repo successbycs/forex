@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-01T11:04:53Z",
+  "last_updated_at": "2026-09-01T11:12:58Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -1874,8 +1874,8 @@
       "status": "AWAITING_REAL_WORLD_PROOF",
       "started_at": "2026-09-01T10:54:15Z",
       "implementation_finished_at": "2026-09-01T10:56:54Z",
-      "verification_passed_at": "2026-09-01T11:04:53Z",
-      "real_world_proof_captured_at": "2026-09-01T11:04:40.695844Z",
+      "verification_passed_at": "2026-09-01T11:12:58Z",
+      "real_world_proof_captured_at": "2026-09-01T11:12:44.632664Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
@@ -1883,27 +1883,27 @@
       "checks": {
         "M13-C1": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:04:52Z",
-          "evidence": "runs/evidence/M13/20260901T110438Z/replay-probe.json",
-          "note": "Fixed T480 PostgreSQL replay query found the M2 EUR/USD H1 snapshot, 720 eligible bars, and five eligible M11 context aggregates at the UTC cutoff."
+          "recorded_at": "2026-09-01T11:12:57Z",
+          "evidence": "runs/evidence/M13/20260901T111242Z/replay-probe.json",
+          "note": "Fixed T480 query constructed 37 daily price replay rows with UTC cutoff, source lineage, and explicit context coverage."
         },
         "M13-C2": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:04:52Z",
-          "evidence": "runs/evidence/M13/20260901T110438Z/tests.txt",
-          "note": "M13 focused test and governance validation passed for the deployed revision."
+          "recorded_at": "2026-09-01T11:12:57Z",
+          "evidence": "runs/evidence/M13/20260901T111242Z/tests.txt",
+          "note": "M13 tests and milestone governance validation passed."
         },
         "M13-C3": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:04:52Z",
-          "evidence": "runs/evidence/M13/20260901T110438Z/manifest.json",
-          "note": "Fresh T480 evidence was captured from a clean revision and independently verified."
+          "recorded_at": "2026-09-01T11:12:57Z",
+          "evidence": "runs/evidence/M13/20260901T111242Z/manifest.json",
+          "note": "Fresh clean-revision T480 evidence was independently verified."
         },
         "M13-C4": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:04:52Z",
-          "evidence": "runs/evidence/M13/20260901T110438Z/replay-probe.json",
-          "note": "The replay query excludes price and context records after the UTC cutoff; no trading capability is present."
+          "recorded_at": "2026-09-01T11:12:57Z",
+          "evidence": "runs/evidence/M13/20260901T111242Z/replay-probe.json",
+          "note": "Price and GDELT provenance are asserted; post-cutoff GDELT records are counted and excluded."
         }
       },
       "evidence": [
@@ -1933,12 +1933,21 @@
           "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
           "git_revision": "de4a8de487da8b882478b9a790c3d38f9218e844",
           "summary": "FOREX_M13_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M13/20260901T111242Z/manifest.json",
+          "manifest_sha256": "72f7090b19e0a7143d5490b78a9ed19310dabf8664da1e6a572e2f7fe0517816",
+          "captured_at": "2026-09-01T11:12:44.632664Z",
+          "recorded_at": "2026-09-01T11:12:57Z",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "git_revision": "6f79355d1c0d7dcbcb546ffd791bfe73da679b0f",
+          "summary": "FOREX_M13_PROOF_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-01T11:04:53Z",
-        "git_revision": "de4a8de487da8b882478b9a790c3d38f9218e844",
+        "recorded_at": "2026-09-01T11:12:58Z",
+        "git_revision": "6f79355d1c0d7dcbcb546ffd791bfe73da679b0f",
         "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
         "commands": [
           {
@@ -1950,8 +1959,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M13/20260901T110452Z/governance.stdout.txt",
-            "stderr": "runs/verification/M13/20260901T110452Z/governance.stderr.txt"
+            "stdout": "runs/verification/M13/20260901T111258Z/governance.stdout.txt",
+            "stderr": "runs/verification/M13/20260901T111258Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -1964,8 +1973,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M13/20260901T110452Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M13/20260901T110452Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M13/20260901T111258Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M13/20260901T111258Z/milestone-tests.stderr.txt"
           }
         ]
       },
