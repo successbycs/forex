@@ -6459,6 +6459,103 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000453",
+      "timestamp": "2026-09-02T02:08:19Z",
+      "milestone_id": "M16",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M16-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000454",
+      "timestamp": "2026-09-02T02:08:19Z",
+      "milestone_id": "M16",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M16-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000455",
+      "timestamp": "2026-09-02T02:08:19Z",
+      "milestone_id": "M16",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M16-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000456",
+      "timestamp": "2026-09-02T02:08:20Z",
+      "milestone_id": "M16",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M16-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000457",
+      "timestamp": "2026-09-02T02:08:20Z",
+      "milestone_id": "M16",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M16/20260902T020806Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000458",
+      "timestamp": "2026-09-02T02:08:20Z",
+      "milestone_id": "M16",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M16/20260902T020820Z/governance.stdout.txt",
+            "stderr": "runs/verification/M16/20260902T020820Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m16.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M16/20260902T020820Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M16/20260902T020820Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000459",
+      "timestamp": "2026-09-02T02:13:31Z",
+      "milestone_id": "M16",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "AWAITING_REAL_WORLD_PROOF",
+        "to": "NEEDS_FIX",
+        "reason": "T480 probe confirms the retained M2 snapshot has no historical decision-time availability: all bars were available only at the later M1 capture, so no complete point-in-time walk-forward session can be evaluated without fabricating availability."
+      }
     }
   ]
 }
