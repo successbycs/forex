@@ -1,0 +1,5 @@
+schema_version: forex.models.v1
+provider: NONE
+model_id: none
+inference_enabled: false
+training_enabled: false

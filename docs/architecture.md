@@ -153,6 +153,8 @@ capability is currently deployed. The mutable execution record remains
 
 The roadmap is historical-first: closed MT5 Demo history supports the data and research layers through M16, offline shadow/risk/approval controls follow through M26, and fresh real-time Demo validation is deferred to M27–M32. Historical bars never substitute for a fresh tick, current spread, or execution proof.
 
+M17 is the entry boundary for Phase 2. Its context builder accepts only historical EUR/USD bars available at a supplied UTC cutoff and research-only derived features. It excludes future data, account and credential data, MT5 controls, orders and execution fields. The result has no model, network, MT5 or order capability; later M18+ components may consume this bounded context but cannot widen it.
+
 The historical research layer will preserve source and availability timestamps,
 revision lineage, source hashes, and dataset snapshots before aligning macro,
 calendar, market-context, or sentiment observations with EUR/USD decisions.

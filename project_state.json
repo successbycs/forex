@@ -5,8 +5,8 @@
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
   "last_proven_milestone": "M15",
-  "current_milestone": "M16",
-  "next_milestone": "M17",
+  "current_milestone": "M17",
+  "next_milestone": "M18",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
   "broker": "GO Markets Mauritius",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "HUMAN_REVALIDATION_EXCEPTION",
+  "implementation_status": "IN_PROGRESS",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-02T02:41:12Z",
+  "last_updated_at": "2026-09-02T03:58:48Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2384,8 +2384,8 @@
       }
     },
     "M17": {
-      "status": "PLANNED",
-      "started_at": null,
+      "status": "IN_PROGRESS",
+      "started_at": "2026-09-02T03:58:48Z",
       "implementation_finished_at": null,
       "verification_passed_at": null,
       "real_world_proof_captured_at": null,

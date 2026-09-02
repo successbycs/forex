@@ -6781,6 +6781,26 @@
         "reason": "Delegated MVP exception: all three isolated Solution Architect review-automation attempts timed out without a valid response. Raw failures are retained in runs/triad/M16/M16-20260902T023451Z-53427b51/review-runner-attempts.json. The exception applies only to unavailable review automation; the fresh T480 evidence bundle, fixed verifier, milestone checks, repository verification, and Demo-only/no-order safety boundary passed.",
         "revalidation_count": 0
       }
+    },
+    {
+      "event_id": "E000477",
+      "timestamp": "2026-09-02T03:58:47Z",
+      "milestone_id": "M17",
+      "action": "MILESTONE_READY",
+      "detail": {
+        "from": "PLANNED",
+        "to": "READY"
+      }
+    },
+    {
+      "event_id": "E000478",
+      "timestamp": "2026-09-02T03:58:48Z",
+      "milestone_id": "M17",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
     }
   ]
 }

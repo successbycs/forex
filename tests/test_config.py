@@ -32,6 +32,8 @@ def test_all_initial_configuration_loads_as_typed_models() -> None:
     assert configuration.project.canonical_instrument == "EUR/USD"
     assert configuration.runtime.runtime_mode == "RESEARCH"
     assert configuration.mt5.allow_order_operations is False
+    assert configuration.agent.mode == "OFFLINE_CONTEXT_ONLY"
+    assert configuration.models.inference_enabled is False
     assert configuration.fingerprint.startswith("sha256:")
 
 

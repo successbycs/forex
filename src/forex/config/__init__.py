@@ -14,7 +14,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 import yaml
 
 
-FILES = ("project", "runtime", "mt5", "market_data", "logging")
+FILES = ("project", "runtime", "mt5", "market_data", "logging", "agent", "models")
 SAFE_ENV_OVERRIDES = {
     "FOREX_LOG_LEVEL": ("logging", "level"),
 }
@@ -75,6 +75,19 @@ class LoggingConfig:
     output_directory: str
     redacted_fields: tuple[str, ...]
 
+@dataclass(frozen=True)
+class AgentConfig:
+    mode: str
+    allowed_context_sections: tuple[str, ...]
+    forbidden_context_sections: tuple[str, ...]
+
+@dataclass(frozen=True)
+class ModelsConfig:
+    provider: str
+    model_id: str
+    inference_enabled: bool
+    training_enabled: bool
+
 
 @dataclass(frozen=True)
 class ForexConfiguration:
@@ -83,6 +96,8 @@ class ForexConfiguration:
     mt5: MT5Config
     market_data: MarketDataConfig
     logging: LoggingConfig
+    agent: AgentConfig
+    models: ModelsConfig
     effective_non_secret: dict[str, Any]
     fingerprint: str
 
@@ -141,6 +156,8 @@ def _enforce_safety(values: dict[str, dict[str, Any]]) -> None:
         failures.append("order operations must remain unavailable before M27")
     if mt5["allow_live_server"] is not False:
         failures.append("live-server access cannot be enabled by configuration")
+    if values["agent"]["mode"] != "OFFLINE_CONTEXT_ONLY" or values["models"]["inference_enabled"] is not False:
+        failures.append("M17 agent context must remain offline and non-executing")
     if failures:
         raise ConfigurationError("; ".join(failures))
 
@@ -166,6 +183,8 @@ def load_configuration(root: Path, environ: Mapping[str, str] | None = None) -> 
                 if key != "schema_version"
             }
         ),
+        agent=AgentConfig(**{key: tuple(value) if isinstance(value, list) else value for key, value in values["agent"].items() if key != "schema_version"}),
+        models=ModelsConfig(**{key: value for key, value in values["models"].items() if key != "schema_version"}),
         effective_non_secret=values,
         fingerprint=fingerprint,
     )

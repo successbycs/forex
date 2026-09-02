@@ -1,0 +1,1 @@
+{"type":"object","additionalProperties":false,"required":["schema_version","provider","model_id","inference_enabled","training_enabled"],"properties":{"schema_version":{"const":"forex.models.v1"},"provider":{"const":"NONE"},"model_id":{"const":"none"},"inference_enabled":{"const":false},"training_enabled":{"const":false}}}
