@@ -55,7 +55,8 @@ def _sessions(bars: list[dict[str, Any]]) -> list[dict[str, Any]]:
             continue
         entry_index, entry = slots[DECISION_HOUR_UTC]
         _, exit_bar = slots[MANDATORY_EXIT_HOUR_UTC]
-        if entry_index < 6:
+        decision = _time(str(entry["time_utc"]))
+        if entry_index < 6 or _time(str(entry["available_at_utc"])) > decision or _time(str(exit_bar["available_at_utc"])) > _time(str(exit_bar["time_utc"])):
             continue
         sessions.append({"day_utc": day, "entry_index": entry_index, "entry": entry, "exit": exit_bar})
     if len(sessions) < 6:
@@ -122,11 +123,17 @@ def evaluate_walk_forward(bars: list[dict[str, Any]], *, contexts: dict[str, lis
         if not test_sessions:
             continue
         train_until = test_sessions[0]["entry_index"]
-        model = train_baseline(bars[:train_until])
+        decision = _time(str(test_sessions[0]["entry"]["time_utc"]))
+        training = [bar for bar in bars[:train_until] if _time(str(bar["available_at_utc"])) <= decision]
+        model = train_baseline(training)
         window_rows = []
         for session in test_sessions:
             entry, exit_ = session["entry"], session["exit"]
-            sample = bars[session["entry_index"] - 2:session["entry_index"] + 1]
+            decision = _time(str(entry["time_utc"]))
+            visible = [bar for bar in bars[:session["entry_index"] + 1] if _time(str(bar["available_at_utc"])) <= decision]
+            if len(visible) < 3:
+                raise ValueError("insufficient point-in-time bars for a historical decision")
+            sample = visible[-3:]
             ml_action = advisory(sample, model=model)["action"]
             deterministic = "BUY" if features(sample)["return_2"] >= 0 else "SELL"
             realized_direction = "BUY" if float(exit_["close"]) >= float(entry["close"]) else "SELL"

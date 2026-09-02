@@ -4,6 +4,7 @@ root="$(cd "$(dirname "$0")/.." && pwd)"; cd "$root"; export PYTHONPATH="$root/s
 bundle="${1:-runs/evidence/M16/$(date -u +%Y%m%dT%H%M%SZ)}"; mkdir -p "$bundle"
 python3 -m pytest -q tests/milestones/test_m16.py >"$bundle/tests.txt" 2>&1
 python3 scripts/forex_milestones.py validate >"$bundle/governance.txt" 2>&1
+ bash scripts/verify_project.sh >"$bundle/repository-verification.txt" 2>&1
 python3 scripts/postgres_pgvector_adapter.py forex-m16-walk-forward-probe >"$bundle/walk-forward-probe.json"
 git diff --quiet; git rev-parse HEAD >"$bundle/revision.txt"
 python3 - "$bundle" <<'PY'
