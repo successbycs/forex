@@ -42,12 +42,14 @@ ASSETS = {
     "m16_probe": "scripts/m16_walk_forward_probe.py",
     "m17_probe": "scripts/m17_context_probe.py",
     "m18_probe": "scripts/m18_ollama_probe.py",
+    "m19_schema": "sql/migrations/005_m19_decision_model_lineage.sql",
+    "m19_probe": "scripts/m19_lineage_probe.py",
     "import": "scripts/build_m2_postgres_import.py",
 }
 M2_SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
 M2_SNAPSHOT_ARTIFACT_SHA256 = "sha256:dc5384732d71091aa2279aaf6d92e8e1780c8021eacde948432ad7bc68fdabaa"
-READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour", "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe"}
-MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema"}
+READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour", "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-lineage-verify"}
+MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe"}
 
 
 def remote(body: str) -> dict:
@@ -275,6 +277,38 @@ PYTHONPATH=src python3 "$file"'''
     return wrap("forex_m18_ollama_probe", remote(body), digest)
 
 
+def apply_m19_schema() -> dict:
+    relative, digest = asset("m19_schema")
+    body = f'''file="{REMOTE_FOREX}/{relative}"
+test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$file"
+printf 'FOREX_M19_SCHEMA_APPLIED sha256:{digest}\\n' '''
+    return wrap("forex_m19_apply_schema", remote(body), digest)
+
+
+def m19_lineage_probe() -> dict:
+    relative, digest = asset("m19_probe")
+    body = f'''file="{REMOTE_FOREX}/{relative}"
+test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+cd "{REMOTE_FOREX}"
+PYTHONPATH=src python3 "$file"'''
+    return wrap("forex_m19_lineage_probe", remote(body), digest)
+
+
+def m19_lineage_verify() -> dict:
+    body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 'FOREX_M19_LINEAGE_VERIFY_OK',
+ (SELECT count(*) FROM forex.model_inference_lineage),
+ (SELECT count(*) FROM forex.research_decision_lineage),
+ 'model=qwen2.5:3b=' || EXISTS (SELECT 1 FROM forex.model_inference_lineage WHERE model_id='qwen2.5:3b'),
+ 'demo_only=' || NOT EXISTS (SELECT 1 FROM forex.model_inference_lineage WHERE source_label <> 'DEMO_ONLY_HISTORICAL'),
+ 'validated=' || NOT EXISTS (SELECT 1 FROM forex.model_inference_lineage WHERE validation_result <> 'PASS'),
+ 'research_only=' || NOT EXISTS (SELECT 1 FROM forex.model_inference_lineage WHERE research_only IS NOT TRUE OR order_capability IS NOT FALSE),
+ 'hashes_present=' || NOT EXISTS (SELECT 1 FROM forex.model_inference_lineage WHERE model_definition_sha256 !~ '^sha256:[0-9a-f]{64}$' OR prompt_sha256 !~ '^sha256:[0-9a-f]{64}$' OR input_sha256 !~ '^sha256:[0-9a-f]{64}$' OR output_sha256 !~ '^sha256:[0-9a-f]{64}$'),
+ 'decision_linkage=' || NOT EXISTS (SELECT 1 FROM forex.research_decision_lineage decision LEFT JOIN forex.model_inference_lineage inference ON inference.inference_id=decision.inference_id WHERE inference.inference_id IS NULL OR decision.decision_state <> 'RESEARCH_ONLY'),
+ 'no_order_fields=' || NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='forex' AND table_name IN ('model_inference_lineage','research_decision_lineage') AND column_name IN ('order','account','credential','broker_server','execution'));" </dev/null'''
+    return wrap("forex_m19_lineage_verify", remote(body))
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Fixed Forex M2 PostgreSQL adapter.")
     parser.add_argument("command", choices=sorted(READ_ONLY | MUTATING))
@@ -282,7 +316,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command in MUTATING and not args.approve:
         parser.error("this mutating operation requires --approve")
-    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-r1-apply-stage-schema": apply_m11_r1_stage_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data, "forex-m11-r1-verify-hour": verify_m11_r1_hour, "forex-m12-quality-probe": m12_quality_probe, "forex-m13-replay-probe": m13_replay_probe, "forex-m14-regime-probe": m14_regime_probe, "forex-m15-baseline-probe": m15_baseline_probe, "forex-m16-walk-forward-probe": m16_walk_forward_probe, "forex-m17-context-probe": m17_context_probe, "forex-m18-ollama-probe": m18_ollama_probe}
+    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-r1-apply-stage-schema": apply_m11_r1_stage_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data, "forex-m11-r1-verify-hour": verify_m11_r1_hour, "forex-m12-quality-probe": m12_quality_probe, "forex-m13-replay-probe": m13_replay_probe, "forex-m14-regime-probe": m14_regime_probe, "forex-m15-baseline-probe": m15_baseline_probe, "forex-m16-walk-forward-probe": m16_walk_forward_probe, "forex-m17-context-probe": m17_context_probe, "forex-m18-ollama-probe": m18_ollama_probe, "forex-m19-apply-schema": apply_m19_schema, "forex-m19-lineage-probe": m19_lineage_probe, "forex-m19-lineage-verify": m19_lineage_verify}
     payload = actions[args.command]()
     print(json.dumps(payload, indent=2))
     return 0 if payload["ok"] else 1

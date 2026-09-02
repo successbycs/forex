@@ -7080,6 +7080,16 @@
         "proven_at": "2026-09-02T04:51:26Z",
         "next_milestone": "M19"
       }
+    },
+    {
+      "event_id": "E000499",
+      "timestamp": "2026-09-02T04:52:33Z",
+      "milestone_id": "M19",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
     }
   ]
 }
