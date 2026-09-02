@@ -52,7 +52,7 @@ CHECK (validation_result IN ('PASS', 'REJECTED_AND_ABSTAINED'));
 CREATE INDEX IF NOT EXISTS model_inference_lineage_snapshot_idx
 ON forex.model_inference_lineage (snapshot_id, created_at_utc DESC);
 
-CREATE FUNCTION forex.reject_m19_lineage_mutation() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION forex.reject_m19_lineage_mutation() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     RAISE EXCEPTION 'M19 model and decision lineage is immutable';
 END;
