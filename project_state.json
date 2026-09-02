@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
-  "last_proven_milestone": "M15",
-  "current_milestone": "M17",
+  "last_proven_milestone": "M17",
+  "current_milestone": null,
   "next_milestone": "M18",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-02T03:58:48Z",
+  "last_updated_at": "2026-09-02T04:09:47Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2384,23 +2384,102 @@
       }
     },
     "M17": {
-      "status": "IN_PROGRESS",
+      "status": "PROVEN",
       "started_at": "2026-09-02T03:58:48Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
-      "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
-      "human_signoff": null,
+      "implementation_finished_at": "2026-09-02T04:09:47Z",
+      "verification_passed_at": "2026-09-02T04:09:47Z",
+      "real_world_proof_captured_at": "2026-09-02T04:09:31.596591Z",
+      "human_signed_off_at": "2026-09-02T04:09:47Z",
+      "first_proven_at": "2026-09-02T04:09:47Z",
+      "proven_at": "2026-09-02T04:09:47Z",
+      "last_validated_at": "2026-09-02T04:09:47Z",
+      "checks": {
+        "M17-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-02T04:09:45Z",
+          "evidence": "runs/evidence/M17/20260902T040925Z/context-probe.json",
+          "note": "Fixed T480 probe built a bounded offline context from Demo-only historical data with no agent authority."
+        },
+        "M17-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-02T04:09:46Z",
+          "evidence": "runs/evidence/M17/20260902T040925Z/tests.txt",
+          "note": "M17 tests and governance validation passed."
+        },
+        "M17-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-02T04:09:46Z",
+          "evidence": "runs/evidence/M17/20260902T040925Z/manifest.json",
+          "note": "Fresh T480 evidence is bound to revision e5e8c4b."
+        },
+        "M17-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-02T04:09:46Z",
+          "evidence": "runs/evidence/M17/20260902T040925Z/context-probe.json",
+          "note": "Context has no order, live trading, account, credential, or MT5 control surface."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M17/20260902T040925Z/manifest.json",
+          "manifest_sha256": "b87d394415431c39242e74e8d5dd59f714011cab7cd35ae92a1958d0443cf0de",
+          "captured_at": "2026-09-02T04:09:31.596591Z",
+          "recorded_at": "2026-09-02T04:09:45Z",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "git_revision": "e5e8c4b44498799d7c52a97b0ee6b4e99306ad49",
+          "summary": "FOREX_M17_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-02T04:09:47Z",
+        "git_revision": "e5e8c4b44498799d7c52a97b0ee6b4e99306ad49",
+        "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M17/20260902T040946Z/governance.stdout.txt",
+            "stderr": "runs/verification/M17/20260902T040946Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m17.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M17/20260902T040946Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M17/20260902T040946Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
+      "human_signoff": {
+        "operator": "Chris Sparshott (delegated operator authority)",
+        "decision": "APPROVE",
+        "note": "Delegated operator approval: inspected bounded offline context proof; no model inference, live data, order, or execution capability exists.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "e5e8c4b44498799d7c52a97b0ee6b4e99306ad49",
+        "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+        "evidence_manifest_sha256": "b87d394415431c39242e74e8d5dd59f714011cab7cd35ae92a1958d0443cf0de",
+        "verification_recorded_at": "2026-09-02T04:09:47Z",
+        "recorded_at": "2026-09-02T04:09:47Z"
+      },
       "blockers": []
     },
     "M18": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,
