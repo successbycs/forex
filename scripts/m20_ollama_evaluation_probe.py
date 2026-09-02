@@ -20,7 +20,7 @@ LAB_ROOT = "/home/chris/projects/cs-ai-lab-infra"
 SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
 
 
-def compose(service: str, *args: str, input_text: str | None = None, timeout_seconds: int = 45) -> subprocess.CompletedProcess[str]:
+def compose(service: str, *args: str, input_text: str | None = None, timeout_seconds: int = 180) -> subprocess.CompletedProcess[str]:
     try:
         result = subprocess.run(
             ["docker", "compose", "exec", "-T", service, *args], input=input_text,
@@ -73,6 +73,9 @@ def main() -> int:
     model_line = next((line.strip() for line in compose("ollama", "ollama", "list").stdout.splitlines() if line.startswith(f"{MODEL} ")), "")
     if not model_line:
         raise RuntimeError(f"approved local model is unavailable: {MODEL}")
+    # A fixed harmless warm-up keeps the already-approved local model resident
+    # before the three bounded historical requests; no output is retained.
+    compose("ollama", "ollama", "run", MODEL, "Reply READY only.")
     experiments = []
     for entry_index, exit_index in select_sessions(bars):
         context_bars = [{**bar, "available_at_utc": retrospective_close(bar["time_utc"])} for bar in bars[entry_index - 11:entry_index + 1]]
@@ -85,15 +88,18 @@ def main() -> int:
             raw = compose("ollama", "ollama", "run", MODEL, "--format", json.dumps(request["response_schema"], separators=(",", ":")), input_text=request["prompt"]).stdout.strip()
             raw_value = json.loads(raw)
             response = validate_response(raw_value)
+            model_response_valid = True
         except (RuntimeError, ValueError, json.JSONDecodeError) as exc:
             raw_value = {"m20_rejected_or_timed_out": str(exc)}
             response = {"sentiment": "ABSTAIN", "confidence": 0, "rationale": "Model response did not satisfy the fixed response schema.", "abstain": True, "research_only": True, "order_capability": False}
+            model_response_valid = False
         price_only_action = "BUY" if float(context_bars[-1]["close"]) >= float(context_bars[-3]["close"]) else "SELL"
         experiments.append({
             "decision_at_utc": context_bars[-1]["available_at_utc"], "entry_at_utc": bars[entry_index]["time_utc"],
             "exit_at_utc": bars[exit_index]["time_utc"], "entry_close": bars[entry_index]["close"],
             "exit_close": bars[exit_index]["close"], "context_bar_count": len(context_bars),
-            "model_output_sha256": sha256(raw_value), "response": response, "price_only_action": price_only_action,
+            "model_output_sha256": sha256(raw_value), "model_response_valid": model_response_valid,
+            "response": response, "price_only_action": price_only_action,
         })
     evaluation = evaluate(experiments)
     print(json.dumps({

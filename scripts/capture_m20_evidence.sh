@@ -14,7 +14,7 @@ from datetime import datetime,timezone
 from pathlib import Path
 b=Path(sys.argv[1]); probe=json.loads((b/'evaluation-probe.json').read_text()); value=json.loads(probe['result']['stdout']); evaluation=value['evaluation']
 assert probe['ok'] and value['marker']=='FOREX_M20_OLLAMA_EVALUATION_PROBE_OK' and value['source']=='DEMO_ONLY_HISTORICAL'
-assert evaluation['marker']=='FOREX_M20_EVALUATION_OK' and len(evaluation['rows'])==3 and evaluation['research_only'] and not evaluation['order_capability'] and not value['live_trading_capability']
+assert evaluation['marker']=='FOREX_M20_EVALUATION_OK' and len(evaluation['rows'])==3 and evaluation['valid_model_response_count'] >= 1 and evaluation['research_only'] and not evaluation['order_capability'] and not value['live_trading_capability']
 (b/'comparison.json').write_text(json.dumps({'model':value['model_definition_sha256'],'controls':evaluation['predeclared_controls'],'comparison':evaluation['comparison']},indent=2)+'\n')
 (b/'summary.txt').write_text('FOREX_M20_PROOF_OK\n'); state=json.loads(subprocess.check_output(['python3','scripts/forex_milestones.py','status','--json']))
 artifacts=[{'path':f.name,'sha256':hashlib.sha256(f.read_bytes()).hexdigest()} for f in sorted(b.iterdir()) if f.is_file()]

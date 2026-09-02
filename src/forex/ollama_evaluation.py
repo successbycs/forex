@@ -82,6 +82,7 @@ def evaluate(experiments: list[dict[str, Any]]) -> dict[str, Any]:
             "exit_at_utc": item["exit_at_utc"],
             "context_bar_count": item["context_bar_count"],
             "model_output_sha256": item["model_output_sha256"],
+            "model_response_valid": bool(item["model_response_valid"]),
         }
         for name, action in (("ollama_sentiment", ollama_action), ("price_only_return_2", price_action), ("no_change", "NO_TRADE")):
             result[name] = {
@@ -105,6 +106,7 @@ def evaluate(experiments: list[dict[str, Any]]) -> dict[str, Any]:
         },
         "rows": rows,
         "comparison": {name: _metrics(rows, name) for name in ("ollama_sentiment", "price_only_return_2", "no_change")},
+        "valid_model_response_count": sum(1 for row in rows if row["model_response_valid"]),
         "profitability_claim": False,
         "research_only": True,
         "order_capability": False,

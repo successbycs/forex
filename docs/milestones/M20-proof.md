@@ -19,9 +19,14 @@ The controls are pre-declared in `forex.m20.ollama-historical-evaluation.v1`:
 exactly three sessions, strict chronological order, no shuffling, twelve bars of
 bounded historical context, a two-basis-points-per-side sensitivity for
 directional labels, and `NO_TRADE` as a comparator. An invalid model response
-is a non-actioning abstention. A model call is also bounded to 45 seconds, so a
+is a non-actioning abstention. A fixed harmless local warm-up runs before the
+three observations. Each model call is then bounded to 180 seconds, so a
 slow local inference is recorded as the same non-actioning abstention rather
 than holding the T480 workflow indefinitely.
+
+M20 proof requires at least one schema-valid, research-only local-model
+response. Three timeout-derived abstentions prove the fallback but do not prove
+the Ollama-assisted comparison.
 
 Because the retained M2 observation has one snapshot-capture timestamp rather
 than a source observation time for each bar, M20 uses the already documented
