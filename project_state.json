@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-02T02:13:31Z",
+  "last_updated_at": "2026-09-02T02:25:08Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2265,27 +2265,27 @@
       "checks": {
         "M16-C1": {
           "result": "PASS",
-          "recorded_at": "2026-09-02T02:08:19Z",
-          "evidence": "runs/evidence/M16/20260902T020806Z/walk-forward-probe.json",
-          "note": "Fixed T480 PostgreSQL probe evaluated 720 Demo-only EUR/USD H1 bars in three frozen chronological windows."
+          "recorded_at": "2026-09-02T02:25:07Z",
+          "evidence": "runs/evidence/M16/20260902T022448Z/walk-forward-probe.json",
+          "note": "Fixed T480 probe evaluated 720 Demo-only EUR/USD H1 bars in three frozen windows under the approved retrospective H1 bar-close assumption."
         },
         "M16-C2": {
           "result": "PASS",
-          "recorded_at": "2026-09-02T02:08:19Z",
-          "evidence": "runs/evidence/M16/20260902T020806Z/tests.txt",
-          "note": "M16 tests and repository governance validation passed in the current evidence bundle."
+          "recorded_at": "2026-09-02T02:25:07Z",
+          "evidence": "runs/evidence/M16/20260902T022448Z/repository-verification.txt",
+          "note": "M16 tests, governance validation, and full repository verification passed."
         },
         "M16-C3": {
           "result": "PASS",
-          "recorded_at": "2026-09-02T02:08:19Z",
-          "evidence": "runs/evidence/M16/20260902T020806Z/manifest.json",
-          "note": "Current self-attested T480 evidence is bound to the committed revision and governed configuration."
+          "recorded_at": "2026-09-02T02:25:08Z",
+          "evidence": "runs/evidence/M16/20260902T022448Z/manifest.json",
+          "note": "Fresh self-attested T480 evidence matches the deployed revision and configuration."
         },
         "M16-C4": {
           "result": "PASS",
-          "recorded_at": "2026-09-02T02:08:20Z",
-          "evidence": "runs/evidence/M16/20260902T020806Z/walk-forward-probe.json",
-          "note": "Probe confirms chronological-only, no shuffle, no live fitting, research-only output and non-performance claim."
+          "recorded_at": "2026-09-02T02:25:08Z",
+          "evidence": "runs/evidence/M16/20260902T022448Z/walk-forward-probe.json",
+          "note": "Result explicitly labels the retrospective assumption and preserves non-live, no-order, research-only boundaries."
         }
       },
       "evidence": [

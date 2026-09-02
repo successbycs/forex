@@ -6556,6 +6556,46 @@
         "to": "NEEDS_FIX",
         "reason": "T480 probe confirms the retained M2 snapshot has no historical decision-time availability: all bars were available only at the later M1 capture, so no complete point-in-time walk-forward session can be evaluated without fabricating availability."
       }
+    },
+    {
+      "event_id": "E000460",
+      "timestamp": "2026-09-02T02:25:07Z",
+      "milestone_id": "M16",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M16-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000461",
+      "timestamp": "2026-09-02T02:25:07Z",
+      "milestone_id": "M16",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M16-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000462",
+      "timestamp": "2026-09-02T02:25:08Z",
+      "milestone_id": "M16",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M16-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000463",
+      "timestamp": "2026-09-02T02:25:08Z",
+      "milestone_id": "M16",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M16-C4",
+        "result": "PASS"
+      }
     }
   ]
 }
