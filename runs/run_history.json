@@ -7014,6 +7014,72 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000495",
+      "timestamp": "2026-09-02T04:44:40Z",
+      "milestone_id": "M18",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M18/20260902T044421Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000496",
+      "timestamp": "2026-09-02T04:44:49Z",
+      "milestone_id": "M18",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M18/20260902T044449Z/governance.stdout.txt",
+            "stderr": "runs/verification/M18/20260902T044449Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m18.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M18/20260902T044449Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M18/20260902T044449Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000497",
+      "timestamp": "2026-09-02T04:51:26Z",
+      "milestone_id": "M18",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris Sparshott (delegated operator authority)",
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "event_id": "E000498",
+      "timestamp": "2026-09-02T04:51:26Z",
+      "milestone_id": "M18",
+      "action": "MILESTONE_PROVEN",
+      "detail": {
+        "proven_at": "2026-09-02T04:51:26Z",
+        "next_milestone": "M19"
+      }
     }
   ]
 }
