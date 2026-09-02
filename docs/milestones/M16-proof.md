@@ -29,3 +29,26 @@ result containing the model/source versions, window boundaries, coverage,
 feature-separation descriptions and all baseline metrics, then retains it in
 the M16 evidence bundle. It cannot access MT5, place orders, access a live
 server, or alter database records.
+
+## Current proof limitation — 2026-09-02
+
+The retained M2 snapshot is a single historical MT5 observation captured on
+2026-08-29. Its 720 individual bars contain their UTC opening time and OHLCV,
+but not a per-bar source-availability timestamp. The current data contract
+therefore assigns each bar the availability of the retained M1 observation.
+
+M16 now enforces this rule at every decision and exit timestamp. On the real
+T480 snapshot it correctly finds zero point-in-time-valid 08:00-to-20:00 UTC
+sessions; it must not treat the earlier retrospective result as a valid
+no-lookahead walk-forward evaluation.
+
+M16 can resume only with one of these explicit, reviewable inputs:
+
+1. a new price dataset that records each bar's source availability at or before
+   its decision time; or
+2. an operator-approved retrospective policy that defines H1 bar availability
+   at bar close, labels the evidence as an assumption rather than observation,
+   and is reflected in the milestone contract and evidence limitations.
+
+Neither option authorises live trading, an order surface, or use of
+`GOMarketsMU-Live`.
