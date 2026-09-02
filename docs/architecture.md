@@ -155,6 +155,8 @@ The roadmap is historical-first: closed MT5 Demo history supports the data and r
 
 M17 is the entry boundary for Phase 2. Its context builder accepts only historical EUR/USD bars available at a supplied UTC cutoff and research-only derived features. It excludes future data, account and credential data, MT5 controls, orders and execution fields. The result has no model, network, MT5 or order capability; later M18+ components may consume this bounded context but cannot widen it.
 
+The operator-focused target-state flow, including the future human-operated Demo path, is documented in [future_user_journey_architecture.md](future_user_journey_architecture.md). It is intentionally a roadmap view, not proof that its future components are deployed.
+
 The historical research layer will preserve source and availability timestamps,
 revision lineage, source hashes, and dataset snapshots before aligning macro,
 calendar, market-context, or sentiment observations with EUR/USD decisions.
