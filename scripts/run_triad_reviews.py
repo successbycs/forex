@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TRIAD = [sys.executable, str(ROOT / "scripts" / "forex_triad.py")]
 MILESTONES = [sys.executable, str(ROOT / "scripts" / "forex_milestones.py")]
 ROLES = ("SOLUTION_ARCHITECT", "SENIOR_SOFTWARE_DEVELOPER", "AI_ENGINEER", "FINANCIAL_DOMAIN_EXPERT")
+REVIEW_TIMEOUT_SECONDS = 90
 
 
 def run(argv: list[str]) -> subprocess.CompletedProcess[str]:
@@ -54,11 +55,16 @@ def review_role(cycle: Path, role: str, attempts: int) -> tuple[bool, list[dict[
     for number in range(1, attempts + 1):
         raw = submissions / f"{role.lower()}.attempt-{number}.raw.json"
         command = [
-            "codex", "exec", "--ephemeral", "-s", "read-only", "-C", str(ROOT),
+            "codex", "exec", "--ephemeral", "-m", "gpt-5.6-luna", "-s", "read-only", "-C", str(ROOT),
             "--output-schema", str(schema), "-o", str(raw), prompt(cycle, role),
         ]
-        result = run(command)
-        event = {"role": role, "attempt": str(number), "exit_code": str(result.returncode), "raw": str(raw.relative_to(ROOT)), "error": result.stderr.strip()}
+        try:
+            result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=False, timeout=REVIEW_TIMEOUT_SECONDS)
+            event = {"role": role, "attempt": str(number), "exit_code": str(result.returncode), "raw": str(raw.relative_to(ROOT)), "error": result.stderr.strip()}
+        except subprocess.TimeoutExpired as error:
+            event = {"role": role, "attempt": str(number), "exit_code": "124", "raw": str(raw.relative_to(ROOT)), "error": f"Codex reviewer timed out after {REVIEW_TIMEOUT_SECONDS}s: {(error.stderr or '').strip()}"}
+            events.append(event)
+            continue
         if result.returncode == 0 and raw.is_file():
             validation = run([*TRIAD, "validate-review", "--cycle", str(cycle), "--review", str(raw)])
             event["validation"] = validation.stdout.strip() or validation.stderr.strip()
