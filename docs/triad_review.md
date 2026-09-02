@@ -57,6 +57,15 @@ human-requested review:
 python3 scripts/forex_triad.py prepare --id <milestone>
 ```
 
+For normal automated execution, use the bounded runner instead. It launches
+fresh read-only Codex CLI sessions one role at a time, retains every raw
+attempt, validates an accepted response unchanged, and retries only the failed
+role up to three times:
+
+```bash
+python3 scripts/run_triad_reviews.py --id <milestone> --record-recommendation
+```
+
 The command creates `runs/triad/<milestone>/<cycle>/` with a request, four role packets, four JSON templates, and an empty submissions directory. Give each packet to a separate read-only review session. Do not show any reviewer another submission before its verdict is saved.
 
 Place completed reviews under `submissions/` using the generated role filenames, then validate and synthesize:
