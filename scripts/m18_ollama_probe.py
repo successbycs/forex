@@ -19,24 +19,24 @@ from forex.agent_context import build_context
 from forex.ollama_sentiment import build_request, sha256, validate_response
 
 MODEL = "qwen2.5:3b"
-LAB_COMPOSE = "/home/chris/projects/cs-ai-lab-infra/compose.yaml"
+LAB_ROOT = "/home/chris/projects/cs-ai-lab-infra"
 
 
 def compose(*args: str, input_text: str | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["docker", "compose", "-f", LAB_COMPOSE, "exec", "-T", "ollama", *args],
-        input=input_text, text=True, capture_output=True, check=True,
+        ["docker", "compose", "exec", "-T", "ollama", *args],
+        input=input_text, text=True, capture_output=True, check=True, cwd=LAB_ROOT,
     )
 
 
 def main() -> int:
     db_command = [
-        "docker", "compose", "-f", LAB_COMPOSE, "exec", "-T", "postgres", "psql", "-At", "-F", "|",
+        "docker", "compose", "exec", "-T", "postgres", "psql", "-At", "-F", "|",
         "-U", os.environ["POSTGRES_USER"], "-d", os.environ["POSTGRES_DB"], "-c",
         "SELECT time_utc::text, available_at_utc::text, open, high, low, close, volume "
         "FROM forex.price_bar WHERE snapshot_id='m2-m1-eurusd-h1-720' ORDER BY time_utc LIMIT 12;",
     ]
-    rows = subprocess.run(db_command, text=True, capture_output=True, check=True).stdout.splitlines()
+    rows = subprocess.run(db_command, text=True, capture_output=True, check=True, cwd=LAB_ROOT).stdout.splitlines()
     bars = [dict(zip(("time_utc", "available_at_utc", "open", "high", "low", "close", "volume"), row.split("|"))) for row in rows if row]
     if not bars:
         raise RuntimeError("no retained historical bars are available for M18")
