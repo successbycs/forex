@@ -21,7 +21,7 @@ for artifact in manifest["artifacts"]:
     assert path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == artifact["sha256"]
 probe = json.loads((bundle / "ollama-probe.json").read_text())
 result = json.loads(probe["result"]["stdout"])
-binding = manifest["source_model_prompt"]
+binding = json.loads((bundle / "source-model-prompt.json").read_text())
 assert probe["ok"] and result["marker"] == "FOREX_M18_OLLAMA_PROBE_OK"
 assert result["model"] == binding["model"] == "qwen2.5:3b"
 assert result["source"] == binding["source"] == "DEMO_ONLY_HISTORICAL"

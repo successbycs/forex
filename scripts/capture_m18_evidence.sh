@@ -34,6 +34,14 @@ assert result["output_sha256"].startswith("sha256:")
 assert result["source"] == "DEMO_ONLY_HISTORICAL"
 assert result["order_capability"] is False and result["live_trading_capability"] is False
 assert result["response"]["order_capability"] is False and result["response"]["research_only"] is True
+(b / "source-model-prompt.json").write_text(json.dumps({
+    "source": result["source"],
+    "model": result["model"],
+    "model_definition_sha256": result["model_definition_sha256"],
+    "prompt_template_version": result["prompt_template_version"],
+    "input_context_sha256": result["input_context_sha256"],
+    "output_sha256": result["output_sha256"],
+}, indent=2) + "\n")
 (b / "summary.txt").write_text("FOREX_M18_PROOF_OK\n")
 status = json.loads(subprocess.check_output(["python3", "scripts/forex_milestones.py", "status", "--json"]))
 artifacts = [
@@ -52,14 +60,6 @@ manifest = {
     "expected_result": "schema-constrained research response or abstention from qwen2.5:3b",
     "observed_result": "FOREX_M18_PROOF_OK",
     "exit_code": 0,
-    "source_model_prompt": {
-        "source": result["source"],
-        "model": result["model"],
-        "model_definition_sha256": result["model_definition_sha256"],
-        "prompt_template_version": result["prompt_template_version"],
-        "input_context_sha256": result["input_context_sha256"],
-        "output_sha256": result["output_sha256"],
-    },
     "redactions": ["No account, credential, order, live-server or raw model prompt retained."],
     "summary": "FOREX_M18_PROOF_OK",
     "artifacts": artifacts,
