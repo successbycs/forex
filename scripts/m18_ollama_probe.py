@@ -23,10 +23,14 @@ LAB_ROOT = "/home/chris/projects/cs-ai-lab-infra"
 
 
 def compose(*args: str, input_text: str | None = None) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    result = subprocess.run(
         ["docker", "compose", "exec", "-T", "ollama", *args],
-        input=input_text, text=True, capture_output=True, check=True, cwd=LAB_ROOT,
+        input=input_text, text=True, capture_output=True, check=False, cwd=LAB_ROOT,
     )
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip() or "no command output"
+        raise RuntimeError(f"fixed Ollama operation {' '.join(args[:2])} failed with exit {result.returncode}: {detail}")
+    return result
 
 
 def main() -> int:
