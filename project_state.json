@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "NEEDS_FIX",
+  "implementation_status": "HUMAN_REVALIDATION_EXCEPTION",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-02T02:26:51Z",
+  "last_updated_at": "2026-09-02T02:41:12Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2253,11 +2253,11 @@
       "blockers": []
     },
     "M16": {
-      "status": "NEEDS_FIX",
+      "status": "HUMAN_REVALIDATION_EXCEPTION",
       "started_at": "2026-09-02T01:26:26Z",
       "implementation_finished_at": "2026-09-02T02:01:15Z",
-      "verification_passed_at": "2026-09-02T02:26:51Z",
-      "real_world_proof_captured_at": "2026-09-02T02:26:39.922761Z",
+      "verification_passed_at": "2026-09-02T02:34:48Z",
+      "real_world_proof_captured_at": "2026-09-02T02:34:33.735889Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
@@ -2265,27 +2265,27 @@
       "checks": {
         "M16-C1": {
           "result": "PASS",
-          "recorded_at": "2026-09-02T02:26:49Z",
-          "evidence": "runs/evidence/M16/20260902T022633Z/walk-forward-probe.json",
-          "note": "T480 M16 evaluation passed under the explicit retrospective H1 bar-close research assumption."
+          "recorded_at": "2026-09-02T02:34:46Z",
+          "evidence": "runs/evidence/M16/20260902T023427Z/walk-forward-probe.json",
+          "note": "Fresh T480 historical evaluation passed under the operator-approved retrospective H1 bar-close research assumption."
         },
         "M16-C2": {
           "result": "PASS",
-          "recorded_at": "2026-09-02T02:26:49Z",
-          "evidence": "runs/evidence/M16/20260902T022633Z/repository-verification.txt",
-          "note": "M16 tests, governance validation and repository verification passed."
+          "recorded_at": "2026-09-02T02:34:46Z",
+          "evidence": "runs/evidence/M16/20260902T023427Z/repository-verification.txt",
+          "note": "M16 tests, governance validation, and repository verification passed on the bound revision."
         },
         "M16-C3": {
           "result": "PASS",
-          "recorded_at": "2026-09-02T02:26:49Z",
-          "evidence": "runs/evidence/M16/20260902T022633Z/manifest.json",
-          "note": "Fresh T480 evidence is bound to the current revision and declared retrospective surface."
+          "recorded_at": "2026-09-02T02:34:47Z",
+          "evidence": "runs/evidence/M16/20260902T023427Z/manifest.json",
+          "note": "Fresh T480 evidence is bound to current revision 53427b5."
         },
         "M16-C4": {
           "result": "PASS",
-          "recorded_at": "2026-09-02T02:26:50Z",
-          "evidence": "runs/evidence/M16/20260902T022633Z/walk-forward-probe.json",
-          "note": "The availability assumption is explicit; no live, order, profitability, or autonomous execution claim exists."
+          "recorded_at": "2026-09-02T02:34:47Z",
+          "evidence": "runs/evidence/M16/20260902T023427Z/walk-forward-probe.json",
+          "note": "Research-only safety and no-lookahead controls passed under the explicit availability assumption."
         }
       },
       "evidence": [
@@ -2324,12 +2324,21 @@
           "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
           "git_revision": "565f40ffc81b52fd1339cefc99860f01506d745f",
           "summary": "FOREX_M16_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M16/20260902T023427Z/manifest.json",
+          "manifest_sha256": "14b7cab6275c5616435144de5e0ba4bac97a2d0a090a42b85dcb8b75fdd7361e",
+          "captured_at": "2026-09-02T02:34:33.735889Z",
+          "recorded_at": "2026-09-02T02:34:46Z",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "git_revision": "53427b51e32d46c95e49b0250fb84c83ceb20ae8",
+          "summary": "FOREX_M16_PROOF_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-02T02:26:51Z",
-        "git_revision": "565f40ffc81b52fd1339cefc99860f01506d745f",
+        "recorded_at": "2026-09-02T02:34:48Z",
+        "git_revision": "53427b51e32d46c95e49b0250fb84c83ceb20ae8",
         "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
         "commands": [
           {
@@ -2341,8 +2350,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M16/20260902T022650Z/governance.stdout.txt",
-            "stderr": "runs/verification/M16/20260902T022650Z/governance.stderr.txt"
+            "stdout": "runs/verification/M16/20260902T023447Z/governance.stdout.txt",
+            "stderr": "runs/verification/M16/20260902T023447Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -2355,8 +2364,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M16/20260902T022650Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M16/20260902T022650Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M16/20260902T023447Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M16/20260902T023447Z/milestone-tests.stderr.txt"
           }
         ]
       },
@@ -2366,7 +2375,13 @@
           "reason": "T480 probe confirms the retained M2 snapshot has no historical decision-time availability: all bars were available only at the later M1 capture, so no complete point-in-time walk-forward session can be evaluated without fabricating availability.",
           "recorded_at": "2026-09-02T02:13:31Z"
         }
-      ]
+      ],
+      "revalidation_exception": {
+        "operator": "Chris Sparshott (delegated operator authority)",
+        "reason": "Delegated MVP exception: all three isolated Solution Architect review-automation attempts timed out without a valid response. Raw failures are retained in runs/triad/M16/M16-20260902T023451Z-53427b51/review-runner-attempts.json. The exception applies only to unavailable review automation; the fresh T480 evidence bundle, fixed verifier, milestone checks, repository verification, and Demo-only/no-order safety boundary passed.",
+        "revalidation_count": 0,
+        "reassessed_at": "2026-09-02T02:41:12Z"
+      }
     },
     "M17": {
       "status": "PLANNED",
