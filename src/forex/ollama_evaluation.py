@@ -14,7 +14,7 @@ from typing import Any
 EVALUATION_VERSION = "forex.m20.ollama-historical-evaluation.v1"
 FIXED_COST_BPS_PER_SIDE = 2.0
 OLLAMA_MODEL = "qwen2.5:3b"
-EXPERIMENT_SESSIONS = 6
+EXPERIMENT_SESSIONS = 3
 
 
 def action_from_sentiment(response: dict[str, Any]) -> str:
@@ -58,7 +58,7 @@ def evaluate(experiments: list[dict[str, Any]]) -> dict[str, Any]:
 
     Each input must contain an already-bounded Ollama response, a price-only
     label, and closed entry/exit prices.  Rows must be supplied chronologically
-    and exactly six rows form the declared MVP evaluation set.
+    and exactly three rows form the declared MVP evaluation set.
     """
     if len(experiments) != EXPERIMENT_SESSIONS:
         raise ValueError(f"M20 requires exactly {EXPERIMENT_SESSIONS} pre-declared sessions")

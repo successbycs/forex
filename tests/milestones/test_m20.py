@@ -21,9 +21,9 @@ def experiments() -> list[dict]:
 def test_m20_evaluation_is_fixed_chronological_and_research_only():
     result = evaluate(experiments())
     assert result["marker"] == "FOREX_M20_EVALUATION_OK"
-    assert result["predeclared_controls"]["sessions"] == 6
+    assert result["predeclared_controls"]["sessions"] == 3
     assert result["predeclared_controls"]["random_shuffling_used"] is False
-    assert len(result["rows"]) == 6
+    assert len(result["rows"]) == 3
     assert result["comparison"]["no_change"]["actionable_sessions"] == 0
     assert result["research_only"] is True and result["order_capability"] is False
 

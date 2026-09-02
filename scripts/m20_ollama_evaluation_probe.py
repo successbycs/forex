@@ -19,11 +19,14 @@ LAB_ROOT = "/home/chris/projects/cs-ai-lab-infra"
 SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
 
 
-def compose(service: str, *args: str, input_text: str | None = None) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(
-        ["docker", "compose", "exec", "-T", service, *args], input=input_text,
-        text=True, capture_output=True, check=False, cwd=LAB_ROOT,
-    )
+def compose(service: str, *args: str, input_text: str | None = None, timeout_seconds: int = 45) -> subprocess.CompletedProcess[str]:
+    try:
+        result = subprocess.run(
+            ["docker", "compose", "exec", "-T", service, *args], input=input_text,
+            text=True, capture_output=True, check=False, cwd=LAB_ROOT, timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"fixed M20 {service} operation timed out after {timeout_seconds} seconds") from exc
     if result.returncode:
         detail = result.stderr.strip() or result.stdout.strip() or "no command output"
         raise RuntimeError(f"fixed M20 {service} operation failed: {detail}")
@@ -72,11 +75,12 @@ def main() -> int:
             features={"source": "DEMO_ONLY_HISTORICAL", "licensing": "UNQUALIFIED_BROKER_TERMINAL_DATA"},
         )
         request = build_request(context)
-        raw = compose("ollama", "ollama", "run", MODEL, "--format", json.dumps(request["response_schema"], separators=(",", ":")), input_text=request["prompt"]).stdout.strip()
-        raw_value = json.loads(raw)
         try:
+            raw = compose("ollama", "ollama", "run", MODEL, "--format", json.dumps(request["response_schema"], separators=(",", ":")), input_text=request["prompt"]).stdout.strip()
+            raw_value = json.loads(raw)
             response = validate_response(raw_value)
-        except ValueError:
+        except (RuntimeError, ValueError, json.JSONDecodeError) as exc:
+            raw_value = {"m20_rejected_or_timed_out": str(exc)}
             response = {"sentiment": "ABSTAIN", "confidence": 0, "rationale": "Model response did not satisfy the fixed response schema.", "abstain": True, "research_only": True, "order_capability": False}
         price_only_action = "BUY" if float(context_bars[-1]["close"]) >= float(context_bars[-3]["close"]) else "SELL"
         experiments.append({

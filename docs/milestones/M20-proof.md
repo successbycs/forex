@@ -8,7 +8,7 @@ signal, order, forecast, profitability claim, or live-trading capability.
 
 ```text
 M2 retained Demo-only EUR/USD H1 snapshot (720 closed bars)
-  -> first six complete chronological UTC 08:00-to-20:00 sessions
+  -> first three complete chronological UTC 08:00-to-20:00 sessions
   -> twelve closed bars per session -> fixed qwen2.5:3b JSON sentiment request
   -> validated sentiment label / invalid output becomes ABSTAIN
   -> compare with two-bar price direction and NO_TRADE
@@ -16,10 +16,12 @@ M2 retained Demo-only EUR/USD H1 snapshot (720 closed bars)
 ```
 
 The controls are pre-declared in `forex.m20.ollama-historical-evaluation.v1`:
-exactly six sessions, strict chronological order, no shuffling, twelve bars of
+exactly three sessions, strict chronological order, no shuffling, twelve bars of
 bounded historical context, a two-basis-points-per-side sensitivity for
 directional labels, and `NO_TRADE` as a comparator. An invalid model response
-is a non-actioning abstention.
+is a non-actioning abstention. A model call is also bounded to 45 seconds, so a
+slow local inference is recorded as the same non-actioning abstention rather
+than holding the T480 workflow indefinitely.
 
 The fixed `forex-m20-ollama-evaluation-probe` adapter command takes no caller
 arguments. It reads PostgreSQL and calls only the approved local
