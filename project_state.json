@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
-  "last_proven_milestone": "M14",
-  "current_milestone": "M15",
+  "last_proven_milestone": "M15",
+  "current_milestone": null,
   "next_milestone": "M16",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-01T11:57:55Z",
+  "last_updated_at": "2026-09-02T01:26:12Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2149,39 +2149,39 @@
       }
     },
     "M15": {
-      "status": "AWAITING_REAL_WORLD_PROOF",
+      "status": "PROVEN",
       "started_at": "2026-09-01T11:53:10Z",
       "implementation_finished_at": "2026-09-01T11:57:55Z",
-      "verification_passed_at": "2026-09-01T11:57:55Z",
-      "real_world_proof_captured_at": "2026-09-01T11:57:48.011626Z",
-      "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
+      "verification_passed_at": "2026-09-02T01:26:12Z",
+      "real_world_proof_captured_at": "2026-09-02T01:26:00.606257Z",
+      "human_signed_off_at": "2026-09-02T01:26:12Z",
+      "first_proven_at": "2026-09-02T01:26:12Z",
+      "proven_at": "2026-09-02T01:26:12Z",
+      "last_validated_at": "2026-09-02T01:26:12Z",
       "checks": {
         "M15-C1": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:57:54Z",
-          "evidence": "runs/evidence/M15/20260901T115745Z/manifest.json",
-          "note": "Fresh fixed T480 historical M15 baseline evidence passed."
+          "recorded_at": "2026-09-02T01:26:11Z",
+          "evidence": "runs/evidence/M15/20260902T012557Z/manifest.json",
+          "note": "Refreshed fixed T480 baseline evidence passed."
         },
         "M15-C2": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:57:54Z",
-          "evidence": "runs/evidence/M15/20260901T115745Z/manifest.json",
-          "note": "Fresh fixed T480 historical M15 baseline evidence passed."
+          "recorded_at": "2026-09-02T01:26:11Z",
+          "evidence": "runs/evidence/M15/20260902T012557Z/manifest.json",
+          "note": "Refreshed fixed T480 baseline evidence passed."
         },
         "M15-C3": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:57:54Z",
-          "evidence": "runs/evidence/M15/20260901T115745Z/manifest.json",
-          "note": "Fresh fixed T480 historical M15 baseline evidence passed."
+          "recorded_at": "2026-09-02T01:26:11Z",
+          "evidence": "runs/evidence/M15/20260902T012557Z/manifest.json",
+          "note": "Refreshed fixed T480 baseline evidence passed."
         },
         "M15-C4": {
           "result": "PASS",
-          "recorded_at": "2026-09-01T11:57:54Z",
-          "evidence": "runs/evidence/M15/20260901T115745Z/manifest.json",
-          "note": "Fresh fixed T480 historical M15 baseline evidence passed."
+          "recorded_at": "2026-09-02T01:26:11Z",
+          "evidence": "runs/evidence/M15/20260902T012557Z/manifest.json",
+          "note": "Refreshed fixed T480 baseline evidence passed."
         }
       },
       "evidence": [
@@ -2193,12 +2193,21 @@
           "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
           "git_revision": "c7d5c38231266c9f31567da5ad9783de374b8d14",
           "summary": "FOREX_M15_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M15/20260902T012557Z/manifest.json",
+          "manifest_sha256": "0b7ec27a7e203b9a5e67fa66554e52ec61e1cc2e4c3bca3273b45996e874196a",
+          "captured_at": "2026-09-02T01:26:00.606257Z",
+          "recorded_at": "2026-09-02T01:26:11Z",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "git_revision": "49769d7556825018960b58192840ee8c8c2dd89a",
+          "summary": "FOREX_M15_PROOF_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-01T11:57:55Z",
-        "git_revision": "c7d5c38231266c9f31567da5ad9783de374b8d14",
+        "recorded_at": "2026-09-02T01:26:12Z",
+        "git_revision": "49769d7556825018960b58192840ee8c8c2dd89a",
         "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
         "commands": [
           {
@@ -2210,8 +2219,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M15/20260901T115754Z/governance.stdout.txt",
-            "stderr": "runs/verification/M15/20260901T115754Z/governance.stderr.txt"
+            "stdout": "runs/verification/M15/20260902T012611Z/governance.stdout.txt",
+            "stderr": "runs/verification/M15/20260902T012611Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -2224,16 +2233,27 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M15/20260901T115754Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M15/20260901T115754Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M15/20260902T012611Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M15/20260902T012611Z/milestone-tests.stderr.txt"
           }
         ]
       },
-      "human_signoff": null,
+      "human_signoff": {
+        "operator": "Chris Sparshott (delegated overnight authority)",
+        "decision": "APPROVE",
+        "note": "Delegated MVP exception: three fresh review-automation submissions failed only on strict response-schema compatibility. Exception is limited to review recording; current T480 proof, tests, governance validation, independent verification and Demo-only/no-order safety boundary passed.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "49769d7556825018960b58192840ee8c8c2dd89a",
+        "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+        "evidence_manifest_sha256": "0b7ec27a7e203b9a5e67fa66554e52ec61e1cc2e4c3bca3273b45996e874196a",
+        "verification_recorded_at": "2026-09-02T01:26:12Z",
+        "recorded_at": "2026-09-02T01:26:12Z"
+      },
       "blockers": []
     },
     "M16": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,

@@ -6161,6 +6161,112 @@
         "from": "IN_PROGRESS",
         "to": "AWAITING_REAL_WORLD_PROOF"
       }
+    },
+    {
+      "event_id": "E000431",
+      "timestamp": "2026-09-02T01:26:11Z",
+      "milestone_id": "M15",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M15-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000432",
+      "timestamp": "2026-09-02T01:26:11Z",
+      "milestone_id": "M15",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M15-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000433",
+      "timestamp": "2026-09-02T01:26:11Z",
+      "milestone_id": "M15",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M15-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000434",
+      "timestamp": "2026-09-02T01:26:11Z",
+      "milestone_id": "M15",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M15-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000435",
+      "timestamp": "2026-09-02T01:26:11Z",
+      "milestone_id": "M15",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M15/20260902T012557Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000436",
+      "timestamp": "2026-09-02T01:26:12Z",
+      "milestone_id": "M15",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M15/20260902T012611Z/governance.stdout.txt",
+            "stderr": "runs/verification/M15/20260902T012611Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m15.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M15/20260902T012611Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M15/20260902T012611Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000437",
+      "timestamp": "2026-09-02T01:26:12Z",
+      "milestone_id": "M15",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris Sparshott (delegated overnight authority)",
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "event_id": "E000438",
+      "timestamp": "2026-09-02T01:26:12Z",
+      "milestone_id": "M15",
+      "action": "MILESTONE_PROVEN",
+      "detail": {
+        "proven_at": "2026-09-02T01:26:12Z",
+        "next_milestone": "M16"
+      }
     }
   ]
 }
