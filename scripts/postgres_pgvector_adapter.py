@@ -301,7 +301,7 @@ def m19_lineage_verify() -> dict:
  (SELECT count(*) FROM forex.research_decision_lineage),
  'model=qwen2.5:3b=' || EXISTS (SELECT 1 FROM forex.model_inference_lineage WHERE model_id='qwen2.5:3b'),
  'demo_only=' || NOT EXISTS (SELECT 1 FROM forex.model_inference_lineage WHERE source_label <> 'DEMO_ONLY_HISTORICAL'),
- 'validated=' || NOT EXISTS (SELECT 1 FROM forex.model_inference_lineage WHERE validation_result <> 'PASS'),
+ 'validation_results_valid=' || NOT EXISTS (SELECT 1 FROM forex.model_inference_lineage WHERE validation_result NOT IN ('PASS','REJECTED_AND_ABSTAINED')),
  'research_only=' || NOT EXISTS (SELECT 1 FROM forex.model_inference_lineage WHERE research_only IS NOT TRUE OR order_capability IS NOT FALSE),
  'hashes_present=' || NOT EXISTS (SELECT 1 FROM forex.model_inference_lineage WHERE model_definition_sha256 !~ '^sha256:[0-9a-f]{64}$' OR prompt_sha256 !~ '^sha256:[0-9a-f]{64}$' OR input_sha256 !~ '^sha256:[0-9a-f]{64}$' OR output_sha256 !~ '^sha256:[0-9a-f]{64}$'),
  'decision_linkage=' || NOT EXISTS (SELECT 1 FROM forex.research_decision_lineage decision LEFT JOIN forex.model_inference_lineage inference ON inference.inference_id=decision.inference_id WHERE inference.inference_id IS NULL OR decision.decision_state <> 'RESEARCH_ONLY'),

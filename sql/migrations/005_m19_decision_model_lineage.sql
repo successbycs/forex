@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS forex.model_inference_lineage (
     output_sha256 TEXT NOT NULL CHECK (output_sha256 ~ '^sha256:[0-9a-f]{64}$'),
     input_payload JSONB NOT NULL,
     output_payload JSONB NOT NULL,
-    validation_result TEXT NOT NULL CHECK (validation_result = 'PASS'),
+    validation_result TEXT NOT NULL,
     research_only BOOLEAN NOT NULL CHECK (research_only),
     order_capability BOOLEAN NOT NULL CHECK (order_capability IS FALSE),
     application_revision TEXT NOT NULL,
@@ -27,15 +27,27 @@ CREATE TABLE IF NOT EXISTS forex.model_inference_lineage (
     CHECK (jsonb_typeof(output_payload) = 'object')
 );
 
+ALTER TABLE forex.model_inference_lineage
+DROP CONSTRAINT IF EXISTS model_inference_lineage_validation_result_check;
+ALTER TABLE forex.model_inference_lineage
+ADD CONSTRAINT model_inference_lineage_validation_result_check
+CHECK (validation_result IN ('PASS', 'REJECTED_AND_ABSTAINED'));
+
 CREATE TABLE IF NOT EXISTS forex.research_decision_lineage (
     decision_id TEXT PRIMARY KEY,
     inference_id TEXT NOT NULL REFERENCES forex.model_inference_lineage(inference_id) ON DELETE RESTRICT,
     hypothesis_id TEXT NOT NULL CHECK (hypothesis_id = 'eurusd-h1-historical-sentiment-observation'),
     hypothesis_text TEXT NOT NULL,
     decision_state TEXT NOT NULL CHECK (decision_state = 'RESEARCH_ONLY'),
-    validation_result TEXT NOT NULL CHECK (validation_result = 'PASS'),
+    validation_result TEXT NOT NULL CHECK (validation_result IN ('PASS', 'REJECTED_AND_ABSTAINED')),
     created_at_utc TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE forex.research_decision_lineage
+DROP CONSTRAINT IF EXISTS research_decision_lineage_validation_result_check;
+ALTER TABLE forex.research_decision_lineage
+ADD CONSTRAINT research_decision_lineage_validation_result_check
+CHECK (validation_result IN ('PASS', 'REJECTED_AND_ABSTAINED'));
 
 CREATE INDEX IF NOT EXISTS model_inference_lineage_snapshot_idx
 ON forex.model_inference_lineage (snapshot_id, created_at_utc DESC);

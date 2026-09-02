@@ -58,9 +58,23 @@ def main() -> int:
         raise RuntimeError(f"approved local model is unavailable: {MODEL}")
     raw = compose("ollama", "ollama", "run", MODEL, "--format", json.dumps(request["response_schema"], separators=(",", ":")), input_text=request["prompt"]).stdout.strip()
     raw_output = json.loads(raw)
-    response = validate_response(raw_output)
+    try:
+        response = validate_response(raw_output)
+        validation_result = "PASS"
+        validation_error = None
+    except ValueError as exc:
+        # An invalid model response is never promoted to a research result.
+        # Keep its hash and validation outcome, while persisting only a safe
+        # abstention with no command-like raw output fields.
+        response = {
+            "sentiment": "ABSTAIN", "confidence": 0,
+            "rationale": "Model response did not satisfy the fixed response schema.",
+            "abstain": True, "research_only": True, "order_capability": False,
+        }
+        validation_result = "REJECTED_AND_ABSTAINED"
+        validation_error = str(exc)
     input_payload = {"context": context, "prompt": request["prompt"], "response_schema": request["response_schema"]}
-    output_payload = {"response": response}
+    output_payload = {"response": response, "raw_output_sha256": sha256(raw_output), "validation_error": validation_error}
     input_hash = sha256(input_payload)
     output_hash = sha256(output_payload)
     inference_id = "m19-inference-" + hashlib.sha256(f"{input_hash}:{output_hash}".encode()).hexdigest()[:20]
@@ -69,10 +83,10 @@ def main() -> int:
     configuration_fingerprint = json.loads(subprocess.run(["python3", "scripts/forex_milestones.py", "status", "--json"], cwd=ROOT, text=True, capture_output=True, check=True).stdout)["configuration_fingerprint"]
     sql = f"""BEGIN;
 INSERT INTO forex.model_inference_lineage (inference_id,snapshot_id,source_label,model_id,model_definition_sha256,prompt_template_version,prompt_sha256,input_sha256,output_sha256,input_payload,output_payload,validation_result,research_only,order_capability,application_revision,configuration_fingerprint)
-VALUES ({quote(inference_id)},{quote(SNAPSHOT_ID)},'DEMO_ONLY_HISTORICAL',{quote(MODEL)},{quote(sha256(model_line))},{quote(request['prompt_template_version'])},{quote(sha256(request['prompt']))},{quote(input_hash)},{quote(output_hash)},{quote(json.dumps(input_payload, sort_keys=True))}::jsonb,{quote(json.dumps(output_payload, sort_keys=True))}::jsonb,'PASS',true,false,{quote(application_revision)},{quote(configuration_fingerprint)})
+VALUES ({quote(inference_id)},{quote(SNAPSHOT_ID)},'DEMO_ONLY_HISTORICAL',{quote(MODEL)},{quote(sha256(model_line))},{quote(request['prompt_template_version'])},{quote(sha256(request['prompt']))},{quote(input_hash)},{quote(output_hash)},{quote(json.dumps(input_payload, sort_keys=True))}::jsonb,{quote(json.dumps(output_payload, sort_keys=True))}::jsonb,{quote(validation_result)},true,false,{quote(application_revision)},{quote(configuration_fingerprint)})
 ON CONFLICT (inference_id) DO NOTHING;
 INSERT INTO forex.research_decision_lineage (decision_id,inference_id,hypothesis_id,hypothesis_text,decision_state,validation_result)
-VALUES ({quote(decision_id)},{quote(inference_id)},'eurusd-h1-historical-sentiment-observation','A bounded historical EUR/USD H1 sentiment observation may be retained for later research evaluation.','RESEARCH_ONLY','PASS')
+VALUES ({quote(decision_id)},{quote(inference_id)},'eurusd-h1-historical-sentiment-observation','A bounded historical EUR/USD H1 sentiment observation may be retained for later research evaluation.','RESEARCH_ONLY',{quote(validation_result)})
 ON CONFLICT (decision_id) DO NOTHING;
 COMMIT;
 SELECT 'FOREX_M19_LINEAGE_PERSIST_OK', {quote(inference_id)}, {quote(decision_id)}, {quote(input_hash)}, {quote(output_hash)};
@@ -84,7 +98,7 @@ SELECT 'FOREX_M19_LINEAGE_PERSIST_OK', {quote(inference_id)}, {quote(decision_id
         "marker": "FOREX_M19_LINEAGE_PROBE_OK", "inference_id": inference_id, "decision_id": decision_id,
         "snapshot_id": SNAPSHOT_ID, "model": MODEL, "model_definition_sha256": sha256(model_line),
         "prompt_template_version": request["prompt_template_version"], "prompt_sha256": sha256(request["prompt"]),
-        "input_sha256": input_hash, "output_sha256": output_hash, "validation_result": "PASS",
+        "input_sha256": input_hash, "output_sha256": output_hash, "validation_result": validation_result,
         "response": response, "research_only": True, "order_capability": False, "live_trading_capability": False,
     }, separators=(",", ":")))
     return 0

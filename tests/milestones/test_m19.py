@@ -11,7 +11,7 @@ def test_m19_schema_persists_hashed_model_and_research_decision_lineage_only():
     for required in (
         "forex.model_inference_lineage", "forex.research_decision_lineage", "input_payload JSONB",
         "output_payload JSONB", "model_definition_sha256", "prompt_sha256", "input_sha256", "output_sha256",
-        "validation_result = 'PASS'", "research_only", "order_capability IS FALSE", "RESEARCH_ONLY",
+        "REJECTED_AND_ABSTAINED", "research_only", "order_capability IS FALSE", "RESEARCH_ONLY",
         "M19 model and decision lineage is immutable",
     ):
         assert required in schema
