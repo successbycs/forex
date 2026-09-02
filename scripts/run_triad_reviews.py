@@ -18,7 +18,10 @@ ROOT = Path(__file__).resolve().parents[1]
 TRIAD = [sys.executable, str(ROOT / "scripts" / "forex_triad.py")]
 MILESTONES = [sys.executable, str(ROOT / "scripts" / "forex_milestones.py")]
 ROLES = ("SOLUTION_ARCHITECT", "SENIOR_SOFTWARE_DEVELOPER", "AI_ENGINEER", "FINANCIAL_DOMAIN_EXPERT")
-REVIEW_TIMEOUT_SECONDS = 90
+# Reviewers must not inherit desktop-only MCP connectors.  In particular, an
+# unavailable optional connector must not prevent an evidence review that only
+# needs this repository.  Codex authentication still uses CODEX_HOME.
+REVIEW_TIMEOUT_SECONDS = 120
 
 
 def run(argv: list[str]) -> subprocess.CompletedProcess[str]:
@@ -55,7 +58,7 @@ def review_role(cycle: Path, role: str, attempts: int) -> tuple[bool, list[dict[
     for number in range(1, attempts + 1):
         raw = submissions / f"{role.lower()}.attempt-{number}.raw.json"
         command = [
-            "codex", "exec", "--ephemeral", "-m", "gpt-5.6-luna", "-s", "read-only", "-C", str(ROOT),
+            "codex", "exec", "--ignore-user-config", "--ephemeral", "-m", "gpt-5.6-luna", "-s", "read-only", "-C", str(ROOT),
             "--output-schema", str(schema), "-o", str(raw), prompt(cycle, role),
         ]
         try:
