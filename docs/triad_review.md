@@ -34,6 +34,22 @@ part of normal MVP implementation or closeout.
 
 ## Workflow
 
+### Mandatory automated execution and retry
+
+Before every milestone `prove`, prepare and submit one exact current packet to
+each of the four roles. Validate and record each response automatically. A
+request, response, schema, or recording failure is retryable: diagnose the raw
+error, apply only the smallest MVP-compatible correction, and resubmit the
+affected role immediately. Limit one root cause to three attempts.
+
+After the third failed attempt, retain the raw failure and record its cause.
+Run a focused Board assessment of the review-workflow failure where possible.
+Only when the milestone's implementation, tests, T480 evidence, evidence
+verification, and safety boundaries are complete may delegated operator
+authority record an MVP exception. That exception applies only to review
+automation; it never invents reviewer identities, findings, evidence, passing
+checks, or approval.
+
 After committed-revision evidence is recorded for a required phase gate or a
 human-requested review:
 
