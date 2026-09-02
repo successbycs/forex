@@ -1,5 +1,6 @@
 from forex.ollama_evaluation import EXPERIMENT_SESSIONS, action_from_sentiment, evaluate
 from scripts import postgres_pgvector_adapter
+from scripts.m20_ollama_evaluation_probe import retrospective_close
 
 
 def response(sentiment: str, abstain: bool = False) -> dict:
@@ -44,3 +45,7 @@ def test_m20_adapter_exposes_one_fixed_read_only_probe():
     assert "forex-m20-ollama-evaluation-probe" in postgres_pgvector_adapter.READ_ONLY
     assert "m20_probe" in postgres_pgvector_adapter.ASSETS
     assert "forex-m20-ollama-evaluation-probe" not in postgres_pgvector_adapter.MUTATING
+
+
+def test_m20_uses_declared_h1_bar_close_assumption_for_historical_decisions():
+    assert retrospective_close("2026-07-01 08:00:00+00") == "2026-07-01T09:00:00Z"

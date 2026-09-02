@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -56,8 +57,13 @@ def select_sessions(bars: list[dict[str, str]]) -> list[tuple[int, int]]:
         if len(selected) == EXPERIMENT_SESSIONS:
             break
     if len(selected) != EXPERIMENT_SESSIONS:
-        raise RuntimeError("retained snapshot lacks the six declared M20 sessions")
+        raise RuntimeError("retained snapshot lacks the three declared M20 sessions")
     return selected
+
+
+def retrospective_close(value: str) -> str:
+    """M20 uses M16's declared retrospective H1-bar-close availability policy."""
+    return (datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc) + timedelta(hours=1)).isoformat().replace("+00:00", "Z")
 
 
 def main() -> int:
@@ -69,7 +75,7 @@ def main() -> int:
         raise RuntimeError(f"approved local model is unavailable: {MODEL}")
     experiments = []
     for entry_index, exit_index in select_sessions(bars):
-        context_bars = bars[entry_index - 11:entry_index + 1]
+        context_bars = [{**bar, "available_at_utc": retrospective_close(bar["time_utc"])} for bar in bars[entry_index - 11:entry_index + 1]]
         context = build_context(
             bars=context_bars, cutoff_utc=context_bars[-1]["available_at_utc"],
             features={"source": "DEMO_ONLY_HISTORICAL", "licensing": "UNQUALIFIED_BROKER_TERMINAL_DATA"},

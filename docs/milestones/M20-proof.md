@@ -23,6 +23,12 @@ is a non-actioning abstention. A model call is also bounded to 45 seconds, so a
 slow local inference is recorded as the same non-actioning abstention rather
 than holding the T480 workflow indefinitely.
 
+Because the retained M2 observation has one snapshot-capture timestamp rather
+than a source observation time for each bar, M20 uses the already documented
+M16 `RETROSPECTIVE_H1_BAR_CLOSE_ASSUMPTION`: a closed H1 bar is treated as
+available one hour after its timestamp. This makes the chronological research
+comparison possible but is not evidence of real-time availability.
+
 The fixed `forex-m20-ollama-evaluation-probe` adapter command takes no caller
 arguments. It reads PostgreSQL and calls only the approved local
 `qwen2.5:3b` container. It cannot access MT5, accounts, credentials, a live
