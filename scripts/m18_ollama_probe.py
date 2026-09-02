@@ -46,7 +46,10 @@ def main() -> int:
         features={"source": "DEMO_ONLY_HISTORICAL", "licensing": "UNQUALIFIED_BROKER_TERMINAL_DATA"},
     )
     request = build_request(context)
-    model_info = compose("show", MODEL, "--modelfile").stdout.strip()
+    installed_models = compose("list").stdout.splitlines()
+    model_info = next((line.strip() for line in installed_models if line.startswith(f"{MODEL} ")), "")
+    if not model_info:
+        raise RuntimeError(f"approved local model is unavailable: {MODEL}")
     raw = compose("run", MODEL, "--format", json.dumps(request["response_schema"], separators=(",", ":")), input_text=request["prompt"]).stdout.strip()
     response = validate_response(json.loads(raw))
     print(json.dumps({
