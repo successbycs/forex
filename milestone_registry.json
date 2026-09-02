@@ -2131,7 +2131,7 @@
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "Three-phase historical-first roadmap. After M16 proof and before M17 begins, conduct the short MVP mid-build review: confirm truthful lineage and no-lookahead, understandable user flow, intact safety limits, and remove or defer non-essential complexity. It is not a separate architecture board or execution approval. Historical evidence is never a substitute for Phase 3 real-time Demo proof."
+      "notes": "Three-phase historical-first roadmap. M16 uses the operator-approved RETROSPECTIVE_H1_BAR_CLOSE_ASSUMPTION: a completed H1 bar is treated as available at its close for research only, while the actual M1 capture timestamp remains unchanged. This is an explicit assumption, not independently observed per-bar availability. It cannot support live-readiness, execution, or Phase 3 real-time claims. After M16 proof and before M17 begins, conduct the short MVP mid-build review: confirm truthful lineage and no-lookahead under the declared assumption, understandable user flow, intact safety limits, and remove or defer non-essential complexity. It is not a separate architecture board or execution approval. Historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M17",

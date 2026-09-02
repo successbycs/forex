@@ -7,7 +7,7 @@ broker nor produces an executable trade instruction.
 from __future__ import annotations
 
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 from statistics import mean
 from typing import Any
 
@@ -18,6 +18,7 @@ EVALUATION_VERSION = "eurusd-walk-forward.v1"
 DECISION_HOUR_UTC = 8
 MANDATORY_EXIT_HOUR_UTC = 20
 FIXED_COST_BPS = 2.0
+RETROSPECTIVE_POLICY = "RETROSPECTIVE_H1_BAR_CLOSE_ASSUMPTION"
 
 
 def _time(value: str) -> datetime:
@@ -43,7 +44,13 @@ def _ordered_bars(bars: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return ordered
 
 
-def _sessions(bars: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _available_at(bar: dict[str, Any], policy: str) -> datetime:
+    if policy == RETROSPECTIVE_POLICY:
+        return _time(str(bar["time_utc"])) + timedelta(hours=1)
+    return _time(str(bar["available_at_utc"]))
+
+
+def _sessions(bars: list[dict[str, Any]], policy: str) -> list[dict[str, Any]]:
     by_day: dict[str, dict[int, tuple[int, dict[str, Any]]]] = {}
     for index, row in enumerate(bars):
         stamp = _time(str(row["time_utc"]))
@@ -55,8 +62,8 @@ def _sessions(bars: list[dict[str, Any]]) -> list[dict[str, Any]]:
             continue
         entry_index, entry = slots[DECISION_HOUR_UTC]
         _, exit_bar = slots[MANDATORY_EXIT_HOUR_UTC]
-        decision = _time(str(entry["time_utc"]))
-        if entry_index < 6 or _time(str(entry["available_at_utc"])) > decision or _time(str(exit_bar["available_at_utc"])) > _time(str(exit_bar["time_utc"])):
+        decision = _available_at(entry, policy)
+        if entry_index < 6 or _available_at(entry, policy) > decision:
             continue
         sessions.append({"day_utc": day, "entry_index": entry_index, "entry": entry, "exit": exit_bar})
     if len(sessions) < 6:
@@ -103,7 +110,7 @@ def _context_coverage(contexts: dict[str, list[dict[str, Any]]], sessions: list[
     return result
 
 
-def evaluate_walk_forward(bars: list[dict[str, Any]], *, contexts: dict[str, list[dict[str, Any]]] | None = None) -> dict[str, Any]:
+def evaluate_walk_forward(bars: list[dict[str, Any]], *, contexts: dict[str, list[dict[str, Any]]] | None = None, availability_policy: str = RETROSPECTIVE_POLICY) -> dict[str, Any]:
     """Evaluate frozen M15 models against fixed baselines without shuffling.
 
     Three sequential holdout windows are derived from complete UTC sessions.
@@ -113,7 +120,9 @@ def evaluate_walk_forward(bars: list[dict[str, Any]], *, contexts: dict[str, lis
     feature until a later, separately-qualified milestone.
     """
     bars = _ordered_bars(bars)
-    sessions = _sessions(bars)
+    if availability_policy != RETROSPECTIVE_POLICY:
+        raise ValueError("M16 requires the approved retrospective H1 bar-close availability policy")
+    sessions = _sessions(bars, availability_policy)
     test_size = max(1, len(sessions) // 6)
     starts = [len(sessions) // 2, len(sessions) // 2 + test_size, len(sessions) // 2 + 2 * test_size]
     rows: list[dict[str, Any]] = []
@@ -123,14 +132,14 @@ def evaluate_walk_forward(bars: list[dict[str, Any]], *, contexts: dict[str, lis
         if not test_sessions:
             continue
         train_until = test_sessions[0]["entry_index"]
-        decision = _time(str(test_sessions[0]["entry"]["time_utc"]))
-        training = [bar for bar in bars[:train_until] if _time(str(bar["available_at_utc"])) <= decision]
+        decision = _available_at(test_sessions[0]["entry"], availability_policy)
+        training = [bar for bar in bars[:train_until] if _available_at(bar, availability_policy) <= decision]
         model = train_baseline(training)
         window_rows = []
         for session in test_sessions:
             entry, exit_ = session["entry"], session["exit"]
-            decision = _time(str(entry["time_utc"]))
-            visible = [bar for bar in bars[:session["entry_index"] + 1] if _time(str(bar["available_at_utc"])) <= decision]
+            decision = _available_at(entry, availability_policy)
+            visible = [bar for bar in bars[:session["entry_index"] + 1] if _available_at(bar, availability_policy) <= decision]
             if len(visible) < 3:
                 raise ValueError("insufficient point-in-time bars for a historical decision")
             sample = visible[-3:]
@@ -163,6 +172,8 @@ def evaluate_walk_forward(bars: list[dict[str, Any]], *, contexts: dict[str, lis
     return {
         "marker": "FOREX_M16_WALK_FORWARD_OK",
         "evaluation_version": EVALUATION_VERSION,
+        "availability_policy": availability_policy,
+        "availability_policy_assumption": "Each completed H1 MT5 bar is treated as available at its close; this is a retrospective research assumption, not an observed per-bar capture timestamp.",
         "model_version": MODEL_VERSION,
         "feature_version": FEATURE_VERSION,
         "session_contract": {"decision_hour_utc": DECISION_HOUR_UTC, "mandatory_exit_hour_utc": MANDATORY_EXIT_HOUR_UTC, "cost_bps_per_side": FIXED_COST_BPS},
