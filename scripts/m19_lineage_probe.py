@@ -78,7 +78,7 @@ COMMIT;
 SELECT 'FOREX_M19_LINEAGE_PERSIST_OK', {quote(inference_id)}, {quote(decision_id)}, {quote(input_hash)}, {quote(output_hash)};
 """
     persisted = compose("postgres", "psql", "-v", "ON_ERROR_STOP=1", "-At", "-F", "|", "-U", os.environ["POSTGRES_USER"], "-d", os.environ["POSTGRES_DB"], input_text=sql).stdout.strip()
-    if not persisted.startswith("FOREX_M19_LINEAGE_PERSIST_OK|"):
+    if "FOREX_M19_LINEAGE_PERSIST_OK|" not in persisted:
         raise RuntimeError("fixed M19 persistence marker is absent")
     print(json.dumps({
         "marker": "FOREX_M19_LINEAGE_PROBE_OK", "inference_id": inference_id, "decision_id": decision_id,
