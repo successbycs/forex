@@ -24,7 +24,7 @@ LAB_ROOT = "/home/chris/projects/cs-ai-lab-infra"
 
 def compose(*args: str, input_text: str | None = None) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
-        ["docker", "compose", "exec", "-T", "ollama", *args],
+        ["docker", "compose", "exec", "-T", "ollama", "ollama", *args],
         input=input_text, text=True, capture_output=True, check=False, cwd=LAB_ROOT,
     )
     if result.returncode:
