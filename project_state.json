@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-02T02:01:15Z",
+  "last_updated_at": "2026-09-02T02:04:40Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2256,8 +2256,8 @@
       "status": "AWAITING_REAL_WORLD_PROOF",
       "started_at": "2026-09-02T01:26:26Z",
       "implementation_finished_at": "2026-09-02T02:01:15Z",
-      "verification_passed_at": "2026-09-02T02:01:15Z",
-      "real_world_proof_captured_at": "2026-09-02T02:01:04.026786Z",
+      "verification_passed_at": "2026-09-02T02:04:40Z",
+      "real_world_proof_captured_at": "2026-09-02T02:04:29.036265Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
@@ -2265,26 +2265,26 @@
       "checks": {
         "M16-C1": {
           "result": "PASS",
-          "recorded_at": "2026-09-02T02:01:13Z",
-          "evidence": "runs/evidence/M16/20260902T020101Z/walk-forward-probe.json",
+          "recorded_at": "2026-09-02T02:04:41Z",
+          "evidence": "runs/evidence/M16/20260902T020425Z/walk-forward-probe.json",
           "note": "Fixed T480 PostgreSQL probe evaluated 720 Demo-only EUR/USD H1 bars in three frozen chronological windows."
         },
         "M16-C2": {
           "result": "PASS",
-          "recorded_at": "2026-09-02T02:01:14Z",
-          "evidence": "runs/evidence/M16/20260902T020101Z/tests.txt",
+          "recorded_at": "2026-09-02T02:04:41Z",
+          "evidence": "runs/evidence/M16/20260902T020425Z/tests.txt",
           "note": "M16 tests and repository governance validation passed in the current evidence bundle."
         },
         "M16-C3": {
           "result": "PASS",
-          "recorded_at": "2026-09-02T02:01:14Z",
-          "evidence": "runs/evidence/M16/20260902T020101Z/manifest.json",
+          "recorded_at": "2026-09-02T02:04:41Z",
+          "evidence": "runs/evidence/M16/20260902T020425Z/manifest.json",
           "note": "Current self-attested T480 evidence is bound to the committed revision and governed configuration."
         },
         "M16-C4": {
           "result": "PASS",
-          "recorded_at": "2026-09-02T02:01:14Z",
-          "evidence": "runs/evidence/M16/20260902T020101Z/walk-forward-probe.json",
+          "recorded_at": "2026-09-02T02:04:41Z",
+          "evidence": "runs/evidence/M16/20260902T020425Z/walk-forward-probe.json",
           "note": "Probe confirms chronological-only, no shuffle, no live fitting, research-only output and non-performance claim."
         }
       },
@@ -2297,12 +2297,21 @@
           "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
           "git_revision": "076af24887a65184a050c28806084020697b408c",
           "summary": "FOREX_M16_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M16/20260902T020425Z/manifest.json",
+          "manifest_sha256": "30828da140bb3e4693605eeea9bfbb4e1745beb0170dd784c5a91184f6c73ca4",
+          "captured_at": "2026-09-02T02:04:29.036265Z",
+          "recorded_at": "2026-09-02T02:04:42Z",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "git_revision": "7c6e8f90584afbe5c514b2e385e555e0ac6f2723",
+          "summary": "FOREX_M16_PROOF_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-02T02:01:15Z",
-        "git_revision": "076af24887a65184a050c28806084020697b408c",
+        "recorded_at": "2026-09-02T02:04:40Z",
+        "git_revision": "7c6e8f90584afbe5c514b2e385e555e0ac6f2723",
         "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
         "commands": [
           {
@@ -2314,8 +2323,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M16/20260902T020115Z/governance.stdout.txt",
-            "stderr": "runs/verification/M16/20260902T020115Z/governance.stderr.txt"
+            "stdout": "runs/verification/M16/20260902T020442Z/governance.stdout.txt",
+            "stderr": "runs/verification/M16/20260902T020442Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -2328,8 +2337,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M16/20260902T020115Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M16/20260902T020115Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M16/20260902T020442Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M16/20260902T020442Z/milestone-tests.stderr.txt"
           }
         ]
       },

@@ -76,6 +76,10 @@ def review_role(cycle: Path, role: str, attempts: int) -> tuple[bool, list[dict[
     return False, events
 
 
+def write_attempts(cycle: Path, events: list[dict[str, str]]) -> None:
+    (cycle / "review-runner-attempts.json").write_text(json.dumps(events, indent=2) + "\n")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run bounded fresh Codex Triad reviews.")
     parser.add_argument("--id", required=True, help="milestone ID")
@@ -87,8 +91,10 @@ def main() -> int:
     passed = True
     for role in ROLES:
         ok, role_events = review_role(cycle, role, args.attempts)
-        events.extend(role_events); passed = passed and ok
-    (cycle / "review-runner-attempts.json").write_text(json.dumps(events, indent=2) + "\n")
+        events.extend(role_events); write_attempts(cycle, events)
+        if not ok:
+            passed = False
+            break
     if not passed:
         print(json.dumps({"status": "REVIEW_AUTOMATION_FAILED", "cycle": str(cycle), "attempts": events}, indent=2))
         return 2
