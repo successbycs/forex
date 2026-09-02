@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "PHASE_1_HISTORICAL_FOUNDATION",
-  "last_proven_milestone": "M18",
-  "current_milestone": "M19",
+  "last_proven_milestone": "M19",
+  "current_milestone": null,
   "next_milestone": "M20",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-02T04:52:33Z",
+  "last_updated_at": "2026-09-02T05:23:18Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2574,23 +2574,91 @@
       "blockers": []
     },
     "M19": {
-      "status": "IN_PROGRESS",
+      "status": "PROVEN",
       "started_at": "2026-09-02T04:52:33Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
+      "implementation_finished_at": "2026-09-02T05:04:28Z",
+      "verification_passed_at": "2026-09-02T05:04:29Z",
+      "real_world_proof_captured_at": "2026-09-02T05:03:56.652911Z",
       "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
+      "first_proven_at": "2026-09-02T05:23:18Z",
+      "proven_at": "2026-09-02T05:23:18Z",
+      "last_validated_at": "2026-09-02T05:23:18Z",
+      "checks": {
+        "M19-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-02T05:04:27Z",
+          "evidence": "runs/evidence/M19/20260902T050337Z/lineage-probe.json",
+          "note": "T480 fixed lineage probe persisted a research-only Demo-only model inference and linked decision."
+        },
+        "M19-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-02T05:04:27Z",
+          "evidence": "runs/evidence/M19/20260902T050337Z/tests.txt",
+          "note": "M19 milestone tests and repository governance verification passed."
+        },
+        "M19-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-02T05:04:28Z",
+          "evidence": "runs/evidence/M19/20260902T050337Z/manifest.json",
+          "note": "Fresh self-attested T480 proof is bound to the captured revision and configuration fingerprint."
+        },
+        "M19-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-02T05:04:28Z",
+          "evidence": "runs/evidence/M19/20260902T050337Z/lineage-verify.json",
+          "note": "Verifier confirms Demo-only provenance, validated output, lineage hashes, research-only records, and no order fields."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M19/20260902T050337Z/manifest.json",
+          "manifest_sha256": "e23ad499ff3c7a8fe6a313aef20b21b0f820d4b723f1a3790d5165ea8359d8e9",
+          "captured_at": "2026-09-02T05:03:56.652911Z",
+          "recorded_at": "2026-09-02T05:04:27Z",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "git_revision": "abadfdced79bea76ba583c1a6322c4e9e0259cf0",
+          "summary": "FOREX_M19_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-02T05:04:29Z",
+        "git_revision": "abadfdced79bea76ba583c1a6322c4e9e0259cf0",
+        "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M19/20260902T050428Z/governance.stdout.txt",
+            "stderr": "runs/verification/M19/20260902T050428Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m19.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M19/20260902T050428Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M19/20260902T050428Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
       "human_signoff": null,
       "blockers": []
     },
     "M20": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,
