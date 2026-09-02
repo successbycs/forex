@@ -3,9 +3,12 @@ from unittest import mock
 from scripts import postgres_pgvector_adapter
 
 
-def test_adapter_exposes_only_fixed_m2_and_m11_operations():
+def test_adapter_exposes_only_fixed_forex_operations():
     assert postgres_pgvector_adapter.READ_ONLY | postgres_pgvector_adapter.MUTATING == {
-        "preflight", "inspect", "vector-probe", "forex-m2-apply-schema", "forex-m2-import", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-apply-schema", "forex-m11-verify-schema"
+        "preflight", "inspect", "vector-probe",
+        "forex-m2-apply-schema", "forex-m2-import", "forex-m2-verify", "forex-m2-provenance-negative-control",
+        "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour",
+        "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe",
     }
 
 
