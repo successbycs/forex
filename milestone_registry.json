@@ -2103,7 +2103,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "reproducible historical walk-forward evaluation environment",
+      "surface": "reproducible historical walk-forward evaluation environment under retrospective H1 bar-close availability assumption",
         "capture_command": [
           "bash",
           "scripts/capture_m16_evidence.sh"
