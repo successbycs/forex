@@ -190,6 +190,11 @@ offline classifier, producing a research-only 0–100 advisory score and
 `BUY`/`SELL`/`NO_TRADE` hypothesis for human inspection. M16 compares it with
 price-only and no-change baselines in chronological walk-forward windows.
 
+M20 separately evaluates six strict, local-Ollama historical sentiment
+observations against the same simple price-only direction and `NO_TRADE`
+comparators. It retains bounded result hashes and descriptive metrics only;
+the local model cannot issue an order or reach a broker.
+
 Success is not a high in-sample score. The model must improve a pre-declared
 out-of-sample comparison after costs and retain an abstaining `NO_TRADE`
 outcome. Until then, the operator view reports research observations, not a

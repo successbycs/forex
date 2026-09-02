@@ -170,6 +170,12 @@ research probabilities plus a model card. M16 tests it chronologically against
 no-change and deterministic baselines. It is not an autonomous strategy, does
 not retrain online, and cannot create, approve, or execute orders.
 
+M20 adds a deliberately small local-Ollama comparison: six fixed chronological
+historical sessions, each using twelve closed bars and strict JSON validation.
+It compares the research-only sentiment label with a two-bar price-only label
+and `NO_TRADE`; invalid model output becomes an abstention. The descriptive
+result is not a signal, edge, recommendation, or execution path.
+
 The initial strategy shape is one EUR/USD intraday session: at a defined UTC
 decision time the research layer returns `BUY`, `SELL`, or `NO_TRADE` with a
 0–100 advisory score. A later Demo workflow may open at most one

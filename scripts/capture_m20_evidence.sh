@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root="$(cd "$(dirname "$0")/.." && pwd)"; cd "$root"
+export PYTHONPATH="$root/src${PYTHONPATH:+:$PYTHONPATH}"
+bundle="${1:-runs/evidence/M20/$(date -u +%Y%m%dT%H%M%SZ)}"; mkdir -p "$bundle"
+git diff --quiet
+python3 -m pytest -q tests/milestones/test_m20.py >"$bundle/tests.txt" 2>&1
+python3 scripts/forex_milestones.py validate >"$bundle/governance.txt" 2>&1
+python3 scripts/postgres_pgvector_adapter.py forex-m20-ollama-evaluation-probe >"$bundle/evaluation-probe.json"
+git rev-parse HEAD >"$bundle/revision.txt"
+python3 - "$bundle" <<'PY'
+import hashlib,json,subprocess,sys
+from datetime import datetime,timezone
+from pathlib import Path
+b=Path(sys.argv[1]); probe=json.loads((b/'evaluation-probe.json').read_text()); value=json.loads(probe['result']['stdout']); evaluation=value['evaluation']
+assert probe['ok'] and value['marker']=='FOREX_M20_OLLAMA_EVALUATION_PROBE_OK' and value['source']=='DEMO_ONLY_HISTORICAL'
+assert evaluation['marker']=='FOREX_M20_EVALUATION_OK' and len(evaluation['rows'])==6 and evaluation['research_only'] and not evaluation['order_capability'] and not value['live_trading_capability']
+(b/'comparison.json').write_text(json.dumps({'model':value['model_definition_sha256'],'controls':evaluation['predeclared_controls'],'comparison':evaluation['comparison']},indent=2)+'\n')
+(b/'summary.txt').write_text('FOREX_M20_PROOF_OK\n'); state=json.loads(subprocess.check_output(['python3','scripts/forex_milestones.py','status','--json']))
+artifacts=[{'path':f.name,'sha256':hashlib.sha256(f.read_bytes()).hexdigest()} for f in sorted(b.iterdir()) if f.is_file()]
+m={'schema_version':'1.0.0','milestone_id':'M20','captured_at':datetime.now(timezone.utc).isoformat().replace('+00:00','Z'),'git_revision':(b/'revision.txt').read_text().strip(),'dirty_worktree':False,'configuration_fingerprint':state['configuration_fingerprint'],'surface':'offline Ollama-assisted historical evaluation environment','operation':'fixed T480 M20 chronological Ollama comparison','expected_result':'validated local-model sentiment is compared only with fixed price-only and no-change historical baselines','observed_result':'FOREX_M20_PROOF_OK','exit_code':0,'redactions':['No account, credential, broker-server, order or execution data retained.'],'summary':'FOREX_M20_PROOF_OK','artifacts':artifacts}
+(b/'manifest.json').write_text(json.dumps(m,indent=2)+'\n')
+PY
+echo "$bundle"
