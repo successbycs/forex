@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DISABLED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-02T04:10:36Z",
+  "last_updated_at": "2026-09-02T04:42:30Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2479,18 +2479,76 @@
       "blockers": []
     },
     "M18": {
-      "status": "IN_PROGRESS",
+      "status": "AWAITING_REAL_WORLD_PROOF",
       "started_at": "2026-09-02T04:10:36Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
+      "implementation_finished_at": "2026-09-02T04:42:29Z",
+      "verification_passed_at": "2026-09-02T04:42:30Z",
       "real_world_proof_captured_at": null,
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
-      "checks": {},
+      "checks": {
+        "M18-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-02T04:42:29Z",
+          "evidence": "runs/evidence/M18/20260902T044148Z/ollama-probe.json",
+          "note": "Fixed T480 qwen2.5:3b probe returned a schema-valid research-only response from bounded Demo-only historical context."
+        },
+        "M18-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-02T04:42:29Z",
+          "evidence": "runs/evidence/M18/20260902T044148Z/tests.txt",
+          "note": "M18 tests, governance validation and independent M18 evidence verification passed."
+        },
+        "M18-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-02T04:42:29Z",
+          "evidence": "runs/evidence/M18/20260902T044148Z/manifest.json",
+          "note": "Current T480 evidence binds the deployed revision, configuration fingerprint, source, model definition, prompt, input and output hashes."
+        },
+        "M18-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-02T04:42:29Z",
+          "evidence": "runs/evidence/M18/20260902T044148Z/ollama-probe.json",
+          "note": "Probe retained Demo-only historical input and reports research_only true with order and live-trading capabilities false."
+        }
+      },
       "evidence": [],
-      "verification": null,
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-02T04:42:30Z",
+        "git_revision": "c74478d59b25feec5d0b669ea99d824c8d130c6e",
+        "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M18/20260902T044230Z/governance.stdout.txt",
+            "stderr": "runs/verification/M18/20260902T044230Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m18.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M18/20260902T044230Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M18/20260902T044230Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
       "human_signoff": null,
       "blockers": []
     },
