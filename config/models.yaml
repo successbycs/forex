@@ -1,5 +1,5 @@
 schema_version: forex.models.v1
-provider: NONE
-model_id: none
-inference_enabled: false
+provider: OLLAMA
+model_id: qwen2.5:3b
+inference_enabled: true
 training_enabled: false

@@ -156,8 +156,16 @@ def _enforce_safety(values: dict[str, dict[str, Any]]) -> None:
         failures.append("order operations must remain unavailable before M27")
     if mt5["allow_live_server"] is not False:
         failures.append("live-server access cannot be enabled by configuration")
-    if values["agent"]["mode"] != "OFFLINE_CONTEXT_ONLY" or values["models"]["inference_enabled"] is not False:
-        failures.append("M17 agent context must remain offline and non-executing")
+    models = values["models"]
+    if values["agent"]["mode"] != "OFFLINE_CONTEXT_ONLY":
+        failures.append("agent context must remain offline and non-executing")
+    if (
+        models["provider"] != "OLLAMA"
+        or models["model_id"] != "qwen2.5:3b"
+        or models["inference_enabled"] is not True
+        or models["training_enabled"] is not False
+    ):
+        failures.append("M18 permits only fixed local Ollama qwen2.5:3b inference with training disabled")
     if failures:
         raise ConfigurationError("; ".join(failures))
 

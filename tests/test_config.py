@@ -33,7 +33,9 @@ def test_all_initial_configuration_loads_as_typed_models() -> None:
     assert configuration.runtime.runtime_mode == "RESEARCH"
     assert configuration.mt5.allow_order_operations is False
     assert configuration.agent.mode == "OFFLINE_CONTEXT_ONLY"
-    assert configuration.models.inference_enabled is False
+    assert configuration.models.provider == "OLLAMA"
+    assert configuration.models.model_id == "qwen2.5:3b"
+    assert configuration.models.inference_enabled is True
     assert configuration.fingerprint.startswith("sha256:")
 
 
@@ -80,3 +82,19 @@ def test_only_documented_safe_environment_override_is_applied() -> None:
 def test_invalid_safe_override_still_fails_schema_validation() -> None:
     with pytest.raises(ConfigurationError):
         load_configuration(ROOT, environ={"FOREX_LOG_LEVEL": "TRACE"})
+
+
+@pytest.mark.parametrize(
+    ("change"),
+    [
+        {"model_id": "qwen2.5:7b"},
+        {"provider": "OTHER"},
+        {"inference_enabled": False},
+        {"training_enabled": True},
+    ],
+)
+def test_only_the_fixed_m18_local_model_configuration_is_allowed(tmp_path: Path, change: dict[str, object]) -> None:
+    root = _configuration_copy(tmp_path)
+    _rewrite(root, "models", **change)
+    with pytest.raises(ConfigurationError):
+        load_configuration(root, environ={})
