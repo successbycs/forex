@@ -44,6 +44,8 @@ CLOSE_TIMEOUT_SECONDS = 20
 LISTENER_MAX_OBSERVATION_SECONDS = 5
 MIN_LISTENER_POLL_SECONDS = 0.25
 MAX_LISTENER_POLL_SECONDS = 5.0
+MONITOR_POLL_SECONDS = 1.0
+MONITOR_MAX_HOLD_SECONDS = 10 * 60
 
 
 def utc(value: datetime) -> str:
@@ -388,14 +390,66 @@ def _wait_until_closed(ticket: int) -> None:
     raise SystemExit("M20 fixed EURUSD position did not close before close timeout")
 
 
-def _close_accepted_position(*, position: Any, submitted_at: datetime, proposed_entry: float, entry_spread: float, risk: dict[str, float]) -> tuple[str, float, dict[str, float]]:
-    """Immediately close the single accepted Demo position and derive P&L.
+def _closed_position_costs(*, position: Any, submitted_at: datetime, proposed_entry: float, entry_spread: float, risk: dict[str, float], expected_exit_price: float | None) -> tuple[float, dict[str, float]]:
+    """Read the terminal's immutable deal history for one closed position.
 
-    The short-lived MVP executor deliberately has no discretionary holding
-    period.  Its purpose is a bounded data-to-ledger drill: accepted order,
-    close, immutable outcome, reconciliation.  P&L is taken only from the
-    terminal's position-scoped deal history after the close is confirmed.
+    This is used for both a discretionary monitor exit and a broker-side
+    stop/take-profit exit.  If an exit quote is no longer available after a
+    broker-side close, the estimated exit slippage is recorded as zero rather
+    than inventing a quote; realized P&L, commission, and swap still come
+    directly from MT5 deal history.
     """
+    ticket = int(getattr(position, "ticket", 0))
+    volume = float(getattr(position, "volume", 0))
+    position_type = int(getattr(position, "type", -1))
+    if ticket <= 0 or volume <= 0:
+        raise SystemExit("M20 closed position has invalid ticket or volume")
+    deals = mt5.history_deals_get(submitted_at - timedelta(minutes=1), datetime.now(timezone.utc) + timedelta(seconds=5), position=ticket)
+    if not deals:
+        raise SystemExit("M20 closed position deal history is unavailable")
+    ordered = sorted(deals, key=lambda deal: int(getattr(deal, "time_msc", 0)))
+    exit_deal = ordered[-1]
+    exit_price = float(getattr(exit_deal, "price", 0))
+    gross_price_pnl = sum(float(getattr(deal, "profit", 0)) for deal in ordered)
+    commission = sum(float(getattr(deal, "commission", 0)) for deal in ordered)
+    swap = sum(float(getattr(deal, "swap", 0)) for deal in ordered)
+    realized_pnl = gross_price_pnl + commission + swap
+    if exit_price <= 0:
+        raise SystemExit("M20 close deal has an invalid exit price")
+    entry_price = float(getattr(position, "price_open", 0))
+    tick_size, tick_value_loss = risk["tick_size"], risk["tick_value_loss"]
+    if entry_price <= 0 or min(tick_size, tick_value_loss) <= 0:
+        raise SystemExit("M20 accepted EURUSD cost inputs are invalid")
+    is_buy = position_type == mt5.POSITION_TYPE_BUY
+    entry_slippage_price = entry_price - proposed_entry if is_buy else proposed_entry - entry_price
+    exit_slippage_price = 0.0
+    if expected_exit_price is not None:
+        exit_slippage_price = expected_exit_price - exit_price if is_buy else exit_price - expected_exit_price
+    # A closing quote is used when available.  A broker-side close has no
+    # recoverable pre-close quote, so retain the known entry spread only.
+    exit_spread = 0.0
+    tick = mt5.symbol_info_tick(SYMBOL)
+    if tick:
+        bid, ask = float(tick.bid), float(tick.ask)
+        if bid > 0 and ask >= bid:
+            exit_spread = ask - bid
+    spread_cost = (entry_spread + exit_spread) / tick_size * volume * tick_value_loss
+    slippage_cost = (entry_slippage_price + exit_slippage_price) / tick_size * volume * tick_value_loss
+    total_cost = spread_cost + slippage_cost - commission - swap
+    costs = {
+        "gross_price_pnl_account": round(gross_price_pnl, 2),
+        "commission_account": round(commission, 2),
+        "swap_account": round(swap, 2),
+        "estimated_spread_cost_account": round(spread_cost, 2),
+        "slippage_cost_account": round(slippage_cost, 2),
+        "estimated_total_cost_account": round(total_cost, 2),
+        "realized_pnl_account": round(realized_pnl, 2),
+    }
+    return exit_price, costs
+
+
+def _close_accepted_position(*, position: Any, submitted_at: datetime, proposed_entry: float, entry_spread: float, risk: dict[str, float]) -> tuple[str, float, dict[str, float]]:
+    """Close one monitor-owned position and derive its MT5-backed P&L."""
     ticket = int(getattr(position, "ticket", 0))
     volume = float(getattr(position, "volume", 0))
     position_type = int(getattr(position, "type", -1))
@@ -426,37 +480,193 @@ def _close_accepted_position(*, position: Any, submitted_at: datetime, proposed_
     if not close_result or close_result.retcode != mt5.TRADE_RETCODE_DONE:
         raise SystemExit("M20 accepted EURUSD position close was rejected")
     _wait_until_closed(ticket)
-    deals = mt5.history_deals_get(submitted_at - timedelta(minutes=1), datetime.now(timezone.utc) + timedelta(seconds=5), position=ticket)
-    if not deals:
-        raise SystemExit("M20 close deal history is unavailable")
-    ordered = sorted(deals, key=lambda deal: int(getattr(deal, "time_msc", 0)))
-    exit_deal = ordered[-1]
-    exit_price = float(getattr(exit_deal, "price", 0))
-    gross_price_pnl = sum(float(getattr(deal, "profit", 0)) for deal in ordered)
-    commission = sum(float(getattr(deal, "commission", 0)) for deal in ordered)
-    swap = sum(float(getattr(deal, "swap", 0)) for deal in ordered)
-    realized_pnl = gross_price_pnl + commission + swap
-    if exit_price <= 0:
-        raise SystemExit("M20 close deal has an invalid exit price")
-    entry_price = float(getattr(position, "price_open", 0))
-    tick_size, tick_value_loss = risk["tick_size"], risk["tick_value_loss"]
-    if entry_price <= 0 or min(tick_size, tick_value_loss) <= 0:
-        raise SystemExit("M20 accepted EURUSD cost inputs are invalid")
-    entry_slippage_price = entry_price - proposed_entry if is_buy else proposed_entry - entry_price
-    exit_slippage_price = close_price - exit_price if is_buy else exit_price - close_price
-    spread_cost = (entry_spread + float(tick.ask) - float(tick.bid)) / tick_size * volume * tick_value_loss
-    slippage_cost = (entry_slippage_price + exit_slippage_price) / tick_size * volume * tick_value_loss
-    total_cost = spread_cost + slippage_cost - commission - swap
-    costs = {
-        "gross_price_pnl_account": round(gross_price_pnl, 2),
-        "commission_account": round(commission, 2),
-        "swap_account": round(swap, 2),
-        "estimated_spread_cost_account": round(spread_cost, 2),
-        "slippage_cost_account": round(slippage_cost, 2),
-        "estimated_total_cost_account": round(total_cost, 2),
-        "realized_pnl_account": round(realized_pnl, 2),
-    }
+    exit_price, costs = _closed_position_costs(
+        position=position,
+        submitted_at=submitted_at,
+        proposed_entry=proposed_entry,
+        entry_spread=entry_spread,
+        risk=risk,
+        expected_exit_price=close_price,
+    )
     return str(getattr(close_result, "order", "")), exit_price, costs
+
+
+def _closed_m1_bars_for_monitor(tick: Any, offset_seconds: int) -> list[dict[str, Any]]:
+    """Load only completed M1 candles for a position exit decision."""
+    observed_at = datetime.fromtimestamp(int(tick.time), timezone.utc) - timedelta(seconds=offset_seconds)
+    boundary = int(observed_at.timestamp()) // 60 * 60
+    rates = mt5.copy_rates_from_pos(SYMBOL, mt5.TIMEFRAME_M1, 1, CLOSED_BAR_COUNT + 8)
+    rows, _ = _bar_rows(
+        rates,
+        timeframe_name="M1",
+        seconds=60,
+        cutoff=boundary,
+        timestamp_offset_seconds=offset_seconds,
+    )
+    return rows
+
+
+def _two_opposite_completed_m1_candles(*, bars: list[dict[str, Any]], action: str, opened_at: datetime) -> bool:
+    """Return true only for two new, fully closed candles against the trade."""
+    candidates = [
+        bar for bar in bars
+        if parse_utc(bar["closed_at_utc"], "closed_at_utc") > opened_at
+    ]
+    if len(candidates) < 2:
+        return False
+    last_two = candidates[-2:]
+    moves = [float(bar["close"]) - float(bar["open"]) for bar in last_two]
+    return (action == "BUY" and all(move < 0 for move in moves)) or (
+        action == "SELL" and all(move > 0 for move in moves)
+    )
+
+
+def _record_closed_monitor_outcome(*, proposal: dict[str, Any], attempt_id: str, position: Any, submitted_at: datetime, entry_spread: float, risk: dict[str, float], close_reason: str, broker_order_reference: str, expected_exit_price: float | None, closed_costs: dict[str, float] | None = None) -> dict[str, Any]:
+    """Write the final lifecycle event and immutable AUD outcome once."""
+    if closed_costs is None:
+        exit_price, costs = _closed_position_costs(
+            position=position,
+            submitted_at=submitted_at,
+            proposed_entry=float(proposal["proposed_entry"]),
+            entry_spread=entry_spread,
+            risk=risk,
+            expected_exit_price=expected_exit_price,
+        )
+    else:
+        if expected_exit_price is None:
+            raise SystemExit("M20 monitor close is missing its recorded exit price")
+        exit_price, costs = expected_exit_price, closed_costs
+    closed_at = utc(datetime.now(timezone.utc))
+    result = {
+        "event_id": str(uuid5(NAMESPACE_URL, f"{attempt_id}:closed")),
+        "attempt_id": attempt_id,
+        "event_type": "CLOSED",
+        "observed_at_utc": closed_at,
+        "broker_order_reference": broker_order_reference,
+        "payload_sha256": "sha256:" + hashlib.sha256(json.dumps({"close_reason": close_reason, "broker_order_reference": broker_order_reference}, sort_keys=True).encode()).hexdigest(),
+        "payload": {"close_reason": close_reason},
+    }
+    outcome = {
+        "proposal_id": proposal["proposal_id"],
+        "closed_at_utc": closed_at,
+        "exit_price": exit_price,
+        **costs,
+        "account_currency": "AUD",
+        "close_reason": close_reason,
+        "reconciliation_status": "MATCHED",
+    }
+    _bridge({"result": result, "outcome": outcome}, "record-closed-outcome")
+    reconciliation = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")["reconciliation"]
+    if reconciliation.get("status") != "MATCHED":
+        raise SystemExit("M20 closed monitored position was not reconciled")
+    return reconciliation
+
+
+def _apply_break_even(*, proposal: dict[str, Any], attempt_id: str, position: Any, entry: float, take_profit: float) -> None:
+    """Move the protective stop to entry only after the +1R trigger."""
+    ticket = int(getattr(position, "ticket", 0))
+    request = {
+        "action": mt5.TRADE_ACTION_SLTP,
+        "symbol": SYMBOL,
+        "position": ticket,
+        "sl": entry,
+        "tp": take_profit,
+    }
+    result = mt5.order_send(request)
+    if not result or result.retcode != mt5.TRADE_RETCODE_DONE:
+        # Do not attempt an unprotected discretionary close.  The original
+        # broker-side stop/take-profit remains the safety backstop.
+        raise SystemExit("M20 break-even stop update failed closed; original broker SL/TP remains active")
+    observed_at = utc(datetime.now(timezone.utc))
+    result_payload = {
+        "event_id": str(uuid5(NAMESPACE_URL, f"{attempt_id}:breakeven")),
+        "attempt_id": attempt_id,
+        "event_type": "UPDATED",
+        "observed_at_utc": observed_at,
+        "broker_order_reference": str(getattr(result, "order", "")),
+        "payload_sha256": "sha256:" + hashlib.sha256(json.dumps({"stop_loss": entry, "take_profit": take_profit}, sort_keys=True).encode()).hexdigest(),
+        "payload": {"reason": "PLUS_1R_BREAK_EVEN", "stop_loss": entry, "take_profit": take_profit},
+    }
+    state = {
+        "proposal_id": proposal["proposal_id"],
+        "position_ticket": ticket,
+        "observed_at_utc": observed_at,
+        "stop_loss": entry,
+        "take_profit": take_profit,
+        "break_even_applied": True,
+    }
+    _bridge({"result": result_payload, "state": state}, "update-open-position")
+
+
+def _monitor_open_position(*, proposal: dict[str, Any], attempt_id: str, position: Any, submitted_at: datetime, entry_spread: float, risk: dict[str, float], offset_seconds: int) -> dict[str, Any]:
+    """Hold one Demo position with static broker protection and M1 exits.
+
+    Any monitor, pricing, candle, or audit failure stops discretionary action.
+    It never removes the broker-side SL/TP, never opens a second position, and
+    leaves the durable open state intact for recovery by a future monitor.
+    """
+    ticket = int(getattr(position, "ticket", 0))
+    action = proposal["action"]
+    entry = float(getattr(position, "price_open", 0))
+    original_stop = float(getattr(position, "sl", 0))
+    take_profit = float(getattr(position, "tp", 0))
+    if ticket <= 0 or action not in {"BUY", "SELL"} or min(entry, original_stop, take_profit) <= 0:
+        raise SystemExit("M20 open position monitor inputs are invalid")
+    risk_distance = abs(entry - original_stop)
+    if risk_distance <= 0:
+        raise SystemExit("M20 open position has no measurable initial risk")
+    opened_at = datetime.now(timezone.utc)
+    deadline = time.monotonic() + MONITOR_MAX_HOLD_SECONDS
+    break_even_applied = False
+    while True:
+        positions = mt5.positions_get(ticket=ticket) or ()
+        if not positions:
+            # The broker's attached SL/TP (or a terminal-side action) closed
+            # the trade.  The immutable deal history is now the source of P&L.
+            return _record_closed_monitor_outcome(
+                proposal=proposal, attempt_id=attempt_id, position=position,
+                submitted_at=submitted_at, entry_spread=entry_spread, risk=risk,
+                close_reason="BROKER_SIDE_CLOSE", broker_order_reference=str(ticket),
+                expected_exit_price=None,
+            )
+        if len(positions) != 1 or int(getattr(positions[0], "magic", -1)) != EXECUTOR_MAGIC:
+            raise SystemExit("M20 monitor observed an unexpected EURUSD position; broker SL/TP remains active")
+        current = positions[0]
+        tick = mt5.symbol_info_tick(SYMBOL)
+        if not tick:
+            raise SystemExit("M20 monitor tick is unavailable; broker SL/TP remains active")
+        bid, ask = float(tick.bid), float(tick.ask)
+        if bid <= 0 or ask < bid:
+            raise SystemExit("M20 monitor tick is invalid; broker SL/TP remains active")
+        executable_price = bid if action == "BUY" else ask
+        reached_one_r = executable_price >= entry + risk_distance if action == "BUY" else executable_price <= entry - risk_distance
+        if reached_one_r and not break_even_applied:
+            _apply_break_even(proposal=proposal, attempt_id=attempt_id, position=current, entry=entry, take_profit=take_profit)
+            break_even_applied = True
+        if time.monotonic() >= deadline:
+            reference, exit_price, costs = _close_accepted_position(
+                position=current, submitted_at=submitted_at,
+                proposed_entry=float(proposal["proposed_entry"]), entry_spread=entry_spread, risk=risk,
+            )
+            return _record_closed_monitor_outcome(
+                proposal=proposal, attempt_id=attempt_id, position=current,
+                submitted_at=submitted_at, entry_spread=entry_spread, risk=risk,
+                close_reason="M1_TIME_STOP_10_MINUTES", broker_order_reference=reference,
+                expected_exit_price=exit_price, closed_costs=costs,
+            )
+        bars = _closed_m1_bars_for_monitor(tick, offset_seconds)
+        if _two_opposite_completed_m1_candles(bars=bars, action=action, opened_at=opened_at):
+            reference, exit_price, costs = _close_accepted_position(
+                position=current, submitted_at=submitted_at,
+                proposed_entry=float(proposal["proposed_entry"]), entry_spread=entry_spread, risk=risk,
+            )
+            return _record_closed_monitor_outcome(
+                proposal=proposal, attempt_id=attempt_id, position=current,
+                submitted_at=submitted_at, entry_spread=entry_spread, risk=risk,
+                close_reason="M1_TWO_OPPOSITE_CLOSED_CANDLES", broker_order_reference=reference,
+                expected_exit_price=exit_price, closed_costs=costs,
+            )
+        time.sleep(MONITOR_POLL_SECONDS)
 
 
 def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
@@ -542,8 +752,18 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
             if accepted:
                 position = _wait_for_position()
                 _bridge({"state": {"proposal_id": proposal["proposal_id"], "attempt_id": attempt_id, "position_ticket": int(position.ticket), "action": proposal["action"], "opened_at_utc": utc(datetime.now(timezone.utc)), "observed_at_utc": utc(datetime.now(timezone.utc)), "entry_price": float(position.price_open), "stop_loss": float(position.sl), "take_profit": float(position.tp)}}, "record-open-position")
-            reconciliation = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")["reconciliation"]
-            expected_status = "OPEN_RECONCILED" if accepted else "MATCHED"
+                reconciliation = _monitor_open_position(
+                    proposal=proposal,
+                    attempt_id=attempt_id,
+                    position=position,
+                    submitted_at=parse_utc(submitted_at, "submitted_at_utc"),
+                    entry_spread=ask - bid,
+                    risk=risk,
+                    offset_seconds=offset_seconds,
+                )
+            else:
+                reconciliation = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")["reconciliation"]
+            expected_status = "MATCHED"
             if reconciliation.get("status") != expected_status:
                 raise SystemExit("M20 actionable execution was not reconciled")
             return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "decision_snapshot": snapshot, "proposal": proposal, "execution": {"status": "ACCEPTED" if accepted else "REJECTED", "attempt_id": attempt_id, "session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "idempotency_key": reservation["idempotency_key"], "submitted_at_utc": submitted_at, "open_positions_before": 0, "cumulative_notional_before_usd": 0, "broker_retcode": getattr(result, "retcode", None)}, "reconciliation": reconciliation, "postgres_audit": reserved["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}

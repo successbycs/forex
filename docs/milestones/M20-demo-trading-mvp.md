@@ -39,9 +39,12 @@ Migration `006_m20_demo_trading_audit.sql` introduces separate append-only
 Demo-session, proposal, decision-snapshot, execution-attempt, position-event,
 and outcome tables. It does not relax M19's historical, research-only lineage
 tables. The fixed runner persists a proposal before invoking the broker. An
-accepted Demo order is monitored, closed by the same fixed executor, and then
-written as a `CLOSED` lifecycle event plus immutable P&L outcome before it can
-be reconciled. A rejected order is retained as its terminal broker result.
+accepted Demo order remains open with broker-side SL/TP and durable position
+state. The fixed monitor may move its stop to breakeven at +1R, close after two
+opposite completed M1 candles or ten minutes, and reconcile a broker-side
+SL/TP exit from deal history. Only then is a `CLOSED` lifecycle event plus
+immutable P&L/cost outcome written. A rejected order is retained as its
+terminal broker result.
 
 ## Completion evidence
 

@@ -269,6 +269,19 @@ def test_m20_risk_stop_is_conservative_against_the_aud_loss_cap(monkeypatch):
         )
 
 
+def test_m20_monitor_requires_two_new_opposite_closed_m1_candles(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    opened_at = datetime(2026, 9, 3, 0, 0, 30, tzinfo=timezone.utc)
+    stamp = lambda value: value.isoformat().replace("+00:00", "Z")
+    bars = [
+        {"opened_at_utc": stamp(datetime(2026, 9, 3, 0, 0, tzinfo=timezone.utc)), "closed_at_utc": stamp(datetime(2026, 9, 3, 0, 1, tzinfo=timezone.utc)), "open": 1.1000, "close": 1.0999},
+        {"opened_at_utc": stamp(datetime(2026, 9, 3, 0, 1, tzinfo=timezone.utc)), "closed_at_utc": stamp(datetime(2026, 9, 3, 0, 2, tzinfo=timezone.utc)), "open": 1.0999, "close": 1.0998},
+    ]
+    assert probe._two_opposite_completed_m1_candles(bars=bars, action="BUY", opened_at=opened_at)
+    assert not probe._two_opposite_completed_m1_candles(bars=bars, action="SELL", opened_at=opened_at)
+    assert not probe._two_opposite_completed_m1_candles(bars=bars, action="BUY", opened_at=datetime(2026, 9, 3, 0, 1, 30, tzinfo=timezone.utc))
+
+
 def test_shared_core_root_cannot_be_redirected_by_environment(monkeypatch):
     monkeypatch.setenv("CS_AI_LAB_INFRA_ROOT", "/tmp/untrusted-core")
     assert t480_adapter.SHARED_CORE_ROOT == Path(

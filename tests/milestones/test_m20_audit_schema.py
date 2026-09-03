@@ -25,6 +25,8 @@ def test_m20_postgres_adapter_exposes_only_fixed_schema_and_audit_verification_o
     assert "m20_schema" in postgres_pgvector_adapter.ASSETS
     assert "m20_cost_ledger_schema" in postgres_pgvector_adapter.ASSETS
     assert "forex-m20-apply-cost-ledger-schema" in postgres_pgvector_adapter.MUTATING
+    assert "m20_open_position_schema" in postgres_pgvector_adapter.ASSETS
+    assert "forex-m20-apply-open-position-schema" in postgres_pgvector_adapter.MUTATING
     assert "m20_probe" not in postgres_pgvector_adapter.ASSETS
 
 
