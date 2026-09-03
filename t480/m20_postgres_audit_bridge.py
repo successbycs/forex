@@ -206,7 +206,8 @@ def reconcile(payload: dict[str, Any]) -> dict[str, Any]:
         if row is None:
             raise SystemExit("M20 reconciliation proposal is absent")
     closed_and_outcome = row[3] is not None and "CLOSED" in row[4] and row[5] is not None and row[9] == "MATCHED"
-    status = "NO_TRADE_RECONCILED" if row[1] == "NO_TRADE" and row[3] is None else ("MATCHED" if closed_and_outcome else "PENDING")
+    terminal_rejection = row[3] is not None and ("REJECTED" in row[4] or "FAILED" in row[4])
+    status = "NO_TRADE_RECONCILED" if row[1] == "NO_TRADE" and row[3] is None else ("MATCHED" if closed_and_outcome or terminal_rejection else "PENDING")
     reconciliation = {"session_id": row[0], "proposal_id": proposal_id, "snapshot_id": row[2], "execution_attempt_id": row[3], "status": status}
     if closed_and_outcome:
         reconciliation["outcome"] = {"proposal_id": proposal_id, "closed_at_utc": row[5].astimezone(timezone.utc).isoformat().replace("+00:00", "Z"), "exit_price": float(row[6]), "realized_pnl_usd": float(row[7]), "close_reason": row[8]}

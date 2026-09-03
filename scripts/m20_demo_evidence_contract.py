@@ -220,6 +220,9 @@ def validate_execution_and_reconciliation(payload: dict[str, Any], session: dict
     require(reconciliation.get("execution_attempt_id") == attempt_id, "reconciliation execution attempt mismatch")
     require(audit.get("execution_attempt_id") == attempt_id, "PostgreSQL audit execution attempt mismatch")
     require(reconciliation.get("status") == "MATCHED", "actionable execution must be reconciled as MATCHED")
+    if execution.get("status") == "REJECTED":
+        require("outcome" not in reconciliation, "rejected execution must not have a trade outcome")
+        return
     outcome = object_field(reconciliation, "outcome")
     require(outcome.get("proposal_id") == proposal["proposal_id"], "outcome proposal mismatch")
     utc(outcome.get("closed_at_utc"), "outcome.closed_at_utc")
