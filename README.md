@@ -2,7 +2,7 @@
 
 Forex is a learning-first, risk-controlled EUR/USD research and trading-assistance project. Approximately USD 300 per month is only a distant research aspiration; it is not a milestone, quota, sizing input, or claim of expected performance.
 
-The roadmap has three phases: historical data foundation and deterministic research; offline decision and safety controls; then real-time Demo operational validation. Live trading and `GOMarketsMU-Live` are structurally out of scope throughout.
+The roadmap retains historical research, decision controls, and future Demo validation phases. M20 is the active MVP exception: a fixed, capped `GOMarketsMU-Demo` EUR/USD loop from fresh data to recorded assessment, Demo execution, monitoring, and PostgreSQL reconciliation. Live trading and `GOMarketsMU-Live` remain structurally out of scope throughout.
 
 ## Start building and testing
 
@@ -22,17 +22,17 @@ The normal closeout sequence is:
 ```text
 start -> implement -> record-check -> verify -> capture evidence
 -> independently verify and record evidence -> finish-implementation
--> human sign-off -> prove
+-> any review gates declared by the active milestone -> prove
 ```
 
 Only `prove` writes `proven_at`, the actual completion date. An optional registry `target_date` is editable by the human operator and remains a planning forecast only.
 
 See `docs/evidence_and_milestones.md` for commands, proof rules, failure handling, and revalidation.
 
-The final Review Board—Triad plus Financial Domain Expert—is required only at
-the three phase gates: M16 (historical research ready), M27 (Demo data
-operations ready), and M32 (live-readiness assessment). It informs—but never
-replaces—the human completion decision. See `docs/triad_review.md`.
+The final Review Board—Triad plus Financial Domain Expert—is required at the
+three phase gates: M16, M27, and M32. M20 also requires a current
+Triad-plus-domain `RECOMMEND_COMPLETE` result, but it has no human sign-off
+gate. See `docs/triad_review.md`.
 
 Administrators can inspect the T480 PostgreSQL historical price data from the
 home LAN using the guide in [`docs/database_access.md`](docs/database_access.md).

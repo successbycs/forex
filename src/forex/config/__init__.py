@@ -1,9 +1,9 @@
-"""Typed, schema-validated operator configuration for Forex M0."""
+"""Typed, schema-validated operator configuration for the Forex MVP."""
 
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 import hashlib
 import json
 import os
@@ -39,12 +39,26 @@ class ProjectConfig:
 
 
 @dataclass(frozen=True)
+class DemoSessionLimits:
+    """Non-secret, fail-closed caps for one M20 Demo trading session."""
+
+    maximum_trades: int
+    maximum_duration_minutes: int
+    maximum_open_positions: int
+    maximum_notional_per_trade_usd: int
+    maximum_cumulative_notional_usd: int
+    require_persisted_proposal: bool
+    require_idempotency_key: bool
+
+
+@dataclass(frozen=True)
 class RuntimeConfig:
     environment: str
     runtime_mode: str
     agent_authority_mode: str
     live_trading_enabled: bool
     maximum_concurrent_positions: int
+    demo_session_limits: DemoSessionLimits
 
 
 @dataclass(frozen=True)
@@ -54,9 +68,10 @@ class MT5Config:
     expected_broker_symbol: str
     permitted_server: str
     forbidden_server: str
-    allow_order_operations: bool
+    allow_demo_order_operations: bool
     allow_live_server: bool
     terminal_path_environment_variable: str
+    demo_credentials_environment_variable: str
 
 
 @dataclass(frozen=True)
@@ -142,23 +157,50 @@ def _enforce_safety(values: dict[str, dict[str, Any]]) -> None:
         failures.append("the only permitted MVP server is GOMarketsMU-Demo")
     if project["forbidden_mt5_server"] != "GOMarketsMU-Live":
         failures.append("GOMarketsMU-Live must remain explicitly forbidden")
-    if runtime["runtime_mode"] != "RESEARCH":
-        failures.append("M0 runtime mode must remain RESEARCH")
-    if runtime["agent_authority_mode"] != "DISABLED":
-        failures.append("agent authority must remain DISABLED in M0")
+    if runtime["runtime_mode"] != "DEMO_TRADING":
+        failures.append("M20 runtime mode must remain DEMO_TRADING")
+    if runtime["agent_authority_mode"] != "DEMO_SESSION_BOUNDED":
+        failures.append("M20 agent authority must remain DEMO_SESSION_BOUNDED")
     if runtime["live_trading_enabled"] is not False:
         failures.append("live trading cannot be enabled by configuration")
     if mt5["permitted_server"] != project["permitted_mt5_server"]:
         failures.append("MT5 permitted server must match the project boundary")
     if mt5["forbidden_server"] != project["forbidden_mt5_server"]:
         failures.append("MT5 forbidden server must match the project boundary")
-    if mt5["allow_order_operations"] is not False:
-        failures.append("order operations must remain unavailable before M27")
+    if mt5["allow_demo_order_operations"] is not True:
+        failures.append("M20 requires the fixed Demo-only order capability")
     if mt5["allow_live_server"] is not False:
         failures.append("live-server access cannot be enabled by configuration")
+    limits = runtime["demo_session_limits"]
+    if runtime["maximum_concurrent_positions"] != limits["maximum_open_positions"]:
+        failures.append("runtime position limit must match the bounded Demo session")
+    if limits["maximum_cumulative_notional_usd"] < limits["maximum_notional_per_trade_usd"]:
+        failures.append("Demo cumulative notional must cover one permitted trade")
     models = values["models"]
-    if values["agent"]["mode"] != "OFFLINE_CONTEXT_ONLY":
-        failures.append("agent context must remain offline and non-executing")
+    agent = values["agent"]
+    expected_context = [
+        "fresh_tick",
+        "closed_m1_candles",
+        "closed_m5_candles",
+        "research_features",
+        "demo_session_limits",
+    ]
+    expected_forbidden = [
+        "future_bars",
+        "account",
+        "credentials",
+        "mt5_control",
+        "generic_mt5",
+        "shell",
+        "order",
+        "execution",
+    ]
+    if agent["mode"] != "DEMO_SESSION_CONTEXT":
+        failures.append("M20 agent context must remain DEMO_SESSION_CONTEXT")
+    if agent["allowed_context_sections"] != expected_context:
+        failures.append("M20 agent context must contain only fixed fresh tick, closed M1/M5, feature, and session-limit fields")
+    if agent["forbidden_context_sections"] != expected_forbidden:
+        failures.append("M20 agent context must structurally exclude future, account, credential, generic MT5, shell, order, and execution fields")
     if (
         models["provider"] != "OLLAMA"
         or models["model_id"] != "qwen2.5:3b"
@@ -181,7 +223,13 @@ def load_configuration(root: Path, environ: Mapping[str, str] | None = None) -> 
     fingerprint = f"sha256:{hashlib.sha256(canonical).hexdigest()}"
     return ForexConfiguration(
         project=ProjectConfig(**{key: value for key, value in values["project"].items() if key != "schema_version"}),
-        runtime=RuntimeConfig(**{key: value for key, value in values["runtime"].items() if key != "schema_version"}),
+        runtime=RuntimeConfig(
+            **{
+                key: DemoSessionLimits(**value) if key == "demo_session_limits" else value
+                for key, value in values["runtime"].items()
+                if key != "schema_version"
+            }
+        ),
         mt5=MT5Config(**{key: value for key, value in values["mt5"].items() if key != "schema_version"}),
         market_data=MarketDataConfig(**{key: value for key, value in values["market_data"].items() if key != "schema_version"}),
         logging=LoggingConfig(
@@ -214,6 +262,7 @@ def main(argv: list[str] | None = None) -> int:
         "live_trading_enabled": configuration.runtime.live_trading_enabled,
         "agent_authority_mode": configuration.runtime.agent_authority_mode,
         "permitted_mt5_server": configuration.mt5.permitted_server,
+        "demo_session_limits": asdict(configuration.runtime.demo_session_limits),
         "configuration_fingerprint": configuration.fingerprint,
     }
     print(json.dumps(result, indent=2) if args.json else f"Forex configuration valid: {configuration.fingerprint}")

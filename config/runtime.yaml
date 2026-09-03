@@ -1,6 +1,14 @@
-schema_version: forex.runtime.v1
+schema_version: forex.runtime.v2
 environment: development
-runtime_mode: RESEARCH
-agent_authority_mode: DISABLED
+runtime_mode: DEMO_TRADING
+agent_authority_mode: DEMO_SESSION_BOUNDED
 live_trading_enabled: false
 maximum_concurrent_positions: 1
+demo_session_limits:
+  maximum_trades: 10
+  maximum_duration_minutes: 60
+  maximum_open_positions: 1
+  maximum_notional_per_trade_usd: 100
+  maximum_cumulative_notional_usd: 1000
+  require_persisted_proposal: true
+  require_idempotency_key: true

@@ -1,62 +1,77 @@
 # Future user journey — plain-English view
 
-This describes where the project is heading. It is **not** saying that real-money live trading or autonomous execution exists today. Today we are building an offline research system. The project deliberately grows into a controlled **automated Demo execution and performance-learning loop**: pre-set criteria enable the project to send constrained trades to MT5 Demo using live market prices, while a human supervises, manages and can stop that automation. The outcome returns to PostgreSQL for evaluation. Later, the same system can show **live-market advice** to the human, but the human alone manually executes any real-money trade in a separate broker interface. Real-time Demo validation begins at M27 and controlled Demo execution is planned from M30.
+This describes the M20 MVP target. It is **not** saying that real-money live
+trading exists today or will be enabled by this project. A human starts a
+bounded `GOMarketsMU-Demo` session. During that lease, Codex assesses fresh
+EUR/USD market data, records a proposal and reasons, and a fixed Demo-only
+executor may submit an eligible trade. PostgreSQL retains the data, proposal,
+execution events, and outcome for back-testing. The human supervises and can
+pause or stop the session at any time. `GOMarketsMU-Live` remains outside the
+system.
 
 ## The simple picture
 
 ```text
-Market and research data
+Fresh Demo bid / ask / spread + closed M1/M5 candles
         ↓
-T480 stores it safely in PostgreSQL
+Codex assessment: BUY / SELL / NO_TRADE
         ↓
-Research agents analyse a limited, safe view of it
+Persisted proposal, rationale and input hashes in PostgreSQL
         ↓
-The system evaluates pre-set criteria: BUY / SELL / NO TRADE
+Human-enabled bounded session lease
         ↓
-You inspect, supervise and can stop it
+Fixed Demo executor or recorded NO_TRADE/refusal
         ↓
-Much later: it may automate constrained Demo trades and give you live-market advice
+Position monitoring, reconciliation and back-testing record
 ```
 
-The important rule is simple: **the project may execute bounded Demo trades when approved criteria are met; it may advise you about live markets; you alone execute any real-money trade outside the project.**
+The important rule is simple: **the project may execute only a bounded,
+recorded `GOMarketsMU-Demo` trade during an active human-enabled lease. It
+never accesses, advises execution on, or routes an order to a real-money
+account.**
 
 ![Future human-controlled Forex trading function](assets/future-human-controlled-forex-trading-function.png)
 
 ## What you will do
 
-1. Open a simple read-only view of the data and research result.
-2. See whether data is fresh and what the research agents considered.
-3. Read a plain explanation and confidence/uncertainty, including `NO_TRADE` when there is no good basis for action.
-4. Review the system's simulated risk and sizing checks.
-5. Set or approve the constrained Demo criteria, then supervise, pause or stop the later Demo automation.
-6. Inspect the recorded entry, exit, costs, slippage and realised result, then judge whether the analysis was useful.
-7. If you choose to trade real money later, read the system's live-market advice and manually use your separate broker interface; the project cannot execute that trade.
+1. Start a Demo session with a maximum number of trades and short expiry. The
+   initial M20 contract fixes this at ten trades in sixty minutes, one open
+   position, USD 100 notional per trade, and USD 1,000 cumulative notional.
+2. Inspect the fresh data, the M1/M5 assessment, and the proposed `BUY`,
+   `SELL`, or `NO_TRADE` with reasons and decision inputs.
+3. Supervise, pause, or stop the session. An expired session cannot trade.
+4. Inspect the recorded entry, exit, costs, slippage and realised result, then
+   compare the proposal with the outcome during back-testing.
 
 ## What the system does for you
 
 - **n8n** regularly brings in historical and context data.
 - **PostgreSQL** keeps the data, timestamps, and lineage so results can be checked later.
 - **Python safety rules** ensure agents see only data that would have been available at the stated time.
-- **Local Ollama agents** provide research assistance, not trading control.
-- **Risk and criteria controls** turn a later suggestion into a constrained, reviewable Demo instruction.
-- **The Demo execution and reconciliation loop** records what actually happened, so the operator can compare the recommendation with the result.
+- **The M20 assessment component** turns the fresh M1/M5 data into a versioned
+  `BUY`, `SELL`, or `NO_TRADE` proposal with reasons; its inputs are retained.
+- **The session controls and fixed Demo executor** admit only eligible,
+  cap-compliant proposals during the active lease.
+- **The Demo execution and reconciliation loop** records what actually
+  happened, so the operator can compare the proposal with the result.
 
 ## What it never does
 
 - It does not access `GOMarketsMU-Live`.
-- It does not let a research model or general-purpose agent place an order.
-- It does not permit an unconstrained or real-money order path.
+- It does not provide a general-purpose agent, shell, MT5, account, symbol, or
+  order interface.
+- It does not permit an unconstrained, expired, unrecorded, or real-money
+  order path.
 - It does not hide its inputs, uncertainty, or reasons.
 - It does not turn a historical result into a claim that future trading will work.
 
 ## Future Demo-trading operating architecture
 
-This is the **Demo trading function we are building towards**, not a diagram of
-the repository. Solid lines describe the intended future Demo path; the red
-criteria gate prevents unconstrained execution. The project owns the closed
-Demo loop, including result capture and performance evaluation. Components
-labelled *future* are not deployed or authorised today. Real-money live
-accounts are deliberately outside this system.
+This is the **M20 Demo trading function to be proven**, not evidence that it
+is deployed today. Solid lines describe the bounded Demo path; the session
+lease and fixed checks prevent unconstrained execution. The project owns the
+closed Demo loop, including result capture and performance evaluation.
+Real-money accounts are deliberately outside this system.
 
 ```mermaid
 flowchart TB
@@ -69,73 +84,72 @@ flowchart TB
     EXT --> N8N --> DB
   end
 
-  subgraph research[2. Research and decision support — T480]
+  subgraph research[2. M20 assessment — T480]
     CTX[Bounded point-in-time context]
-    AGENT[Local research model / agents\nstructured analysis or ABSTAIN]
-    CHECKS[Deterministic checks\nlineage • quality • risk • sizing]
-    INTENT[Simulated trade intent\nBUY / SELL / NO TRADE]
-    DB --> CTX --> AGENT --> CHECKS --> INTENT
+    AGENT[Codex assessment\nBUY / SELL / NO_TRADE + reasons]
+    CHECKS[Fixed eligibility checks\nfreshness • caps • idempotency]
+    INTENT[Persisted proposal\ninput hashes + decision timestamp]
+    DB --> CTX --> AGENT --> CHECKS --> INTENT --> DB
   end
 
   subgraph operator[3. Human supervision — operator]
-    VIEW[Read-only operator view\ndata freshness • reasoning • uncertainty]
-    RULES{Human sets and enables\nDemo criteria and limits?}
+    VIEW[Operator view\ndata freshness • reasoning • audit]
+    RULES{Human starts bounded\nDemo session lease?}
     STOP[Human pause / stop control]
-    LIVEADVICE[Live-market advice view\nfuture, advisory only]
     DB --> VIEW
     INTENT --> VIEW --> RULES
-    INTENT --> LIVEADVICE
   end
 
   subgraph outside[5. Real-money trading — outside Forex]
-    HUMANLIVE[Human manually trades in separate broker interface]
     REAL[Real-money broker account\nnot connected to Forex]
-    HUMANLIVE --> REAL
-    LIVEADVICE -. advisory information only .-> HUMANLIVE
   end
 
-  subgraph execution[4. Future Demo execution — T480]
-    PRE[Criteria and pre-trade limits\nDemo account • symbol • size • stop conditions]
-    ACTION[Automated Demo executor\nfuture M30+]
+  subgraph execution[4. M20 bounded Demo execution — T480]
+    PRE[Fixed pre-trade checks\nDemo server • EUR/USD • lease • caps]
+    ACTION[Fixed Demo executor\nactive lease only]
     RESULT[Execution and reconciliation\nentry • exit • costs • outcome]
     SCORE[Performance evaluation\nrecommendation vs realised result]
-    RULES -->|Enabled — future only| PRE --> ACTION --> MT5
+    RULES -->|Enabled lease| PRE --> ACTION --> MT5
     ACTION --> RESULT --> DB
     RESULT --> SCORE --> VIEW
     RULES -->|Not enabled / insufficient evidence| WAIT[No trade — continue observing]
     STOP --> ACTION
   end
 
-  AGENT -. no MT5 or order access .-> BLOCK[No autonomous trading]
+  AGENT -. persisted proposal only .-> PRE
 
   classDef human fill:#fce4e4,stroke:#b42318,color:#4a1111,stroke-width:2px;
-  classDef future fill:#fff4d6,stroke:#b7791f,color:#4a3410;
   class RULES,STOP human;
-  class PRE,ACTION,RESULT future;
 ```
 
 ### The control rule
 
 ```text
-Agent or model:      researches and may recommend NO TRADE
-System controls:     validate data against fixed Demo criteria and limits
-Human operator:      enables, supervises, pauses or stops Demo automation;
-                     manually executes any real-money trade outside Forex
-Project execution:   sends only criteria-matched, limit-checked Demo actions
+Codex assessment:    records BUY / SELL / NO_TRADE with reasons and input hashes
+System controls:     validate fresh data, fixed Demo criteria, session lease and caps
+Human operator:      starts, supervises, pauses or stops the Demo session
+Project execution:   sends only a persisted, criteria-matched, limit-checked Demo action
 MT5 Demo:            returns the trade result for reconciliation and evaluation
-Live-market advice:  advisory information only; never an order
 Real-money account:  human-managed outside this project; never connected
 ```
 
 ## Operator journey
 
-1. **Observe.** Open the read-only dashboard and inspect current data freshness, historical context, model output, risk checks, and provenance.
-2. **Research.** Local research agents receive only the M17 bounded context. They may return structured analysis or `ABSTAIN`; they cannot access accounts, MT5 controls, or an order surface.
-3. **Validate.** Deterministic validation, lineage, event-quality, risk, and sizing controls test the result before any intent is shown.
-4. **Set and supervise.** The operator sees a simulated `BUY`, `SELL`, or `NO_TRADE` intent with inputs, uncertainty, and refusal reasons. Before any Demo automation, the operator explicitly enables bounded criteria and limits. Until M30 it remains simulation only.
-5. **Future automated Demo execution.** After M27–M29 prove fresh Demo data, tick/spread controls, and recovery safety, the project may execute criteria-matched Demo trades under M30. It can never route to a real-money account. The operator can pause or stop the automation.
-6. **Reconcile and learn.** The project captures entry, exit, costs, slippage and realised result back to PostgreSQL. The operator compares the intent and result to evaluate whether the analysis engine is helping. This is evaluation evidence, not a guarantee of profitability.
-7. **Later live-market advice.** The system may show advice based on live-market data, with its reasons and uncertainty. If the operator chooses to make a real-money trade, they do so manually in a separate broker application. Forex has no live-account credentials, connectivity or order capability.
+1. **Start.** The operator enables a short, capped Demo session. The lease is
+   visible, expires automatically, and can be paused or stopped.
+2. **Observe.** The system persists fresh bid/ask/spread and closed M1/M5
+   candles; the operator can inspect the data freshness and provenance.
+3. **Assess.** Codex records a `BUY`, `SELL`, or `NO_TRADE` proposal with its
+   reasons, decision time, and input hashes. A proposal is immutable once
+   persisted.
+4. **Execute or refuse.** The fixed executor acts only if the server,
+   proposal, lease, position limit, and caps all pass. Otherwise it records a
+   refusal or `NO_TRADE`; it never falls back to a different broker route.
+5. **Monitor.** The project records position events, entry, exit, costs,
+   slippage, and realised result while the operator supervises.
+6. **Reconcile and learn.** PostgreSQL links the snapshot, proposal,
+   execution, lifecycle, and outcome so the operator can back-test and
+   evaluate the strategy. This is evidence, not a guarantee of profitability.
 
 ## Component ownership
 
@@ -144,15 +158,17 @@ Real-money account:  human-managed outside this project; never connected
 | n8n | Scheduled collection and import only | T480, shared platform |
 | PostgreSQL | Historical, context, lineage and audit records | T480, shared platform; Forex schema |
 | Forex Python | Contracts, feature/risk logic, fixed adapters | Forex repository |
-| Local Ollama | Bounded research analysis only | T480, M18 onward |
-| MT5 Demo | Historical export now; fresh Demo observations in M27+ | T480 |
-| Controlled Demo executor | Sends criteria-matched, limit-checked Demo instructions and captures results | T480, future M30+ |
-| Live-market advice view | Shows research advice and uncertainty; cannot create an order | T480, future advisory capability |
-| Human operator | Enables criteria, supervises/pause-stops Demo automation; manually executes any real-money trade outside Forex | Human-only |
+| M20 assessment | Produces a persisted `BUY` / `SELL` / `NO_TRADE` proposal from fresh M1/M5 data | Forex repository, T480 |
+| MT5 Demo | Fresh Demo data and bounded M20 actions only | T480, `GOMarketsMU-Demo` only |
+| Fixed Demo executor | Sends an eligible, lease- and cap-checked Demo action and captures result events | Forex repository, T480, M20 target |
+| Human operator | Starts a bounded session; supervises and pause-stops Demo automation | Human-only |
 
 ## Delivery position
 
-- **Current:** historical data, n8n collection, PostgreSQL, M17 bounded context, and research-only ML foundations.
-- **Next:** local Ollama analysis, lineage, evaluation, event quality, simulated risk/sizing/intent and human approval (M18–M26).
-- **Later:** real-time Demo data/recovery proof, controlled Demo execution, reconciliation and performance evaluation (M27–M32).
-- **Excluded:** real-money broker access and `GOMarketsMU-Live`. Automated execution is limited to the future, criteria-bounded MT5 Demo path; any future live-market advice remains advisory-only.
+- **Current contract:** M20 is the active target: fresh Demo data, a recorded
+  assessment, bounded execution, monitoring, and PostgreSQL reconciliation.
+- **Later:** M21–M32 add event quality, richer controls, recovery hardening,
+  and broader forward evaluation.
+- **Excluded:** real-money broker access and `GOMarketsMU-Live`. Any Demo
+  action remains limited to the fixed, session-capped M20 path; the project
+  never gains a live-account credential, connection, or order route.

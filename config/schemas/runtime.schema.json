@@ -2,13 +2,27 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "environment", "runtime_mode", "agent_authority_mode", "live_trading_enabled", "maximum_concurrent_positions"],
+  "required": ["schema_version", "environment", "runtime_mode", "agent_authority_mode", "live_trading_enabled", "maximum_concurrent_positions", "demo_session_limits"],
   "properties": {
-    "schema_version": {"const": "forex.runtime.v1"},
+    "schema_version": {"const": "forex.runtime.v2"},
     "environment": {"enum": ["development", "test"]},
-    "runtime_mode": {"const": "RESEARCH"},
-    "agent_authority_mode": {"const": "DISABLED"},
+    "runtime_mode": {"const": "DEMO_TRADING"},
+    "agent_authority_mode": {"const": "DEMO_SESSION_BOUNDED"},
     "live_trading_enabled": {"const": false},
-    "maximum_concurrent_positions": {"type": "integer", "minimum": 0, "maximum": 1}
+    "maximum_concurrent_positions": {"const": 1},
+    "demo_session_limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maximum_trades", "maximum_duration_minutes", "maximum_open_positions", "maximum_notional_per_trade_usd", "maximum_cumulative_notional_usd", "require_persisted_proposal", "require_idempotency_key"],
+      "properties": {
+        "maximum_trades": {"type": "integer", "minimum": 1, "maximum": 10},
+        "maximum_duration_minutes": {"type": "integer", "minimum": 1, "maximum": 60},
+        "maximum_open_positions": {"const": 1},
+        "maximum_notional_per_trade_usd": {"type": "integer", "minimum": 1, "maximum": 100},
+        "maximum_cumulative_notional_usd": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "require_persisted_proposal": {"const": true},
+        "require_idempotency_key": {"const": true}
+      }
+    }
   }
 }

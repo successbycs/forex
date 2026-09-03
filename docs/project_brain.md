@@ -1,10 +1,10 @@
 # Project brain
 
-Forex is a learning-first EUR/USD research project intended to mature cautiously from education to observable decision support, then potentially to human-approved demo assistance. Automation and live readiness are not assumed outcomes. `NO TRADE`, `WAIT`, `INSUFFICIENT DATA`, and `NO SUFFICIENT EDGE HAS BEEN DEMONSTRATED` are valid results.
+Forex is a learning-first EUR/USD research project. Its active M20 MVP is a bounded autonomous Demo-only loop—not a live-trading capability: it assesses fresh EUR/USD M1/M5 data, records a proposal and reason, may act only inside a capped Demo session, then reconciles the result. `NO TRADE`, `WAIT`, `INSUFFICIENT DATA`, and `NO SUFFICIENT EDGE HAS BEEN DEMONSTRATED` are valid results.
 
 The approximately USD 300 monthly figure is an aspiration for research comparison only. It is not a quota, acceptance criterion, sizing input, or profitability claim. Capital preservation, data integrity, safety, reproducibility, and explainability precede return.
 
-Current state is authoritative in `project_state.json`; the milestone registry is the fixed contract. The approved roadmap has three phases: historical foundation and deterministic research (M0–M16), offline decision and safety controls (M17–M26), and real-time Demo operational validation (M27–M32). M1 is a read-only export of closed Demo history; fresh-tick proof is intentionally deferred to M27.
+Current state is authoritative in `project_state.json`; the milestone registry is the fixed contract. The roadmap retains its three phases, while the active M20 MVP brings forward one narrow real-time Demo function: fresh tick plus closed M1/M5 data, a persisted `BUY`/`SELL`/`NO_TRADE` proposal, fixed session-capped Demo execution, and PostgreSQL reconciliation. It neither creates live access nor a reusable broker-control interface.
 
 M2 has persisted the retained M1 EUR/USD H1 historical observation in the
 private T480 shared PostgreSQL service. Its verified evidence records one
@@ -25,7 +25,7 @@ The maintained visual overview is
 It records the intended three-zone boundary: Forex owns its application
 contracts, evidence tooling, and catalog-locked adapter; `cs-ai-lab-infra`
 owns shared T480 transport and platform services; Windows T480 hosts the
-future read-only MetaTrader 5 surface. It also records the current
+fixed M20 Demo-only MetaTrader 5 surface. It also records the current
 self-attested evidence path and four-role Triad-plus-domain review.
 
 The diagram is explanatory rather than an assertion that every shown future or
@@ -34,9 +34,9 @@ of truth for the design, while the milestone registry and project state retain
 their respective contract and execution roles.
 
 The four-role Review Board is retained for the three phase gates only: M16,
-M27, and M32. Routine MVP milestones use tests, their declared external proof
-where applicable, and human acceptance. There is no separate Builder/Reviewer
-workflow or automated reviewer runner.
+M27, and M32. M20 instead needs a current Triad-plus-domain completion
+recommendation and has no human sign-off gate. There is no separate
+Builder/Reviewer workflow or automated reviewer runner.
 
 The design-only prompt for the proposed historical market-intelligence and
 Ollama-assisted research capability is retained in

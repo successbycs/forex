@@ -15,10 +15,10 @@ Your sole output must be a milestone-driven delivery proposal. Do not write impl
 
 Repository governance:
 - `milestone_registry.json` is the fixed milestone contract; `project_state.json` is mutable execution state.
-- Work may proceed only on the active milestone after dependencies are proven. M0 currently requires revalidation; do not recommend later implementation until that gate is satisfied.
-- Every milestone requires its declared proof and human sign-off before `proven_at`. The Review Board (Triad plus domain expert) is required at phase gates M16, M27, and M32, not for routine MVP milestones.
+- Work may proceed only on the active milestone after dependencies are proven. M20 is the current bounded Demo-only MVP contract; do not recommend unrelated implementation.
+- Every milestone requires its declared proof and its contract-specific review gates before `proven_at`. The Review Board (Triad plus domain expert) is required at phase gates M16, M27, and M32. M20 requires a current Triad-plus-domain recommendation but no human sign-off.
 - Fixtures, tests, documentation, correlations, and backtests never prove a milestone or profitability by themselves.
-- Preserve: no live trading, no `GOMarketsMU-Live`, no secrets in Git, no agent execution authority, no arbitrary shell/MT5 command surface, and no order surface before M27.
+- Preserve: no live trading, no `GOMarketsMU-Live`, no secrets in Git, and no arbitrary shell/MT5 command surface. M20 alone may use its fixed, no-argument, session-capped Demo EUR/USD execution path; it does not grant generic agent, MT5, or order authority.
 - Shared T480 transport belongs to `cs-ai-lab-infra`; Forex owns fixed adapter catalogues, schemas, workflows, tests, and evidence.
 
 Existing roadmap phases:
@@ -90,6 +90,6 @@ Required output format:
 1. Begin with a concise four-role synthesis: architecture decision; engineering decision; AI/research decision; trading-domain decision; disagreements, risks, and assumptions.
 2. Produce an ordered milestone proposal. For every proposed milestone or amendment to M1–M32, provide milestone ID, title, phase, objective, dependency IDs, bounded scope, out-of-scope items, artifacts, acceptance criteria, verification commands or intent, real-world proof surface, evidence freshness, safety constraints, human-review requirement, and proof-invalidation triggers.
 3. Clearly distinguish amendments to M1–M32, proposed additional contiguous IDs only when necessary, Ollama-assisted but non-authoritative work, reference-only evaluation work, and exploratory work that cannot count as proof.
-4. Ensure a dependency-valid route: M0 revalidation; source qualification; MT5 history; adapters and provenance; normalisation; point-in-time alignment; deterministic hypotheses; controlled Ollama experiments; baselines and walk-forward evaluation; offline agent/risk/approval controls; real-time Demo validation; controlled Demo execution; forward Demo evaluation; live-readiness assessment.
-5. End with the first permissible action while M0 is `NEEDS_REVALIDATION`; human decisions required before paid sources, external dependencies, or Ollama models are adopted; and conditions demonstrating the approach has not earned progression toward Demo execution.
+4. Ensure a dependency-valid route: historical source qualification; MT5 history; adapters and provenance; normalisation; point-in-time alignment; deterministic hypotheses; controlled Ollama experiments; baselines and walk-forward evaluation; M20's bounded Demo data-to-outcome path; then later hardening and forward evaluation.
+5. End with the first permissible action under the active M20 contract; human decisions required before paid sources, external dependencies, or Ollama models are adopted; and conditions demonstrating the approach has not earned progression beyond the bounded Demo executor.
 ```

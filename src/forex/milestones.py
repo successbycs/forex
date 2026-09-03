@@ -247,6 +247,12 @@ def validate_registry(registry: dict[str, Any]) -> None:
             raise GovernanceError(f"invalid milestone_id: {milestone_id!r}")
         if "review_board_required" in milestone and not isinstance(milestone["review_board_required"], bool):
             raise GovernanceError(f"milestone {milestone_id} review_board_required must be a boolean")
+        if "triad_completion_recommendation_required" in milestone and not isinstance(
+            milestone["triad_completion_recommendation_required"], bool
+        ):
+            raise GovernanceError(
+                f"milestone {milestone_id} triad_completion_recommendation_required must be a boolean"
+            )
         if "status" in milestone:
             raise GovernanceError(f"{milestone_id}: mutable status belongs in project_state.json")
         if milestone["delivery_type"] not in DELIVERY_TYPES:
@@ -719,6 +725,7 @@ def _triad_gate_errors(store: MilestoneStore, milestone_id: str) -> list[str]:
     if not (
         store.registry.get("triad_review_required") is True
         or milestone.get("review_board_required") is True
+        or milestone.get("triad_completion_recommendation_required") is True
     ):
         return []
     record = store.milestone_state(milestone_id).get("triad_recommendation")

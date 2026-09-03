@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Governed read-only T480 access adapter for Forex.
+"""Governed fixed-operation T480 access adapter for Forex.
 
 The reusable transport comes from ``cs-ai-lab-infra/t480_core``. This module
 owns only fixed Forex and shared-platform inspection operations. It cannot
 accept shell text, deploy services, place trades, or expose arbitrary MT5
-operations. Its single M1 operation is a fixed read-only historical export.
+operations. Its M20 session operation captures a fixed fresh Demo-only market
+snapshot and contains no transaction capability.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import subprocess
 import sys
 from typing import Any
 
@@ -89,6 +91,7 @@ from t480_core import (  # noqa: E402
 TRANSPORT_SETTINGS = load_transport_settings(SHARED_CORE_ROOT / "t480" / "transport-config.json")
 SHARED_TARGET_PATH = SHARED_CORE_ROOT / ".env.t480.local"
 LAB_ROOT = str(APP_CONFIG["shared_lab_root"])
+SHARED_LAB_TARGET_PATH = Path(LAB_ROOT) / ".env.t480.local"
 FOREX_ROOT = str(APP_CONFIG["application_root"])
 SHARED_NETWORK = str(APP_CONFIG["shared_network"])
 COMPOSE_PROJECT = str(APP_CONFIG["compose_project"])
@@ -160,6 +163,33 @@ def _m6_mt5_multi_timeframe_probe_command() -> str:
         "if (!(Test-Path -LiteralPath $p)) { throw 'M6 fixed probe file is absent; stage the committed probe with the fixed OpenSSH copy step first' }; "
         "if ((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLower() -ne '" + digest + "') { throw 'M6 fixed probe hash does not match the committed source' }; "
         "$env:FOREX_M6_PROBE_SHA256='" + digest + "'; & $s.python_path $p $s.terminal_path; exit $LASTEXITCODE"
+    )
+
+
+def _m20_demo_trading_session_command() -> str:
+    """Return the fixed M20 session-preflight and market-snapshot command."""
+    source = (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()
+    digest = hashlib.sha256(source).hexdigest()
+    bridge_source = (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()
+    bridge_digest = hashlib.sha256(bridge_source).hexdigest()
+    fingerprint = project_configuration_fingerprint()
+    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    return (
+        "$ErrorActionPreference='Stop'; "
+        "$root=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe'; "
+        "$s=gc -Raw (Join-Path $root 'mt5.local.json')|ConvertFrom-Json; "
+        "if ([string]::IsNullOrWhiteSpace($s.python_path) -or !(Test-Path -LiteralPath $s.python_path)) { throw 'M20 local configured Python interpreter is absent' }; "
+        "$p=Join-Path $root 'm20_demo_trading_session.py'; "
+        "if (!(Test-Path -LiteralPath $p)) { throw 'M20 fixed session runner is absent; stage the committed runner with the fixed OpenSSH copy step first' }; "
+        "if ((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLower() -ne '" + digest + "') { throw 'M20 fixed session runner hash does not match the committed source' }; "
+        "$bridge=Join-Path $root 'm20_postgres_audit_bridge.py'; "
+        "if (!(Test-Path -LiteralPath $bridge)) { throw 'M20 fixed PostgreSQL audit bridge is absent' }; "
+        "if ((Get-FileHash -LiteralPath $bridge -Algorithm SHA256).Hash.ToLower() -ne '" + bridge_digest + "') { throw 'M20 fixed PostgreSQL audit bridge hash does not match the committed source' }; "
+        "$lease=Join-Path $root 'm20_demo_session.local.json'; "
+        "$env:FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + digest + "'; "
+        "$env:FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "'; "
+        "$env:FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "'; "
+        "$env:FOREX_M20_APPLICATION_REVISION='" + revision + "'; & $s.python_path $p $s.terminal_path $lease; exit $LASTEXITCODE"
     )
 
 
@@ -287,17 +317,26 @@ OPERATIONS: dict[str, Operation] = {
         powershell_command=_m6_mt5_multi_timeframe_probe_command(),
         timeout_seconds=120,
     ),
+    "m20_demo_trading_session": Operation(
+        "m20_demo_trading_session",
+        "Run the fixed bounded GOMarketsMU-Demo EURUSD M1/M5 session; a hash-bound PostgreSQL audit bridge must persist before any transaction.",
+        powershell_command=_m20_demo_trading_session_command(),
+        timeout_seconds=120,
+    ),
 }
 
 
 def validate_contract() -> None:
     validate_catalog(CATALOG_PATH, OPERATIONS)
     if any(operation.approval_required for operation in OPERATIONS.values()):
-        raise ValueError("The Forex T480 adapter must remain read-only")
+        raise ValueError("The Forex T480 adapter must not expose an approval-based execution surface")
 
 
 def target() -> str:
-    return resolve_ssh_target(TRANSPORT_SETTINGS, [LOCAL_TARGET_PATH, SHARED_TARGET_PATH])
+    return resolve_ssh_target(
+        TRANSPORT_SETTINGS,
+        [LOCAL_TARGET_PATH, SHARED_TARGET_PATH, SHARED_LAB_TARGET_PATH],
+    )
 
 
 def requirements() -> dict[str, Any]:
@@ -305,7 +344,7 @@ def requirements() -> dict[str, Any]:
         "tool_id": TOOL_ID,
         "shared_core_root": str(SHARED_CORE_ROOT),
         "shared_core_identity": DEPENDENCY_IDENTITY,
-        "description": "Run fixed read-only Forex and shared-platform T480 inspections.",
+        "description": "Run fixed Forex and shared-platform T480 inspections, including one bounded M20 Demo session operation.",
         "configuration_fingerprint": project_configuration_fingerprint(),
         "adapter_configuration_fingerprint": CONFIGURATION_FINGERPRINT,
         "commands": ["describe-requirements", "preflight", "execute", "verify"],
@@ -323,6 +362,7 @@ def requirements() -> dict[str, Any]:
             "generic MetaTrader API access",
             "arbitrary account or market-data access",
             "order operations",
+            "GOMarketsMU-Live access",
         ],
     }
 
@@ -358,7 +398,7 @@ def main(argv: list[str] | None = None) -> int:
         payload = shared_preflight(
             tool_id=TOOL_ID,
             settings=TRANSPORT_SETTINGS,
-            config_paths=[LOCAL_TARGET_PATH, SHARED_TARGET_PATH],
+            config_paths=[LOCAL_TARGET_PATH, SHARED_TARGET_PATH, SHARED_LAB_TARGET_PATH],
         )
     else:
         require_dependency(APP_CONFIG)

@@ -3,8 +3,8 @@
 ## Purpose and current boundary
 
 This design supports inspectable EUR/USD historical research with attributable
-GDELT-derived context. It has no live-account access, order command,
-autonomous execution, or profitability claim.
+GDELT-derived context and the active M20 fixed Demo-only trading MVP. It has
+no live-account access, generic order command, or profitability claim.
 
 | Component | Current status |
 | --- | --- |
@@ -15,6 +15,7 @@ autonomous execution, or profitability claim.
 | Price/GDELT join and replay | M13 fixed read-only T480 replay probe deployed; it applies a UTC availability and event-time cutoff |
 | T480 n8n adapter | Fixed Forex M11 adapter is deployed to the T480 |
 | Daily Forex n8n schedule | n8n-native design; not deployed or activated |
+| M20 Demo execution | In progress: one fixed EUR/USD operation, capped at 10 trades/60 minutes, one open position, USD 100/trade and USD 1,000 cumulative; no real-world proof yet |
 
 ## System topology and ownership
 
@@ -172,7 +173,7 @@ the T480. A browser report has no database credentials and no write operation.
 ### ML: what we will train and when
 
 ML is valuable only after the data is clean and time-aligned. We will not train
-directly on raw article material or give a model execution authority. The M15
+directly on raw article material or give a model a generic execution authority. The M15
 baseline will use a versioned row set such as:
 
 ```text
@@ -190,10 +191,15 @@ offline classifier, producing a research-only 0–100 advisory score and
 `BUY`/`SELL`/`NO_TRADE` hypothesis for human inspection. M16 compares it with
 price-only and no-change baselines in chronological walk-forward windows.
 
-M20 separately evaluates six strict, local-Ollama historical sentiment
-observations against the same simple price-only direction and `NO_TRADE`
-comparators. It retains bounded result hashes and descriptive metrics only;
-the local model cannot issue an order or reach a broker.
+M20 replaces the former local-Ollama historical comparison with a fixed,
+bounded Demo-only loop. A current bid/ask/spread plus closed M1/M5 candles
+produce an immutable `BUY`, `SELL`, or `NO_TRADE` proposal. Only an actionable
+proposal with an active session lease, idempotency key, and persisted decision
+snapshot may reach the one fixed `GOMarketsMU-Demo` EUR/USD executor. The
+session is capped at ten trades in 60 minutes, one open position, USD 100 per
+trade, and USD 1,000 cumulative. PostgreSQL retains attempts, position events,
+and outcomes for reconciliation and backtesting. There is no `GOMarketsMU-Live`
+or generic MT5/order path.
 
 Success is not a high in-sample score. The model must improve a pre-declared
 out-of-sample comparison after costs and retain an abstaining `NO_TRADE`
@@ -221,4 +227,5 @@ Delivery order:
 5. Configure the T480-local PostgreSQL credential in n8n and then
    import/activate its workflow after one observed successful manual run.
 
-None of these steps permits live trading or order placement.
+None of these historical steps permits live trading. The sole exception is the
+separately contracted M20 fixed Demo-only executor described above.

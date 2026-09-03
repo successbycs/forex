@@ -3,7 +3,7 @@
   "project": "Forex",
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
-  "phase": "PHASE_1_HISTORICAL_FOUNDATION",
+  "phase": "M20_DEMO_TRADING_MVP",
   "last_proven_milestone": "M19",
   "current_milestone": "M20",
   "next_milestone": "M21",
@@ -12,17 +12,18 @@
   "broker": "GO Markets Mauritius",
   "permitted_mt5_server": "GOMarketsMU-Demo",
   "forbidden_mt5_server": "GOMarketsMU-Live",
-  "runtime_mode": "RESEARCH",
+  "runtime_mode": "DEMO_TRADING",
   "live_trading_enabled": false,
-  "agent_authority_mode": "DISABLED",
+  "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
+  "implementation_status": "IN_PROGRESS",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
   "governed_configuration_paths": [
     "config/evidence_runner.json",
     "config/evidence_runner_public.pem",
+    "config/agent.yaml",
     "config/logging.yaml",
     "config/market_data.yaml",
     "config/mt5.yaml",
@@ -32,14 +33,14 @@
     "config/t480.json",
     "t480/command-catalog.json"
   ],
-  "configuration_fingerprint": "sha256:74f5d7ced11c92e63f741675e95a1bb65b733d316512c775469b1317f5504da4",
+  "configuration_fingerprint": "sha256:e22503ae496b311f8b14c0f09a19992de7fa30f135c6df5ceeb7cdf1463626f7",
   "important_architectural_decisions": [
     "Shared T480 transport belongs to cs-ai-lab-infra; Forex owns its catalog and adapter.",
     "Mutable execution state is separate from the declarative milestone registry.",
-    "proven_at is generated only by closeout after real-world proof and required human sign-off.",
-    "Live trading and GOMarketsMU-Live remain structurally prohibited."
+    "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
+    "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-03T02:31:18Z",
+  "last_updated_at": "2026-09-03T06:52:47Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2658,39 +2659,39 @@
       "blockers": []
     },
     "M20": {
-      "status": "AWAITING_REAL_WORLD_PROOF",
-      "started_at": "2026-09-02T05:24:54Z",
-      "implementation_finished_at": "2026-09-03T02:31:18Z",
-      "verification_passed_at": "2026-09-03T02:31:18Z",
-      "real_world_proof_captured_at": "2026-09-03T02:31:00.647962Z",
+      "status": "IN_PROGRESS",
+      "started_at": "2026-09-03T06:19:52Z",
+      "implementation_finished_at": null,
+      "verification_passed_at": null,
+      "real_world_proof_captured_at": null,
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
       "checks": {
         "M20-C1": {
-          "result": "PASS",
-          "recorded_at": "2026-09-03T02:31:17Z",
-          "evidence": "runs/evidence/M20/20260903T022647Z/evaluation-probe.json",
-          "note": "Fixed T480 offline Ollama evaluation completed three chronological Demo-only historical sessions with validated research-only responses and enforced decision-to-entry ordering."
+          "result": "FAIL",
+          "recorded_at": "2026-09-03T06:13:34Z",
+          "evidence": null,
+          "note": "Invalidated by E000542: the retained Ollama historical-evaluation result does not establish the new fresh Demo data, assessment, and bounded execution capability."
         },
         "M20-C2": {
-          "result": "PASS",
-          "recorded_at": "2026-09-03T02:31:17Z",
-          "evidence": "runs/evidence/M20/20260903T022647Z/tests.txt",
-          "note": "M20 milestone tests and fixed governance verification passed with inspectable hash-addressed artifacts."
+          "result": "FAIL",
+          "recorded_at": "2026-09-03T06:13:34Z",
+          "evidence": null,
+          "note": "Invalidated by E000542: the former M20 verification commands and artifacts are not the new Demo-trading contract verification."
         },
         "M20-C3": {
-          "result": "PASS",
-          "recorded_at": "2026-09-03T02:31:18Z",
-          "evidence": "runs/evidence/M20/20260903T022647Z/manifest.json",
-          "note": "Independent verifier accepted fresh proof bound to exact revision, governed configuration, Ollama provenance, invocation hashes, and immutable shared-core identity."
+          "result": "FAIL",
+          "recorded_at": "2026-09-03T06:13:34Z",
+          "evidence": null,
+          "note": "Invalidated by E000542: the retained evidence is for a different real-world surface and cannot prove the bounded Demo session."
         },
         "M20-C4": {
-          "result": "PASS",
-          "recorded_at": "2026-09-03T02:31:18Z",
-          "evidence": "runs/evidence/M20/20260903T022647Z/manifest.json",
-          "note": "Verified Demo-only provenance, no-lookahead event ordering, research-only boundary, no order/live-trading capability, and exact clean shared-core revision lock."
+          "result": "FAIL",
+          "recorded_at": "2026-09-03T06:13:34Z",
+          "evidence": null,
+          "note": "Invalidated by E000542: no current proof covers the new Demo server, session cap, proposal, idempotency, and audit boundaries."
         }
       },
       "evidence": [
@@ -2731,42 +2732,41 @@
           "summary": "FOREX_M20_PROOF_OK"
         }
       ],
-      "verification": {
-        "passed": true,
-        "recorded_at": "2026-09-03T02:31:18Z",
-        "git_revision": "195cd477796be3c6a7e5b4a93050416d2e28ed92",
-        "configuration_fingerprint": "sha256:74f5d7ced11c92e63f741675e95a1bb65b733d316512c775469b1317f5504da4",
-        "commands": [
-          {
-            "id": "governance",
-            "argv": [
-              "python3",
-              "scripts/forex_milestones.py",
-              "validate"
-            ],
-            "exit_code": 0,
-            "passed": true,
-            "stdout": "runs/verification/M20/20260903T023118Z/governance.stdout.txt",
-            "stderr": "runs/verification/M20/20260903T023118Z/governance.stderr.txt"
-          },
-          {
-            "id": "milestone-tests",
-            "argv": [
-              "python3",
-              "-m",
-              "pytest",
-              "-q",
-              "tests/milestones/test_m20.py"
-            ],
-            "exit_code": 0,
-            "passed": true,
-            "stdout": "runs/verification/M20/20260903T023118Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M20/20260903T023118Z/milestone-tests.stderr.txt"
-          }
-        ]
-      },
+      "verification": null,
       "human_signoff": null,
-      "blockers": []
+      "blockers": [],
+      "work_packages": {
+        "M20.1": {
+          "status": "IN_PROGRESS",
+          "started_at": "2026-09-03T06:19:52Z",
+          "verified_at": null
+        },
+        "M20.2": {
+          "status": "PLANNED",
+          "started_at": null,
+          "verified_at": null
+        },
+        "M20.3": {
+          "status": "PLANNED",
+          "started_at": null,
+          "verified_at": null
+        },
+        "M20.4": {
+          "status": "PLANNED",
+          "started_at": null,
+          "verified_at": null
+        },
+        "M20.5": {
+          "status": "PLANNED",
+          "started_at": null,
+          "verified_at": null
+        },
+        "M20.6": {
+          "status": "IN_PROGRESS",
+          "started_at": "2026-09-03T06:52:47Z",
+          "verified_at": null
+        }
+      }
     },
     "M21": {
       "status": "PLANNED",

@@ -1,12 +1,17 @@
-schema_version: forex.agent.v1
-mode: OFFLINE_CONTEXT_ONLY
+schema_version: forex.agent.v2
+mode: DEMO_SESSION_CONTEXT
 allowed_context_sections:
-  - price_bars
+  - fresh_tick
+  - closed_m1_candles
+  - closed_m5_candles
   - research_features
+  - demo_session_limits
 forbidden_context_sections:
   - future_bars
   - account
   - credentials
   - mt5_control
+  - generic_mt5
+  - shell
   - order
   - execution

@@ -2457,56 +2457,66 @@
     },
     {
       "milestone_id": "M20",
-      "title": "Ollama-assisted evaluation proven",
-      "objective": "Compare validated Ollama-assisted sentiment experiments with deterministic and price-only baselines under pre-declared controls.",
-      "delivery_type": "RESEARCH_EVALUATION",
-      "proof_type": "EMPIRICAL_RESEARCH",
+      "title": "Capped automated GOMarketsMU-Demo trading MVP proven",
+      "objective": "Prove a bounded Demo-only loop from fresh EUR/USD data through recorded assessment, capped execution, monitoring, and PostgreSQL reconciliation.",
+      "delivery_type": "OPERATIONAL_SAFETY",
+      "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
         "M19"
       ],
       "entry_conditions": [
         "M19 is PROVEN and remains valid.",
-        "The three-phase roadmap and Demo-only safety boundary remain intact."
+        "GOMarketsMU-Live remains structurally excluded and Demo-only operator authorization remains in force."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Ollama-assisted evaluation proven",
+      "to_state": "Capped automated GOMarketsMU-Demo trading MVP proven",
       "scope": [
-        "Compare validated Ollama-assisted sentiment experiments with deterministic and price-only baselines under pre-declared controls.",
+        "Capture fresh Demo-only EUR/USD bid, ask, spread, and closed M1 and M5 candles through a fixed adapter.",
+        "Produce and persist an immutable BUY, SELL, or NO_TRADE assessment before any Demo execution, including rationale and hash-bound decision inputs.",
+        "Execute only fixed, Demo-only EUR/USD orders within a human-enabled session lease capped at ten trades, sixty minutes, one open position, USD 100 notional per trade, and USD 1,000 cumulative notional.",
+        "Persist proposal, execution attempt, position events, reconciliation, and outcome in PostgreSQL for backtesting and review.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
-        "Live trading and access to GOMarketsMU-Live.",
-        "Generic MT5, shell, or source-download command surfaces.",
+        "Any GOMarketsMU-Live access, credential retention, generic shell, generic MT5, or arbitrary order surface.",
+        "Orders outside an active bounded Demo session, or any order without a persisted proposal and idempotency key.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
-        "config/agent.yaml",
-        "config/models.yaml"
+        "config/mt5.yaml",
+        "config/runtime.yaml",
+        "config/market_data.yaml",
+        "t480/command-catalog.json"
       ],
       "expected_artifacts": [
-        "docs/milestones/M20-proof.md",
-        "tests/milestones/test_m20.py"
+        "docs/milestones/M20-demo-trading-mvp.md",
+        "tests/milestones/test_m20_demo_trading.py"
       ],
       "acceptance_criteria": [
         {
           "id": "M20-C1",
-          "description": "The capability works on the declared surface: offline Ollama-assisted historical evaluation environment.",
+          "description": "The fixed capability captures fresh GOMarketsMU-Demo EUR/USD tick data and closed M1/M5 candles, produces a recorded assessment, and executes only a bounded Demo-session order or NO_TRADE outcome.",
           "kind": "CAPABILITY"
         },
         {
           "id": "M20-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
+          "description": "Milestone-specific and repository verification pass with inspectable, versioned adapter, schema, and audit artifacts.",
           "kind": "VERIFICATION"
         },
         {
           "id": "M20-C3",
-          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
+          "description": "Current self-attested Demo proof matches the Git revision, configuration fingerprint, exact Demo server, session lease, persisted proposal, and execution or NO_TRADE result.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M20-C4",
-          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
+          "description": "The Demo-only server check, session cap, one-position limit, proposal-before-execution rule, idempotency, no-lookahead, and append-only audit boundaries fail closed with no unresolved critical issue.",
           "kind": "SAFETY"
+        },
+        {
+          "id": "M20-C5",
+          "description": "Each attempted Demo trade is reconciled to its proposal, decision snapshot, execution result, position lifecycle, and outcome record without retaining credentials or enabling GOMarketsMU-Live.",
+          "kind": "CAPABILITY"
         }
       ],
       "verification_commands": [
@@ -2525,42 +2535,81 @@
             "-m",
             "pytest",
             "-q",
-            "tests/milestones/test_m20.py"
+            "tests/milestones/test_m20_demo_trading.py"
           ]
         }
       ],
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "offline Ollama-assisted historical evaluation environment",
-        "capture_command": [
-          "bash",
-          "scripts/capture_m20_evidence.sh"
-        ],
-        "verifier_command": [
-          "bash",
-          "scripts/verify_m20_evidence.sh",
+      "surface": "bounded automated GOMarketsMU-Demo EUR/USD trading session",
+      "capture_command": [
+        "bash",
+        "scripts/capture_m20_demo_evidence.sh"
+      ],
+      "verifier_command": [
+        "bash",
+        "scripts/verify_m20_demo_evidence.sh",
           "{bundle}"
         ],
         "freshness_hours": 168,
-        "success_markers": [
-          "FOREX_M20_PROOF_OK"
-        ]
+      "success_markers": [
+        "FOREX_M20_DEMO_TRADING_PROOF_OK"
+      ]
       },
       "evidence_requirements": [
-        "Raw fixed-operation or retained-source output with exit status, capture timestamps, and redaction declaration.",
-        "Git revision, dirty-worktree declaration, configuration fingerprint, source/model/prompt version where applicable, and SHA-256 artifact hashes.",
-        "A human-observable summary of the declared offline Ollama-assisted historical evaluation environment result containing FOREX_M20_PROOF_OK."
+        "Raw fixed Demo-only operation output with exit status, capture timestamps, redaction declaration, and exact server identity.",
+        "Git revision, dirty-worktree declaration, configuration fingerprint, session lease, decision snapshot, proposal, execution result, and SHA-256 artifact hashes.",
+        "A human-observable summary of the bounded Demo trading session result containing FOREX_M20_DEMO_TRADING_PROOF_OK."
       ],
-      "human_review_required": true,
+      "human_review_required": false,
+      "triad_completion_recommendation_required": true,
       "proof_invalidated_by": [
         "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
         "Evidence exceeding its declared freshness window.",
-        "A point-in-time, provenance, or safety-boundary violation."
+        "A point-in-time, Demo-only server, session-cap, proposal, execution, or audit-boundary violation."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
+      "notes": "MVP priority: fresh Demo data, recorded assessment, bounded execution, and reconciliation. This grants no GOMarketsMU-Live capability or unrestricted MT5 interface.",
+      "work_packages": [
+        {
+          "work_package_id": "M20.1",
+          "title": "Demo-only fixed adapter and server checks",
+          "dependencies": [],
+          "acceptance_criteria": ["M20-C1", "M20-C4"]
+        },
+        {
+          "work_package_id": "M20.2",
+          "title": "Fresh tick and M1/M5 decision snapshot persistence",
+          "dependencies": ["M20.1"],
+          "acceptance_criteria": ["M20-C1", "M20-C3", "M20-C5"]
+        },
+        {
+          "work_package_id": "M20.3",
+          "title": "Versioned assessment and proposal audit",
+          "dependencies": ["M20.2"],
+          "acceptance_criteria": ["M20-C1", "M20-C3", "M20-C5"]
+        },
+        {
+          "work_package_id": "M20.4",
+          "title": "Bounded Demo session executor",
+          "dependencies": ["M20.3"],
+          "acceptance_criteria": ["M20-C1", "M20-C4", "M20-C5"]
+        },
+        {
+          "work_package_id": "M20.5",
+          "title": "Reconciliation, evidence, and independent technical review",
+          "dependencies": ["M20.4"],
+          "acceptance_criteria": ["M20-C2", "M20-C3", "M20-C4", "M20-C5"]
+        },
+        {
+          "work_package_id": "M20.6",
+          "title": "Remediate runner-to-audit and evidence-contract alignment",
+          "dependencies": [],
+          "acceptance_criteria": ["M20-C1", "M20-C2", "M20-C4", "M20-C5"]
+        }
+      ]
     },
     {
       "milestone_id": "M21",
@@ -3907,10 +3956,10 @@
         "M25",
         "M26"
       ],
-      "purpose": "Build and test non-executing agent context, evaluation, risk, sizing, intent, approval, and revalidation controls against historical replay.",
+      "purpose": "Build and test decision, risk, sizing, intent, approval, and revalidation controls against historical replay; M20 is the narrowly contracted fixed Demo-only data-to-outcome MVP exception.",
       "constraints": [
-        "Every result is simulated or shadow-only; a simulated intent is not an order.",
-        "No live trading, GOMarketsMU-Live access, agent execution authority, or order surface."
+        "Outside M20, every result is simulated or shadow-only; a simulated intent is not an order.",
+        "No live trading or GOMarketsMU-Live access. M20 alone may use its fixed, session-capped Demo EURUSD execution path; no generic agent, MT5, or order surface is permitted."
       ]
     },
     {
@@ -3927,7 +3976,7 @@
       "purpose": "When the Demo market is active, validate fresh data, collection safety, controlled human-approved Demo execution, reconciliation, and forward evaluation before any live-readiness assessment.",
       "constraints": [
         "Use GOMarketsMU-Demo only; GOMarketsMU-Live remains prohibited.",
-        "No order capability before M27; actual Demo execution is separately gated at M30.",
+        "Outside the active M20 exception, no order capability exists before M27; later Demo execution remains separately governed by its own contracts.",
         "M32 is an assessment only and does not authorize live trading."
       ]
     }

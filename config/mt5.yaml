@@ -1,9 +1,13 @@
-schema_version: forex.mt5.v1
+schema_version: forex.mt5.v2
 platform: MetaTrader 5
 canonical_instrument: EUR/USD
 expected_broker_symbol: EURUSD
 permitted_server: GOMarketsMU-Demo
 forbidden_server: GOMarketsMU-Live
-allow_order_operations: false
+# This is deliberately Demo-specific: there is no generic MT5 order switch.
+allow_demo_order_operations: true
 allow_live_server: false
 terminal_path_environment_variable: FOREX_MT5_TERMINAL_PATH
+# The value is an environment-variable name only.  The credential itself stays
+# in an ignored machine-local environment or override file.
+demo_credentials_environment_variable: FOREX_MT5_DEMO_CREDENTIALS

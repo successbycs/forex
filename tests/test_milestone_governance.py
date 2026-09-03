@@ -96,6 +96,11 @@ def test_review_board_is_limited_to_mvp_phase_gates() -> None:
     assert _triad_gate_errors(store, "M16") == [
         "current Triad-plus-domain completion recommendation is required"
     ]
+    assert store.milestone("M20").get("review_board_required") is None
+    assert store.milestone("M20")["triad_completion_recommendation_required"] is True
+    assert _triad_gate_errors(store, "M20") == [
+        "current Triad-plus-domain completion recommendation is required"
+    ]
 
 
 def test_repository_governance_files_validate() -> None:

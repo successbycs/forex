@@ -6,15 +6,34 @@
 
 ## Evidence assurance tier
 
-Every milestone currently declares `SELF_ATTESTED_INTEGRITY`. M0 uses a fixed-job local evidence runner that signs the manifest digest using a private key kept outside Git; the repository verifies it with the stored public key. M1's approved MVP bridge instead retains hash-addressed raw capture, verification, and repository-verification outputs, bound to the repository revision and governed configuration. M1 deliberately does not authenticate the remote probe bytes or its machine-local interpreter. Neither pattern is an external witness or separately controlled identity. This does not weaken the Demo-only repository boundary, human approval, the phase-gate Review Board, or prohibition on live trading.
+Every milestone currently declares `SELF_ATTESTED_INTEGRITY`. M0 uses a fixed-job local evidence runner that signs the manifest digest using a private key kept outside Git; the repository verifies it with the stored public key. M1's approved MVP bridge instead retains hash-addressed raw capture, verification, and repository-verification outputs, bound to the repository revision and governed configuration. M1 deliberately does not authenticate the remote probe bytes or its machine-local interpreter. Neither pattern is an external witness or separately controlled identity. This does not weaken the Demo-only repository boundary, the review gates declared by each active contract, or the prohibition on live trading.
 
-## Three-phase operating model
+## M20 Demo-only operating model
 
-The registry divides the route into historical foundation (M0–M16), offline decision and safety controls (M17–M26), and real-time Demo operations (M27–M32). Closed historical bars are valid evidence for the historical and replay contracts only. They cannot satisfy a fresh-tick, current-spread, live-market recovery, or Demo-execution contract. Real-time validation uses `GOMarketsMU-Demo` only; `GOMarketsMU-Live` remains prohibited.
+Closed historical bars remain valid evidence for the historical and replay
+contracts only. They cannot satisfy the active M20 contract: a fresh
+`GOMarketsMU-Demo` EUR/USD data-to-outcome loop. M20 evidence must distinguish
+raw broker observations from verification results and bind the exact Demo
+server, Git revision, governed configuration fingerprint, session lease,
+decision snapshot, persisted proposal, execution attempt or `NO_TRADE`, and
+reconciliation result.
+
+The M20 capture proves only the declared bounded Demo session. It does not
+prove profitability, general broker access, ongoing availability, or any
+real-money capability. `GOMarketsMU-Live` remains prohibited and credentials
+must never appear in evidence bundles, logs, or tracked files.
 
 ## What completion means
 
-Implementation, tests, evidence capture, verification, and approval are distinct events. A milestone is complete only when `forex-milestones prove --id Mx` successfully writes `proven_at`. The command refuses closeout unless dependencies, all acceptance checks, required artifacts, fixed verification commands, current real-world evidence, configuration/revision matching, blockers, and human sign-off all pass. The four-role Review Board is an additional requirement only at M16, M27, and M32.
+Implementation, tests, evidence capture, verification, recommendation, and
+any contract-required human approval are distinct events. A milestone is
+complete only when `forex-milestones prove --id Mx` successfully writes
+`proven_at`. The command refuses closeout unless dependencies, all acceptance
+checks, required artifacts, fixed verification commands, current real-world
+evidence, configuration/revision matching, blockers, a current bound
+Triad-plus-domain `RECOMMEND_COMPLETE`, and any required human sign-off all
+pass. M20 specifically requires the current Triad-plus-domain recommendation
+but has no human sign-off gate.
 
 `target_date` is an editable planning forecast owned by the human operator. It never causes closeout and is never reported as the actual completion date. A material change moves previously proven work to `NEEDS_REVALIDATION`; `first_proven_at` remains historical while a fresh `proven_at` is generated after revalidation.
 
@@ -69,6 +88,22 @@ reason, and reassessment confirmation, and is recorded in state and run
 history. The three-cycle limit remains the automatic stop for normal retries.
 
 Evidence capture and evidence verification are separate. The verifier does not contact, modify, repair, or regenerate the observed system. Hash, freshness, revision, surface, configuration, runner-attestation, and signature mismatches fail closed. Its independence is logical separation within the repository, not a separate provenance authority.
+
+### M20 evidence sequence
+
+For M20, first record that the fixed adapter observed the exact
+`GOMarketsMU-Demo` server, a fresh EUR/USD bid/ask/spread, and closed M1/M5
+candles. Then persist the decision snapshot and a hash-bound `BUY`, `SELL`, or
+`NO_TRADE` proposal. If the outcome is eligible for execution, capture the
+human-enabled session lease and the fixed executor's attempt; otherwise retain
+the refusal or `NO_TRADE` record. Finally, capture the position lifecycle and
+PostgreSQL reconciliation. Each stage needs timestamps, hashes, and redaction
+declarations. A verifier may inspect these retained outputs but must not
+re-contact the broker, mutate the session, fill gaps, or regenerate evidence.
+
+Any material change to the server allowlist, lease/caps, decision schema,
+adapter, order contract, PostgreSQL audit schema, or governed configuration
+invalidates affected M20 proof and requires a new capture and review.
 
 ## Durable evidence export
 

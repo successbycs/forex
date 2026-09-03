@@ -1,8 +1,8 @@
 # Forex T480 adapter
 
-The Forex repository owns a fixed, read-only catalog of T480 inspection
-operations. Reusable PowerShell, Windows OpenSSH, WSL, timeout, validation, and
-audit behavior is supplied by `cs-ai-lab-infra/t480_core`.
+The Forex repository owns a fixed catalog of T480 operations. Reusable
+PowerShell, Windows OpenSSH, WSL, timeout, validation, and audit behavior is
+supplied by `cs-ai-lab-infra/t480_core`.
 
 The shared core is an external safety dependency, so Forex will use it only
 when its owner repository is clean, its files are tracked, its full Git
@@ -35,11 +35,14 @@ Operator-editable non-secret paths, the dependency lock, Docker names, and MT5 p
 timeouts are controlled by `cs-ai-lab-infra/t480/transport-config.json`.
 Strict host-key checking and SSH batch mode cannot be disabled.
 
-The initial adapter cannot deploy or alter the T480. `mt5_process_status` uses
-Windows process inspection only. It does not import MetaTrader, connect to an
-account, inspect the configured broker server, retrieve prices, or expose any
-order operation. Those capabilities require their own later milestones and
-real-world proof.
+The adapter cannot deploy or alter the T480. Most operations are inspection
+only. M20 has one exception: `m20_demo_trading_session` is a no-argument,
+hash-bound `GOMarketsMU-Demo`/`EURUSD` session path. Before it contacts MT5 it
+requires an ignored machine-local lease with fixed 10-trade/60-minute,
+one-position, USD 100-per-trade and USD 1,000 cumulative limits, plus audit
+prerequisites. It must fail closed on any mismatch. It is not a generic MT5,
+symbol, account, shell, or broker-control interface, and it is not proven or
+deployed simply because the local code exists.
 
 Execution output is returned to the invoking operator, but the ignored local
 audit log retains only timestamps, exit status, byte counts, and SHA-256

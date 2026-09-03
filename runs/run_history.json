@@ -7654,6 +7654,117 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000541",
+      "timestamp": "2026-09-03T06:13:34Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:74f5d7ced11c92e63f741675e95a1bb65b733d316512c775469b1317f5504da4",
+        "current": "sha256:325083659009ad79194f4551c7068d85d7f4ba4e3d1da15bf15e8c68f2f06cd2",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
+    },
+    {
+      "event_id": "E000542",
+      "timestamp": "2026-09-03T06:13:34Z",
+      "milestone_id": "M20",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "AWAITING_REAL_WORLD_PROOF",
+        "to": "NEEDS_FIX",
+        "reason": "M20 contract was materially replaced from offline Ollama historical evaluation to a bounded GOMarketsMU-Demo automated-trading MVP. Prior Ollama checks, verification, and evidence cannot satisfy the new declared surface, acceptance criteria, work packages, or Demo execution/audit requirements; retain them only as historical records."
+      }
+    },
+    {
+      "event_id": "E000543",
+      "timestamp": "2026-09-03T06:19:51Z",
+      "milestone_id": "M20",
+      "action": "MILESTONE_READY",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "READY"
+      }
+    },
+    {
+      "event_id": "E000544",
+      "timestamp": "2026-09-03T06:19:52Z",
+      "milestone_id": "M20",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
+    },
+    {
+      "event_id": "E000545",
+      "timestamp": "2026-09-03T06:19:52Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_STARTED",
+      "detail": {
+        "work_package_id": "M20.1"
+      }
+    },
+    {
+      "event_id": "E000546",
+      "timestamp": "2026-09-03T06:21:00Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:325083659009ad79194f4551c7068d85d7f4ba4e3d1da15bf15e8c68f2f06cd2",
+        "current": "sha256:e22503ae496b311f8b14c0f09a19992de7fa30f135c6df5ceeb7cdf1463626f7",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
+    },
+    {
+      "event_id": "E000547",
+      "timestamp": "2026-09-03T06:52:47Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_STARTED",
+      "detail": {
+        "work_package_id": "M20.6"
+      }
     }
   ]
 }

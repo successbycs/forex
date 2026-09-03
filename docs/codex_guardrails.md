@@ -8,6 +8,6 @@ The root `AGENTS.md` is the concise persistent instruction source. This companio
 - Do not fabricate or substitute simulated evidence for a real-system claim.
 - Never record human approval on the operator's behalf.
 - Treat secrets, account identifiers, private addresses, and credentials as local-only.
-- Do not access `GOMarketsMU-Live` or add order operations before M27.
+- Do not access `GOMarketsMU-Live`. M20 may use only its one fixed, no-argument, session-capped `GOMarketsMU-Demo` EUR/USD execution operation; do not add a generic MT5, shell, or order surface.
 - A failed safety or integrity check blocks completion rather than being waived silently.
 - Do not commit or publish without explicit human instruction.

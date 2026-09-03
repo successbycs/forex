@@ -1,0 +1,317 @@
+"""Fixed M20 Demo session preflight and fresh EUR/USD market snapshot.
+
+This script is deliberately not a general MetaTrader interface.  It accepts
+only the configured terminal path and the fixed, machine-local session lease
+path supplied by the T480 adapter.  It never accepts a symbol, server,
+timeframe, account, shell command, or transaction parameter from a caller.
+
+The runner records a complete, reconciled ``NO_TRADE`` decision through the
+fixed PostgreSQL bridge.  An actionable assessment fails closed after its
+proposal has been persisted: this runner deliberately contains no order API
+call.  A future executor must independently re-check the persisted proposal,
+PostgreSQL audit state, and every lease limit before it can submit an order.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+from typing import Any
+from uuid import NAMESPACE_URL, UUID, uuid5
+
+import MetaTrader5 as mt5
+
+
+SERVER = "GOMarketsMU-Demo"
+SYMBOL = "EURUSD"
+MAX_TICK_AGE_SECONDS = 30
+CLOSED_BAR_COUNT = 64
+SESSION_SCHEMA_VERSION = "forex.m20.demo-session-lease.v1"
+SESSION_AUDIT_REQUIREMENTS = {
+    "postgres_audit_schema": "READY",
+    "proposal_persistence": "READY",
+    "idempotency_store": "READY",
+}
+TIMEFRAMES = (
+    ("M1", mt5.TIMEFRAME_M1, 60),
+    ("M5", mt5.TIMEFRAME_M5, 300),
+)
+STRATEGY_VERSION = "forex.m20.closed-candle-momentum.v1"
+OPERATOR_LABEL = "codex-m20-demo"
+
+
+def utc(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def parse_utc(value: Any, field: str) -> datetime:
+    if not isinstance(value, str):
+        raise SystemExit(f"session lease {field} must be an ISO-8601 timestamp")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise SystemExit(f"session lease {field} is invalid") from error
+    if parsed.tzinfo is None:
+        raise SystemExit(f"session lease {field} must include a timezone")
+    return parsed.astimezone(timezone.utc)
+
+
+def load_session_lease(path: Path, now: datetime) -> dict[str, Any]:
+    """Load a fixed local lease and reject absent, stale, or widened sessions."""
+    if not path.is_file():
+        raise SystemExit("M20 session lease is absent; no market snapshot or execution is allowed")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SystemExit("M20 session lease is unreadable") from error
+    expected_fields = {
+        "schema_version",
+        "session_id",
+        "enabled",
+        "server",
+        "symbol",
+        "starts_at_utc",
+        "expires_at_utc",
+        "maximum_trades",
+        "maximum_duration_minutes",
+        "maximum_open_positions",
+        "maximum_notional_per_trade_usd",
+        "maximum_cumulative_notional_usd",
+        "audit_prerequisites",
+    }
+    if not isinstance(payload, dict) or set(payload) != expected_fields:
+        raise SystemExit("M20 session lease fields are invalid")
+    if payload["schema_version"] != SESSION_SCHEMA_VERSION or payload["enabled"] is not True:
+        raise SystemExit("M20 session lease is not enabled")
+    if payload["server"] != SERVER or payload["symbol"] != SYMBOL:
+        raise SystemExit("M20 session lease is not fixed to GOMarketsMU-Demo EURUSD")
+    try:
+        UUID(str(payload["session_id"]))
+    except (ValueError, AttributeError, TypeError) as error:
+        raise SystemExit("M20 session lease has an invalid session_id") from error
+    starts_at = parse_utc(payload["starts_at_utc"], "starts_at_utc")
+    expires_at = parse_utc(payload["expires_at_utc"], "expires_at_utc")
+    if not starts_at <= now <= expires_at or expires_at <= starts_at:
+        raise SystemExit("M20 session lease is inactive or expired")
+    if expires_at - starts_at > timedelta(minutes=60):
+        raise SystemExit("M20 session lease exceeds 60 minutes")
+    limits = (
+        ("maximum_trades", 1, 10),
+        ("maximum_duration_minutes", 1, 60),
+        ("maximum_open_positions", 1, 1),
+        ("maximum_notional_per_trade_usd", 1, 100),
+        ("maximum_cumulative_notional_usd", 1, 1000),
+    )
+    for field, lower, upper in limits:
+        value = payload[field]
+        if isinstance(value, bool) or not isinstance(value, int) or not lower <= value <= upper:
+            raise SystemExit(f"M20 session lease {field} is outside its fixed cap")
+    if payload["maximum_cumulative_notional_usd"] < payload["maximum_notional_per_trade_usd"]:
+        raise SystemExit("M20 session lease cumulative notional cannot be less than one trade")
+    if payload["audit_prerequisites"] != SESSION_AUDIT_REQUIREMENTS:
+        raise SystemExit("M20 session lease audit prerequisites are absent")
+    return {
+        "session_id": str(payload["session_id"]),
+        "starts_at_utc": utc(starts_at),
+        "expires_at_utc": utc(expires_at),
+        "maximum_trades": payload["maximum_trades"],
+        "maximum_duration_minutes": payload["maximum_duration_minutes"],
+        "maximum_open_positions": payload["maximum_open_positions"],
+        "maximum_notional_per_trade_usd": payload["maximum_notional_per_trade_usd"],
+        "maximum_cumulative_notional_usd": payload["maximum_cumulative_notional_usd"],
+        "audit_prerequisites": SESSION_AUDIT_REQUIREMENTS,
+    }
+
+
+def _bar_rows(rates: Any, *, timeframe_name: str, seconds: int, cutoff: int) -> tuple[list[dict[str, Any]], str]:
+    if rates is None:
+        raise SystemExit(f"expected closed EURUSD {timeframe_name} candles")
+    rows: list[dict[str, Any]] = []
+    previous_open: int | None = None
+    for rate in rates:
+        opened_at = int(rate["time"])
+        # A candle is admissible only when its complete interval ended before
+        # the current observed-tick timeframe boundary.
+        if opened_at + seconds > cutoff:
+            continue
+        if previous_open is not None and opened_at <= previous_open:
+            raise SystemExit(f"EURUSD {timeframe_name} candles are not chronological")
+        previous_open = opened_at
+        row = {
+            "opened_at_utc": utc(datetime.fromtimestamp(opened_at, timezone.utc)),
+            "closed_at_utc": utc(datetime.fromtimestamp(opened_at + seconds, timezone.utc)),
+            "open": float(rate["open"]),
+            "high": float(rate["high"]),
+            "low": float(rate["low"]),
+            "close": float(rate["close"]),
+            "volume": int(rate["tick_volume"]),
+        }
+        ohlc = (row["open"], row["high"], row["low"], row["close"])
+        if min(ohlc) <= 0 or row["low"] > min(row["open"], row["close"]) or row["high"] < max(row["open"], row["close"]):
+            raise SystemExit(f"EURUSD {timeframe_name} candle has invalid OHLC")
+        rows.append(row)
+    rows = rows[-CLOSED_BAR_COUNT:]
+    if len(rows) != CLOSED_BAR_COUNT:
+        raise SystemExit(f"expected exactly {CLOSED_BAR_COUNT} closed EURUSD {timeframe_name} candles")
+    raw = json.dumps(rows, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return rows, hashlib.sha256(raw).hexdigest()
+
+
+def _bridge(payload: dict[str, Any], command: str) -> dict[str, Any]:
+    """Invoke only the co-located, hash-bound PostgreSQL audit bridge."""
+    bridge_path = Path(__file__).with_name("m20_postgres_audit_bridge.py")
+    expected = os.environ.get("FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256", "")
+    actual = "sha256:" + hashlib.sha256(bridge_path.read_bytes()).hexdigest()
+    if expected != actual:
+        raise SystemExit("M20 PostgreSQL audit bridge is absent or differs from its fixed deployment hash")
+    completed = subprocess.run(
+        [sys.executable, str(bridge_path), command],
+        input=json.dumps(payload, separators=(",", ":")),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise SystemExit(f"M20 PostgreSQL audit bridge failed closed: {completed.stderr.strip()}")
+    try:
+        result = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise SystemExit("M20 PostgreSQL audit bridge returned invalid JSON") from error
+    if not isinstance(result, dict) or result.get("ok") is not True:
+        raise SystemExit("M20 PostgreSQL audit bridge did not confirm its write")
+    return result
+
+
+def _provenance() -> tuple[str, str]:
+    revision = os.environ.get("FOREX_M20_APPLICATION_REVISION", "")
+    fingerprint = os.environ.get("FOREX_M20_CONFIGURATION_FINGERPRINT", "")
+    if len(revision) != 40 or not fingerprint.startswith("sha256:"):
+        raise SystemExit("M20 session provenance is absent or invalid")
+    return revision, fingerprint
+
+
+def _session(lease: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "session_id": lease["session_id"],
+        "server": SERVER,
+        "instrument": SYMBOL,
+        "starts_at_utc": lease["starts_at_utc"],
+        "expires_at_utc": lease["expires_at_utc"],
+        "max_trades": lease["maximum_trades"],
+        "max_notional_per_trade_usd": lease["maximum_notional_per_trade_usd"],
+        "max_cumulative_notional_usd": lease["maximum_cumulative_notional_usd"],
+        "max_open_positions": lease["maximum_open_positions"],
+        "strategy_version": STRATEGY_VERSION,
+        "operator_label": OPERATOR_LABEL,
+        "status": "ACTIVE",
+    }
+
+
+def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, list[dict[str, Any]]], captured_at: datetime) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Create a deterministic M1/M5 proposal bound to the raw closed bars."""
+    observed_at = tick["observed_at_utc"]
+    snapshot_body = {
+        "observed_at_utc": observed_at,
+        "captured_at_utc": utc(captured_at),
+        "bid": tick["bid"], "ask": tick["ask"], "spread_points": tick["spread_points"],
+        "freshness_seconds": int(tick["freshness_seconds"]),
+        "m1_closed_bars": bars["M1"], "m5_closed_bars": bars["M5"],
+    }
+    digest = "sha256:" + hashlib.sha256(json.dumps(snapshot_body, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    snapshot_id = str(uuid5(NAMESPACE_URL, f"{session['session_id']}:{digest}"))
+    snapshot = {"snapshot_id": snapshot_id, **snapshot_body, "payload_sha256": digest}
+    m1_delta = bars["M1"][-1]["close"] - bars["M1"][-2]["close"]
+    m5_delta = bars["M5"][-1]["close"] - bars["M5"][-2]["close"]
+    action = "BUY" if m1_delta > 0 and m5_delta > 0 else "SELL" if m1_delta < 0 and m5_delta < 0 else "NO_TRADE"
+    proposal_id = str(uuid5(NAMESPACE_URL, f"{session['session_id']}:{snapshot_id}:assessment"))
+    proposal = {
+        "proposal_id": proposal_id, "session_id": session["session_id"], "snapshot_id": snapshot_id,
+        "decision_at_utc": observed_at,
+        "expires_at_utc": utc(min(parse_utc(observed_at, "observed_at_utc") + timedelta(minutes=5), parse_utc(session["expires_at_utc"], "expires_at_utc"))),
+        "selected_timeframe": "M5", "action": action,
+        "proposed_entry": None, "stop_loss": None, "take_profit": None,
+        "notional_usd": None, "confidence": 100 if action == "NO_TRADE" else 60,
+        "rationale": "M1 and M5 closed-candle momentum conflict; no Demo order is submitted." if action == "NO_TRADE" else "M1 and M5 closed-candle momentum agree; execution requires the separate fixed executor.",
+        "decision_snapshot_sha256": digest, "strategy_version": STRATEGY_VERSION,
+    }
+    if action != "NO_TRADE":
+        entry = tick["ask"] if action == "BUY" else tick["bid"]
+        proposal.update({"proposed_entry": entry, "stop_loss": entry, "take_profit": entry, "notional_usd": session["max_notional_per_trade_usd"]})
+    return snapshot, proposal
+
+
+def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
+    lease = load_session_lease(session_path, datetime.now(timezone.utc))
+    if not mt5.initialize(path=terminal_path):
+        raise SystemExit(mt5.last_error())
+    try:
+        account = mt5.account_info()
+        if not account or account.server != SERVER:
+            raise SystemExit("MT5 is not connected to GOMarketsMU-Demo")
+        symbol = mt5.symbol_info(SYMBOL)
+        if not symbol or symbol.name != SYMBOL or float(symbol.point) <= 0:
+            raise SystemExit("required EURUSD symbol is unavailable")
+        tick = mt5.symbol_info_tick(SYMBOL)
+        if not tick:
+            raise SystemExit("fresh EURUSD tick is unavailable")
+        captured_at = datetime.now(timezone.utc)
+        if captured_at > parse_utc(lease["expires_at_utc"], "expires_at_utc"):
+            raise SystemExit("M20 session lease expired during market snapshot capture")
+        observed_at = datetime.fromtimestamp(int(tick.time), timezone.utc)
+        freshness_seconds = (captured_at - observed_at).total_seconds()
+        if not 0 <= freshness_seconds <= MAX_TICK_AGE_SECONDS:
+            raise SystemExit("EURUSD tick is stale or later than the local capture clock")
+        bid, ask = float(tick.bid), float(tick.ask)
+        if bid <= 0 or ask < bid:
+            raise SystemExit("EURUSD tick bid/ask is invalid")
+        raw_bars: dict[str, list[dict[str, Any]]] = {}
+        for name, timeframe, seconds in TIMEFRAMES:
+            rates = mt5.copy_rates_from_pos(SYMBOL, timeframe, 1, CLOSED_BAR_COUNT + 8)
+            boundary = int(observed_at.timestamp()) // seconds * seconds
+            rows, digest = _bar_rows(rates, timeframe_name=name, seconds=seconds, cutoff=boundary)
+            raw_bars[name] = [{"timeframe": name, **row} for row in rows]
+        session = _session(lease)
+        tick_record = {
+                "observed_at_utc": utc(observed_at),
+                "freshness_seconds": int(freshness_seconds),
+                "bid": bid,
+                "ask": ask,
+                "spread_points": round((ask - bid) / float(symbol.point), 4),
+        }
+        snapshot, proposal = _assessment(session, tick_record, raw_bars, captured_at)
+        revision, fingerprint = _provenance()
+        bridge_payload = {"session": {key: value for key, value in session.items() if key != "status"}, "proposal": proposal, "decision_snapshot": snapshot, "application_revision": revision, "configuration_fingerprint": fingerprint}
+        persisted = _bridge(bridge_payload, "persist-proposal")
+        if proposal["action"] != "NO_TRADE":
+            raise SystemExit("M20 actionable proposal persisted; fixed Demo executor is not yet deployed")
+        reconciled = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")
+        reconciliation = reconciled.get("reconciliation")
+        if not isinstance(reconciliation, dict) or reconciliation.get("status") != "NO_TRADE_RECONCILED":
+            raise SystemExit("M20 NO_TRADE reconciliation was not confirmed")
+        return {
+            "marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK",
+            "schema_version": "forex.m20.demo-trading-operation.v1",
+            "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL,
+            "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint,
+            "session": session, "decision_snapshot": snapshot, "proposal": proposal,
+            "execution": {"status": "NOT_SUBMITTED", "attempt_id": None},
+            "reconciliation": reconciliation, "postgres_audit": persisted["postgres_audit"],
+            "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED"),
+        }
+    finally:
+        mt5.shutdown()
+
+
+def main(terminal_path: str, session_path: str) -> None:
+    print(json.dumps(capture(terminal_path, Path(session_path)), separators=(",", ":")))
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        raise SystemExit("expected fixed terminal path and fixed M20 session lease path")
+    main(sys.argv[1], sys.argv[2])

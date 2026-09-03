@@ -66,6 +66,11 @@
       "id": "m6_mt5_multi_timeframe_probe",
       "purpose": "Measure fixed closed EURUSD M15, H1, and D1 Demo history without persisting or trading.",
       "approval_required": false
+    },
+    {
+      "id": "m20_demo_trading_session",
+      "purpose": "Capture fixed fresh EURUSD tick and closed M1/M5 Demo data after a bounded local session-lease preflight; it cannot submit a transaction.",
+      "approval_required": false
     }
   ]
 }

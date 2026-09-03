@@ -1,12 +1,27 @@
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import sys
+import types
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
 from forex.t480_dependency import inspect_dependency
 from scripts import t480_adapter
+
+
+def _m20_probe_module(monkeypatch):
+    fake_mt5 = types.SimpleNamespace(TIMEFRAME_M1=1, TIMEFRAME_M5=5)
+    monkeypatch.setitem(sys.modules, "MetaTrader5", fake_mt5)
+    path = t480_adapter.ROOT / "t480" / "m20_demo_trading_session.py"
+    spec = importlib.util.spec_from_file_location("m20_demo_trading_session_test", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_catalog_and_adapter_operations_match():
@@ -98,11 +113,150 @@ def test_requirements_prohibit_trading_and_arbitrary_market_data_access():
     assert "order" in prohibited
 
 
+def test_m20_session_operation_is_fixed_demo_only_fresh_data_capture():
+    command = t480_adapter.OPERATIONS["m20_demo_trading_session"].powershell_command or ""
+    probe = (t480_adapter.ROOT / "t480" / "m20_demo_trading_session.py").read_text(encoding="utf-8")
+    assert "m20_demo_session.local.json" in command
+    assert "m20_demo_trading_session.py" in command
+    assert "m20_postgres_audit_bridge.py" in command
+    assert "Get-FileHash" in command
+    assert "FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256" in command
+    assert "FOREX_M20_CONFIGURATION_FINGERPRINT" in command
+    assert "FOREX_M20_APPLICATION_REVISION" in command
+    assert "GOMarketsMU-Demo" in probe
+    assert "GOMarketsMU-Live" not in probe
+    assert "symbol_info_tick" in probe
+    assert "TIMEFRAME_M1" in probe
+    assert "TIMEFRAME_M5" in probe
+    assert "copy_rates_from_pos" in probe
+    assert "MAX_TICK_AGE_SECONDS = 30" in probe
+    assert "FOREX_M20_DEMO_TRADING_OPERATION_OK" in probe
+    assert '"persist-proposal"' in probe
+    assert '"reconcile"' in probe
+    assert "order_send" not in probe
+    assert "positions_get" not in probe
+    assert t480_adapter.OPERATIONS["m20_demo_trading_session"].approval_required is False
+
+
+def test_m20_runner_builds_the_same_no_trade_shape_accepted_by_the_evidence_contract(monkeypatch):
+    from scripts.m20_demo_evidence_contract import validate_payload
+
+    probe = _m20_probe_module(monkeypatch)
+    observed = datetime(2026, 9, 3, 0, 10, tzinfo=timezone.utc)
+    stamp = lambda value: value.isoformat().replace("+00:00", "Z")
+    session = {
+        "session_id": "06f0cf82-0651-423a-9c08-078dce04db21", "server": "GOMarketsMU-Demo",
+        "instrument": "EURUSD", "starts_at_utc": stamp(observed.replace(minute=0)),
+        "expires_at_utc": stamp(observed + timedelta(minutes=50)), "max_trades": 10,
+        "max_notional_per_trade_usd": 100, "max_cumulative_notional_usd": 1000,
+        "max_open_positions": 1, "strategy_version": probe.STRATEGY_VERSION,
+        "operator_label": probe.OPERATOR_LABEL, "status": "ACTIVE",
+    }
+    def bars(timeframe, minutes, values):
+        return [
+            {"timeframe": timeframe, "opened_at_utc": stamp(observed - timedelta(minutes=minutes * (2 - index))),
+             "closed_at_utc": stamp(observed - timedelta(minutes=minutes * (1 - index))), "close": value}
+            for index, value in enumerate(values)
+        ]
+    # M1 rises while M5 falls, therefore the actual runner's rule abstains.
+    raw_bars = {"M1": bars("M1", 1, (1.1000, 1.1001)), "M5": bars("M5", 5, (1.1002, 1.1001))}
+    tick = {"observed_at_utc": stamp(observed), "freshness_seconds": 2, "bid": 1.1, "ask": 1.1002, "spread_points": 2.0}
+    snapshot, proposal = probe._assessment(session, tick, raw_bars, observed.replace(second=2))
+    digest = "sha256:" + "a" * 64
+    payload = {
+        "configuration_fingerprint": digest, "session": session, "decision_snapshot": snapshot, "proposal": proposal,
+        "execution": {"status": "NOT_SUBMITTED", "attempt_id": None},
+        "reconciliation": {"session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "snapshot_id": snapshot["snapshot_id"], "execution_attempt_id": None, "status": "NO_TRADE_RECONCILED"},
+        "postgres_audit": {"session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "snapshot_id": snapshot["snapshot_id"], "execution_attempt_id": None, "record_sha256": digest},
+    }
+    assert proposal["action"] == "NO_TRADE"
+    validate_payload(payload, digest)
+
+
+def test_m20_audit_bridge_is_fixed_and_fails_closed_without_local_deployment():
+    bridge = (t480_adapter.ROOT / "t480" / "m20_postgres_audit_bridge.py").read_text(encoding="utf-8")
+    assert "FOREX_M20_POSTGRES_DSN" in bridge
+    assert "psycopg.connect" in bridge
+    assert "persist-proposal" in bridge
+    assert "reserve-execution" in bridge
+    assert "record-result" in bridge
+    assert "record-closed-outcome" in bridge
+    assert "reconcile" in bridge
+    assert "pg_advisory_xact_lock" in bridge
+    assert "FOR UPDATE SKIP LOCKED" in bridge
+    assert "SELECT pg_advisory_xact_lock" in bridge
+    assert "GOMarketsMU-Demo" in bridge
+    assert "GOMarketsMU-Live" not in bridge
+    assert "order_send" not in bridge
+    assert "sys.argv[1] if len(sys.argv) == 2" in bridge
+    assert "M20 audit bridge command is not fixed" in bridge
+
+
+def test_m20_reconciliation_requires_both_closed_event_and_outcome():
+    bridge = (t480_adapter.ROOT / "t480" / "m20_postgres_audit_bridge.py").read_text(encoding="utf-8")
+    assert '"CLOSED" in row[4]' in bridge
+    assert 'row[5] is not None' in bridge
+    assert 'row[9] == "MATCHED"' in bridge
+    assert 'else "PENDING"' in bridge
+    assert 'row[1] == "NO_TRADE" and row[3] is None' in bridge
+
+
+def test_m20_session_operation_has_no_caller_supplied_arguments():
+    help_text = t480_adapter.parser().format_help()
+    assert "m20_demo_trading_session" in t480_adapter.OPERATIONS
+    assert "--symbol" not in help_text
+    assert "--server" not in help_text
+    assert "--timeframe" not in help_text
+    assert "--lease" not in help_text
+
+
+def test_m20_session_lease_rejects_missing_audit_or_widened_cap(tmp_path, monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    lease = {
+        "schema_version": "forex.m20.demo-session-lease.v1",
+        "session_id": "06f0cf82-0651-423a-9c08-078dce04db21",
+        "enabled": True,
+        "server": "GOMarketsMU-Demo",
+        "symbol": "EURUSD",
+        "starts_at_utc": "2026-09-03T00:00:00Z",
+        "expires_at_utc": "2026-09-03T01:00:00Z",
+        "maximum_trades": 10,
+        "maximum_duration_minutes": 60,
+        "maximum_open_positions": 1,
+        "maximum_notional_per_trade_usd": 100,
+        "maximum_cumulative_notional_usd": 1000,
+        "audit_prerequisites": {
+            "postgres_audit_schema": "READY",
+            "proposal_persistence": "READY",
+            "idempotency_store": "READY",
+        },
+    }
+    path = tmp_path / "m20_demo_session.local.json"
+    path.write_text(json.dumps(lease), encoding="utf-8")
+    now = datetime(2026, 9, 3, 0, 30, tzinfo=timezone.utc)
+    assert probe.load_session_lease(path, now)["maximum_trades"] == 10
+    lease["maximum_trades"] = 11
+    path.write_text(json.dumps(lease), encoding="utf-8")
+    with pytest.raises(SystemExit, match="outside its fixed cap"):
+        probe.load_session_lease(path, now)
+    lease["maximum_trades"] = 10
+    lease["audit_prerequisites"] = {}
+    path.write_text(json.dumps(lease), encoding="utf-8")
+    with pytest.raises(SystemExit, match="audit prerequisites are absent"):
+        probe.load_session_lease(path, now)
+
+
 def test_shared_core_root_cannot_be_redirected_by_environment(monkeypatch):
     monkeypatch.setenv("CS_AI_LAB_INFRA_ROOT", "/tmp/untrusted-core")
     assert t480_adapter.SHARED_CORE_ROOT == Path(
         t480_adapter.APP_CONFIG["shared_core"]["repository_root"]
     )
+
+
+def test_t480_target_configuration_includes_the_configured_shared_lab_root():
+    assert t480_adapter.SHARED_LAB_TARGET_PATH == Path(
+        t480_adapter.APP_CONFIG["shared_lab_root"]
+    ) / ".env.t480.local"
 
 
 def test_shared_dependency_allows_unrelated_owner_changes_but_rejects_locked_file_drift(tmp_path):

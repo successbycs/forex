@@ -9,6 +9,7 @@ It deliberately has no SQL, URL, host, shell, MT5 or order argument.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import subprocess
@@ -51,13 +52,13 @@ ASSETS = {
     "m18_probe": "scripts/m18_ollama_probe.py",
     "m19_schema": "sql/migrations/005_m19_decision_model_lineage.sql",
     "m19_probe": "scripts/m19_lineage_probe.py",
-    "m20_probe": "scripts/m20_ollama_evaluation_probe.py",
+    "m20_schema": "sql/migrations/006_m20_demo_trading_audit.sql",
     "import": "scripts/build_m2_postgres_import.py",
 }
 M2_SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
 M2_SNAPSHOT_ARTIFACT_SHA256 = "sha256:dc5384732d71091aa2279aaf6d92e8e1780c8021eacde948432ad7bc68fdabaa"
-READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour", "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-lineage-verify", "forex-m20-ollama-evaluation-probe"}
-MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe"}
+READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour", "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-lineage-verify", "forex-m20-audit-verify"}
+MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m20-stage-schema", "forex-m20-apply-schema"}
 
 
 def remote(body: str) -> dict:
@@ -317,14 +318,66 @@ def m19_lineage_verify() -> dict:
     return wrap("forex_m19_lineage_verify", remote(body))
 
 
-def m20_ollama_evaluation_probe() -> dict:
-    """Run the fixed, read-only historical M20 comparison on the T480."""
-    relative, digest = asset("m20_probe")
+def apply_m20_schema() -> dict:
+    """Install only the hash-bound append-only M20 Demo audit schema."""
+    relative, digest = asset("m20_schema")
     body = f'''file="{REMOTE_FOREX}/{relative}"
 test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
-cd "{REMOTE_FOREX}"
-PYTHONPATH=src python3 "$file"'''
-    return wrap("forex_m20_ollama_evaluation_probe", remote(body), digest)
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$file"
+printf 'FOREX_M20_DEMO_AUDIT_SCHEMA_APPLIED sha256:{digest}\\n' '''
+    return wrap("forex_m20_apply_schema", remote(body), digest)
+
+
+def stage_m20_schema() -> dict:
+    """Stage exactly the M20 audit migration in the fixed remote checkout."""
+    relative, digest = asset("m20_schema")
+    source = ROOT / relative
+    source_windows = subprocess.run(["wslpath", "-w", str(source)], text=True, capture_output=True, check=True).stdout.strip()
+    staging_windows = r"C:\Users\chris\Documents\Code\forex-m1-probe\006_m20_demo_trading_audit.sql"
+    quote = lambda value: "'" + value.replace("'", "''") + "'"
+    staging_directory = r"C:\Users\chris\Documents\Code\forex-m1-probe"
+    mkdir = subprocess.run(
+        build_ssh_command(TARGET, "$ErrorActionPreference='Stop'; New-Item -ItemType Directory -Force -Path " + quote(staging_directory) + " | Out-Null", SETTINGS),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if mkdir.returncode:
+        return wrap("forex_m20_stage_schema", {"exit_code": mkdir.returncode, "stdout": mkdir.stdout, "stderr": mkdir.stderr, "ok": False}, digest)
+    command = (
+        "$ErrorActionPreference='Stop'; "
+        f"& scp.exe -B -o BatchMode=yes -o StrictHostKeyChecking=yes -- {quote(source_windows)} {quote(TARGET + ':' + staging_windows)}; "
+        "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+    )
+    encoded = base64.b64encode(command.encode("utf-16-le")).decode("ascii")
+    transfer = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded], text=True, capture_output=True, check=False)
+    if transfer.returncode:
+        return wrap("forex_m20_stage_schema", {"exit_code": transfer.returncode, "stdout": transfer.stdout, "stderr": transfer.stderr, "ok": False}, digest)
+    body = f'''source="/mnt/c/Users/chris/Documents/Code/forex-m1-probe/006_m20_demo_trading_audit.sql"
+file="{REMOTE_FOREX}/{relative}"
+test -f "$source" && [[ "$(sha256sum "$source" | head -c 64)" == "{digest}" ]]
+mkdir -p "$(dirname "$file")"
+install -m 0644 "$source" "$file"
+[[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+printf 'FOREX_M20_DEMO_AUDIT_SCHEMA_STAGED sha256:{digest}\\n' '''
+    return wrap("forex_m20_stage_schema", remote(body), digest)
+
+
+def m20_audit_verify() -> dict:
+    """Read back the fixed M20 audit boundary without exposing table input."""
+    body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 'FOREX_M20_DEMO_AUDIT_VERIFY_OK',
+ (SELECT count(*) FROM forex.demo_trade_session),
+ (SELECT count(*) FROM forex.demo_trade_proposal),
+ (SELECT count(*) FROM forex.demo_decision_snapshot),
+ (SELECT count(*) FROM forex.demo_execution_attempt),
+ (SELECT count(*) FROM forex.demo_position_event),
+ (SELECT count(*) FROM forex.demo_trade_outcome),
+ 'demo_only=' || NOT EXISTS (SELECT 1 FROM forex.demo_trade_session WHERE server <> 'GOMarketsMU-Demo' OR instrument <> 'EURUSD'),
+ 'caps_ok=' || NOT EXISTS (SELECT 1 FROM forex.demo_trade_session WHERE max_trades > 10 OR expires_at_utc > starts_at_utc + interval '60 minutes' OR max_notional_usd > 100 OR max_cumulative_notional_usd > 1000 OR max_open_positions <> 1),
+ 'proposal_first=' || NOT EXISTS (SELECT 1 FROM forex.demo_execution_attempt attempt LEFT JOIN forex.demo_trade_proposal proposal ON proposal.proposal_id=attempt.proposal_id LEFT JOIN forex.demo_decision_snapshot snapshot ON snapshot.proposal_id=proposal.proposal_id WHERE proposal.proposal_id IS NULL OR snapshot.proposal_id IS NULL OR proposal.decision_at_utc > attempt.submitted_at_utc),
+ 'idempotency_ok=' || NOT EXISTS (SELECT idempotency_key FROM forex.demo_execution_attempt GROUP BY idempotency_key HAVING count(*) > 1),
+ 'immutable_triggers=' || ((SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname IN ('demo_trade_proposal_immutable','demo_decision_snapshot_immutable','demo_execution_attempt_immutable','demo_position_event_immutable','demo_trade_outcome_immutable')) = 5);" </dev/null'''
+    return wrap("forex_m20_audit_verify", remote(body))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -334,7 +387,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command in MUTATING and not args.approve:
         parser.error("this mutating operation requires --approve")
-    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-r1-apply-stage-schema": apply_m11_r1_stage_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data, "forex-m11-r1-verify-hour": verify_m11_r1_hour, "forex-m12-quality-probe": m12_quality_probe, "forex-m13-replay-probe": m13_replay_probe, "forex-m14-regime-probe": m14_regime_probe, "forex-m15-baseline-probe": m15_baseline_probe, "forex-m16-walk-forward-probe": m16_walk_forward_probe, "forex-m17-context-probe": m17_context_probe, "forex-m18-ollama-probe": m18_ollama_probe, "forex-m19-apply-schema": apply_m19_schema, "forex-m19-lineage-probe": m19_lineage_probe, "forex-m19-lineage-verify": m19_lineage_verify, "forex-m20-ollama-evaluation-probe": m20_ollama_evaluation_probe}
+    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-r1-apply-stage-schema": apply_m11_r1_stage_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data, "forex-m11-r1-verify-hour": verify_m11_r1_hour, "forex-m12-quality-probe": m12_quality_probe, "forex-m13-replay-probe": m13_replay_probe, "forex-m14-regime-probe": m14_regime_probe, "forex-m15-baseline-probe": m15_baseline_probe, "forex-m16-walk-forward-probe": m16_walk_forward_probe, "forex-m17-context-probe": m17_context_probe, "forex-m18-ollama-probe": m18_ollama_probe, "forex-m19-apply-schema": apply_m19_schema, "forex-m19-lineage-probe": m19_lineage_probe, "forex-m19-lineage-verify": m19_lineage_verify, "forex-m20-stage-schema": stage_m20_schema, "forex-m20-apply-schema": apply_m20_schema, "forex-m20-audit-verify": m20_audit_verify}
     payload = actions[args.command]()
     print(json.dumps(payload, indent=2))
     return 0 if payload["ok"] else 1

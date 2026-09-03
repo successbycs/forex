@@ -13,32 +13,84 @@ M0 is divided into controlled work packages:
 
 Work packages help sequence work but do not create alternative completion claims. Only the parent milestone's `proven_at` is completion.
 
-## Three-phase historical-first roadmap
+## MVP critical path
 
-1. **Phase 1 — historical foundation and deterministic research (M0–M16).** M1 proves the bounded MT5 bridge using 720 closed H1 bars. M2 establishes the initial data contracts and persistence; M3 then hardens the bounded historical MT5 CLI result contract and complete local configuration example before M4–M6 add application integration and wider multi-timeframe history. M7 qualifies sources before adoption; M8–M11 add US macro, Euro-area macro, calendar, and experimental sentiment inputs. M12–M14 normalise, align, and create regimes; M15 adds one explainable offline ML baseline beside deterministic hypotheses; M16 evaluates both using chronological walk-forward comparison with no-change and price-only baselines. Historical data cannot establish a fresh tick, current spread, live-market restart behaviour, or execution.
+M20 is the active MVP milestone. It replaces the former Ollama-evaluation
+critical path with a bounded, Demo-only operational loop. Its work packages
+are ordered to deliver an inspectable learning loop early without introducing
+a generic broker interface:
 
-The M15 ML baseline is intentionally a learning tool: one small classifier, one pre-declared historical target, versioned inputs and parameters, and an advisory-score output for research. It cannot place, approve, or recommend orders. Deep learning, reinforcement learning, online learning, automated retraining, and LLM trade decisions are excluded from the MVP.
+1. **M20.1 — Demo-only fixed adapter and server checks.** Allow only
+   `GOMarketsMU-Demo`, EUR/USD, and fixed operations; fail closed on any other
+   server, symbol, or account surface.
+2. **M20.2 — Fresh data and decision snapshots.** Retain fresh bid/ask/spread
+   plus closed M1 and M5 candles in PostgreSQL with decision-time and source
+   lineage.
+3. **M20.3 — Versioned assessment and proposal audit.** Persist a `BUY`,
+   `SELL`, or `NO_TRADE` assessment, its reasons, and hashes of its inputs
+   before any execution attempt.
+4. **M20.4 — Bounded Demo session executor.** A human-enabled session lease
+   limits the MVP to ten trades in sixty minutes, one open position, USD 100
+   notional per trade, and USD 1,000 cumulative notional. The fixed executor
+   refuses stale data, lease expiry, cap breaches, server mismatch, duplicate
+   proposals, and unknown execution state.
+5. **M20.5 — Monitoring, reconciliation, and proof.** Link each proposal to
+   its execution attempt or `NO_TRADE`, position events, outcome, and
+   PostgreSQL reconciliation; then capture independent evidence and obtain the
+   current Triad-plus-domain recommendation. M20 has no human sign-off or
+   Review Board gate.
+6. **M20.6 — Runner-to-audit remediation.** Ensure the fixed runner emits the
+   same complete persisted proposal, PostgreSQL receipt, and reconciliation
+   shape that the independent evidence verifier accepts. It proves the
+   `NO_TRADE` path first; actionable execution remains a separate M20.4
+   dependency and fails closed until deployed.
 
-## Initial intraday strategy shape
+This is a Demo-only learning loop, not an assertion of profitability. The
+human starts, configures, supervises, and may stop the session.
+`GOMarketsMU-Live` is excluded; credentials and account identifiers stay in
+ignored local files.
 
-The first strategy is intentionally narrow: for a defined EUR/USD session,
-make one assessment at a configured UTC decision time and return `BUY`, `SELL`,
-or `NO_TRADE`. At most one human-approved Demo position may be open for that
-session. It must close at the configured UTC cutoff, or earlier because of a
-predefined risk exit. The eventual M15 score is a 0–100 advisory ranking with
-its inputs, rationale, calibration status, and invalidating conditions; it is
-not an order or approval. Session hours, daylight-saving handling, spread
-limits, loss limits, and economic-event blackout rules are versioned inputs to
-be proven before any Demo execution.
-2. **Phase 2 — offline decision and safety controls (M17–M26).** M17 defines a non-executing agent context; M18 and M20 constrain Ollama to versioned, schema-validated, offline sentiment experiments; M19 preserves decision/model lineage; M21 hardens event quality. M22–M26 add simulated risk, sizing, intent, human approval, and revalidation. A simulated intent is not an order.
-3. **Phase 3 — real-time Demo operational validation (M27–M32).** Once markets are active, M27–M29 prove fresh `GOMarketsMU-Demo` data, tick/spread collection, and recovery safety. M30 is the separately gated human-approved Demo execution and reconciliation proof. M31–M32 evaluate the controlled Demo workflow and forward observations. `GOMarketsMU-Live` remains prohibited, and M32 grants no live-trading authority.
+## Historical foundation and later hardening
 
-M1 is the bounded historical-export proof. The former fresh-tick requirement is deliberately deferred to M27. Source qualification and any paid-provider decision are explicitly deferred to M7; no provider credential is required or permitted before that contract is proven.
+1. **Historical foundation (M0–M19).** M1 proves the bounded MT5 bridge using
+   720 closed H1 bars. M2–M16 build the data, research, provenance, and
+   walk-forward foundations; M17–M19 add bounded context and lineage.
+   Historical data cannot establish a fresh tick, current spread, or order
+   result.
+2. **M20 — bounded automated Demo MVP.** M20 introduces the fresh-data,
+   recorded-assessment, capped-execution, monitoring, and reconciliation loop
+   described above. It is constrained to `GOMarketsMU-Demo` and does not
+   broaden the broker, account, or order interface.
+3. **Later hardening (M21–M32).** M21 improves economic-event quality;
+   M22–M26 add richer deterministic risk, sizing, intent, approval, and
+   revalidation controls. M27–M29 add fresh-data, tick/spread, and recovery
+   hardening; M30–M32 broaden controlled Demo evaluation and forward
+   assessment. `GOMarketsMU-Live` remains prohibited and no later milestone
+   grants real-money authority.
+
+## Initial M20 assessment shape
+
+The first assessment is intentionally narrow: it evaluates a fresh EUR/USD
+M1/M5 snapshot and returns a recorded `BUY`, `SELL`, or `NO_TRADE`. Before
+any execution attempt it must retain the decision timestamp, input hashes,
+reasons, invalidating conditions, and session-lease identity. The assessment
+cannot bypass the fixed executor; only an eligible persisted proposal can be
+actioned, and every M20 cap remains in force.
+
+M1 remains the bounded historical-export proof. Its closed history is useful
+for back-testing but does not prove current prices, spreads, or M20 execution.
+Source qualification and any paid-provider decision remain governed by their
+own contracts; credentials are never placed in tracked configuration.
 
 ## Lean MVP quality checkpoints
 
 Two short reviews prevent accumulated complexity from slowing the MVP without
 creating an enterprise assurance programme:
 
-1. **Mid-build review — after M16 and before M17.** Confirm that historical data lineage and no-lookahead controls are truthful, the user path is understandable, safety limits remain intact, and unused complexity is removed. Include the bounded MQL5 CodeBase reference scan: it may identify ideas to reimplement, but never imports or runs third-party trading code. It does not create a new approval board or grant execution authority.
-2. **Final review — before M32 closeout.** Confirm that the human-operated Demo workflow is safe, observable, and explainable; remove non-essential components and record any live-readiness gaps. It grants no live-trading authority.
+1. **M20 operational review.** Confirm the fixed Demo server boundary,
+   session lease, caps, proposal-before-execution ordering, PostgreSQL audit,
+   reconciliation, and pause/stop controls work on the declared surface.
+2. **Later final review — before M32 closeout.** Confirm the broader Demo
+   workflow is safe, observable, and explainable; remove non-essential
+   components and record any real-money-readiness gaps. It grants no live
+   authority.

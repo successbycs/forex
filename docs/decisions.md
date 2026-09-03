@@ -10,7 +10,7 @@ The reusable T480 transport core belongs to `cs-ai-lab-infra`. Forex owns its fi
 
 ## ADR-003 — Configuration-first with hard safety bounds
 
-Human-changeable non-secret values use YAML. Secrets and machine-local values use environment or ignored local files. Schema and code prevent configuration from enabling live trading, the live server, orders, or agent authority.
+Human-changeable non-secret values use YAML. Secrets and machine-local values use environment or ignored local files. Schema and code prevent configuration from enabling live trading or the live server, and restrict M20 authority to one fixed, session-capped Demo-only EUR/USD path rather than a generic order interface.
 
 ## ADR-004 — Evidence and verification are separate
 
@@ -32,6 +32,7 @@ and network exposure.
 
 The only formal review body is the Review Board: Triad plus Financial Domain
 Expert. It is required at M16, M27, and M32, not for every MVP milestone.
-Routine work closes through tests, the milestone's declared real-world check
-where applicable, and explicit human sign-off. Builder/Reviewer handoff
-machinery and automated reviewer runners are deliberately excluded.
+Routine work closes through tests, the milestone's declared real-world check,
+and only the review gates stated in its contract. M20 requires a current
+Triad-plus-domain recommendation but no human sign-off. Builder/Reviewer
+handoff machinery and automated reviewer runners are deliberately excluded.

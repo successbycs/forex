@@ -4,15 +4,14 @@
 
 ![High-level Forex repository architecture](assets/forex-architecture-overview.png)
 
-## Human-controlled Review Board
+## Completion-review gates
 
-Normal MVP milestones use implementation, tests, one declared external proof
-where needed, and human acceptance. The only formal review body is the Review
-Board: the engineering Triad (Solution Architect, AI Engineer, and Senior
-Software Developer) plus the Financial Domain Expert. It is required at M16,
-M27, and M32—the three phase gates—and may be requested by the human at any
-other time. There is no separate Builder/Reviewer workflow or automated
-reviewer runner.
+Every milestone needs implementation, verification, and the declared
+real-world proof. The active contract then determines review: M16, M27, and
+M32 require the Review Board (Triad plus Financial Domain Expert); M20 needs
+a current Triad-plus-domain `RECOMMEND_COMPLETE` result but has no human
+sign-off gate. Reviewers are read-only and cannot start, approve, or close a
+milestone. There is no separate Builder/Reviewer workflow or automated runner.
 
 ## T480 deployment boundary
 
@@ -134,10 +133,10 @@ components remain planned or subject to their current contract state.
 | Demo historical export, fixed read-only bridge, persistence, multi-timeframe price data | M1–M6 |
 | Source qualification and candidate macro/calendar/sentiment adapters | M7–M11 |
 | Normalisation, provenance, point-in-time alignment, replay, deterministic hypotheses, one explainable offline ML baseline, walk-forward evaluation | M12–M16 |
-| Non-executing context, bounded Ollama assistance, lineage, simulated risk/sizing/intent, approval and revalidation | M17–M26 |
-| Fresh Demo tick, tick/spread collection, recovery safety | M27–M29 |
-| Human-approved Demo execution and reconciliation | M30 |
-| End-to-end comparison, forward Demo evaluation, live-readiness assessment | M31–M32 |
+| Bounded Demo-only data-to-outcome MVP: fresh tick/candles, decision snapshot, recorded assessment, session-capped execution, monitoring and reconciliation | M20 |
+| Event quality, richer risk/sizing/intent/approval/revalidation controls | M21–M26 |
+| Additional fresh-data, tick/spread and recovery hardening | M27–M29 |
+| Broader controlled Demo workflow evaluation and forward assessment | M30–M32 |
 
 The diagram is a maintained overview of the intended ownership and trust
 boundaries. It distinguishes the Forex repository, shared `cs-ai-lab-infra`,
@@ -151,7 +150,11 @@ This is an architecture map, not proof that a shared service or future
 capability is currently deployed. The mutable execution record remains
 `project_state.json`.
 
-The roadmap is historical-first: closed MT5 Demo history supports the data and research layers through M16, offline shadow/risk/approval controls follow through M26, and fresh real-time Demo validation is deferred to M27–M32. Historical bars never substitute for a fresh tick, current spread, or execution proof.
+The roadmap retains its historical foundation through M19. M20 is now the MVP
+critical path: it must prove a fixed `GOMarketsMU-Demo` EUR/USD loop from a
+fresh bid/ask/spread and closed M1/M5 candles to a recorded assessment, a
+bounded Demo result, and PostgreSQL reconciliation. Historical bars never
+substitute for M20's fresh-tick, current-spread, or execution proof.
 
 M17 is the entry boundary for Phase 2. Its context builder accepts only historical EUR/USD bars available at a supplied UTC cutoff and research-only derived features. It excludes future data, account and credential data, MT5 controls, orders and execution fields. The result has no model, network, MT5 or order capability; later M18+ components may consume this bounded context but cannot widen it.
 
@@ -170,18 +173,18 @@ research probabilities plus a model card. M16 tests it chronologically against
 no-change and deterministic baselines. It is not an autonomous strategy, does
 not retrain online, and cannot create, approve, or execute orders.
 
-M20 adds a deliberately small local-Ollama comparison: six fixed chronological
-historical sessions, each using twelve closed bars and strict JSON validation.
-It compares the research-only sentiment label with a two-bar price-only label
-and `NO_TRADE`; invalid model output becomes an abstention. The descriptive
-result is not a signal, edge, recommendation, or execution path.
+M20 deliberately keeps the first assessment narrow: a versioned rule or
+model reads only the persisted point-in-time M1/M5 snapshot and emits `BUY`,
+`SELL`, or `NO_TRADE`, with its rationale and input hashes persisted before an
+execution attempt. The MVP is not a claim of trading edge or profitability.
 
-The initial strategy shape is one EUR/USD intraday session: at a defined UTC
-decision time the research layer returns `BUY`, `SELL`, or `NO_TRADE` with a
-0–100 advisory score. A later Demo workflow may open at most one
-human-approved position and must close it by the configured UTC cutoff or an
-earlier predefined risk exit. The score is evidence for a human decision, not
-an approval or execution instruction.
+M20 may automate a Demo action only through a fixed, fail-closed executor. A
+human first enables a short session lease; the initial contract caps it at ten
+trades in sixty minutes, one open EUR/USD position, USD 100 notional per trade,
+and USD 1,000 cumulative notional. The executor refuses an expired lease,
+server mismatch, missing or duplicate proposal, cap breach, stale data, or
+unknown order state. Every attempt and `NO_TRADE` outcome is retained for
+reconciliation and later back-testing.
 
 Target ownership boundary:
 
@@ -199,7 +202,10 @@ Windows T480
 
 Capabilities are introduced vertically, one milestone at a time. Shared infrastructure is referenced rather than copied. Fixed safety invariants remain in schemas and code, even when related operator settings are visible in configuration.
 
-The hard boundary remains: research only; no live trading, no
-`GOMarketsMU-Live`, and no order surface before M27. Actual Demo execution is
-separately gated at M30. The evidence signature is self-attested integrity,
-not independent execution provenance.
+The hard boundary remains: no `GOMarketsMU-Live`, no real-money order path,
+and no unrestricted MT5 interface. M20 is the sole contracted, fixed
+`GOMarketsMU-Demo` execution path; it is bounded by the session lease and
+audit requirements above. It is not deployed or proven merely because this
+architecture describes it. Broker credentials and machine-local account data
+remain outside the repository and evidence summaries. The evidence signature
+is self-attested integrity, not independent execution provenance.
