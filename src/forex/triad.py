@@ -263,6 +263,9 @@ def validate_review(root: Path, cycle: Path, review_path: Path) -> dict[str, Any
     role = review["role"]
     if role not in policies or role not in request["required_roles"]:
         raise TriadError(f"unexpected reviewer role: {role}")
+    expected_review_path = (cycle / "submissions" / f"{role.lower()}.json").resolve()
+    if review_path.resolve() != expected_review_path:
+        raise TriadError(f"{role}: review must be stored at its role-specific submission path")
     expected_binding = _request_binding(request, request_sha256=sha256_file(cycle / "request.json"))
     for field, expected in expected_binding.items():
         if review["binding"].get(field) != expected:

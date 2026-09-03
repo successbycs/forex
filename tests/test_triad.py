@@ -183,6 +183,15 @@ def test_review_identity_must_match_the_request(tmp_path: Path) -> None:
         assert "milestone identifier" in str(exc)
     else:
         raise AssertionError("mismatched review milestone identifier was accepted")
+    review["milestone_id"] = request["milestone_id"]
+    wrong_path = cycle / "submissions" / "solution_architect.json"
+    wrong_path.write_text(json.dumps(review), encoding="utf-8")
+    try:
+        validate_review(root, cycle, wrong_path)
+    except TriadError as exc:
+        assert "role-specific submission path" in str(exc)
+    else:
+        raise AssertionError("review stored under the wrong role path was accepted")
 
 
 def test_one_failed_role_blocks_completion(tmp_path: Path) -> None:
