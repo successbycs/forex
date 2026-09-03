@@ -16,10 +16,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def listener_status() -> dict[str, Any]:
-    completed = subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / "t480_adapter.py"), "execute", "--operation", "m20_listener_status"],
-        cwd=ROOT, text=True, capture_output=True, check=False,
-    )
+    try:
+        completed = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "t480_adapter.py"), "execute", "--operation", "m20_listener_status"],
+            cwd=ROOT, text=True, capture_output=True, check=False, timeout=8,
+        )
+    except subprocess.TimeoutExpired:
+        return {"state": "UNAVAILABLE", "detail": "T480 listener-status check exceeded eight seconds; dashboard will retry."}
     if completed.returncode:
         return {"state": "UNAVAILABLE", "detail": completed.stderr.strip() or completed.stdout.strip()}
     try:
@@ -39,6 +42,7 @@ def render(status: dict[str, Any]) -> str:
     metrics = result.get("assessment_metrics") or {}
     execution = result.get("execution") or {}
     reconciliation = result.get("reconciliation") or {}
+    strategies = result.get("strategy_assessments") or []
     lines = [
         "M20 Demo Listener — live assessment dashboard",
         "=" * 47,
@@ -59,8 +63,14 @@ def render(status: dict[str, Any]) -> str:
         f"Breakout above / below: {_value(metrics.get('breakout_above_prior_high'))} / {_value(metrics.get('breakout_below_prior_low'))}",
         f"Combined move: {_value(metrics.get('combined_move_points'))} pts   Spread: {_value(metrics.get('spread_points'))} pts   Exceeds spread: {_value(metrics.get('combined_move_exceeds_spread'))}",
         "",
-        "Ctrl+C exits. Data is Demo-only and the dashboard is read-only.",
     ]
+    lines.append("Strategy comparisons (only Momentum breakout can execute)")
+    for strategy in strategies:
+        if not isinstance(strategy, dict):
+            continue
+        eligibility = "ACTIVE" if strategy.get("eligible_for_execution") else "SHADOW"
+        lines.append(f"{_value(strategy.get('label'))}: {_value(strategy.get('signal'))} [{eligibility}] — {_value(strategy.get('reason'))}")
+    lines.extend(["", "Ctrl+C exits. Data is Demo-only and the dashboard is read-only."])
     return "\n".join(lines)
 
 

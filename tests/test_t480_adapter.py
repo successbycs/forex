@@ -145,26 +145,87 @@ def test_m20_session_operation_is_fixed_demo_only_fresh_data_capture():
 def test_m20_listener_status_is_fixed_and_redacted():
     command = t480_adapter.OPERATIONS["m20_listener_status"].powershell_command
     assert "m20_demo_listener_status.local.json" in command
+    assert "C:\\ProgramData\\ForexListener\\state" in command
+    assert "Documents\\Code\\forex-m1-probe\\m20_demo_listener_status" not in command
     assert "m20_demo_listener_service.local.json" not in command
     assert "FOREX_M20_POSTGRES_DSN" not in command
     assert "heartbeat_at_nzst" in command and "next_assessment_at_nzst" in command
+    assert "heartbeat_age_seconds" in command
+    assert "release_id=$s.release_id" in command
+    assert "task_action=$taskAction" in command
+    assert "$age -ge 30" in command
+    assert "state=if ($stale) { 'STALE' }" in command
+    assert "Forex-M20-Demo-Listener" in command
+    assert "RESTART_REQUESTED" in command and "COOLDOWN" in command
+
+
+def test_m20_listener_recovery_is_fixed_to_the_listener_task_only():
+    command = t480_adapter.OPERATIONS["m20_listener_recover"].powershell_command
+    assert "Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener'" in command
+    assert "Stop-ScheduledTask -TaskName 'Forex-M20-Demo-Listener'" in command
+    assert "Start-ScheduledTask -TaskName 'Forex-M20-Demo-Listener'" in command
+    assert "order_send" not in command
+    assert "FOREX_M20_POSTGRES_DSN" not in command
+
+
+def test_m20_demo_lease_activation_is_fixed_bounded_and_secret_free():
+    command = t480_adapter.OPERATIONS["m20_listener_activate_demo_lease"].powershell_command
+    for required in ("GOMarketsMU-Demo", "EURUSD", "9999-12-31T23:59:59Z", "maximum_duration_minutes=0", "maximum_trades=10", "maximum_notional_per_trade_usd=10000", "maximum_cumulative_notional_usd=100000", "maximum_loss_per_trade_aud=100"):
+        assert required in command
+    assert "GOMarketsMU-Live" not in command
+    assert "POSTGRES_DSN" not in command
+
+
+def test_m20_listener_stop_is_fixed_to_the_listener_task_only():
+    command = t480_adapter.OPERATIONS["m20_listener_stop"].powershell_command
+    assert "Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener'" in command
+    assert "Stop-ScheduledTask -TaskName 'Forex-M20-Demo-Listener'" in command
+    assert "Start-ScheduledTask" not in command
+    assert "ProgramData\\ForexListener\\releases" in command
+    assert "m20_demo_listener_service.payload" in command
+    assert "order_send" not in command
 
 
 def test_m20_listener_install_is_hash_checked_and_fixed():
     command = t480_adapter.OPERATIONS["m20_listener_install"].powershell_command
     assert "Forex-M20-Demo-Listener" in command
     assert "Register-ScheduledTask" in command
+    assert "m20_demo_listener_service.local.json" in command
+    assert "m20_demo_listener_service.payload" in command
+    assert "C:\\ProgramData\\ForexListener" in command
+    assert "Export-ScheduledTask" in command
+    assert "M20 deployment rolled back" in command
+    assert "FOREX_M20_POSTGRES_DSN" not in command
+
+
+def test_m20_listener_prepare_verifies_all_payloads_before_activation():
+    command = t480_adapter.OPERATIONS["m20_listener_prepare"].powershell_command
     assert "Get-FileHash" in command
     assert "m20_demo_listener_service.local.json" in command
-    assert "FOREX_M20_POSTGRES_DSN" not in command
+    assert "Register-ScheduledTask" not in command
 
 
 def test_m20_listener_staging_is_split_and_hash_checked():
     first = t480_adapter.OPERATIONS["m20_listener_stage_1"].powershell_command
-    final = t480_adapter.OPERATIONS["m20_listener_stage_5"].powershell_command
+    final = t480_adapter.OPERATIONS["m20_listener_stage_10"].powershell_command
     assert len(first) < 4000 and len(final) < 4000
-    assert "WriteAllText" in first
-    assert "AppendAllText" in final and "Get-FileHash" in final
+    assert "WriteAllBytes" in first
+    assert "Add-Content" in final and "Get-FileHash" in final
+
+
+def test_m20_listener_runner_and_bridge_staging_are_fixed_and_hash_checked():
+    runner_first = t480_adapter.OPERATIONS["m20_listener_runner_stage_1"].powershell_command
+    runner_final = t480_adapter.OPERATIONS["m20_listener_runner_stage_32"].powershell_command
+    bridge_first = t480_adapter.OPERATIONS["m20_listener_bridge_stage_1"].powershell_command
+    bridge_final = t480_adapter.OPERATIONS["m20_listener_bridge_stage_24"].powershell_command
+    for first, final, filename in (
+        (runner_first, runner_final, "m20_demo_trading_session.payload"),
+        (bridge_first, bridge_final, "m20_postgres_audit_bridge.payload"),
+    ):
+        assert "WriteAllBytes" in first
+        assert "Add-Content" in final
+        assert "Get-FileHash" in final
+        assert filename in first and filename in final
 
 
 def test_m20_runner_builds_the_same_no_trade_shape_accepted_by_the_evidence_contract(monkeypatch):
@@ -200,6 +261,27 @@ def test_m20_runner_builds_the_same_no_trade_shape_accepted_by_the_evidence_cont
     }
     assert proposal["action"] == "NO_TRADE"
     validate_payload(payload, digest)
+
+
+def test_m20_shadow_strategy_comparisons_are_closed_candle_only_and_cannot_execute(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    bars = [
+        {"open": 1.10000 + index * .00001, "high": 1.10003 + index * .00001,
+         "low": 1.09998 + index * .00001, "close": 1.10001 + index * .00001}
+        for index in range(12)
+    ]
+    assessments = probe._strategy_assessments(
+        m1=bars,
+        tick={"observed_at_utc": "2026-09-03T09:00:00Z", "spread_points": 8.0},
+        active_action="NO_TRADE",
+    )
+    assert [item["id"] for item in assessments] == [
+        "momentum_breakout", "compression_breakout", "trend_pullback",
+        "range_reversion", "session_breakout",
+    ]
+    assert assessments[0]["eligible_for_execution"] is True
+    assert all(item["eligible_for_execution"] is False for item in assessments[1:])
+    assert all(item["signal"] in {"BUY", "SELL", "NO_TRADE"} for item in assessments)
 
 
 def test_m20_audit_bridge_is_fixed_and_fails_closed_without_local_deployment():

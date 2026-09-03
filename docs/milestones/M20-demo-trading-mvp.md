@@ -65,3 +65,30 @@ It refreshes the T480 listener heartbeat, latest assessment, order outcome,
 and compact candle-check metrics. Listener heartbeat and next-assessment times
 are displayed in both UTC and New Zealand time (`DD/MM/YY HH:MM:SS NZST`).
 Press `Ctrl+C` to exit.
+
+Each assessment also lists all five documented M1 strategies. Momentum
+breakout remains the sole active, order-eligible strategy. Compression
+breakout, trend pullback, range reversion, and session breakout are read-only
+shadow comparisons: they can report `BUY`, `SELL`, or `NO_TRADE` but cannot
+submit an order.
+
+If the T480 status request stalls, the dashboard times it out after eight
+seconds and continues refreshing with an `UNAVAILABLE` state rather than
+freezing the terminal view.
+
+## Current M20 work packages
+
+- **M20.7 — Permanent M1 listener and operator observability:** documents and
+  verifies the T480 Scheduled Task, its ten-second redacted status, and the
+  read-only T16 dashboard. It does not add a trading control surface.
+- **M20.8 — MT5 rejection diagnostics and execution-path remediation:** records
+  broker return codes against immutable execution attempts, reconciles every
+  attempt, and corrects any confirmed Demo execution-path fault before fresh
+  evidence is captured.
+- **M20.9 — Atomic T480 listener deployment:** stages a fixed hash-checked
+  ProgramData release, prepares non-secret local state, atomically switches the
+  Scheduled Task with rollback, and keeps lease, status, recovery, runner, and
+  dashboard paths aligned.
+
+Both packages are within M20. They do not claim M20 completion or authorize
+live trading.

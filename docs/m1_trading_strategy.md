@@ -159,6 +159,24 @@ Only one strategy version may be active in a Demo session.  The strategy
 identifier and every parameter used must be part of each decision snapshot,
 so results cannot be mixed or reinterpreted later.
 
+### MVP shadow-assessment rules
+
+The listener now evaluates every row above on completed M1 candles and shows
+its `BUY`, `SELL`, or `NO_TRADE` conclusion in the terminal. These four rules
+are observation-only hypotheses: they never change the executable proposal.
+
+| Strategy | Fixed M1 comparison rule | Execution status |
+| --- | --- | --- |
+| Momentum breakout | Two aligned candles, close outside the prior five-candle range, combined move greater than spread. | Active; the only strategy allowed to submit a Demo order. |
+| Compression breakout | Momentum-breakout conditions plus a prior five-candle range no wider than `max(12 points, 3 × spread)`. | Shadow only. |
+| Trend pullback | Three closes in one direction, one pullback close, then a resumption close whose two-candle move exceeds spread. | Shadow only. |
+| Range reversion | Latest candle rejects the prior five-candle high or low and its body exceeds spread. | Shadow only. |
+| Session breakout | Momentum-breakout conditions during 07:00–19:59 UTC with spread at or below 12 points. | Shadow only. |
+
+The displayed strategy comparison is a current operator view. The immutable
+M20 proposal and audit record remain bound to the active momentum-breakout
+decision until a later, separately governed strategy-promotion change.
+
 ## How a strategy earns promotion
 
 Run each candidate on the same Demo conditions for at least 100 closed trades

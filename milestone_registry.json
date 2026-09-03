@@ -2472,6 +2472,9 @@
       "to_state": "Capped automated GOMarketsMU-Demo trading MVP proven",
       "scope": [
         "Use an adaptive fixed Demo-only EUR/USD M1 live-price listener that retains no tick stream and captures only the decision tick plus closed M1 candles through a fixed adapter.",
+        "Operate the fixed listener as a permanent T480 Scheduled Task with a redacted heartbeat and a read-only T16 dashboard showing its latest ten-second assessment.",
+        "Publish compact, human-readable candle and spread metrics with each read-only assessment status so a NO_TRADE conclusion is inspectable.",
+        "Compare the five documented M1 strategies on the same closed-candle assessment and display each BUY, SELL, or NO_TRADE result, while allowing only momentum breakout to execute.",
         "Produce and persist an immutable BUY, SELL, or NO_TRADE assessment before any Demo execution, including rationale and hash-bound decision inputs.",
         "Execute only fixed, Demo-only EUR/USD orders within a human-enabled session lease capped at ten trades, sixty minutes, one open position, USD 10,000 notional per trade, and USD 100,000 cumulative notional.",
         "Persist proposal, execution attempt, position events, reconciliation, and outcome in PostgreSQL for backtesting and review.",
@@ -2490,7 +2493,15 @@
       ],
       "expected_artifacts": [
         "docs/milestones/M20-demo-trading-mvp.md",
-        "tests/milestones/test_m20_demo_trading.py"
+        "docs/milestones/M20-mvp-retrospective.md",
+        "docs/m1_trading_strategy.md",
+        "scripts/m20_listener_dashboard.py",
+        "t480/m20_demo_listener_service.py",
+        "scripts/postgres_pgvector_adapter.py",
+        "tests/milestones/test_m20_demo_trading.py",
+        "tests/milestones/test_m20_listener_service.py",
+        "tests/test_m20_listener_dashboard.py",
+        "tests/test_postgres_pgvector_adapter.py"
       ],
       "acceptance_criteria": [
         {
@@ -2608,6 +2619,24 @@
           "title": "Remediate runner-to-audit and evidence-contract alignment",
           "dependencies": [],
           "acceptance_criteria": ["M20-C1", "M20-C2", "M20-C4", "M20-C5"]
+        },
+        {
+          "work_package_id": "M20.7",
+          "title": "Permanent M1 listener and operator observability",
+          "dependencies": ["M20.2", "M20.6"],
+          "acceptance_criteria": ["M20-C1", "M20-C2", "M20-C4"]
+        },
+        {
+          "work_package_id": "M20.8",
+          "title": "MT5 rejection diagnostics and execution-path remediation",
+          "dependencies": ["M20.4", "M20.7"],
+          "acceptance_criteria": ["M20-C2", "M20-C4", "M20-C5"]
+        },
+        {
+          "work_package_id": "M20.9",
+          "title": "Atomic T480 listener deployment remediation",
+          "dependencies": ["M20.7"],
+          "acceptance_criteria": ["M20-C1", "M20-C2", "M20-C4"]
         }
       ]
     },

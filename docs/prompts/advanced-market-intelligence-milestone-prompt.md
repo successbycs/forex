@@ -83,6 +83,7 @@ External GitHub reference policy:
 - `DaruFinance/quant-research-framework` is a reference for walk-forward evaluation, anti-overfitting diagnostics, and no-lookahead invariant tests: https://github.com/DaruFinance/quant-research-framework
 - `QuantJourneyOrg/quantjourney-bt` is a reference for reproducible research packets, execution assumptions, run metadata, and missing-data handling: https://github.com/QuantJourneyOrg/quantjourney-bt
 - `zeta-zetra/forexpy` is a reference only for multi-source FX historical-data handling: https://github.com/zeta-zetra/forexpy
+- `monarchjuno/tradingcodex` is a reference for multi-agent trading-system architecture and workflow ideas only: https://github.com/monarchjuno/tradingcodex
 - Do not copy strategy rules, alpha claims, credentials, or broker/order modules; add generic MT5/download CLIs; use scraping-based economic calendars as governed production sources; or import GPL-licensed MT5 projects without an explicit licensing decision.
 - Treat all external code as untrusted until a source-qualification milestone reviews licence, maintenance, security, dependency risk, provenance, no-lookahead guarantees, and compatibility with repository safety boundaries. Prefer Forex-owned adapters and tests.
 

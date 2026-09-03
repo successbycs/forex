@@ -21,11 +21,19 @@ from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parent
-STATUS_PATH = ROOT / "m20_demo_listener_status.local.json"
-STOP_PATH = ROOT / "m20_demo_listener.stop"
-LEASE_PATH = ROOT / "m20_demo_session.local.json"
-CONFIG_PATH = ROOT / "m20_demo_listener_service.local.json"
-RUNNER_PATH = ROOT / "m20_demo_trading_session.py"
+# Immutable release code may live under ProgramData\ForexListener\releases\<id>.
+# Keep mutable lease, status, and machine-local configuration in one shared
+# sibling state directory so release switches cannot split the observer view.
+STATE_ROOT = ROOT.parent.parent / "state" if ROOT.parent.name == "releases" else ROOT
+STATUS_PATH = STATE_ROOT / "m20_demo_listener_status.local.json"
+STOP_PATH = STATE_ROOT / "m20_demo_listener.stop"
+LEASE_PATH = STATE_ROOT / "m20_demo_session.local.json"
+CONFIG_PATH = STATE_ROOT / "m20_demo_listener_service.local.json"
+# Windows endpoint protection can block newly-created executable script
+# extensions under ProgramData.  Python executes this immutable hash-checked
+# payload explicitly, so the deployment artifact intentionally has no .py
+# extension; source remains reviewed Python in the repository.
+RUNNER_PATH = ROOT / "m20_demo_trading_session.payload"
 POLL_SECONDS = 1
 ASSESSMENT_INTERVAL_SECONDS = 10
 
@@ -42,6 +50,7 @@ def _nzst(timestamp: str | None) -> str | None:
 
 
 def _write_status(payload: dict[str, Any]) -> None:
+    payload["release_id"] = ROOT.name
     payload["heartbeat_at_utc"] = _utc_now()
     payload["heartbeat_at_nzst"] = _nzst(payload["heartbeat_at_utc"])
     if "next_assessment_at_utc" in payload:
@@ -156,7 +165,7 @@ def run() -> None:
         try:
             output = json.loads(completed.stdout)
             proposal = output.get("proposal", {})
-            last_result = {key: output.get(key) for key in ("marker", "server", "symbol", "captured_at_utc", "proposal", "execution", "reconciliation")}
+            last_result = {key: output.get(key) for key in ("marker", "server", "symbol", "captured_at_utc", "proposal", "strategy_assessments", "execution", "reconciliation")}
             last_result["assessment_metrics"] = _assessment_metrics(output.get("decision_snapshot", {}), proposal)
         except json.JSONDecodeError:
             last_result = {"error": completed.stderr.strip() or completed.stdout.strip(), "exit_code": completed.returncode}

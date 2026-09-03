@@ -74,7 +74,32 @@
     },
     {
       "id": "m20_listener_status",
-      "purpose": "Inspect the permanent M20 Demo listener's local heartbeat and most recent assessment without exposing credentials.",
+      "purpose": "Inspect the permanent M20 Demo listener's local heartbeat, report a stale heartbeat, and request a fixed-task recovery without exposing credentials.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_recover",
+      "purpose": "Restart only the fixed permanent M20 Demo listener Scheduled Task; it exposes no shell, credentials, or order interface.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_activate_demo_lease",
+      "purpose": "Create a new continuous GOMarketsMU-Demo EURUSD M1 lease with the governed M20 caps.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stop",
+      "purpose": "Stop only the fixed permanent M20 Demo listener Scheduled Task for a hash-checked deployment.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_repair_permissions",
+      "purpose": "Repair current-user Modify access only for the fixed Forex listener deployment directory.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_prepare",
+      "purpose": "Verify the fixed staged M20 release and atomically prepare its non-secret service configuration.",
       "approval_required": false
     },
     {
@@ -104,7 +129,312 @@
     },
     {
       "id": "m20_listener_stage_5",
-      "purpose": "Stage and verify the final fixed payload segment for the permanent M20 Demo listener.",
+      "purpose": "Stage fixed payload segment five for the permanent M20 Demo listener.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_6",
+      "purpose": "Stage fixed payload segment six for the permanent M20 Demo listener.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_7",
+      "purpose": "Stage fixed payload segment seven for the permanent M20 Demo listener.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_8",
+      "purpose": "Stage fixed payload segment eight for the permanent M20 Demo listener.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_9",
+      "purpose": "Stage fixed payload segment nine for the permanent M20 Demo listener.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_10",
+      "purpose": "Stage and verify final fixed payload segment for the permanent M20 Demo listener.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_1",
+      "purpose": "Stage fixed M20 listener runner payload part one.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_2",
+      "purpose": "Stage fixed M20 listener runner payload part two.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_3",
+      "purpose": "Stage fixed M20 listener runner payload part three.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_4",
+      "purpose": "Stage fixed M20 listener runner payload part four.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_5",
+      "purpose": "Stage fixed M20 listener runner payload part five.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_6",
+      "purpose": "Stage fixed M20 listener runner payload part six.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_7",
+      "purpose": "Stage fixed M20 listener runner payload part seven.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_8",
+      "purpose": "Stage fixed M20 listener runner payload part eight.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_9",
+      "purpose": "Stage fixed M20 listener runner payload part nine.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_10",
+      "purpose": "Stage fixed M20 listener runner payload part ten.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_11",
+      "purpose": "Stage fixed M20 listener runner payload part eleven.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_12",
+      "purpose": "Stage fixed M20 listener runner payload part twelve.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_13",
+      "purpose": "Stage fixed M20 listener runner payload part thirteen.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_14",
+      "purpose": "Stage fixed M20 listener runner payload part fourteen.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_15",
+      "purpose": "Stage fixed M20 listener runner payload part fifteen.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_16",
+      "purpose": "Stage fixed M20 listener runner payload part sixteen.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_17",
+      "purpose": "Stage fixed M20 listener runner payload part seventeen.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_18",
+      "purpose": "Stage fixed M20 listener runner payload part eighteen.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_19",
+      "purpose": "Stage fixed M20 listener runner payload part nineteen.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_20",
+      "purpose": "Stage fixed M20 listener runner payload part twenty.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_21",
+      "purpose": "Stage fixed M20 listener runner payload part twenty-one.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_22",
+      "purpose": "Stage fixed M20 listener runner payload part twenty-two.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_23",
+      "purpose": "Stage fixed M20 listener runner payload part twenty-three.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_24",
+      "purpose": "Stage and verify final fixed M20 listener runner payload part twenty-four.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_25",
+      "purpose": "Stage fixed M20 listener runner payload part twenty-five.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_26",
+      "purpose": "Stage fixed M20 listener runner payload part twenty-six.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_27",
+      "purpose": "Stage fixed M20 listener runner payload part twenty-seven.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_28",
+      "purpose": "Stage fixed M20 listener runner payload part twenty-eight.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_29",
+      "purpose": "Stage fixed M20 listener runner payload part twenty-nine.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_30",
+      "purpose": "Stage fixed M20 listener runner payload part thirty.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_31",
+      "purpose": "Stage fixed M20 listener runner payload part thirty-one.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_32",
+      "purpose": "Stage and verify final fixed M20 listener runner payload part thirty-two.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_1",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part one.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_2",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part two.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_3",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part three.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_4",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part four.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_5",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part five.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_6",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part six.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_7",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part seven.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_8",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part eight.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_9",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part nine.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_10",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part ten.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_11",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part eleven.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_12",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part twelve.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_13",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part thirteen.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_14",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part fourteen.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_15",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part fifteen.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_16",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part sixteen.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_17",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part seventeen.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_18",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part eighteen.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_19",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part nineteen.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_20",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part twenty.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_21",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part twenty-one.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_22",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part twenty-two.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_23",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part twenty-three.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_24",
+      "purpose": "Stage and verify final fixed M20 listener PostgreSQL bridge payload part twenty-four.",
       "approval_required": false
     }
   ]

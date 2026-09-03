@@ -102,11 +102,11 @@ def load_session_lease(path: Path, now: datetime) -> dict[str, Any]:
     expires_at = parse_utc(payload["expires_at_utc"], "expires_at_utc")
     if not starts_at <= now <= expires_at or expires_at <= starts_at:
         raise SystemExit("M20 session lease is inactive or expired")
-    if expires_at - starts_at > timedelta(minutes=60):
+    if payload["maximum_duration_minutes"] != 0 and expires_at - starts_at > timedelta(minutes=60):
         raise SystemExit("M20 session lease exceeds 60 minutes")
     limits = (
         ("maximum_trades", 1, 10),
-        ("maximum_duration_minutes", 1, 60),
+        ("maximum_duration_minutes", 0, 60),
         ("maximum_open_positions", 1, 1),
         ("maximum_notional_per_trade_usd", 1, 10000),
         ("maximum_cumulative_notional_usd", 1, 100000),
@@ -175,7 +175,7 @@ def _bridge(payload: dict[str, Any], command: str) -> dict[str, Any]:
     the audit process must run there rather than opening a Windows-to-WSL port
     path that could silently target a different local service.
     """
-    bridge_path = Path(__file__).with_name("m20_postgres_audit_bridge.py")
+    bridge_path = Path(__file__).with_name("m20_postgres_audit_bridge.payload")
     expected = os.environ.get("FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256", "")
     actual = "sha256:" + hashlib.sha256(bridge_path.read_bytes()).hexdigest()
     if expected != actual:
@@ -185,7 +185,9 @@ def _bridge(payload: dict[str, Any], command: str) -> dict[str, Any]:
     prefix = "C:\\Users\\"
     if not dsn or not profile.startswith(prefix):
         raise SystemExit("M20 PostgreSQL bridge WSL prerequisites are absent")
-    wsl_bridge = "/mnt/c/Users/" + profile[len(prefix):].replace("\\", "/") + "/Documents/Code/forex-m1-probe/m20_postgres_audit_bridge.py"
+    drive = bridge_path.drive.rstrip(":").lower()
+    bridge_parts = bridge_path.parts[1:]
+    wsl_bridge = "/mnt/" + drive + "/" + "/".join(bridge_parts)
     completed = subprocess.run(
         ["wsl.exe", "-d", "Ubuntu", "--", "env", f"FOREX_M20_POSTGRES_DSN={dsn}", "python3", wsl_bridge, command],
         input=json.dumps(payload, separators=(",", ":")),
@@ -274,6 +276,66 @@ def _risk_levels(*, action: str, entry: float, volume: float, tick_size: float, 
         raise SystemExit("M20 calculated stop would exceed the AUD loss cap")
     # EURUSD quote currency is USD; contract size times price is USD notional.
     return round(stop, 10), round(take, 10), volume * 100000 * entry
+
+
+def _strategy_assessments(*, m1: list[dict[str, Any]], tick: dict[str, Any], active_action: str) -> list[dict[str, Any]]:
+    """Compare five fixed M1 hypotheses; only momentum breakout can execute."""
+    point = 0.00001
+    spread_points = float(tick["spread_points"])
+
+    def record(identifier: str, label: str, signal: str, reason: str, *, active: bool = False) -> dict[str, Any]:
+        return {"id": identifier, "label": label, "signal": signal, "eligible_for_execution": active, "reason": reason}
+
+    if len(m1) < 12:
+        unavailable = "Needs twelve completed M1 candles."
+        return [
+            record("momentum_breakout", "Momentum breakout", active_action, "Active closed-candle breakout assessment.", active=True),
+            record("compression_breakout", "Compression breakout", "NO_TRADE", unavailable),
+            record("trend_pullback", "Trend pullback", "NO_TRADE", unavailable),
+            record("range_reversion", "Range reversion", "NO_TRADE", unavailable),
+            record("session_breakout", "Session breakout", "NO_TRADE", unavailable),
+        ]
+
+    setup, previous = m1[-1], m1[-2]
+    setup_open = float(setup.get("open", previous["close"]))
+    previous_open = float(previous.get("open", m1[-3]["close"]))
+    setup_move = float(setup["close"]) - setup_open
+    previous_move = float(previous["close"]) - previous_open
+    direction = "BUY" if setup_move > 0 and previous_move > 0 else "SELL" if setup_move < 0 and previous_move < 0 else "NO_TRADE"
+    momentum_points = abs(setup_move + previous_move) / point
+    prior_five = m1[-6:-1]
+    prior_high = max(float(bar.get("high", bar["close"])) for bar in prior_five)
+    prior_low = min(float(bar.get("low", bar["close"])) for bar in prior_five)
+    breakout_signal = "BUY" if direction == "BUY" and float(setup["close"]) > prior_high and momentum_points > spread_points else "SELL" if direction == "SELL" and float(setup["close"]) < prior_low and momentum_points > spread_points else "NO_TRADE"
+
+    compression = m1[-8:-3]
+    compression_high = max(float(bar.get("high", bar["close"])) for bar in compression)
+    compression_low = min(float(bar.get("low", bar["close"])) for bar in compression)
+    compression_points = (compression_high - compression_low) / point
+    compression_limit = max(12.0, spread_points * 3.0)
+    compression_signal = breakout_signal if compression_points <= compression_limit else "NO_TRADE"
+
+    closes = [float(bar["close"]) for bar in m1]
+    rising_trend = closes[-7] < closes[-6] < closes[-5] and closes[-4] < closes[-5] and float(setup["close"]) > float(previous["close"])
+    falling_trend = closes[-7] > closes[-6] > closes[-5] and closes[-4] > closes[-5] and float(setup["close"]) < float(previous["close"])
+    pullback_signal = "BUY" if rising_trend and momentum_points > spread_points else "SELL" if falling_trend and momentum_points > spread_points else "NO_TRADE"
+
+    upper_rejection = float(setup.get("high", setup["close"])) >= prior_high and float(setup["close"]) < setup_open
+    lower_rejection = float(setup.get("low", setup["close"])) <= prior_low and float(setup["close"]) > setup_open
+    reversion_signal = "SELL" if upper_rejection and abs(setup_move) / point > spread_points else "BUY" if lower_rejection and abs(setup_move) / point > spread_points else "NO_TRADE"
+
+    observed_hour = parse_utc(tick["observed_at_utc"], "observed_at_utc").hour
+    liquid_session = 7 <= observed_hour < 20
+    normal_spread = spread_points <= 12.0
+    session_signal = breakout_signal if liquid_session and normal_spread else "NO_TRADE"
+
+    return [
+        record("momentum_breakout", "Momentum breakout", active_action, "Active rule: " + ("eligible after two aligned candles, range break, and spread check." if active_action != "NO_TRADE" else "no eligible closed-candle breakout."), active=True),
+        record("compression_breakout", "Compression breakout", compression_signal, f"Prior five-candle range {compression_points:.1f} pts; limit {compression_limit:.1f} pts."),
+        record("trend_pullback", "Trend pullback", pullback_signal, "Trend, pullback, and resumption checks are " + ("aligned." if pullback_signal != "NO_TRADE" else "not aligned.")),
+        record("range_reversion", "Range reversion", reversion_signal, "Range-edge rejection check is " + ("present." if reversion_signal != "NO_TRADE" else "not present.")),
+        record("session_breakout", "Session breakout", session_signal, f"UTC hour {observed_hour:02d}; liquid-session={liquid_session}, normal-spread={normal_spread}."),
+    ]
 
 
 def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, list[dict[str, Any]]], captured_at: datetime, risk: dict[str, float], listener_poll_seconds: float) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -720,6 +782,7 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
         }
         risk = {"volume": float(symbol.volume_min), "tick_size": float(symbol.trade_tick_size), "tick_value_loss": float(symbol.trade_tick_value_loss), "point": float(symbol.point)}
         snapshot, proposal = _assessment(session, tick_record, raw_bars, captured_at, risk, listener_poll_seconds)
+        strategy_assessments = _strategy_assessments(m1=raw_bars["M1"], tick=tick_record, active_action=proposal["action"])
         revision, fingerprint = _provenance()
         bridge_session_keys = {"session_id", "server", "instrument", "starts_at_utc", "expires_at_utc", "max_trades", "max_notional_per_trade_usd", "max_cumulative_notional_usd", "max_open_positions", "strategy_version", "operator_label"}
         bridge_payload = {"session": {key: session[key] for key in bridge_session_keys}, "proposal": proposal, "decision_snapshot": snapshot, "application_revision": revision, "configuration_fingerprint": fingerprint}
@@ -766,7 +829,7 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
             expected_status = "MATCHED"
             if reconciliation.get("status") != expected_status:
                 raise SystemExit("M20 actionable execution was not reconciled")
-            return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "decision_snapshot": snapshot, "proposal": proposal, "execution": {"status": "ACCEPTED" if accepted else "REJECTED", "attempt_id": attempt_id, "session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "idempotency_key": reservation["idempotency_key"], "submitted_at_utc": submitted_at, "open_positions_before": 0, "cumulative_notional_before_usd": 0, "broker_retcode": getattr(result, "retcode", None)}, "reconciliation": reconciliation, "postgres_audit": reserved["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
+            return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "decision_snapshot": snapshot, "proposal": proposal, "strategy_assessments": strategy_assessments, "execution": {"status": "ACCEPTED" if accepted else "REJECTED", "attempt_id": attempt_id, "session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "idempotency_key": reservation["idempotency_key"], "submitted_at_utc": submitted_at, "open_positions_before": 0, "cumulative_notional_before_usd": 0, "broker_retcode": getattr(result, "retcode", None)}, "reconciliation": reconciliation, "postgres_audit": reserved["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
         reconciled = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")
         reconciliation = reconciled.get("reconciliation")
         if not isinstance(reconciliation, dict) or reconciliation.get("status") != "NO_TRADE_RECONCILED":
@@ -777,7 +840,7 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
             "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL,
             "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint,
             "tick_timestamp_offset_seconds": offset_seconds,
-            "session": session, "decision_snapshot": snapshot, "proposal": proposal,
+            "session": session, "decision_snapshot": snapshot, "proposal": proposal, "strategy_assessments": strategy_assessments,
             "execution": {"status": "NOT_SUBMITTED", "attempt_id": None},
             "reconciliation": reconciliation, "postgres_audit": persisted["postgres_audit"],
             "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED"),

@@ -6,7 +6,8 @@ live_trading_enabled: false
 maximum_concurrent_positions: 1
 demo_session_limits:
   maximum_trades: 10
-  maximum_duration_minutes: 60
+  # Zero denotes continuous Demo-only authority; Live remains disabled.
+  maximum_duration_minutes: 0
   maximum_open_positions: 1
   maximum_notional_per_trade_usd: 10000
   maximum_cumulative_notional_usd: 100000
