@@ -7,8 +7,12 @@ export PYTHONPATH="$root/src${PYTHONPATH:+:$PYTHONPATH}"
 bundle="${1:-runs/evidence/M20/$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$bundle"
 
-# A clean revision is required before the only broker-facing command below.
-git diff --quiet
+# A clean implementation/configuration revision is required before the only
+# broker-facing command below.  Mutable governance state and append-only run
+# history are deliberately excluded by the milestone store and must not make
+# a valid post-remediation capture impossible.
+material_changes="$(git status --porcelain --untracked-files=all | awk 'substr($0,4) != "project_state.json" && substr($0,4) != "runs/run_history.json"')"
+test -z "$material_changes"
 python3 -m pytest tests/milestones/test_m20_demo_trading.py >"$bundle/tests.txt" 2>&1
 python3 scripts/forex_milestones.py validate >"$bundle/governance.txt" 2>&1
 python3 scripts/validate_config.py --root "$root" --json >"$bundle/configuration.json"
