@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -241,7 +242,19 @@ def validate_payload(payload: dict[str, Any], expected_fingerprint: str | None =
 
 
 def project_fingerprint(root: Path) -> str:
-    output = subprocess.check_output([sys.executable, "scripts/forex_milestones.py", "status", "--json"], cwd=root, text=True)
+    # Evidence recording runs the independent verifier while the governance
+    # process holds its repository lock.  Forward this marker so the read-only
+    # status invocation does not attempt to acquire that same non-reentrant
+    # lock and deadlock the recording operation.
+    environment = dict(os.environ)
+    if environment.get("FOREX_GOVERNANCE_LOCK_HELD") == "1":
+        environment["FOREX_GOVERNANCE_LOCK_HELD"] = "1"
+    output = subprocess.check_output(
+        [sys.executable, "scripts/forex_milestones.py", "status", "--json"],
+        cwd=root,
+        text=True,
+        env=environment,
+    )
     value = json.loads(output)
     return sha256(value.get("configuration_fingerprint"), "current configuration_fingerprint")
 
