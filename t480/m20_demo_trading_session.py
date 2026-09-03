@@ -163,14 +163,25 @@ def _bar_rows(rates: Any, *, timeframe_name: str, seconds: int, cutoff: int, tim
 
 
 def _bridge(payload: dict[str, Any], command: str) -> dict[str, Any]:
-    """Invoke only the co-located, hash-bound PostgreSQL audit bridge."""
+    """Invoke only the co-located, hash-bound bridge in T480 WSL.
+
+    MT5 remains in Windows. PostgreSQL is loopback-bound inside T480 WSL, so
+    the audit process must run there rather than opening a Windows-to-WSL port
+    path that could silently target a different local service.
+    """
     bridge_path = Path(__file__).with_name("m20_postgres_audit_bridge.py")
     expected = os.environ.get("FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256", "")
     actual = "sha256:" + hashlib.sha256(bridge_path.read_bytes()).hexdigest()
     if expected != actual:
         raise SystemExit("M20 PostgreSQL audit bridge is absent or differs from its fixed deployment hash")
+    dsn = os.environ.get("FOREX_M20_POSTGRES_DSN", "")
+    profile = os.environ.get("USERPROFILE", "")
+    prefix = "C:\\Users\\"
+    if not dsn or not profile.startswith(prefix):
+        raise SystemExit("M20 PostgreSQL bridge WSL prerequisites are absent")
+    wsl_bridge = "/mnt/c/Users/" + profile[len(prefix):].replace("\\", "/") + "/Documents/Code/forex-m1-probe/m20_postgres_audit_bridge.py"
     completed = subprocess.run(
-        [sys.executable, str(bridge_path), command],
+        ["wsl.exe", "-d", "Ubuntu", "--", "env", f"FOREX_M20_POSTGRES_DSN={dsn}", "python3", wsl_bridge, command],
         input=json.dumps(payload, separators=(",", ":")),
         text=True,
         capture_output=True,
