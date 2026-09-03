@@ -4,16 +4,18 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
+from datetime import date, datetime
 import json
 from pathlib import Path
 import subprocess
 import sys
 import time
 from typing import Any
+from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
+AUCKLAND = ZoneInfo("Pacific/Auckland")
 
 
 def trade_rows() -> list[dict[str, Any]]:
@@ -95,18 +97,23 @@ def _pnl(row: dict[str, Any]) -> str:
     return f"{float(value):+.2f} {currency}"
 
 
-def _timestamp(value: Any) -> str:
-    """Make ISO timestamps quick to scan while retaining their UTC meaning."""
+def _nz_datetime(value: Any) -> datetime | None:
+    """Parse a ledger timestamp and present it in the operator's local zone."""
     if not value:
-        return "—"
+        return None
     text = str(value)
     try:
         parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
         if parsed.tzinfo is not None:
-            return parsed.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+            return parsed.astimezone(AUCKLAND)
     except ValueError:
         pass
-    return text.replace("T", " ") + " (timezone not recorded)"
+    return None
+
+
+def _nz_time(value: Any) -> str:
+    parsed = _nz_datetime(value)
+    return parsed.strftime("%d/%m %H:%M:%S") if parsed else "—"
 
 
 def _number(value: Any) -> str:
@@ -114,66 +121,63 @@ def _number(value: Any) -> str:
     return str(value) if value not in (None, "") else "—"
 
 
-def _card(row: dict[str, Any], active_attempt_id: str | None) -> list[str]:
-    """Render one attempt as a labelled, terminal-friendly summary card."""
+def _detail(row: dict[str, Any], active_attempt_id: str | None) -> str | None:
+    """Return one short explanatory line below the quick-scan table row."""
     state = _state(row, active_attempt_id)
-    side = _number(row.get("action")).upper()
-    pnl = _pnl(row)
-    lines = [
-        "─" * 78,
-        f"{side}  |  {state}  |  P&L: {pnl}",
-        f"Opened: {_timestamp(row.get('submitted_at_utc'))}    Size: {_number(row.get('volume_lots'))} lots",
-        "Proposed entry: {entry}    Stop loss: {stop_loss}    Take profit: {take_profit}".format(
-            entry=_number(row.get("proposed_entry")),
-            stop_loss=_number(row.get("stop_loss")),
-            take_profit=_number(row.get("take_profit")),
-        ),
-    ]
     if row.get("closed_at_utc"):
-        lines.extend([
-            f"Closed: {_timestamp(row.get('closed_at_utc'))}    Exit price: {_number(row.get('exit_price'))}",
-            f"Close reason: {_number(row.get('close_reason'))}",
-        ])
+        detail = f"Closed {_nz_time(row['closed_at_utc'])} NZST at {_number(row.get('exit_price'))}; {_number(row.get('close_reason'))}"
         if state == "RECONCILIATION ERROR":
             reason = row.get("reconciliation_reason") or "broker outcome is not exactly reconciled"
-            lines.append(f"Outcome check: NOT VERIFIED — {reason}")
+            detail += f" | NOT VERIFIED: {reason}"
+        return detail
     elif state == "MONITORING":
-        lines.append("Now: position is open; the listener is monitoring its protected exit.")
+        return "Open position; listener is monitoring its protected exit."
     elif state == "NEEDS RECONCILIATION":
-        lines.append("Outcome check: waiting for MT5 history to provide a verifiable close and P&L.")
+        return "Waiting for MT5 history to provide a verifiable close and P&L."
     elif state == "REJECTED":
         context = row.get("rejection_context") or {}
         code = context.get("retcode") or "not recorded"
         comment = context.get("broker_comment") or "historical record has no broker message"
-        lines.append(f"Broker response: MT5 {code} — {comment}")
         context_fields = ("requested_price", "observed_bid", "observed_ask", "spread_points")
         if all(context.get(field) not in (None, "") for field in context_fields):
-            lines.append(
-                f"Request: {context['requested_price']}    Market then: bid {context['observed_bid']} / "
-                f"ask {context['observed_ask']}    Spread: {context['spread_points']} pts"
-            )
-        else:
-            lines.append("Broker context: unavailable (legacy record).")
-    return lines
+            return (f"MT5 {code}: {comment}. Request {context['requested_price']}; "
+                    f"bid/ask {context['observed_bid']}/{context['observed_ask']}; spread {context['spread_points']} pts.")
+        return f"MT5 {code}: {comment}. Broker context unavailable (legacy record)."
+    return None
 
 
-def render(rows: list[dict[str, Any]], active_attempt_id: str | None = None) -> str:
+def render(rows: list[dict[str, Any]], active_attempt_id: str | None = None, nz_day: date | None = None) -> str:
     lines = [
         "M20 Demo Trade Ledger — monitoring, closes, and P&L",
         "=" * 58,
-        "Demo-only. This screen is read-only; P&L appears only after MT5 reconciliation.",
+        "Demo-only and read-only. Times use Auckland time (NZST/NZDT); P&L follows MT5 reconciliation.",
         "",
     ]
     if rows and rows[0].get("error"):
         lines.append(f"Ledger: UNAVAILABLE — {rows[0]['error']}")
         return "\n".join(lines)
-    visible = list(reversed(rows[-10:]))
+    nz_day = nz_day or datetime.now(AUCKLAND).date()
+    current_day = [row for row in rows if (_nz_datetime(row.get("submitted_at_utc")) or datetime.min.replace(tzinfo=AUCKLAND)).date() == nz_day]
+    visible = list(reversed(current_day[-10:]))
     if not visible:
-        lines.append("No Demo execution attempts have been recorded yet.")
+        lines.append(f"No Demo execution attempts for {nz_day.strftime('%d/%m/%y')} NZST.")
         return "\n".join(lines)
-    lines.append(f"Latest {len(visible)} attempt{'s' if len(visible) != 1 else ''} — newest first")
+    lines.extend([
+        f"NZ day: {nz_day.strftime('%d/%m/%y')} | {len(visible)} attempt{'s' if len(visible) != 1 else ''} | newest first",
+        "",
+        "NZST time          Side  Status                    Lots  Proposed    SL          TP          P&L",
+        "-----------------  ----  ------------------------  ----  ----------  ----------  ----------  ----------------------",
+    ])
     for row in visible:
-        lines.extend(_card(row, active_attempt_id))
+        lines.append(
+            f"{_nz_time(row.get('submitted_at_utc')):<17}  {_number(row.get('action')).upper():<4}  "
+            f"{_state(row, active_attempt_id):<24}  {_number(row.get('volume_lots')):<4}  "
+            f"{_number(row.get('proposed_entry')):<10}  {_number(row.get('stop_loss')):<10}  "
+            f"{_number(row.get('take_profit')):<10}  {_pnl(row)}"
+        )
+        detail = _detail(row, active_attempt_id)
+        if detail:
+            lines.append(f"  └─ {detail}")
     lines.append("\nCtrl+C exits. Refreshes do not change trades or ledger rows.")
     return "\n".join(lines)
 
