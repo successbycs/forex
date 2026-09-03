@@ -8,7 +8,7 @@ from pathlib import Path
 r,b=Path(sys.argv[1]),Path(sys.argv[2]).resolve(); m=json.loads((b/'manifest.json').read_text())
 assert b.is_relative_to(r/'runs/evidence/M20') and m['milestone_id']=='M20' and not m['dirty_worktree'] and m['git_revision']==subprocess.check_output(['git','rev-parse','HEAD'],cwd=r,text=True).strip()
 assert (datetime.now(timezone.utc)-datetime.fromisoformat(m['captured_at'].replace('Z','+00:00'))).total_seconds()<168*3600
-dependency=m['external_dependencies'][0]; assert dependency['ok'] and dependency['revision_matches'] and dependency['clean_worktree']
+dependency=m['external_dependencies'][0]; assert dependency['ok'] and dependency['clean_worktree'] and dependency['actual_git_revision']==dependency['expected_git_revision']
 for a in m['artifacts']:
  p=b/a['path']; assert p.is_file() and hashlib.sha256(p.read_bytes()).hexdigest()==a['sha256']
 p=json.loads((b/'evaluation-probe.json').read_text()); x=json.loads(p['result']['stdout']); e=x['evaluation']

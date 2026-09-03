@@ -22,6 +22,7 @@ assert all(set(row['invocation_metadata']) == {'input_context_sha256','prompt_sh
 as_utc=lambda value: datetime.fromisoformat(value.replace('Z','+00:00')).astimezone(timezone.utc)
 assert all(as_utc(row['decision_at_utc']) <= as_utc(row['entry_at_utc']) < as_utc(row['exit_at_utc']) for row in evaluation['rows'])
 assert dependency['ok'] and dependency['revision_matches'] and dependency['clean_worktree']
+dependency={key:value for key,value in dependency.items() if key != 'revision_matches'}
 (b/'comparison.json').write_text(json.dumps({'model':value['model_definition_sha256'],'ollama_provenance':provenance,'controls':evaluation['predeclared_controls'],'comparison':evaluation['comparison']},indent=2)+'\n')
 (b/'summary.txt').write_text('FOREX_M20_PROOF_OK\n'); state=json.loads(subprocess.check_output(['python3','scripts/forex_milestones.py','status','--json']))
 artifacts=[{'path':f.name,'sha256':hashlib.sha256(f.read_bytes()).hexdigest()} for f in sorted(b.iterdir()) if f.is_file()]
