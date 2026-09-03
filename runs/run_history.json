@@ -7558,6 +7558,102 @@
         ],
         "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
       }
+    },
+    {
+      "event_id": "E000534",
+      "timestamp": "2026-09-03T02:31:06Z",
+      "milestone_id": "M20",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M20/20260903T022647Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000535",
+      "timestamp": "2026-09-03T02:31:17Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000536",
+      "timestamp": "2026-09-03T02:31:17Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000537",
+      "timestamp": "2026-09-03T02:31:18Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000538",
+      "timestamp": "2026-09-03T02:31:18Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000539",
+      "timestamp": "2026-09-03T02:31:18Z",
+      "milestone_id": "M20",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
+    },
+    {
+      "event_id": "E000540",
+      "timestamp": "2026-09-03T02:31:18Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260903T023118Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T023118Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260903T023118Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T023118Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
     }
   ]
 }
