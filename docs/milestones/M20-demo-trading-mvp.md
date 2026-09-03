@@ -3,7 +3,7 @@
 ## Purpose
 
 M20 replaces the deferred Ollama evaluation closeout with the MVP operational
-loop: fresh `GOMarketsMU-Demo` EUR/USD data, a recorded M1/M5 assessment, a
+loop: fresh `GOMarketsMU-Demo` EUR/USD data, an adaptive M1-only live-listener assessment, a
 bounded Demo-session order, and durable reconciliation data for later
 backtesting. It never permits `GOMarketsMU-Live`.
 
@@ -25,10 +25,12 @@ variable.
 
 ## Data and decision record
 
-Every proposal stores a hash-addressed snapshot of the current bid, ask,
-spread, and closed M1/M5 candles. The deterministic MVP assessment returns
-`BUY`, `SELL`, or `NO_TRADE`: agreement between closed M1 and M5 momentum is
-actionable; a conflict is a recorded abstention. The first goal is an
+The listener keeps its incoming MT5 tick observations only in memory and sets
+its next poll cadence from observed terminal refreshes. Every resulting
+proposal stores one hash-addressed decision snapshot of the current bid, ask,
+spread, and closed M1 candles; it deliberately retains no listener stream or
+M5 candles. The deterministic MVP assessment returns `BUY`, `SELL`, or
+`NO_TRADE` from closed M1 momentum. The first goal is an
 inspectable operational loop, not a profitability claim.
 
 ## PostgreSQL audit boundary

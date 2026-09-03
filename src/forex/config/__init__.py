@@ -183,7 +183,6 @@ def _enforce_safety(values: dict[str, dict[str, Any]]) -> None:
     expected_context = [
         "fresh_tick",
         "closed_m1_candles",
-        "closed_m5_candles",
         "research_features",
         "demo_session_limits",
     ]
@@ -200,7 +199,7 @@ def _enforce_safety(values: dict[str, dict[str, Any]]) -> None:
     if agent["mode"] != "DEMO_SESSION_CONTEXT":
         failures.append("M20 agent context must remain DEMO_SESSION_CONTEXT")
     if agent["allowed_context_sections"] != expected_context:
-        failures.append("M20 agent context must contain only fixed fresh tick, closed M1/M5, feature, and session-limit fields")
+        failures.append("M20 agent context must contain only fixed fresh tick, closed M1, feature, and session-limit fields")
     if agent["forbidden_context_sections"] != expected_forbidden:
         failures.append("M20 agent context must structurally exclude future, account, credential, generic MT5, shell, order, and execution fields")
     if (

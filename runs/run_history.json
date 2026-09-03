@@ -7920,6 +7920,261 @@
         ],
         "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
       }
+    },
+    {
+      "event_id": "E000553",
+      "timestamp": "2026-09-03T07:49:11Z",
+      "milestone_id": "M20",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M20/20260903T074856Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000554",
+      "timestamp": "2026-09-03T07:49:11Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000555",
+      "timestamp": "2026-09-03T07:49:11Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000556",
+      "timestamp": "2026-09-03T07:49:11Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000557",
+      "timestamp": "2026-09-03T07:49:12Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000558",
+      "timestamp": "2026-09-03T07:49:12Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C5",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000559",
+      "timestamp": "2026-09-03T07:49:12Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M20.6"
+      }
+    },
+    {
+      "event_id": "E000560",
+      "timestamp": "2026-09-03T07:50:02Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M20.1"
+      }
+    },
+    {
+      "event_id": "E000561",
+      "timestamp": "2026-09-03T07:50:03Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_STARTED",
+      "detail": {
+        "work_package_id": "M20.2"
+      }
+    },
+    {
+      "event_id": "E000562",
+      "timestamp": "2026-09-03T07:50:03Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M20.2"
+      }
+    },
+    {
+      "event_id": "E000563",
+      "timestamp": "2026-09-03T07:50:03Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_STARTED",
+      "detail": {
+        "work_package_id": "M20.3"
+      }
+    },
+    {
+      "event_id": "E000564",
+      "timestamp": "2026-09-03T07:50:03Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M20.3"
+      }
+    },
+    {
+      "event_id": "E000565",
+      "timestamp": "2026-09-03T07:50:00Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_STARTED",
+      "detail": {
+        "work_package_id": "M20.4"
+      }
+    },
+    {
+      "event_id": "E000566",
+      "timestamp": "2026-09-03T07:50:01Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M20.4"
+      }
+    },
+    {
+      "event_id": "E000567",
+      "timestamp": "2026-09-03T07:50:01Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_STARTED",
+      "detail": {
+        "work_package_id": "M20.5"
+      }
+    },
+    {
+      "event_id": "E000568",
+      "timestamp": "2026-09-03T07:50:01Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260903T075001Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T075001Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260903T075001Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T075001Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000569",
+      "timestamp": "2026-09-03T07:52:00Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260903T075200Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T075200Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260903T075200Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T075200Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000570",
+      "timestamp": "2026-09-03T07:54:11Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C3",
+        "result": "FAIL"
+      }
+    },
+    {
+      "event_id": "E000571",
+      "timestamp": "2026-09-03T07:54:11Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C4",
+        "result": "FAIL"
+      }
+    },
+    {
+      "event_id": "E000572",
+      "timestamp": "2026-09-03T07:54:11Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C5",
+        "result": "FAIL"
+      }
+    },
+    {
+      "event_id": "E000573",
+      "timestamp": "2026-09-03T07:54:11Z",
+      "milestone_id": "M20",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "IN_PROGRESS",
+        "to": "NEEDS_FIX",
+        "reason": "Independent M20 reviews identified proof-binding, hard-loss sizing, and accepted-order lifecycle reconciliation defects; remediate and recapture before completion."
+      }
     }
   ]
 }

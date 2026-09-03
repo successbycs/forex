@@ -54,12 +54,13 @@ ASSETS = {
     "m19_probe": "scripts/m19_lineage_probe.py",
     "m20_schema": "sql/migrations/006_m20_demo_trading_audit.sql",
     "m20_ledger_schema": "sql/migrations/008_m20_account_currency_pnl.sql",
+    "m20_cost_ledger_schema": "sql/migrations/009_m20_trade_cost_ledger.sql",
     "import": "scripts/build_m2_postgres_import.py",
 }
 M2_SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
 M2_SNAPSHOT_ARTIFACT_SHA256 = "sha256:dc5384732d71091aa2279aaf6d92e8e1780c8021eacde948432ad7bc68fdabaa"
 READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour", "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-lineage-verify", "forex-m20-audit-verify"}
-MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema"}
+MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema", "forex-m20-stage-cost-ledger-schema", "forex-m20-apply-cost-ledger-schema"}
 
 
 def remote(body: str) -> dict:
@@ -412,6 +413,54 @@ printf 'FOREX_M20_ACCOUNT_CURRENCY_LEDGER_APPLIED sha256:{digest}\\n' '''
     return wrap("forex_m20_apply_ledger_schema", remote(body), digest)
 
 
+def stage_m20_cost_ledger_schema() -> dict:
+    """Stage exactly the M20 trade-cost ledger migration on T480."""
+    relative, digest = asset("m20_cost_ledger_schema")
+    source_windows = subprocess.run(
+        ["wslpath", "-w", str(ROOT / relative)], text=True, capture_output=True, check=True
+    ).stdout.strip()
+    staging_directory = r"C:\Users\chris\Documents\Code\forex-m1-probe"
+    staging_windows = staging_directory + r"\009_m20_trade_cost_ledger.sql"
+    quote = lambda value: "'" + value.replace("'", "''") + "'"
+    mkdir = subprocess.run(
+        build_ssh_command(
+            TARGET,
+            "$ErrorActionPreference='Stop'; New-Item -ItemType Directory -Force -Path "
+            + quote(staging_directory) + " | Out-Null",
+            SETTINGS,
+        ), text=True, capture_output=True, check=False,
+    )
+    if mkdir.returncode:
+        return wrap("forex_m20_stage_cost_ledger_schema", {"exit_code": mkdir.returncode, "stdout": mkdir.stdout, "stderr": mkdir.stderr, "ok": False}, digest)
+    command = (
+        "$ErrorActionPreference='Stop'; "
+        f"& scp.exe -B -o BatchMode=yes -o StrictHostKeyChecking=yes -- {quote(source_windows)} {quote(TARGET + ':' + staging_windows)}; "
+        "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+    )
+    encoded = base64.b64encode(command.encode("utf-16-le")).decode("ascii")
+    transfer = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded], text=True, capture_output=True, check=False)
+    if transfer.returncode:
+        return wrap("forex_m20_stage_cost_ledger_schema", {"exit_code": transfer.returncode, "stdout": transfer.stdout, "stderr": transfer.stderr, "ok": False}, digest)
+    body = f'''source="/mnt/c/Users/chris/Documents/Code/forex-m1-probe/009_m20_trade_cost_ledger.sql"
+file="{REMOTE_FOREX}/{relative}"
+test -f "$source" && [[ "$(sha256sum "$source" | head -c 64)" == "{digest}" ]]
+mkdir -p "$(dirname "$file")"
+install -m 0644 "$source" "$file"
+[[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+printf 'FOREX_M20_TRADE_COST_LEDGER_STAGED sha256:{digest}\\n' '''
+    return wrap("forex_m20_stage_cost_ledger_schema", remote(body), digest)
+
+
+def apply_m20_cost_ledger_schema() -> dict:
+    """Apply only the hash-bound M20 trade-cost ledger migration."""
+    relative, digest = asset("m20_cost_ledger_schema")
+    body = f'''file="{REMOTE_FOREX}/{relative}"
+test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$file"
+printf 'FOREX_M20_TRADE_COST_LEDGER_APPLIED sha256:{digest}\\n' '''
+    return wrap("forex_m20_apply_cost_ledger_schema", remote(body), digest)
+
+
 def m20_audit_verify() -> dict:
     """Read back the fixed M20 audit boundary without exposing table input."""
     body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 'FOREX_M20_DEMO_AUDIT_VERIFY_OK',
@@ -426,7 +475,15 @@ def m20_audit_verify() -> dict:
  'proposal_first=' || NOT EXISTS (SELECT 1 FROM forex.demo_execution_attempt attempt LEFT JOIN forex.demo_trade_proposal proposal ON proposal.proposal_id=attempt.proposal_id LEFT JOIN forex.demo_decision_snapshot snapshot ON snapshot.proposal_id=proposal.proposal_id WHERE proposal.proposal_id IS NULL OR snapshot.proposal_id IS NULL OR proposal.decision_at_utc > attempt.submitted_at_utc),
  'idempotency_ok=' || NOT EXISTS (SELECT idempotency_key FROM forex.demo_execution_attempt GROUP BY idempotency_key HAVING count(*) > 1),
  'immutable_triggers=' || ((SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname IN ('demo_trade_proposal_immutable','demo_decision_snapshot_immutable','demo_execution_attempt_immutable','demo_position_event_immutable','demo_trade_outcome_immutable')) = 5);" </dev/null'''
-    return wrap("forex_m20_audit_verify", remote(body))
+    audit = remote(body)
+    cost = remote('''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 'cost_schema=' || (SELECT count(*)=6 FROM information_schema.columns WHERE table_schema='forex' AND table_name='demo_trade_outcome' AND column_name IN ('gross_price_pnl_account','commission_account','swap_account','estimated_spread_cost_account','slippage_cost_account','estimated_total_cost_account')) || '|cost_rows_complete=' || NOT EXISTS (SELECT 1 FROM forex.demo_trade_outcome WHERE gross_price_pnl_account IS NOT NULL AND (commission_account IS NULL OR swap_account IS NULL OR estimated_spread_cost_account IS NULL OR slippage_cost_account IS NULL OR estimated_total_cost_account IS NULL));" </dev/null''')
+    combined = {
+        "exit_code": 0 if audit["ok"] and cost["ok"] else 1,
+        "stdout": audit["stdout"].rstrip() + ("|" if audit["stdout"].strip() and cost["stdout"].strip() else "") + cost["stdout"],
+        "stderr": audit["stderr"] + cost["stderr"],
+        "ok": audit["ok"] and cost["ok"],
+    }
+    return wrap("forex_m20_audit_verify", combined)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -436,7 +493,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command in MUTATING and not args.approve:
         parser.error("this mutating operation requires --approve")
-    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-r1-apply-stage-schema": apply_m11_r1_stage_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data, "forex-m11-r1-verify-hour": verify_m11_r1_hour, "forex-m12-quality-probe": m12_quality_probe, "forex-m13-replay-probe": m13_replay_probe, "forex-m14-regime-probe": m14_regime_probe, "forex-m15-baseline-probe": m15_baseline_probe, "forex-m16-walk-forward-probe": m16_walk_forward_probe, "forex-m17-context-probe": m17_context_probe, "forex-m18-ollama-probe": m18_ollama_probe, "forex-m19-apply-schema": apply_m19_schema, "forex-m19-lineage-probe": m19_lineage_probe, "forex-m19-lineage-verify": m19_lineage_verify, "forex-m20-stage-schema": stage_m20_schema, "forex-m20-apply-schema": apply_m20_schema, "forex-m20-stage-ledger-schema": stage_m20_ledger_schema, "forex-m20-apply-ledger-schema": apply_m20_ledger_schema, "forex-m20-audit-verify": m20_audit_verify}
+    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-r1-apply-stage-schema": apply_m11_r1_stage_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data, "forex-m11-r1-verify-hour": verify_m11_r1_hour, "forex-m12-quality-probe": m12_quality_probe, "forex-m13-replay-probe": m13_replay_probe, "forex-m14-regime-probe": m14_regime_probe, "forex-m15-baseline-probe": m15_baseline_probe, "forex-m16-walk-forward-probe": m16_walk_forward_probe, "forex-m17-context-probe": m17_context_probe, "forex-m18-ollama-probe": m18_ollama_probe, "forex-m19-apply-schema": apply_m19_schema, "forex-m19-lineage-probe": m19_lineage_probe, "forex-m19-lineage-verify": m19_lineage_verify, "forex-m20-stage-schema": stage_m20_schema, "forex-m20-apply-schema": apply_m20_schema, "forex-m20-stage-ledger-schema": stage_m20_ledger_schema, "forex-m20-apply-ledger-schema": apply_m20_ledger_schema, "forex-m20-stage-cost-ledger-schema": stage_m20_cost_ledger_schema, "forex-m20-apply-cost-ledger-schema": apply_m20_cost_ledger_schema, "forex-m20-audit-verify": m20_audit_verify}
     payload = actions[args.command]()
     print(json.dumps(payload, indent=2))
     return 0 if payload["ok"] else 1

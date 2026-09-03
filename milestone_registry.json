@@ -2471,7 +2471,7 @@
       "from_state": "The milestone capability is not yet proven.",
       "to_state": "Capped automated GOMarketsMU-Demo trading MVP proven",
       "scope": [
-        "Capture fresh Demo-only EUR/USD bid, ask, spread, and closed M1 and M5 candles through a fixed adapter.",
+        "Use an adaptive fixed Demo-only EUR/USD M1 live-price listener that retains no tick stream and captures only the decision tick plus closed M1 candles through a fixed adapter.",
         "Produce and persist an immutable BUY, SELL, or NO_TRADE assessment before any Demo execution, including rationale and hash-bound decision inputs.",
         "Execute only fixed, Demo-only EUR/USD orders within a human-enabled session lease capped at ten trades, sixty minutes, one open position, USD 10,000 notional per trade, and USD 100,000 cumulative notional.",
         "Persist proposal, execution attempt, position events, reconciliation, and outcome in PostgreSQL for backtesting and review.",
@@ -2495,7 +2495,7 @@
       "acceptance_criteria": [
         {
           "id": "M20-C1",
-          "description": "The fixed capability captures fresh GOMarketsMU-Demo EUR/USD tick data and closed M1/M5 candles, produces a recorded assessment, and executes only a bounded Demo-session order or NO_TRADE outcome.",
+          "description": "The fixed capability listens to fresh GOMarketsMU-Demo EUR/USD ticks at an MT5-refresh-derived cadence, retains no tick stream, captures closed M1 candles for its recorded assessment, and executes only a bounded Demo-session order or NO_TRADE outcome.",
           "kind": "CAPABILITY"
         },
         {
@@ -2581,7 +2581,7 @@
         },
         {
           "work_package_id": "M20.2",
-          "title": "Fresh tick and M1/M5 decision snapshot persistence",
+          "title": "Adaptive M1 live-listener decision snapshot persistence",
           "dependencies": ["M20.1"],
           "acceptance_criteria": ["M20-C1", "M20-C3", "M20-C5"]
         },

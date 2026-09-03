@@ -61,7 +61,7 @@ def operation_payload(now: datetime) -> dict:
             "spread_points": 2,
             "freshness_seconds": 2,
             "m1_closed_bars": bars("M1", 1),
-            "m5_closed_bars": bars("M5", 5),
+            "m5_closed_bars": [],
             "payload_sha256": digest,
         },
         "proposal": {
@@ -70,12 +70,12 @@ def operation_payload(now: datetime) -> dict:
             "snapshot_id": "snapshot-1",
             "decision_snapshot_sha256": digest,
             "action": "NO_TRADE",
-            "selected_timeframe": "M5",
+            "selected_timeframe": "M1",
             "decision_at_utc": stamp(now),
             "expires_at_utc": stamp(now + timedelta(minutes=5)),
             "notional_usd": None,
             "confidence": 100,
-            "rationale": "M1 and M5 conflict, so no order is sent.",
+            "rationale": "M1 momentum is flat, so no order is sent.",
         },
         "execution": {"status": "NOT_SUBMITTED", "attempt_id": None},
         "reconciliation": {

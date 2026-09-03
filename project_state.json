@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "NEEDS_FIX",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -40,7 +40,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-03T07:41:36Z",
+  "last_updated_at": "2026-09-03T07:54:11Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2659,39 +2659,45 @@
       "blockers": []
     },
     "M20": {
-      "status": "IN_PROGRESS",
+      "status": "NEEDS_FIX",
       "started_at": "2026-09-03T06:19:52Z",
       "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
+      "verification_passed_at": "2026-09-03T07:52:00Z",
+      "real_world_proof_captured_at": "2026-09-03T07:49:02.979885Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
       "checks": {
         "M20-C1": {
-          "result": "FAIL",
-          "recorded_at": "2026-09-03T06:13:34Z",
-          "evidence": null,
-          "note": "Invalidated by E000542: the retained Ollama historical-evaluation result does not establish the new fresh Demo data, assessment, and bounded execution capability."
+          "result": "PASS",
+          "recorded_at": "2026-09-03T07:49:11Z",
+          "evidence": "runs/evidence/M20/20260903T074856Z/manifest.json",
+          "note": "Verified fresh bounded Demo-only operation recorded a fresh assessment and reconciled terminal outcome."
         },
         "M20-C2": {
-          "result": "FAIL",
-          "recorded_at": "2026-09-03T06:13:34Z",
-          "evidence": null,
-          "note": "Invalidated by E000542: the former M20 verification commands and artifacts are not the new Demo-trading contract verification."
+          "result": "PASS",
+          "recorded_at": "2026-09-03T07:49:11Z",
+          "evidence": "runs/evidence/M20/20260903T074856Z/manifest.json",
+          "note": "Milestone tests, governance validation, and independent evidence verifier passed."
         },
         "M20-C3": {
           "result": "FAIL",
-          "recorded_at": "2026-09-03T06:13:34Z",
-          "evidence": null,
-          "note": "Invalidated by E000542: the retained evidence is for a different real-world surface and cannot prove the bounded Demo session."
+          "recorded_at": "2026-09-03T07:54:11Z",
+          "evidence": "runs/evidence/M20/20260903T074856Z/manifest.json",
+          "note": "Independent review found the evidence verifier does not require configuration.json fingerprint equality with the manifest binding."
         },
         "M20-C4": {
           "result": "FAIL",
-          "recorded_at": "2026-09-03T06:13:34Z",
-          "evidence": null,
-          "note": "Invalidated by E000542: no current proof covers the new Demo server, session cap, proposal, idempotency, and audit boundaries."
+          "recorded_at": "2026-09-03T07:54:11Z",
+          "evidence": "runs/evidence/M20/20260903T074856Z/manifest.json",
+          "note": "Independent review found non-conservative loss sizing can exceed the AUD 100 hard cap and the governed cap documentation is inconsistent."
+        },
+        "M20-C5": {
+          "result": "FAIL",
+          "recorded_at": "2026-09-03T07:54:11Z",
+          "evidence": "runs/evidence/M20/20260903T074856Z/manifest.json",
+          "note": "Independent review found accepted Demo orders are not monitored to a CLOSED event and immutable P&L outcome before reconciliation."
         }
       },
       "evidence": [
@@ -2730,41 +2736,88 @@
           "configuration_fingerprint": "sha256:74f5d7ced11c92e63f741675e95a1bb65b733d316512c775469b1317f5504da4",
           "git_revision": "195cd477796be3c6a7e5b4a93050416d2e28ed92",
           "summary": "FOREX_M20_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M20/20260903T074856Z/manifest.json",
+          "manifest_sha256": "cfd14154456f701316f14f366a04fdca2b028d6e21e72b155c7dc882e542d547",
+          "captured_at": "2026-09-03T07:49:02.979885Z",
+          "recorded_at": "2026-09-03T07:49:11Z",
+          "configuration_fingerprint": "sha256:7fd175cf9a6821b79d916bca41fef0f616baa39ec37cf46f0fe8e0a50faf140e",
+          "git_revision": "c3567c94b3a99cd4465f349d08c47cbfc7c69345",
+          "summary": "FOREX_M20_DEMO_TRADING_PROOF_OK"
         }
       ],
-      "verification": null,
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-03T07:52:00Z",
+        "git_revision": "c3567c94b3a99cd4465f349d08c47cbfc7c69345",
+        "configuration_fingerprint": "sha256:7fd175cf9a6821b79d916bca41fef0f616baa39ec37cf46f0fe8e0a50faf140e",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260903T075200Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T075200Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260903T075200Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T075200Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
       "human_signoff": null,
-      "blockers": [],
+      "blockers": [
+        {
+          "reason": "Independent M20 reviews identified proof-binding, hard-loss sizing, and accepted-order lifecycle reconciliation defects; remediate and recapture before completion.",
+          "recorded_at": "2026-09-03T07:54:11Z"
+        }
+      ],
       "work_packages": {
         "M20.1": {
-          "status": "IN_PROGRESS",
+          "status": "VERIFIED",
           "started_at": "2026-09-03T06:19:52Z",
-          "verified_at": null
+          "verified_at": "2026-09-03T07:50:02Z"
         },
         "M20.2": {
-          "status": "PLANNED",
-          "started_at": null,
-          "verified_at": null
+          "status": "VERIFIED",
+          "started_at": "2026-09-03T07:50:03Z",
+          "verified_at": "2026-09-03T07:50:03Z"
         },
         "M20.3": {
-          "status": "PLANNED",
-          "started_at": null,
-          "verified_at": null
+          "status": "VERIFIED",
+          "started_at": "2026-09-03T07:50:03Z",
+          "verified_at": "2026-09-03T07:50:03Z"
         },
         "M20.4": {
-          "status": "PLANNED",
-          "started_at": null,
-          "verified_at": null
+          "status": "VERIFIED",
+          "started_at": "2026-09-03T07:50:00Z",
+          "verified_at": "2026-09-03T07:50:01Z"
         },
         "M20.5": {
-          "status": "PLANNED",
-          "started_at": null,
+          "status": "IN_PROGRESS",
+          "started_at": "2026-09-03T07:50:01Z",
           "verified_at": null
         },
         "M20.6": {
-          "status": "IN_PROGRESS",
+          "status": "VERIFIED",
           "started_at": "2026-09-03T06:52:47Z",
-          "verified_at": null
+          "verified_at": "2026-09-03T07:49:12Z"
         }
       }
     },

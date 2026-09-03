@@ -3,7 +3,6 @@ mode: DEMO_SESSION_CONTEXT
 allowed_context_sections:
   - fresh_tick
   - closed_m1_candles
-  - closed_m5_candles
   - research_features
   - demo_session_limits
 forbidden_context_sections:

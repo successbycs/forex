@@ -156,7 +156,7 @@ def validate_snapshot(payload: dict[str, Any], session: dict[str, Any]) -> dict[
     require(isinstance(spread, (int, float)) and spread >= 0, "snapshot spread is invalid")
     require(snapshot.get("freshness_seconds") == int((captured - observed).total_seconds()), "snapshot freshness_seconds is inconsistent")
     validate_bars(snapshot.get("m1_closed_bars"), "M1", observed)
-    validate_bars(snapshot.get("m5_closed_bars"), "M5", observed)
+    require(snapshot.get("m5_closed_bars") == [], "M1-only listener must not retain M5 candles")
     sha256(snapshot.get("payload_sha256"), "decision_snapshot.payload_sha256")
     return snapshot
 
@@ -169,7 +169,7 @@ def validate_proposal(payload: dict[str, Any], session: dict[str, Any], snapshot
     require(proposal.get("decision_snapshot_sha256") == snapshot["payload_sha256"], "proposal snapshot digest does not match")
     action = proposal.get("action")
     require(action in {"BUY", "SELL", "NO_TRADE"}, "proposal action is invalid")
-    require(proposal.get("selected_timeframe") in {"M1", "M5"}, "proposal selected timeframe is invalid")
+    require(proposal.get("selected_timeframe") == "M1", "proposal selected timeframe is invalid")
     decision_at = utc(proposal.get("decision_at_utc"), "proposal.decision_at_utc")
     expires = utc(proposal.get("expires_at_utc"), "proposal.expires_at_utc")
     observed = utc(snapshot["observed_at_utc"], "decision_snapshot.observed_at_utc")

@@ -23,6 +23,8 @@ def test_m20_postgres_adapter_exposes_only_fixed_schema_and_audit_verification_o
     assert "forex-m20-apply-schema" in postgres_pgvector_adapter.MUTATING
     assert "forex-m20-audit-verify" in postgres_pgvector_adapter.READ_ONLY
     assert "m20_schema" in postgres_pgvector_adapter.ASSETS
+    assert "m20_cost_ledger_schema" in postgres_pgvector_adapter.ASSETS
+    assert "forex-m20-apply-cost-ledger-schema" in postgres_pgvector_adapter.MUTATING
     assert "m20_probe" not in postgres_pgvector_adapter.ASSETS
 
 
@@ -34,3 +36,15 @@ def test_m20_trade_ledger_is_a_read_only_profit_and_loss_projection():
     assert "cumulative_pnl_recorded" in ledger
     assert "GOMarketsMU-Live" not in ledger
     assert "realized_pnl_account" in ledger
+
+
+def test_m20_cost_ledger_keeps_recorded_costs_separate_from_broker_pnl():
+    ledger = (ROOT / "sql/migrations/009_m20_trade_cost_ledger.sql").read_text()
+    for required in (
+        "gross_price_pnl_account", "commission_account", "swap_account",
+        "estimated_spread_cost_account", "slippage_cost_account",
+        "estimated_total_cost_account", "cost_attribution_status",
+        "cumulative_estimated_cost_recorded",
+    ):
+        assert required in ledger
+    assert "GOMarketsMU-Live" not in ledger

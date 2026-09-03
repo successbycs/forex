@@ -49,7 +49,6 @@ def test_all_initial_configuration_loads_as_typed_models() -> None:
     assert configuration.agent.allowed_context_sections == (
         "fresh_tick",
         "closed_m1_candles",
-        "closed_m5_candles",
         "research_features",
         "demo_session_limits",
     )

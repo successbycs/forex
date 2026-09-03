@@ -177,23 +177,62 @@ def record_result(payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "recorded_event_id": result["event_id"]}
 
 
+def record_open_position(payload: dict[str, Any]) -> dict[str, Any]:
+    """Persist the one observed broker position for restart-safe monitoring."""
+    state = _object(payload, "state")
+    required = {"proposal_id", "attempt_id", "position_ticket", "action", "opened_at_utc", "observed_at_utc", "entry_price", "stop_loss", "take_profit"}
+    if (set(state) != required or state["action"] not in {"BUY", "SELL"}
+            or not isinstance(state["position_ticket"], int) or state["position_ticket"] <= 0
+            or not all(isinstance(state[field], (int, float)) and state[field] > 0 for field in ("entry_price", "stop_loss", "take_profit"))):
+        raise SystemExit("M20 open position state is invalid")
+    with _connection() as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT proposal_id FROM forex.demo_execution_attempt WHERE attempt_id=%s FOR UPDATE", (state["attempt_id"],))
+        attempt = cursor.fetchone()
+        if attempt is None or attempt[0] != state["proposal_id"]:
+            raise SystemExit("M20 open position state does not match its reserved attempt")
+        cursor.execute("INSERT INTO forex.demo_open_position_state (proposal_id,attempt_id,position_ticket,action,opened_at_utc,observed_at_utc,entry_price,stop_loss,take_profit,status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'OPEN')", tuple(state[field] for field in ("proposal_id", "attempt_id", "position_ticket", "action", "opened_at_utc", "observed_at_utc", "entry_price", "stop_loss", "take_profit")))
+    return {"ok": True, "proposal_id": state["proposal_id"], "position_ticket": state["position_ticket"]}
+
+
+def update_open_position(payload: dict[str, Any]) -> dict[str, Any]:
+    """Record a broker-side SL/TP modification and refresh current state."""
+    result = _object(payload, "result")
+    state = _object(payload, "state")
+    result_required = {"event_id", "attempt_id", "event_type", "observed_at_utc", "broker_order_reference", "payload_sha256", "payload"}
+    state_required = {"proposal_id", "position_ticket", "observed_at_utc", "stop_loss", "take_profit", "break_even_applied"}
+    if (set(result) != result_required or result["event_type"] != "UPDATED" or not isinstance(result["payload"], dict)
+            or set(state) != state_required or not isinstance(state["position_ticket"], int) or state["position_ticket"] <= 0
+            or not isinstance(state["break_even_applied"], bool)
+            or not all(isinstance(state[field], (int, float)) and state[field] > 0 for field in ("stop_loss", "take_profit"))):
+        raise SystemExit("M20 open position update is invalid")
+    with _connection() as conn, conn.cursor() as cursor:
+        cursor.execute("UPDATE forex.demo_open_position_state SET observed_at_utc=%s,stop_loss=%s,take_profit=%s,break_even_applied=%s,status='MONITORING',updated_at_utc=now() WHERE proposal_id=%s AND attempt_id=%s AND position_ticket=%s", (state["observed_at_utc"], state["stop_loss"], state["take_profit"], state["break_even_applied"], state["proposal_id"], result["attempt_id"], state["position_ticket"]))
+        if cursor.rowcount != 1:
+            raise SystemExit("M20 open position update does not match durable state")
+        cursor.execute("INSERT INTO forex.demo_position_event (event_id,attempt_id,event_type,observed_at_utc,payload_sha256,payload) VALUES (%s,%s,'UPDATED',%s,%s,%s::jsonb)", (result["event_id"], result["attempt_id"], result["observed_at_utc"], result["payload_sha256"], json.dumps({"broker_order_reference": result["broker_order_reference"], **result["payload"]})))
+    return {"ok": True, "recorded_event_id": result["event_id"]}
+
+
 def record_closed_outcome(payload: dict[str, Any]) -> dict[str, Any]:
     """Append a CLOSED lifecycle event and its immutable realized outcome."""
     result = _object(payload, "result")
     outcome = _object(payload, "outcome")
     result_required = {"event_id", "attempt_id", "event_type", "observed_at_utc", "broker_order_reference", "payload_sha256", "payload"}
-    outcome_required = {"proposal_id", "closed_at_utc", "exit_price", "realized_pnl_account", "account_currency", "close_reason", "reconciliation_status"}
+    outcome_required = {"proposal_id", "closed_at_utc", "exit_price", "gross_price_pnl_account", "commission_account", "swap_account", "estimated_spread_cost_account", "slippage_cost_account", "estimated_total_cost_account", "realized_pnl_account", "account_currency", "close_reason", "reconciliation_status"}
     if (set(result) != result_required or result["event_type"] != "CLOSED" or not isinstance(result["payload"], dict)
             or set(outcome) != outcome_required or outcome["reconciliation_status"] != "MATCHED"
-            or outcome["account_currency"] != "AUD" or not isinstance(outcome["realized_pnl_account"], (int, float))):
+            or outcome["account_currency"] != "AUD"
+            or not all(isinstance(outcome[field], (int, float)) for field in ("gross_price_pnl_account", "commission_account", "swap_account", "estimated_spread_cost_account", "slippage_cost_account", "estimated_total_cost_account", "realized_pnl_account"))
+            or outcome["estimated_spread_cost_account"] < 0):
         raise SystemExit("M20 closed lifecycle outcome is invalid")
     with _connection() as conn, conn.cursor() as cursor:
         cursor.execute("SELECT proposal_id FROM forex.demo_execution_attempt WHERE attempt_id=%s FOR UPDATE", (result["attempt_id"],))
         attempt = cursor.fetchone()
         if attempt is None or attempt[0] != outcome["proposal_id"]:
             raise SystemExit("M20 closed outcome does not match its reserved attempt")
+        cursor.execute("DELETE FROM forex.demo_open_position_state WHERE proposal_id=%s AND attempt_id=%s", (outcome["proposal_id"], result["attempt_id"]))
         cursor.execute("INSERT INTO forex.demo_position_event (event_id,attempt_id,event_type,observed_at_utc,payload_sha256,payload) VALUES (%s,%s,'CLOSED',%s,%s,%s::jsonb)", (result["event_id"], result["attempt_id"], result["observed_at_utc"], result["payload_sha256"], json.dumps({"broker_order_reference": result["broker_order_reference"], **result["payload"]})))
-        cursor.execute("INSERT INTO forex.demo_trade_outcome (proposal_id,closed_at_utc,exit_price,realized_pnl_account,account_currency,close_reason,reconciliation_status) VALUES (%s,%s,%s,%s,%s,%s,'MATCHED')", (outcome["proposal_id"], outcome["closed_at_utc"], outcome["exit_price"], outcome["realized_pnl_account"], outcome["account_currency"], outcome["close_reason"]))
+        cursor.execute("INSERT INTO forex.demo_trade_outcome (proposal_id,closed_at_utc,exit_price,gross_price_pnl_account,commission_account,swap_account,estimated_spread_cost_account,slippage_cost_account,estimated_total_cost_account,realized_pnl_account,account_currency,close_reason,reconciliation_status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'MATCHED')", (outcome["proposal_id"], outcome["closed_at_utc"], outcome["exit_price"], outcome["gross_price_pnl_account"], outcome["commission_account"], outcome["swap_account"], outcome["estimated_spread_cost_account"], outcome["slippage_cost_account"], outcome["estimated_total_cost_account"], outcome["realized_pnl_account"], outcome["account_currency"], outcome["close_reason"]))
     return {"ok": True, "recorded_event_id": result["event_id"], "proposal_id": outcome["proposal_id"]}
 
 
@@ -203,22 +242,25 @@ def reconcile(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(proposal_id, str) or not proposal_id:
         raise SystemExit("M20 reconciliation proposal id is invalid")
     with _connection() as conn, conn.cursor() as cursor:
-        cursor.execute("SELECT p.session_id,p.action,s.snapshot_id,a.attempt_id,COALESCE(array_agg(e.event_type) FILTER (WHERE e.event_id IS NOT NULL), ARRAY[]::text[]),o.closed_at_utc,o.exit_price,o.realized_pnl_account,o.account_currency,o.close_reason,o.reconciliation_status FROM forex.demo_trade_proposal p JOIN forex.demo_decision_snapshot s ON s.proposal_id=p.proposal_id LEFT JOIN forex.demo_execution_attempt a ON a.proposal_id=p.proposal_id LEFT JOIN forex.demo_position_event e ON e.attempt_id=a.attempt_id LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=p.proposal_id WHERE p.proposal_id=%s GROUP BY p.session_id,p.action,s.snapshot_id,a.attempt_id,o.closed_at_utc,o.exit_price,o.realized_pnl_account,o.account_currency,o.close_reason,o.reconciliation_status", (proposal_id,))
+        cursor.execute("SELECT p.session_id,p.action,s.snapshot_id,a.attempt_id,COALESCE(array_agg(e.event_type) FILTER (WHERE e.event_id IS NOT NULL), ARRAY[]::text[]),o.closed_at_utc,o.exit_price,o.realized_pnl_account,o.account_currency,o.close_reason,o.reconciliation_status,o.gross_price_pnl_account,o.commission_account,o.swap_account,o.estimated_spread_cost_account,o.slippage_cost_account,o.estimated_total_cost_account,state.position_ticket,state.entry_price,state.stop_loss,state.take_profit,state.break_even_applied FROM forex.demo_trade_proposal p JOIN forex.demo_decision_snapshot s ON s.proposal_id=p.proposal_id LEFT JOIN forex.demo_execution_attempt a ON a.proposal_id=p.proposal_id LEFT JOIN forex.demo_position_event e ON e.attempt_id=a.attempt_id LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=p.proposal_id LEFT JOIN forex.demo_open_position_state state ON state.proposal_id=p.proposal_id WHERE p.proposal_id=%s GROUP BY p.session_id,p.action,s.snapshot_id,a.attempt_id,o.closed_at_utc,o.exit_price,o.realized_pnl_account,o.account_currency,o.close_reason,o.reconciliation_status,o.gross_price_pnl_account,o.commission_account,o.swap_account,o.estimated_spread_cost_account,o.slippage_cost_account,o.estimated_total_cost_account,state.position_ticket,state.entry_price,state.stop_loss,state.take_profit,state.break_even_applied", (proposal_id,))
         row = cursor.fetchone()
         if row is None:
             raise SystemExit("M20 reconciliation proposal is absent")
     closed_and_outcome = row[3] is not None and "CLOSED" in row[4] and row[5] is not None and row[10] == "MATCHED"
     terminal_rejection = row[3] is not None and ("REJECTED" in row[4] or "FAILED" in row[4])
-    status = "NO_TRADE_RECONCILED" if row[1] == "NO_TRADE" and row[3] is None else ("MATCHED" if closed_and_outcome or terminal_rejection else "PENDING")
+    open_reconciled = row[3] is not None and "OPENED" in row[4] and row[17] is not None and not closed_and_outcome
+    status = "NO_TRADE_RECONCILED" if row[1] == "NO_TRADE" and row[3] is None else ("MATCHED" if closed_and_outcome or terminal_rejection else ("OPEN_RECONCILED" if open_reconciled else "PENDING"))
     reconciliation = {"session_id": row[0], "proposal_id": proposal_id, "snapshot_id": row[2], "execution_attempt_id": row[3], "status": status}
     if closed_and_outcome:
-        reconciliation["outcome"] = {"proposal_id": proposal_id, "closed_at_utc": row[5].astimezone(timezone.utc).isoformat().replace("+00:00", "Z"), "exit_price": float(row[6]), "realized_pnl_account": float(row[7]), "account_currency": row[8], "close_reason": row[9]}
+        reconciliation["outcome"] = {"proposal_id": proposal_id, "closed_at_utc": row[5].astimezone(timezone.utc).isoformat().replace("+00:00", "Z"), "exit_price": float(row[6]), "realized_pnl_account": float(row[7]), "account_currency": row[8], "close_reason": row[9], "costs": {"gross_price_pnl_account": float(row[11]), "commission_account": float(row[12]), "swap_account": float(row[13]), "estimated_spread_cost_account": float(row[14]), "slippage_cost_account": float(row[15]), "estimated_total_cost_account": float(row[16])}}
+    elif open_reconciled:
+        reconciliation["position"] = {"position_ticket": int(row[17]), "entry_price": float(row[18]), "stop_loss": float(row[19]), "take_profit": float(row[20]), "break_even_applied": bool(row[21])}
     return {"ok": True, "reconciliation": reconciliation}
 
 
 def main() -> int:
     command = sys.argv[1] if len(sys.argv) == 2 else ""
-    actions = {"persist-proposal": persist_proposal, "reserve-execution": reserve_execution, "record-result": record_result, "record-closed-outcome": record_closed_outcome, "reconcile": reconcile}
+    actions = {"persist-proposal": persist_proposal, "reserve-execution": reserve_execution, "record-result": record_result, "record-open-position": record_open_position, "update-open-position": update_open_position, "record-closed-outcome": record_closed_outcome, "reconcile": reconcile}
     if command not in actions:
         raise SystemExit("M20 audit bridge command is not fixed")
     print(json.dumps(actions[command](_payload()), separators=(",", ":")))
