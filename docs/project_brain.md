@@ -1,6 +1,6 @@
 # Project brain
 
-Forex is a learning-first EUR/USD research project. Its active M20 MVP is a bounded autonomous Demo-only loop—not a live-trading capability: it assesses fresh EUR/USD M1/M5 data, records a proposal and reason, may act only inside a capped Demo session, then reconciles the result. `NO TRADE`, `WAIT`, `INSUFFICIENT DATA`, and `NO SUFFICIENT EDGE HAS BEEN DEMONSTRATED` are valid results.
+Forex is a learning-first EUR/USD research project. Its active M20 MVP is a bounded autonomous Demo-only loop—not a live-trading capability: a permanent T480 listener assesses fresh EUR/USD M1 data every ten seconds, records a proposal, candle metrics, and reason, may act only inside a capped Demo session, then reconciles the result. `NO TRADE`, `WAIT`, `INSUFFICIENT DATA`, and `NO SUFFICIENT EDGE HAS BEEN DEMONSTRATED` are valid results.
 
 The approximately USD 300 monthly figure is an aspiration for research comparison only. It is not a quota, acceptance criterion, sizing input, or profitability claim. Capital preservation, data integrity, safety, reproducibility, and explainability precede return.
 

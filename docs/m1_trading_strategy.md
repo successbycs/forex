@@ -58,6 +58,19 @@ following are true:
 proposal is persisted before an order can be sent and expires promptly if the
 market has moved on.
 
+### Plain-English assessment table
+
+| What the listener checks | What it means in normal language | `BUY` needs | `SELL` needs | If it fails |
+| --- | --- | --- | --- | --- |
+| Two candles point the same way | The last two completed one-minute candles agree on direction. | Both closed higher than they opened. | Both closed lower than they opened. | `NO_TRADE` — momentum is mixed. |
+| Breakout of the recent range | The latest close has escaped the range made by the five candles before it. | Closes above the prior five-candle high. | Closes below the prior five-candle low. | `NO_TRADE` — price is still inside the range. |
+| Movement pays for spread | The combined move of the two candles is larger than the immediate bid/ask cost. | Upward combined move exceeds spread. | Downward combined move exceeds spread. | `NO_TRADE` — expected move is too small. |
+| Fresh, tradeable market | The quote is current and the bounded Demo session can safely act. | Fresh ask, active lease, no open EUR/USD position. | Fresh bid, active lease, no open EUR/USD position. | `NO_TRADE` — operating condition is not safe. |
+| Enough room for target | There is enough space before nearby support/resistance to justify the risk. | At least 1.25R above entry. | At least 1.25R below entry. | `NO_TRADE` — reward is too small. |
+
+The live dashboard labels each row as a pass or fail using `Direction`,
+`Breakout above / below`, and `Exceeds spread`.
+
 ### Stop loss and take profit
 
 For a buy, the technical stop is just below the lowest low of the recent
@@ -134,13 +147,13 @@ The visual patterns are filters for a trade proposal, not guarantees that a
 trade should be placed.  Every one still needs the same spread, session-cap,
 one-position, stop-loss, take-profit, and post-cost validation rules.
 
-| Priority | Strategy | Entry idea | Exit emphasis |
+| Test order | Strategy | Simple entry idea | Simple exit idea |
 | --- | --- | --- | --- |
-| 1 | Closed-candle momentum breakout | Two aligned M1 candles and a five-candle range break | 1.5R target; two-candle reversal or ten-minute time stop |
-| 2 | Volatility-compression breakout | Break from a short, unusually narrow M1 range with expanding movement | Opposite side of the compression range |
-| 3 | Trend pullback | Resume a clearly rising or falling short M1 trend after a pullback | Stop beyond the pullback swing |
-| 4 | Range mean reversion | Rejection at a validated M1 range boundary while volatility is quiet | Range midpoint; invalidation outside range |
-| 5 | Session/liquidity breakout | Short-range break during a defined liquid trading window with normal spread | Range failure or a fixed R target |
+| 1 — current | Momentum breakout | Two one-minute candles agree, then price closes outside the recent five-minute range. | Aim for 1.5 times the risk; exit if two candles reverse or after ten minutes. |
+| 2 — next | Compression breakout | Price has been unusually quiet, then starts moving strongly out of that small range. | Stop on the far side of the quiet range. |
+| 3 — next | Trend pullback | A short trend pauses, then resumes in its original direction. | Stop beyond the pullback low/high. |
+| 4 — next | Range reversion | Price rejects the top or bottom of a well-defined quiet range. | Take profit near the middle; stop outside the range. |
+| 5 — next | Session breakout | A small range breaks during a liquid market period when spread is normal. | Exit if price returns inside the range or at the planned R target. |
 
 Only one strategy version may be active in a Demo session.  The strategy
 identifier and every parameter used must be part of each decision snapshot,

@@ -142,6 +142,31 @@ def test_m20_session_operation_is_fixed_demo_only_fresh_data_capture():
     assert t480_adapter.OPERATIONS["m20_demo_trading_session"].approval_required is False
 
 
+def test_m20_listener_status_is_fixed_and_redacted():
+    command = t480_adapter.OPERATIONS["m20_listener_status"].powershell_command
+    assert "m20_demo_listener_status.local.json" in command
+    assert "m20_demo_listener_service.local.json" not in command
+    assert "FOREX_M20_POSTGRES_DSN" not in command
+    assert "heartbeat_at_nzst" in command and "next_assessment_at_nzst" in command
+
+
+def test_m20_listener_install_is_hash_checked_and_fixed():
+    command = t480_adapter.OPERATIONS["m20_listener_install"].powershell_command
+    assert "Forex-M20-Demo-Listener" in command
+    assert "Register-ScheduledTask" in command
+    assert "Get-FileHash" in command
+    assert "m20_demo_listener_service.local.json" in command
+    assert "FOREX_M20_POSTGRES_DSN" not in command
+
+
+def test_m20_listener_staging_is_split_and_hash_checked():
+    first = t480_adapter.OPERATIONS["m20_listener_stage_1"].powershell_command
+    final = t480_adapter.OPERATIONS["m20_listener_stage_5"].powershell_command
+    assert len(first) < 4000 and len(final) < 4000
+    assert "WriteAllText" in first
+    assert "AppendAllText" in final and "Get-FileHash" in final
+
+
 def test_m20_runner_builds_the_same_no_trade_shape_accepted_by_the_evidence_contract(monkeypatch):
     from scripts.m20_demo_evidence_contract import validate_payload
 

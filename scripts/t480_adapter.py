@@ -11,6 +11,8 @@ snapshot and contains no transaction capability.
 from __future__ import annotations
 
 import argparse
+import base64
+import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -196,6 +198,60 @@ def _m20_demo_trading_session_command() -> str:
     )
 
 
+def _m20_listener_status_command() -> str:
+    """Return a redacted heartbeat from the fixed permanent M20 supervisor."""
+    return (
+        "$ErrorActionPreference='Stop'; "
+        "$p=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\m20_demo_listener_status.local.json'; "
+        "if (!(Test-Path -LiteralPath $p)) { [pscustomobject]@{running=$false;state='NOT_STARTED';detail='No listener heartbeat exists.'}|ConvertTo-Json -Compress; exit 0 }; "
+        "$s=gc -Raw -LiteralPath $p|ConvertFrom-Json; "
+        "[pscustomobject]@{running=($s.state -eq 'RUNNING');state=$s.state;heartbeat_at_utc=$s.heartbeat_at_utc;heartbeat_at_nzst=$s.heartbeat_at_nzst;iteration=$s.iteration;next_assessment_at_utc=$s.next_assessment_at_utc;next_assessment_at_nzst=$s.next_assessment_at_nzst;detail=$s.detail;last_result=$s.last_result}|ConvertTo-Json -Compress -Depth 8"
+    )
+
+
+def _m20_listener_install_command() -> str:
+    """Deploy only the committed fixed listener supervisor and Scheduled Task."""
+    service = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
+    service_digest = hashlib.sha256(service).hexdigest()
+    runner_digest = hashlib.sha256((ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()).hexdigest()
+    bridge_digest = hashlib.sha256((ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()).hexdigest()
+    fingerprint = project_configuration_fingerprint()
+    tick_offset_seconds = load_configuration(ROOT, environ={}).mt5.broker_tick_time_offset_seconds
+    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    return (
+        "$ErrorActionPreference='Stop'; "
+        "$root=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe'; "
+        "$s=gc -Raw (Join-Path $root 'mt5.local.json')|ConvertFrom-Json; "
+        "$runner=Join-Path $root 'm20_demo_trading_session.py'; $bridge=Join-Path $root 'm20_postgres_audit_bridge.py'; $service=Join-Path $root 'm20_demo_listener_service_runtime.py'; "
+        "if ((Get-FileHash -LiteralPath $runner -Algorithm SHA256).Hash.ToLower() -ne '" + runner_digest + "') { throw 'M20 listener runner hash does not match fixed source' }; "
+        "if ((Get-FileHash -LiteralPath $bridge -Algorithm SHA256).Hash.ToLower() -ne '" + bridge_digest + "') { throw 'M20 listener bridge hash does not match fixed source' }; "
+        "if ((Get-FileHash -LiteralPath $service -Algorithm SHA256).Hash.ToLower() -ne '" + service_digest + "') { throw 'M20 listener service staging hash failed' }; "
+        "$c=[ordered]@{FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "';FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(tick_offset_seconds) + "';FOREX_M20_APPLICATION_REVISION='" + revision + "';python_path=$s.python_path;terminal_path=$s.terminal_path}; "
+        "[IO.File]::WriteAllText((Join-Path $root 'm20_demo_listener_service.local.json'),($c|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false))); "
+        "$task='Forex-M20-Demo-Listener'; if (Get-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue) { Stop-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue }; $action=New-ScheduledTaskAction -Execute $s.python_path -Argument ('\"'+$service+'\"'); $trigger=New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME; "
+        "Register-ScheduledTask -TaskName $task -Action $action -Trigger $trigger -RunLevel Highest -Force | Out-Null; Start-ScheduledTask -TaskName $task; Start-Sleep -Seconds 3; "
+        "[pscustomobject]@{installed=$true;task=$task;service_sha256='sha256:" + service_digest + "'}|ConvertTo-Json -Compress"
+    )
+
+
+def _m20_listener_stage_command(index: int) -> str:
+    """Transfer a bounded immutable source segment through the fixed adapter."""
+    source = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
+    encoded = base64.b64encode(source).decode("ascii")
+    chunk_size = ((len(encoded) + 19) // 20) * 4
+    chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
+    if index not in range(1, len(chunks) + 1):
+        raise ValueError("M20 listener stage index is invalid")
+    chunk = chunks[index - 1]
+    if index == 1:
+        write = "[IO.File]::WriteAllText($service,[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + chunk + "')),(New-Object Text.UTF8Encoding($false)));"
+    else:
+        write = "[IO.File]::AppendAllText($service,[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + chunk + "')),(New-Object Text.UTF8Encoding($false)));"
+    if index == len(chunks):
+        write += " if ((Get-FileHash -LiteralPath $service -Algorithm SHA256).Hash.ToLower() -ne '" + hashlib.sha256(source).hexdigest() + "') { throw 'M20 listener staged source hash failed' };"
+    return "$ErrorActionPreference='Stop'; $root=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe'; $service=Join-Path $root 'm20_demo_listener_service_runtime.py'; " + write + " [pscustomobject]@{stage=" + str(index) + ";ok=$true}|ConvertTo-Json -Compress"
+
+
 OPERATIONS: dict[str, Operation] = {
     "health": Operation(
         "health",
@@ -326,6 +382,22 @@ OPERATIONS: dict[str, Operation] = {
         powershell_command=_m20_demo_trading_session_command(),
         timeout_seconds=720,
     ),
+    "m20_listener_status": Operation(
+        "m20_listener_status",
+        "Inspect the permanent M20 Demo listener heartbeat and latest assessment.",
+        powershell_command=_m20_listener_status_command(),
+    ),
+    "m20_listener_install": Operation(
+        "m20_listener_install",
+        "Install or update the fixed permanent M20 Demo listener Scheduled Task.",
+        powershell_command=_m20_listener_install_command(),
+        timeout_seconds=60,
+    ),
+    "m20_listener_stage_1": Operation("m20_listener_stage_1", "Stage fixed M20 listener payload part one.", powershell_command=_m20_listener_stage_command(1)),
+    "m20_listener_stage_2": Operation("m20_listener_stage_2", "Stage fixed M20 listener payload part two.", powershell_command=_m20_listener_stage_command(2)),
+    "m20_listener_stage_3": Operation("m20_listener_stage_3", "Stage fixed M20 listener payload part three.", powershell_command=_m20_listener_stage_command(3)),
+    "m20_listener_stage_4": Operation("m20_listener_stage_4", "Stage fixed M20 listener payload part four.", powershell_command=_m20_listener_stage_command(4)),
+    "m20_listener_stage_5": Operation("m20_listener_stage_5", "Stage and verify fixed M20 listener payload part five.", powershell_command=_m20_listener_stage_command(5)),
 }
 
 

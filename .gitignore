@@ -4,6 +4,10 @@
 reports/*.html
 t480/mt5.local.json
 t480/m20_demo_session.local.json
+t480/m20_demo_listener_service.local.json
+t480/m20_demo_listener_status.local.json
+t480/m20_demo_listener.stop
+t480/m20_demo_listener_service_runtime.py
 .t480-execution.local.jsonl
 __pycache__/
 *.py[cod]

@@ -25,12 +25,12 @@ variable.
 
 ## Data and decision record
 
-The listener keeps its incoming MT5 tick observations only in memory and sets
-its next poll cadence from observed terminal refreshes. Every resulting
-proposal stores one hash-addressed decision snapshot of the current bid, ask,
-spread, and closed M1 candles; it deliberately retains no listener stream or
-M5 candles. The deterministic MVP assessment returns `BUY`, `SELL`, or
-`NO_TRADE` from closed M1 momentum. The first goal is an
+The listener keeps its incoming MT5 tick observations only in memory and runs
+an assessment every ten seconds using a fresh tick and closed M1 candles.
+Every resulting proposal stores one hash-addressed decision snapshot of the
+current bid, ask, spread, and closed M1 candles; it deliberately retains no
+listener stream or M5 candles. The deterministic MVP assessment returns
+`BUY`, `SELL`, or `NO_TRADE` from closed M1 momentum. The first goal is an
 inspectable operational loop, not a profitability claim.
 
 ## PostgreSQL audit boundary
@@ -52,3 +52,16 @@ M20 is not complete from this document or unit tests. Completion requires the
 fixed Demo adapter to prove fresh server identity and data, bounded execution
 or `NO_TRADE`, persisted audit rows, reconciliation, an independent verifier,
 and the current Triad-plus-domain recommendation required by `AGENTS.md`.
+
+## Operator dashboard
+
+On the T16 machine running VS Code, use the read-only live terminal view:
+
+```bash
+python3 scripts/m20_listener_dashboard.py
+```
+
+It refreshes the T480 listener heartbeat, latest assessment, order outcome,
+and compact candle-check metrics. Listener heartbeat and next-assessment times
+are displayed in both UTC and New Zealand time (`DD/MM/YY HH:MM:SS NZST`).
+Press `Ctrl+C` to exit.

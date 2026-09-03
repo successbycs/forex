@@ -24,14 +24,15 @@ a generic broker interface:
    `GOMarketsMU-Demo`, EUR/USD, and fixed operations; fail closed on any other
    server, symbol, or account surface.
 2. **M20.2 — Fresh data and decision snapshots.** Retain fresh bid/ask/spread
-   plus closed M1 and M5 candles in PostgreSQL with decision-time and source
+   plus completed M1 candles in PostgreSQL with decision-time and source
    lineage.
 3. **M20.3 — Versioned assessment and proposal audit.** Persist a `BUY`,
    `SELL`, or `NO_TRADE` assessment, its reasons, and hashes of its inputs
    before any execution attempt.
 4. **M20.4 — Bounded Demo session executor.** A human-enabled session lease
-   limits the MVP to ten trades in sixty minutes, one open position, USD 100
-   notional per trade, and USD 1,000 cumulative notional. The fixed executor
+   limits the MVP to ten trades in sixty minutes, one open position, USD 10,000
+   notional per trade, USD 100,000 cumulative notional, and AUD 100 maximum
+   theoretical loss per trade. The fixed executor
    refuses stale data, lease expiry, cap breaches, server mismatch, duplicate
    proposals, and unknown execution state.
 5. **M20.5 — Monitoring, reconciliation, and proof.** Link each proposal to
@@ -70,8 +71,9 @@ ignored local files.
 
 ## Initial M20 assessment shape
 
-The first assessment is intentionally narrow: it evaluates a fresh EUR/USD
-M1/M5 snapshot and returns a recorded `BUY`, `SELL`, or `NO_TRADE`. Before
+The first assessment is intentionally narrow: a permanent listener evaluates
+a fresh EUR/USD M1 snapshot every ten seconds and returns a recorded `BUY`,
+`SELL`, or `NO_TRADE`. Before
 any execution attempt it must retain the decision timestamp, input hashes,
 reasons, invalidating conditions, and session-lease identity. The assessment
 cannot bypass the fixed executor; only an eligible persisted proposal can be

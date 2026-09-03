@@ -12,9 +12,9 @@ system.
 ## The simple picture
 
 ```text
-Fresh Demo bid / ask / spread + closed M1/M5 candles
+Fresh Demo bid / ask / spread + completed M1 candles
         ↓
-Codex assessment: BUY / SELL / NO_TRADE
+T480 assessment every 10 seconds: BUY / SELL / NO_TRADE
         ↓
 Persisted proposal, rationale and input hashes in PostgreSQL
         ↓
@@ -36,7 +36,8 @@ account.**
 
 1. Start a Demo session with a maximum number of trades and short expiry. The
    initial M20 contract fixes this at ten trades in sixty minutes, one open
-   position, USD 100 notional per trade, and USD 1,000 cumulative notional.
+   position, USD 10,000 notional per trade, USD 100,000 cumulative notional,
+   and AUD 100 theoretical loss per trade.
 2. Inspect the fresh data, the M1/M5 assessment, and the proposed `BUY`,
    `SELL`, or `NO_TRADE` with reasons and decision inputs.
 3. Supervise, pause, or stop the session. An expired session cannot trade.
@@ -48,7 +49,8 @@ account.**
 - **n8n** regularly brings in historical and context data.
 - **PostgreSQL** keeps the data, timestamps, and lineage so results can be checked later.
 - **Python safety rules** ensure agents see only data that would have been available at the stated time.
-- **The M20 assessment component** turns the fresh M1/M5 data into a versioned
+- **The M20 assessment component** runs every ten seconds and turns fresh M1
+  data into a versioned
   `BUY`, `SELL`, or `NO_TRADE` proposal with reasons; its inputs are retained.
 - **The session controls and fixed Demo executor** admit only eligible,
   cap-compliant proposals during the active lease.
@@ -137,8 +139,9 @@ Real-money account:  human-managed outside this project; never connected
 
 1. **Start.** The operator enables a short, capped Demo session. The lease is
    visible, expires automatically, and can be paused or stopped.
-2. **Observe.** The system persists fresh bid/ask/spread and closed M1/M5
-   candles; the operator can inspect the data freshness and provenance.
+2. **Observe.** The system checks fresh bid/ask/spread and completed M1
+   candles every ten seconds. The T16 dashboard shows the latest decision and
+   human-readable candle checks; it has no trading controls.
 3. **Assess.** Codex records a `BUY`, `SELL`, or `NO_TRADE` proposal with its
    reasons, decision time, and input hashes. A proposal is immutable once
    persisted.
@@ -158,7 +161,7 @@ Real-money account:  human-managed outside this project; never connected
 | n8n | Scheduled collection and import only | T480, shared platform |
 | PostgreSQL | Historical, context, lineage and audit records | T480, shared platform; Forex schema |
 | Forex Python | Contracts, feature/risk logic, fixed adapters | Forex repository |
-| M20 assessment | Produces a persisted `BUY` / `SELL` / `NO_TRADE` proposal from fresh M1/M5 data | Forex repository, T480 |
+| M20 assessment | Every 10 seconds, produces a persisted `BUY` / `SELL` / `NO_TRADE` proposal from fresh pricing and completed M1 candles | Forex repository, T480 |
 | MT5 Demo | Fresh Demo data and bounded M20 actions only | T480, `GOMarketsMU-Demo` only |
 | Fixed Demo executor | Sends an eligible, lease- and cap-checked Demo action and captures result events | Forex repository, T480, M20 target |
 | Human operator | Starts a bounded session; supervises and pause-stops Demo automation | Human-only |

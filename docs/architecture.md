@@ -41,6 +41,24 @@ observation. It records source, revision, timestamps, hashes, redaction and
 lineage; it does not provide a general download, database, MT5, shell,
 account, or order interface.
 
+## Current M20 operating architecture
+
+```text
+T16 / VS Code → read-only M20 terminal dashboard
+       │ fixed status operation
+       ▼
+T480 Scheduled Task: Forex-M20-Demo-Listener
+  every 10 seconds → fresh EURUSD bid/ask/spread + completed M1 candles
+       ├─ BUY / SELL → fixed capped Demo executor → MT5 Demo position monitor
+       └─ NO_TRADE → persisted proposal and reconciliation
+       ▼
+T480 WSL PostgreSQL bridge → audit events and P&L ledger
+```
+
+The listener retains no raw tick stream. Its compact assessment reports the
+prior five-candle range, last-two-candle direction, breakout checks, combined
+move and spread check. The T16 dashboard is read-only.
+
 ## Current historical-data and sentiment design
 
 M11 uses GDELT 2.0 public raw GKG files as an *experimental context source*.
@@ -173,15 +191,16 @@ research probabilities plus a model card. M16 tests it chronologically against
 no-change and deterministic baselines. It is not an autonomous strategy, does
 not retrain online, and cannot create, approve, or execute orders.
 
-M20 deliberately keeps the first assessment narrow: a versioned rule or
-model reads only the persisted point-in-time M1/M5 snapshot and emits `BUY`,
+M20 deliberately keeps the first assessment narrow: a versioned rule reads a
+fresh bid/ask/spread plus completed M1 candles and emits `BUY`,
 `SELL`, or `NO_TRADE`, with its rationale and input hashes persisted before an
 execution attempt. The MVP is not a claim of trading edge or profitability.
 
 M20 may automate a Demo action only through a fixed, fail-closed executor. A
 human first enables a short session lease; the initial contract caps it at ten
-trades in sixty minutes, one open EUR/USD position, USD 100 notional per trade,
-and USD 1,000 cumulative notional. The executor refuses an expired lease,
+trades in sixty minutes, one open EUR/USD position, USD 10,000 notional per
+trade, USD 100,000 cumulative notional, and AUD 100 theoretical loss per
+trade. The executor refuses an expired lease,
 server mismatch, missing or duplicate proposal, cap breach, stale data, or
 unknown order state. Every attempt and `NO_TRADE` outcome is retained for
 reconciliation and later back-testing.

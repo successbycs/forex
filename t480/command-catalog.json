@@ -69,7 +69,42 @@
     },
     {
       "id": "m20_demo_trading_session",
-      "purpose": "Capture fixed fresh EURUSD tick and closed M1/M5 Demo data after a bounded local session-lease preflight; it cannot submit a transaction.",
+      "purpose": "Run one fixed bounded Demo-only EURUSD M1 assessment and, only when eligible, its capped auditable execution and monitoring lifecycle.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_status",
+      "purpose": "Inspect the permanent M20 Demo listener's local heartbeat and most recent assessment without exposing credentials.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_install",
+      "purpose": "Install or update the fixed hash-checked permanent M20 Demo listener Scheduled Task and start it immediately.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_1",
+      "purpose": "Stage the first fixed compressed payload segment for the permanent M20 Demo listener.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_2",
+      "purpose": "Stage and verify the final fixed compressed payload segment for the permanent M20 Demo listener.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_3",
+      "purpose": "Stage the third fixed payload segment for the permanent M20 Demo listener.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_4",
+      "purpose": "Stage the fourth fixed payload segment for the permanent M20 Demo listener.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_5",
+      "purpose": "Stage and verify the final fixed payload segment for the permanent M20 Demo listener.",
       "approval_required": false
     }
   ]
