@@ -255,6 +255,10 @@ def validate_review(root: Path, cycle: Path, review_path: Path) -> dict[str, Any
     _schema_validate(review, root / "config" / "schemas" / "triad-review.schema.json", "Triad review")
     if "FILL_ME" in json.dumps(review, sort_keys=True):
         raise TriadError("review contains unfilled template values")
+    if review["review_cycle_id"] != request["review_cycle_id"]:
+        raise TriadError("review cycle identifier does not match the request")
+    if review["milestone_id"] != request["milestone_id"]:
+        raise TriadError("review milestone identifier does not match the request")
     policies = {item["role"]: item for item in policy["reviewers"]}
     role = review["role"]
     if role not in policies or role not in request["required_roles"]:

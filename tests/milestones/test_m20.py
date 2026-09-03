@@ -1,3 +1,10 @@
+import hashlib
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+import subprocess
+
 from forex.ollama_evaluation import EXPERIMENT_SESSIONS, action_from_sentiment, evaluate
 from scripts import postgres_pgvector_adapter
 from scripts.m20_ollama_evaluation_probe import retrospective_close
@@ -64,3 +71,33 @@ def test_m20_adapter_exposes_one_fixed_read_only_probe():
 
 def test_m20_uses_declared_h1_bar_close_assumption_for_historical_decisions():
     assert retrospective_close("2026-07-01 08:00:00+00") == "2026-07-01T09:00:00Z"
+
+
+def test_m20_evidence_verifier_remains_fail_closed_with_python_optimization(tmp_path: Path):
+    root = tmp_path
+    script = root / "scripts" / "verify_m20_evidence.sh"
+    script.parent.mkdir()
+    script.write_bytes((Path(__file__).resolve().parents[2] / "scripts" / "verify_m20_evidence.sh").read_bytes())
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.name", "M20 test"], cwd=root, check=True)
+    subprocess.run(["git", "commit", "--allow-empty", "-qm", "fixture"], cwd=root, check=True)
+    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
+    bundle = root / "runs" / "evidence" / "M20" / "fixture"
+    bundle.mkdir(parents=True)
+    summary = bundle / "summary.txt"
+    summary.write_text("FOREX_M20_PROOF_OK\n", encoding="utf-8")
+    digest = "sha256:" + "a" * 64
+    row = {"decision_at_utc": "2026-01-01T00:00:00Z", "entry_at_utc": "2026-01-01T00:00:00Z", "exit_at_utc": "2026-01-01T01:00:00Z", "invocation_metadata": {key: digest for key in ("input_context_sha256", "prompt_sha256", "response_schema_sha256")}}
+    evaluation = {"marker": "FOREX_M20_EVALUATION_OK", "model": "qwen2.5:3b", "rows": [row, row, row], "valid_model_response_count": 3, "predeclared_controls": {"chronological_only": True, "random_shuffling_used": False}, "research_only": True, "order_capability": False}
+    probe = {"ok": True, "result": {"stdout": json.dumps({"marker": "FOREX_M20_OLLAMA_EVALUATION_PROBE_OK", "source": "DEMO_ONLY_HISTORICAL", "order_capability": False, "live_trading_capability": False, "ollama_provenance": {"runtime_version": "test", "model_inventory": "test", "model_details": "test", "model_inventory_sha256": digest, "model_details_sha256": digest}, "evaluation": evaluation})}}
+    probe_path = bundle / "evaluation-probe.json"
+    probe_path.write_text(json.dumps(probe), encoding="utf-8")
+    manifest = {"milestone_id": "M20", "dirty_worktree": False, "git_revision": revision, "captured_at": datetime.now(timezone.utc).isoformat(), "external_dependencies": [{"ok": True, "clean_worktree": True, "actual_git_revision": revision, "expected_git_revision": revision}], "artifacts": [{"path": "summary.txt", "sha256": hashlib.sha256(summary.read_bytes()).hexdigest()}, {"path": "evaluation-probe.json", "sha256": hashlib.sha256(probe_path.read_bytes()).hexdigest()}]}
+    (bundle / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    environment = {**os.environ, "PYTHONOPTIMIZE": "1"}
+    passed = subprocess.run(["bash", str(script), str(bundle)], cwd=root, env=environment, text=True, capture_output=True)
+    assert passed.returncode == 0, passed.stderr
+    summary.write_text("tampered\n", encoding="utf-8")
+    failed = subprocess.run(["bash", str(script), str(bundle)], cwd=root, env=environment, text=True, capture_output=True)
+    assert failed.returncode != 0

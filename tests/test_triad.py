@@ -12,7 +12,9 @@ from forex.triad import (
     render_review_summary,
     review_summary_drift,
     synthesize,
+    validate_review,
 )
+from forex.triad import TriadError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -157,6 +159,30 @@ def test_missing_review_blocks_completion(tmp_path: Path) -> None:
     result = json.loads(synthesize(root, cycle).read_text(encoding="utf-8"))
     assert result["recommendation"] == "DO_NOT_COMPLETE"
     assert any("missing required review" in reason for reason in result["blocking_reasons"])
+
+
+def test_review_identity_must_match_the_request(tmp_path: Path) -> None:
+    root = _root(tmp_path)
+    cycle, request, policy = _cycle(root)
+    review = _review(root, request, policy["reviewers"][0])
+    review["review_cycle_id"] = "other-cycle"
+    review_path = cycle / "submissions" / "ai_engineer.json"
+    review_path.write_text(json.dumps(review), encoding="utf-8")
+    try:
+        validate_review(root, cycle, review_path)
+    except TriadError as exc:
+        assert "cycle identifier" in str(exc)
+    else:
+        raise AssertionError("mismatched review cycle identifier was accepted")
+    review["review_cycle_id"] = request["review_cycle_id"]
+    review["milestone_id"] = "M1"
+    review_path.write_text(json.dumps(review), encoding="utf-8")
+    try:
+        validate_review(root, cycle, review_path)
+    except TriadError as exc:
+        assert "milestone identifier" in str(exc)
+    else:
+        raise AssertionError("mismatched review milestone identifier was accepted")
 
 
 def test_one_failed_role_blocks_completion(tmp_path: Path) -> None:
