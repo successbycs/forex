@@ -9,7 +9,8 @@ signal, order, forecast, profitability claim, or live-trading capability.
 ```text
 M2 retained Demo-only EUR/USD H1 snapshot (720 closed bars)
   -> first three complete chronological UTC 08:00-to-20:00 sessions
-  -> twelve closed bars per session -> fixed qwen2.5:3b JSON sentiment request
+  -> twelve closed bars ending at the session's 08:00 bar -> fixed qwen2.5:3b JSON sentiment request
+  -> decision at that closed bar's declared availability -> entry at the following H1 bar
   -> validated sentiment label / invalid output becomes ABSTAIN
   -> compare with two-bar price direction and NO_TRADE
   -> cost-sensitive descriptive totals
@@ -27,6 +28,11 @@ than holding the T480 workflow indefinitely.
 M20 proof requires at least one schema-valid, research-only local-model
 response. Three timeout-derived abstentions prove the fallback but do not prove
 the Ollama-assisted comparison.
+
+The probe enforces `decision_at_utc <= entry_at_utc < exit_at_utc` for every
+row. The decision context ends at a known closed bar; the comparison enters at
+the following H1 bar, so no model observation can include the recorded entry
+bar or future evaluation prices.
 
 The retained probe output includes the local Ollama CLI version, the exact
 approved-model inventory line and detail output (with their SHA-256 hashes),

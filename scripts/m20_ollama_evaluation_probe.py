@@ -52,7 +52,7 @@ def select_sessions(bars: list[dict[str, str]]) -> list[tuple[int, int]]:
     selected: list[tuple[int, int]] = []
     for day in sorted(by_day):
         slots = by_day[day]
-        if "08" in slots and "20" in slots and slots["08"] >= 11:
+        if "08" in slots and "20" in slots and slots["08"] >= 11 and slots["08"] + 1 < slots["20"]:
             selected.append((slots["08"], slots["20"]))
         if len(selected) == EXPERIMENT_SESSIONS:
             break
@@ -64,6 +64,10 @@ def select_sessions(bars: list[dict[str, str]]) -> list[tuple[int, int]]:
 def retrospective_close(value: str) -> str:
     """M20 uses M16's declared retrospective H1-bar-close availability policy."""
     return (datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc) + timedelta(hours=1)).isoformat().replace("+00:00", "Z")
+
+
+def canonical_utc(value: str) -> str:
+    return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def main() -> int:
@@ -88,8 +92,9 @@ def main() -> int:
     # before the three bounded historical requests; no output is retained.
     compose("ollama", "ollama", "run", MODEL, "Reply READY only.")
     experiments = []
-    for entry_index, exit_index in select_sessions(bars):
-        context_bars = [{**bar, "available_at_utc": retrospective_close(bar["time_utc"])} for bar in bars[entry_index - 11:entry_index + 1]]
+    for context_end_index, exit_index in select_sessions(bars):
+        entry_index = context_end_index + 1
+        context_bars = [{**bar, "available_at_utc": retrospective_close(bar["time_utc"])} for bar in bars[context_end_index - 11:context_end_index + 1]]
         context = build_context(
             bars=context_bars, cutoff_utc=context_bars[-1]["available_at_utc"],
             features={"source": "DEMO_ONLY_HISTORICAL", "licensing": "UNQUALIFIED_BROKER_TERMINAL_DATA"},
@@ -106,8 +111,8 @@ def main() -> int:
             model_response_valid = False
         price_only_action = "BUY" if float(context_bars[-1]["close"]) >= float(context_bars[-3]["close"]) else "SELL"
         experiments.append({
-            "decision_at_utc": context_bars[-1]["available_at_utc"], "entry_at_utc": bars[entry_index]["time_utc"],
-            "exit_at_utc": bars[exit_index]["time_utc"], "entry_close": bars[entry_index]["close"],
+            "decision_at_utc": context_bars[-1]["available_at_utc"], "entry_at_utc": canonical_utc(bars[entry_index]["time_utc"]),
+            "exit_at_utc": canonical_utc(bars[exit_index]["time_utc"]), "entry_close": bars[entry_index]["close"],
             "exit_close": bars[exit_index]["close"], "context_bar_count": len(context_bars),
             "model_output_sha256": sha256(raw_value), "model_response_valid": model_response_valid,
             "invocation_metadata": {

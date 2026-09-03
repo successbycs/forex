@@ -10,7 +10,7 @@ def response(sentiment: str, abstain: bool = False) -> dict:
 def experiments() -> list[dict]:
     return [
         {
-            "decision_at_utc": f"2026-07-{day:02d}T09:00:00+00:00", "entry_at_utc": f"2026-07-{day:02d}T08:00:00+00:00",
+            "decision_at_utc": f"2026-07-{day:02d}T09:00:00+00:00", "entry_at_utc": f"2026-07-{day:02d}T09:00:00+00:00",
             "exit_at_utc": f"2026-07-{day:02d}T20:00:00+00:00", "entry_close": 1.10, "exit_close": 1.11 if day % 2 else 1.09,
             "context_bar_count": 12, "model_output_sha256": f"sha256:{day:064x}",
             "model_response_valid": True,
@@ -31,6 +31,17 @@ def test_m20_evaluation_is_fixed_chronological_and_research_only():
     assert all("invocation_metadata" in row for row in result["rows"])
     assert result["comparison"]["no_change"]["actionable_sessions"] == 0
     assert result["research_only"] is True and result["order_capability"] is False
+
+
+def test_m20_rejects_decisions_after_the_recorded_entry_bar():
+    rows = experiments()
+    rows[0]["decision_at_utc"] = "2026-07-01T10:00:00+00:00"
+    try:
+        evaluate(rows)
+    except ValueError as exc:
+        assert "no later than the entry" in str(exc)
+    else:
+        raise AssertionError("M20 accepted a decision after its entry bar")
 
 
 def test_m20_abstention_is_evaluation_no_trade_and_rejects_order_surface():

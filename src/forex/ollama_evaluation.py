@@ -7,6 +7,7 @@ historical, cost-sensitive comparison.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from statistics import mean
 from typing import Any
 
@@ -40,6 +41,10 @@ def _net_return(action: str, entry: float, exit_: float) -> float:
     return direction * (exit_ / entry - 1.0) - (2.0 * FIXED_COST_BPS_PER_SIDE / 10_000.0)
 
 
+def _as_utc(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+
+
 def _metrics(rows: list[dict[str, Any]], strategy: str) -> dict[str, Any]:
     acted = [item[strategy] for item in rows if item[strategy]["action"] != "NO_TRADE"]
     return {
@@ -67,6 +72,13 @@ def evaluate(experiments: list[dict[str, Any]]) -> dict[str, Any]:
         raise ValueError("M20 sessions must be unique and chronological")
     rows: list[dict[str, Any]] = []
     for item in experiments:
+        decision_at = _as_utc(str(item["decision_at_utc"]))
+        entry_at = _as_utc(str(item["entry_at_utc"]))
+        exit_at = _as_utc(str(item["exit_at_utc"]))
+        if decision_at > entry_at:
+            raise ValueError("M20 decision must occur no later than the entry bar")
+        if entry_at >= exit_at:
+            raise ValueError("M20 entry must precede the closed evaluation exit")
         entry, exit_ = float(item["entry_close"]), float(item["exit_close"])
         if entry <= 0 or exit_ <= 0:
             raise ValueError("M20 requires positive closed prices")

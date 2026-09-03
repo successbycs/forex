@@ -39,7 +39,7 @@
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-03T01:34:13Z",
+  "last_updated_at": "2026-09-03T02:10:11Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2660,9 +2660,9 @@
     "M20": {
       "status": "NEEDS_FIX",
       "started_at": "2026-09-02T05:24:54Z",
-      "implementation_finished_at": "2026-09-03T01:27:10Z",
-      "verification_passed_at": "2026-09-03T01:27:15Z",
-      "real_world_proof_captured_at": "2026-09-03T01:26:27.911439Z",
+      "implementation_finished_at": "2026-09-03T02:07:12Z",
+      "verification_passed_at": "2026-09-03T02:07:14Z",
+      "real_world_proof_captured_at": "2026-09-03T02:06:21.741504Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
@@ -2670,27 +2670,27 @@
       "checks": {
         "M20-C1": {
           "result": "PASS",
-          "recorded_at": "2026-09-03T01:26:50Z",
-          "evidence": "runs/evidence/M20/20260903T012150Z/evaluation-probe.json",
+          "recorded_at": "2026-09-03T02:06:53Z",
+          "evidence": "runs/evidence/M20/20260903T020149Z/evaluation-probe.json",
           "note": "Fixed T480 offline Ollama evaluation completed three chronological Demo-only historical sessions with three schema-valid research-only responses."
         },
         "M20-C2": {
           "result": "PASS",
-          "recorded_at": "2026-09-03T01:26:55Z",
-          "evidence": "runs/evidence/M20/20260903T012150Z/tests.txt",
+          "recorded_at": "2026-09-03T02:06:59Z",
+          "evidence": "runs/evidence/M20/20260903T020149Z/tests.txt",
           "note": "M20 milestone tests and fixed governance verification passed; captured artifacts are retained and hash-addressed."
         },
         "M20-C3": {
           "result": "PASS",
-          "recorded_at": "2026-09-03T01:27:01Z",
-          "evidence": "runs/evidence/M20/20260903T012150Z/manifest.json",
-          "note": "Independent verifier accepted current self-attested evidence bound to the clean captured Git revision, governed configuration fingerprint, and model-definition hash."
+          "recorded_at": "2026-09-03T02:07:04Z",
+          "evidence": "runs/evidence/M20/20260903T020149Z/manifest.json",
+          "note": "Independent verifier accepted fresh self-attested proof bound to Git revision, governed configuration, Ollama 0.11.11, model inventory/details hashes, and per-invocation context, prompt, response-schema, and output hashes."
         },
         "M20-C4": {
           "result": "PASS",
-          "recorded_at": "2026-09-03T01:27:06Z",
-          "evidence": "runs/evidence/M20/20260903T012150Z/evaluation-probe.json",
-          "note": "Verified Demo-only historical provenance, declared retrospective bar-close control, research-only response boundary, and absence of order or live-trading capability."
+          "recorded_at": "2026-09-03T02:07:10Z",
+          "evidence": "runs/evidence/M20/20260903T020149Z/evaluation-probe.json",
+          "note": "Verified Demo-only historical provenance, fixed retrospective bar-close control, research-only boundary, and absence of account, order, execution, or live-trading capability."
         }
       },
       "evidence": [
@@ -2702,12 +2702,21 @@
           "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
           "git_revision": "62ca5836ba49aad85111e247eaebec25ef185ce8",
           "summary": "FOREX_M20_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M20/20260903T020149Z/manifest.json",
+          "manifest_sha256": "7168248d9569079d773551fa15bacfef3a2f7034951beb56149db1e3afadff10",
+          "captured_at": "2026-09-03T02:06:21.741504Z",
+          "recorded_at": "2026-09-03T02:06:46Z",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "git_revision": "8f3a44c35d8053d4dcc16a49f79c9184a3c7e30c",
+          "summary": "FOREX_M20_PROOF_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-03T01:27:15Z",
-        "git_revision": "62ca5836ba49aad85111e247eaebec25ef185ce8",
+        "recorded_at": "2026-09-03T02:07:14Z",
+        "git_revision": "8f3a44c35d8053d4dcc16a49f79c9184a3c7e30c",
         "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
         "commands": [
           {
@@ -2719,8 +2728,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M20/20260903T012714Z/governance.stdout.txt",
-            "stderr": "runs/verification/M20/20260903T012714Z/governance.stderr.txt"
+            "stdout": "runs/verification/M20/20260903T020713Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T020713Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -2733,16 +2742,16 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M20/20260903T012714Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M20/20260903T012714Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M20/20260903T020713Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T020713Z/milestone-tests.stderr.txt"
           }
         ]
       },
       "human_signoff": null,
       "blockers": [
         {
-          "reason": "Required Triad-plus-domain review automation failed before any schema-valid reviewer submission: the isolated Solution Architect session exceeded its 120-second bound in cycle M20-20260903T012737Z-62ca5836. Retained raw runner attempts document the failure; no completion recommendation was produced.",
-          "recorded_at": "2026-09-03T01:34:13Z"
+          "reason": "Validated Solution Architect review cycle M20-20260903T020727Z-8f3a44c3 found a point-in-time defect: the model context included the bar recorded as the entry while the decision timestamp was one hour later. Correct the decision-to-next-bar-entry sequence, add ordering assertions, and recapture fresh evidence.",
+          "recorded_at": "2026-09-03T02:10:11Z"
         }
       ]
     },
