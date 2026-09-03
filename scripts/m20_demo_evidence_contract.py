@@ -288,7 +288,7 @@ def capture(bundle: Path, root: Path) -> None:
         "expected_result": "fresh Demo EUR/USD data is assessed, recorded, bounded, and reconciled",
         "observed_result": "FOREX_M20_DEMO_TRADING_PROOF_OK",
         "exit_code": 0,
-        "redactions": ["No credentials, account identifiers, or GOMarketsMU-Live data are retained."],
+        "redactions": ["No credentials, account identifiers, or non-Demo broker data are retained."],
         "summary": "FOREX_M20_DEMO_TRADING_PROOF_OK",
         "artifacts": artifact_list(bundle),
     }
