@@ -9,7 +9,7 @@ mkdir -p "$bundle"
 
 # A clean revision is required before the only broker-facing command below.
 git diff --quiet
-python3 -m pytest -q tests/milestones/test_m20_demo_trading.py >"$bundle/tests.txt" 2>&1
+python3 -m pytest tests/milestones/test_m20_demo_trading.py >"$bundle/tests.txt" 2>&1
 python3 scripts/forex_milestones.py validate >"$bundle/governance.txt" 2>&1
 python3 scripts/validate_config.py --root "$root" --json >"$bundle/configuration.json"
 
