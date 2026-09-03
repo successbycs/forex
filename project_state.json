@@ -32,14 +32,14 @@
     "config/t480.json",
     "t480/command-catalog.json"
   ],
-  "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+  "configuration_fingerprint": "sha256:74f5d7ced11c92e63f741675e95a1bb65b733d316512c775469b1317f5504da4",
   "important_architectural_decisions": [
     "Shared T480 transport belongs to cs-ai-lab-infra; Forex owns its catalog and adapter.",
     "Mutable execution state is separate from the declarative milestone registry.",
     "proven_at is generated only by closeout after real-world proof and required human sign-off.",
     "Live trading and GOMarketsMU-Live remain structurally prohibited."
   ],
-  "last_updated_at": "2026-09-03T02:10:11Z",
+  "last_updated_at": "2026-09-03T02:20:49Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2660,9 +2660,9 @@
     "M20": {
       "status": "NEEDS_FIX",
       "started_at": "2026-09-02T05:24:54Z",
-      "implementation_finished_at": "2026-09-03T02:07:12Z",
-      "verification_passed_at": "2026-09-03T02:07:14Z",
-      "real_world_proof_captured_at": "2026-09-03T02:06:21.741504Z",
+      "implementation_finished_at": "2026-09-03T02:16:17Z",
+      "verification_passed_at": "2026-09-03T02:16:18Z",
+      "real_world_proof_captured_at": "2026-09-03T02:15:59.058404Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
@@ -2670,27 +2670,27 @@
       "checks": {
         "M20-C1": {
           "result": "PASS",
-          "recorded_at": "2026-09-03T02:06:53Z",
-          "evidence": "runs/evidence/M20/20260903T020149Z/evaluation-probe.json",
-          "note": "Fixed T480 offline Ollama evaluation completed three chronological Demo-only historical sessions with three schema-valid research-only responses."
+          "recorded_at": "2026-09-03T02:16:16Z",
+          "evidence": "runs/evidence/M20/20260903T021135Z/evaluation-probe.json",
+          "note": "Fixed T480 offline Ollama evaluation completed three chronological Demo-only historical sessions with three schema-valid research-only responses and decision-to-entry ordering enforced."
         },
         "M20-C2": {
           "result": "PASS",
-          "recorded_at": "2026-09-03T02:06:59Z",
-          "evidence": "runs/evidence/M20/20260903T020149Z/tests.txt",
-          "note": "M20 milestone tests and fixed governance verification passed; captured artifacts are retained and hash-addressed."
+          "recorded_at": "2026-09-03T02:16:16Z",
+          "evidence": "runs/evidence/M20/20260903T021135Z/tests.txt",
+          "note": "M20 milestone tests and fixed governance verification passed with inspectable hash-addressed artifacts."
         },
         "M20-C3": {
           "result": "PASS",
-          "recorded_at": "2026-09-03T02:07:04Z",
-          "evidence": "runs/evidence/M20/20260903T020149Z/manifest.json",
-          "note": "Independent verifier accepted fresh self-attested proof bound to Git revision, governed configuration, Ollama 0.11.11, model inventory/details hashes, and per-invocation context, prompt, response-schema, and output hashes."
+          "recorded_at": "2026-09-03T02:16:17Z",
+          "evidence": "runs/evidence/M20/20260903T021135Z/manifest.json",
+          "note": "Independent verifier accepted fresh proof bound to the exact revision, governed configuration, Ollama runtime/model provenance, and per-invocation hashes."
         },
         "M20-C4": {
           "result": "PASS",
-          "recorded_at": "2026-09-03T02:07:10Z",
-          "evidence": "runs/evidence/M20/20260903T020149Z/evaluation-probe.json",
-          "note": "Verified Demo-only historical provenance, fixed retrospective bar-close control, research-only boundary, and absence of account, order, execution, or live-trading capability."
+          "recorded_at": "2026-09-03T02:16:17Z",
+          "evidence": "runs/evidence/M20/20260903T021135Z/evaluation-probe.json",
+          "note": "Verified Demo-only provenance, no lookahead decision-to-entry ordering, research-only boundary, and absence of account, order, execution, or live-trading capability."
         }
       },
       "evidence": [
@@ -2711,12 +2711,21 @@
           "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
           "git_revision": "8f3a44c35d8053d4dcc16a49f79c9184a3c7e30c",
           "summary": "FOREX_M20_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M20/20260903T021135Z/manifest.json",
+          "manifest_sha256": "72464f5ad32ce91db07825bfdbd75e4d3a7c8e7dcd99dc7bad9acb1a59349d64",
+          "captured_at": "2026-09-03T02:15:59.058404Z",
+          "recorded_at": "2026-09-03T02:16:16Z",
+          "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+          "git_revision": "d39674b8e2498e9619de13875ef637536b077150",
+          "summary": "FOREX_M20_PROOF_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-03T02:07:14Z",
-        "git_revision": "8f3a44c35d8053d4dcc16a49f79c9184a3c7e30c",
+        "recorded_at": "2026-09-03T02:16:18Z",
+        "git_revision": "d39674b8e2498e9619de13875ef637536b077150",
         "configuration_fingerprint": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
         "commands": [
           {
@@ -2728,8 +2737,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M20/20260903T020713Z/governance.stdout.txt",
-            "stderr": "runs/verification/M20/20260903T020713Z/governance.stderr.txt"
+            "stdout": "runs/verification/M20/20260903T021617Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T021617Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -2742,16 +2751,16 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M20/20260903T020713Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M20/20260903T020713Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M20/20260903T021617Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T021617Z/milestone-tests.stderr.txt"
           }
         ]
       },
       "human_signoff": null,
       "blockers": [
         {
-          "reason": "Validated Solution Architect review cycle M20-20260903T020727Z-8f3a44c3 found a point-in-time defect: the model context included the bar recorded as the entry while the decision timestamp was one hour later. Correct the decision-to-next-bar-entry sequence, add ordering assertions, and recapture fresh evidence.",
-          "recorded_at": "2026-09-03T02:10:11Z"
+          "reason": "Validated Solution Architect review cycle M20-20260903T021625Z-d39674b8 found that the shared T480-core expected Git revision is recorded but not enforced. Enforce the immutable revision lock and establish an authorized exact shared-core checkout before recapturing M20 proof.",
+          "recorded_at": "2026-09-03T02:19:04Z"
         }
       ]
     },

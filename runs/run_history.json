@@ -7420,6 +7420,144 @@
         "to": "NEEDS_FIX",
         "reason": "Validated Solution Architect review cycle M20-20260903T020727Z-8f3a44c3 found a point-in-time defect: the model context included the bar recorded as the entry while the decision timestamp was one hour later. Correct the decision-to-next-bar-entry sequence, add ordering assertions, and recapture fresh evidence."
       }
+    },
+    {
+      "event_id": "E000525",
+      "timestamp": "2026-09-03T02:16:16Z",
+      "milestone_id": "M20",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M20/20260903T021135Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000526",
+      "timestamp": "2026-09-03T02:16:16Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000527",
+      "timestamp": "2026-09-03T02:16:16Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000528",
+      "timestamp": "2026-09-03T02:16:17Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000529",
+      "timestamp": "2026-09-03T02:16:17Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000530",
+      "timestamp": "2026-09-03T02:16:17Z",
+      "milestone_id": "M20",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
+    },
+    {
+      "event_id": "E000531",
+      "timestamp": "2026-09-03T02:16:18Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260903T021617Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T021617Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260903T021617Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T021617Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000532",
+      "timestamp": "2026-09-03T02:19:04Z",
+      "milestone_id": "M20",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "AWAITING_REAL_WORLD_PROOF",
+        "to": "NEEDS_FIX",
+        "reason": "Validated Solution Architect review cycle M20-20260903T021625Z-d39674b8 found that the shared T480-core expected Git revision is recorded but not enforced. Enforce the immutable revision lock and establish an authorized exact shared-core checkout before recapturing M20 proof."
+      }
+    },
+    {
+      "event_id": "E000533",
+      "timestamp": "2026-09-03T02:20:49Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:f38ea422b87d456a1659920fe38e107f839e0681cd9ab283a9d55fcb3cbd1dea",
+        "current": "sha256:74f5d7ced11c92e63f741675e95a1bb65b733d316512c775469b1317f5504da4",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
     }
   ]
 }

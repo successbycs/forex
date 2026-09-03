@@ -149,6 +149,11 @@ def test_shared_dependency_allows_unrelated_owner_changes_but_rejects_locked_fil
         }
     }
     assert inspect_dependency(config)["ok"] is True
+    config["shared_core"]["expected_git_revision"] = "0" * 40
+    revision_drift = inspect_dependency(config)
+    assert revision_drift["ok"] is False
+    assert "owner repository revision does not match the locked revision" in revision_drift["errors"]
+    config["shared_core"]["expected_git_revision"] = revision
     (repository / paths[1]).write_text("drifted\n", encoding="utf-8")
     drifted = inspect_dependency(config)
     assert drifted["ok"] is False

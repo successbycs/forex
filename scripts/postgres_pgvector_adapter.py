@@ -26,7 +26,14 @@ sys.path.insert(0, str(SHARED_ROOT))
 from t480_core import build_ssh_command, build_wsl_powershell_command, load_transport_settings, resolve_ssh_target  # noqa: E402
 
 SETTINGS = load_transport_settings(SHARED_ROOT / "t480" / "transport-config.json")
-TARGET = resolve_ssh_target(SETTINGS, [ROOT / ".env.t480.local", SHARED_ROOT / ".env.t480.local"])
+TARGET = resolve_ssh_target(
+    SETTINGS,
+    [
+        ROOT / ".env.t480.local",
+        SHARED_ROOT / ".env.t480.local",
+        Path(CONFIG["shared_lab_root"]) / ".env.t480.local",
+    ],
+)
 REMOTE_LAB = "/home/chris/projects/cs-ai-lab-infra"
 REMOTE_FOREX = "/home/chris/projects/forex"
 ASSETS = {

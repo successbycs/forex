@@ -2,7 +2,7 @@
   "schema_version": "forex.t480.config.v2",
   "shared_core": {
     "repository": "successbycs/cs-ai-lab-infra",
-    "repository_root": "/home/chris/projects/cs-ai-lab-infra",
+    "repository_root": "/home/chris/projects/cs-ai-lab-infra-forex-lock",
     "expected_git_revision": "ad3d707971cfab2a5bce8aa8ddd9ccf096b1182c",
     "require_clean_worktree": false,
     "require_tracked_files": true,

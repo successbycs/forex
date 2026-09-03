@@ -40,6 +40,11 @@ plus hash-addressed context, prompt, response-schema, and model-output metadata
 for every bounded invocation. These fields support reproducibility without
 retaining an account, credential, broker, order, or execution surface.
 
+The capture also binds the exact clean `cs-ai-lab-infra` transport-core revision
+and locked file hashes through its retained external-dependency identity. The
+ordinary shared development checkout may contain unrelated work; M20 uses a
+separate linked checkout at the configured immutable revision.
+
 Because the retained M2 observation has one snapshot-capture timestamp rather
 than a source observation time for each bar, M20 uses the already documented
 M16 `RETROSPECTIVE_H1_BAR_CLOSE_ASSUMPTION`: a closed H1 bar is treated as

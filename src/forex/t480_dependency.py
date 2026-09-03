@@ -80,9 +80,9 @@ def inspect_dependency(config: dict[str, Any]) -> dict[str, Any]:
         if revision_result is not None and revision_result.returncode == 0
         else "UNAVAILABLE"
     )
-    # Shared platform commits often include unrelated services. The exact
-    # tracked transport-file hashes below are the Forex runtime gate.
     revision_matches = revision == lock["expected_git_revision"]
+    if not revision_matches:
+        errors.append("owner repository revision does not match the locked revision")
     status_result = (
         _git(root, "status", "--porcelain", "--untracked-files=all") if root.is_dir() else None
     )
