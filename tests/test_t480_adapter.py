@@ -227,6 +227,7 @@ def test_m20_session_lease_rejects_missing_audit_or_widened_cap(tmp_path, monkey
         "maximum_open_positions": 1,
         "maximum_notional_per_trade_usd": 100,
         "maximum_cumulative_notional_usd": 1000,
+        "maximum_loss_per_trade_aud": 100,
         "audit_prerequisites": {
             "postgres_audit_schema": "READY",
             "proposal_persistence": "READY",

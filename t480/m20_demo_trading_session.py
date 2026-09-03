@@ -82,6 +82,7 @@ def load_session_lease(path: Path, now: datetime) -> dict[str, Any]:
         "maximum_open_positions",
         "maximum_notional_per_trade_usd",
         "maximum_cumulative_notional_usd",
+        "maximum_loss_per_trade_aud",
         "audit_prerequisites",
     }
     if not isinstance(payload, dict) or set(payload) != expected_fields:
@@ -106,6 +107,7 @@ def load_session_lease(path: Path, now: datetime) -> dict[str, Any]:
         ("maximum_open_positions", 1, 1),
         ("maximum_notional_per_trade_usd", 1, 10000),
         ("maximum_cumulative_notional_usd", 1, 100000),
+        ("maximum_loss_per_trade_aud", 100, 100),
     )
     for field, lower, upper in limits:
         value = payload[field]
@@ -124,6 +126,7 @@ def load_session_lease(path: Path, now: datetime) -> dict[str, Any]:
         "maximum_open_positions": payload["maximum_open_positions"],
         "maximum_notional_per_trade_usd": payload["maximum_notional_per_trade_usd"],
         "maximum_cumulative_notional_usd": payload["maximum_cumulative_notional_usd"],
+        "maximum_loss_per_trade_aud": payload["maximum_loss_per_trade_aud"],
         "audit_prerequisites": SESSION_AUDIT_REQUIREMENTS,
     }
 
@@ -228,6 +231,7 @@ def _session(lease: dict[str, Any]) -> dict[str, Any]:
         "max_notional_per_trade_usd": lease["maximum_notional_per_trade_usd"],
         "max_cumulative_notional_usd": lease["maximum_cumulative_notional_usd"],
         "max_open_positions": lease["maximum_open_positions"],
+        "maximum_loss_per_trade_aud": lease["maximum_loss_per_trade_aud"],
         "strategy_version": STRATEGY_VERSION,
         "operator_label": OPERATOR_LABEL,
         "status": "ACTIVE",
@@ -315,7 +319,8 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
         }
         snapshot, proposal = _assessment(session, tick_record, raw_bars, captured_at)
         revision, fingerprint = _provenance()
-        bridge_payload = {"session": {key: value for key, value in session.items() if key != "status"}, "proposal": proposal, "decision_snapshot": snapshot, "application_revision": revision, "configuration_fingerprint": fingerprint}
+        bridge_session_keys = {"session_id", "server", "instrument", "starts_at_utc", "expires_at_utc", "max_trades", "max_notional_per_trade_usd", "max_cumulative_notional_usd", "max_open_positions", "strategy_version", "operator_label"}
+        bridge_payload = {"session": {key: session[key] for key in bridge_session_keys}, "proposal": proposal, "decision_snapshot": snapshot, "application_revision": revision, "configuration_fingerprint": fingerprint}
         persisted = _bridge(bridge_payload, "persist-proposal")
         if proposal["action"] != "NO_TRADE":
             raise SystemExit("M20 actionable proposal persisted; fixed Demo executor is not yet deployed")

@@ -13,13 +13,14 @@
     "demo_session_limits": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["maximum_trades", "maximum_duration_minutes", "maximum_open_positions", "maximum_notional_per_trade_usd", "maximum_cumulative_notional_usd", "require_persisted_proposal", "require_idempotency_key"],
+      "required": ["maximum_trades", "maximum_duration_minutes", "maximum_open_positions", "maximum_notional_per_trade_usd", "maximum_cumulative_notional_usd", "maximum_loss_per_trade_aud", "require_persisted_proposal", "require_idempotency_key"],
       "properties": {
         "maximum_trades": {"type": "integer", "minimum": 1, "maximum": 10},
         "maximum_duration_minutes": {"type": "integer", "minimum": 1, "maximum": 60},
         "maximum_open_positions": {"const": 1},
         "maximum_notional_per_trade_usd": {"type": "integer", "minimum": 1, "maximum": 10000},
         "maximum_cumulative_notional_usd": {"type": "integer", "minimum": 1, "maximum": 100000},
+        "maximum_loss_per_trade_aud": {"const": 100},
         "require_persisted_proposal": {"const": true},
         "require_idempotency_key": {"const": true}
       }

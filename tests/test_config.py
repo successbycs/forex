@@ -42,6 +42,7 @@ def test_all_initial_configuration_loads_as_typed_models() -> None:
     assert limits.maximum_open_positions == 1
     assert limits.maximum_notional_per_trade_usd == 10000
     assert limits.maximum_cumulative_notional_usd == 100000
+    assert limits.maximum_loss_per_trade_aud == 100
     assert limits.require_persisted_proposal is True
     assert limits.require_idempotency_key is True
     assert configuration.agent.mode == "DEMO_SESSION_CONTEXT"
@@ -104,6 +105,7 @@ def test_unsafe_runtime_and_mt5_changes_are_rejected(
         {"maximum_open_positions": 2},
         {"maximum_notional_per_trade_usd": 10001},
         {"maximum_cumulative_notional_usd": 100001},
+        {"maximum_loss_per_trade_aud": 101},
         {"require_persisted_proposal": False},
         {"require_idempotency_key": False},
     ],
