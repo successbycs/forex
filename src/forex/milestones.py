@@ -608,7 +608,21 @@ def validate_evidence_bundle(
             raise GovernanceError(f"evidence success marker is missing: {marker}")
     if run_external_verifier:
         command = _replace_bundle(milestone["real_world_proof"]["verifier_command"], bundle)
-        result = subprocess.run(command, cwd=root, text=True, capture_output=True, check=False)
+        # A verifier may use the governance CLI for a read-only configuration
+        # lookup.  This function is also called by ``record-evidence`` while
+        # the repository lock is already held, so explicitly propagate the
+        # marker that prevents that child lookup from recursively blocking on
+        # the same lock.
+        verifier_environment = dict(os.environ)
+        verifier_environment["FOREX_GOVERNANCE_LOCK_HELD"] = "1"
+        result = subprocess.run(
+            command,
+            cwd=root,
+            text=True,
+            capture_output=True,
+            check=False,
+            env=verifier_environment,
+        )
         if result.returncode:
             message = (result.stderr or result.stdout).strip()
             raise GovernanceError(f"independent evidence verifier failed: {message}")
