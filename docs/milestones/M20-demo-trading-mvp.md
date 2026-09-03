@@ -4,7 +4,7 @@
 
 M20 replaces the deferred Ollama evaluation closeout with the MVP operational
 loop: fresh `GOMarketsMU-Demo` EUR/USD data, an adaptive M1-only live-listener assessment, a
-bounded Demo-session order, and durable reconciliation data for later
+continuous cap-constrained Demo order, and durable reconciliation data for later
 backtesting. It never permits `GOMarketsMU-Live`.
 
 ## Bounded session contract
@@ -13,7 +13,8 @@ The governed configuration permits only a session that is all of the
 following:
 
 - exactly `GOMarketsMU-Demo` and `EURUSD`;
-- no more than ten trades in a maximum sixty-minute window;
+- continuous Demo-only authority (`maximum_duration_minutes: 0`) with a new
+  immutable session record for each activation; caps remain per recorded session;
 - one open position at a time;
 - no more than USD 10,000 notional per trade and USD 100,000 cumulative notional;
 - a calculated protective stop whose theoretical loss is no more than AUD 100;
@@ -26,11 +27,13 @@ variable.
 ## Data and decision record
 
 The listener keeps its incoming MT5 tick observations only in memory and runs
-an assessment every ten seconds using a fresh tick and closed M1 candles.
+an assessment every five seconds using a fresh tick and closed M1 candles.
 Every resulting proposal stores one hash-addressed decision snapshot of the
 current bid, ask, spread, and closed M1 candles; it deliberately retains no
 listener stream or M5 candles. The deterministic MVP assessment returns
-`BUY`, `SELL`, or `NO_TRADE` from closed M1 momentum. The first goal is an
+`BUY`, `SELL`, or `NO_TRADE` from closed M1 momentum. It also evaluates four
+shadow strategies—compression breakout, trend pullback, range reversion, and
+session breakout—without granting them order authority. The first goal is an
 inspectable operational loop, not a profitability claim.
 
 ## PostgreSQL audit boundary
@@ -79,7 +82,7 @@ freezing the terminal view.
 ## Current M20 work packages
 
 - **M20.7 — Permanent M1 listener and operator observability:** documents and
-  verifies the T480 Scheduled Task, its ten-second redacted status, and the
+  verifies the T480 Scheduled Task, its five-second redacted status, and the
   read-only T16 dashboard. It does not add a trading control surface.
 - **M20.8 — MT5 rejection diagnostics and execution-path remediation:** records
   broker return codes against immutable execution attempts, reconciles every
@@ -90,5 +93,5 @@ freezing the terminal view.
   Scheduled Task with rollback, and keeps lease, status, recovery, runner, and
   dashboard paths aligned.
 
-Both packages are within M20. They do not claim M20 completion or authorize
-live trading.
+All M20 packages remain Demo-only. They do not claim M20 completion or
+authorize Live trading.

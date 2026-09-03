@@ -33,5 +33,6 @@ def test_dashboard_renders_decision_and_candle_metrics():
     assert "NZST 03/09/26 21:33:00 NZST" in screen
     assert "Direction: MIXED" in screen
     assert "Combined move: 4 pts" in screen
-    assert "Momentum breakout: NO_TRADE [ACTIVE]" in screen
-    assert "Compression breakout: BUY [SHADOW]" in screen
+    assert "Strategy comparison — only Momentum Breakout may trade" in screen
+    assert "Momentum breakout      NO_TRADE     ACTIVE" in screen
+    assert "Compression breakout   BUY          SHADOW" in screen

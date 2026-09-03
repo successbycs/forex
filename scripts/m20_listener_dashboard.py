@@ -42,6 +42,7 @@ def render(status: dict[str, Any]) -> str:
     metrics = result.get("assessment_metrics") or {}
     execution = result.get("execution") or {}
     reconciliation = result.get("reconciliation") or {}
+    monitor = status.get("monitor") or {}
     strategies = result.get("strategy_assessments") or []
     lines = [
         "M20 Demo Listener — live assessment dashboard",
@@ -49,12 +50,14 @@ def render(status: dict[str, Any]) -> str:
         f"Listener: {_value(status.get('state'))}",
         f"Heartbeat: UTC {_value(status.get('heartbeat_at_utc'))} | NZST {_value(status.get('heartbeat_at_nzst'))}",
         f"Assessment: #{_value(status.get('iteration'))}",
+        f"Assessment completed: {_value(status.get('assessment_completed_at_utc'))} ({_value(status.get('assessment_duration_ms'))} ms)",
         f"Next: UTC {_value(status.get('next_assessment_at_utc'))} | NZST {_value(status.get('next_assessment_at_nzst'))}",
         f"Market: {_value(result.get('server'))}  {_value(result.get('symbol'))} / {_value(proposal.get('selected_timeframe'))}",
         "",
         f"Decision: {_value(proposal.get('action'))}   Order: {_value(execution.get('status'))}",
         f"Reason: {_value(proposal.get('rationale'))}",
         f"Reconciliation: {_value(reconciliation.get('status'))}",
+        f"Monitor: {_value(monitor.get('state'))}   PID: {_value(monitor.get('pid'))}",
         "",
         "Candle checks",
         f"Last close: {_value(metrics.get('last_close'))}   Previous: {_value(metrics.get('previous_close'))}",
@@ -64,12 +67,19 @@ def render(status: dict[str, Any]) -> str:
         f"Combined move: {_value(metrics.get('combined_move_points'))} pts   Spread: {_value(metrics.get('spread_points'))} pts   Exceeds spread: {_value(metrics.get('combined_move_exceeds_spread'))}",
         "",
     ]
-    lines.append("Strategy comparisons (only Momentum breakout can execute)")
+    lines.extend([
+        "Strategy comparison — only Momentum Breakout may trade",
+        "Strategy               Signal       Mode      What this assessment means",
+        "---------------------  -----------  --------  ----------------------------------------",
+    ])
     for strategy in strategies:
         if not isinstance(strategy, dict):
             continue
         eligibility = "ACTIVE" if strategy.get("eligible_for_execution") else "SHADOW"
-        lines.append(f"{_value(strategy.get('label'))}: {_value(strategy.get('signal'))} [{eligibility}] — {_value(strategy.get('reason'))}")
+        label = _value(strategy.get("label"))[:21]
+        signal = _value(strategy.get("signal"))[:11]
+        reason = _value(strategy.get("reason"))
+        lines.append(f"{label:<21}  {signal:<11}  {eligibility:<8}  {reason}")
     lines.extend(["", "Ctrl+C exits. Data is Demo-only and the dashboard is read-only."])
     return "\n".join(lines)
 

@@ -16,7 +16,7 @@ Work packages help sequence work but do not create alternative completion claims
 ## MVP critical path
 
 M20 is the active MVP milestone. It replaces the former Ollama-evaluation
-critical path with a bounded, Demo-only operational loop. Its work packages
+critical path with a continuous-lease, Demo-only operational loop. Its work packages
 are ordered to deliver an inspectable learning loop early without introducing
 a generic broker interface:
 
@@ -29,11 +29,11 @@ a generic broker interface:
 3. **M20.3 — Versioned assessment and proposal audit.** Persist a `BUY`,
    `SELL`, or `NO_TRADE` assessment, its reasons, and hashes of its inputs
    before any execution attempt.
-4. **M20.4 — Bounded Demo session executor.** A human-enabled session lease
-   limits the MVP to ten trades in sixty minutes, one open position, USD 10,000
-   notional per trade, USD 100,000 cumulative notional, and AUD 100 maximum
-   theoretical loss per trade. The fixed executor
-   refuses stale data, lease expiry, cap breaches, server mismatch, duplicate
+4. **M20.4 — Continuous Demo lease executor.** The approved Demo authority
+   lease uses duration `0` (no time expiry) while retaining one open position,
+   USD 10,000 notional per trade, USD 100,000 cumulative notional, and AUD 100
+   maximum theoretical loss per trade. The fixed executor refuses stale data,
+   an absent or disabled lease, cap breaches, server mismatch, duplicate
    proposals, and unknown execution state.
 5. **M20.5 — Monitoring, reconciliation, and proof.** Link each proposal to
    its execution attempt or `NO_TRADE`, position events, outcome, and
@@ -47,7 +47,7 @@ a generic broker interface:
    dependency and fails closed until deployed.
 
 This is a Demo-only learning loop, not an assertion of profitability. The
-human starts, configures, supervises, and may stop the session.
+human operator has approved autonomous Demo operation and can pause or stop it.
 `GOMarketsMU-Live` is excluded; credentials and account identifiers stay in
 ignored local files.
 
@@ -58,7 +58,7 @@ ignored local files.
    walk-forward foundations; M17–M19 add bounded context and lineage.
    Historical data cannot establish a fresh tick, current spread, or order
    result.
-2. **M20 — bounded automated Demo MVP.** M20 introduces the fresh-data,
+2. **M20 — continuous-lease automated Demo MVP.** M20 introduces the fresh-data,
    recorded-assessment, capped-execution, monitoring, and reconciliation loop
    described above. It is constrained to `GOMarketsMU-Demo` and does not
    broaden the broker, account, or order interface.

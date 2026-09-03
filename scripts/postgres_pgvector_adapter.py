@@ -514,13 +514,38 @@ printf 'FOREX_M20_OPEN_POSITION_STATE_APPLIED sha256:{digest}\\n' '''
 def stage_m20_continuous_lease_schema() -> dict:
     """Stage the fixed M20 continuous Demo-lease migration on T480."""
     relative, digest = asset("m20_continuous_lease_schema")
-    source = ROOT / relative
-    remote_path = f"{REMOTE_FOREX}/{relative}"
-    windows_source = subprocess.run(["wslpath", "-w", str(source)], text=True, capture_output=True, check=True).stdout.strip()
-    transfer = subprocess.run(["powershell.exe", "-NoProfile", "-Command", f"New-Item -ItemType Directory -Force '{Path(remote_path).parent.as_posix()}' | Out-Null; Copy-Item -LiteralPath '{windows_source}' -Destination '{remote_path}' -Force"], text=True, capture_output=True)
+    source_windows = subprocess.run(
+        ["wslpath", "-w", str(ROOT / relative)], text=True, capture_output=True, check=True
+    ).stdout.strip()
+    staging_directory = r"C:\Users\chris\Documents\Code\forex-m1-probe"
+    staging_windows = staging_directory + r"\011_m20_continuous_demo_lease.sql"
+    quote = lambda value: "'" + value.replace("'", "''") + "'"
+    mkdir = subprocess.run(
+        build_ssh_command(
+            TARGET,
+            "$ErrorActionPreference='Stop'; New-Item -ItemType Directory -Force -Path "
+            + quote(staging_directory) + " | Out-Null",
+            SETTINGS,
+        ), text=True, capture_output=True, check=False,
+    )
+    if mkdir.returncode:
+        return wrap("forex_m20_stage_continuous_lease_schema", {"exit_code": mkdir.returncode, "stdout": mkdir.stdout, "stderr": mkdir.stderr, "ok": False}, digest)
+    command = (
+        "$ErrorActionPreference='Stop'; "
+        f"& scp.exe -B -o BatchMode=yes -o StrictHostKeyChecking=yes -- {quote(source_windows)} {quote(TARGET + ':' + staging_windows)}; "
+        "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+    )
+    encoded = base64.b64encode(command.encode("utf-16-le")).decode("ascii")
+    transfer = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded], text=True, capture_output=True, check=False)
     if transfer.returncode:
         return wrap("forex_m20_stage_continuous_lease_schema", {"exit_code": transfer.returncode, "stdout": transfer.stdout, "stderr": transfer.stderr, "ok": False}, digest)
-    body = f"file='{remote_path}'; test -f \"$file\" && [[ \"$(sha256sum \"$file\" | head -c 64)\" == '{digest}' ]]; printf 'FOREX_M20_CONTINUOUS_LEASE_SCHEMA_STAGED sha256:{digest}\\n'"
+    body = f'''source="/mnt/c/Users/chris/Documents/Code/forex-m1-probe/011_m20_continuous_demo_lease.sql"
+file="{REMOTE_FOREX}/{relative}"
+test -f "$source" && [[ "$(sha256sum "$source" | head -c 64)" == "{digest}" ]]
+mkdir -p "$(dirname "$file")"
+install -m 0644 "$source" "$file"
+[[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+printf 'FOREX_M20_CONTINUOUS_LEASE_SCHEMA_STAGED sha256:{digest}\\n' '''
     return wrap("forex_m20_stage_continuous_lease_schema", remote(body), digest)
 
 

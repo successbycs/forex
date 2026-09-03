@@ -7,13 +7,25 @@ SOURCE = Path("t480/m20_demo_listener_service.py")
 
 def test_permanent_listener_is_a_bounded_m1_supervisor_with_status_and_stop():
     source = SOURCE.read_text(encoding="utf-8")
-    assert "ASSESSMENT_INTERVAL_SECONDS = 10" in source
+    assert "ASSESSMENT_INTERVAL_SECONDS = 5" in source
     assert "WAITING_FOR_ACTIVE_DEMO_LEASE" in source
     assert "m20_demo_listener_status.local.json" in source
     assert "m20_demo_listener.stop" in source
     assert "M20 listener service accepts no arguments" in source
+    assert "M20 monitor recovery exceeded its eight-second bound" in source
+    assert "timeout=8" in source
     assert "FOREX_M20_POSTGRES_DSN\"" not in source.split("required =", 1)[1].split("if not", 1)[0]
     assert "order_send" not in source
+
+
+def test_runner_has_a_narrow_history_unavailable_mvp_recovery_path():
+    source = Path("t480/m20_demo_trading_session.py").read_text(encoding="utf-8")
+    bridge = Path("t480/m20_postgres_audit_bridge.py").read_text(encoding="utf-8")
+    assert '"archive-history-unavailable-positions"' in source
+    assert '"BROKER_HISTORY_UNAVAILABLE"' in source
+    assert "not owned_positions" in source
+    assert "archive_history_unavailable_positions" in bridge
+    assert "M20 close deal history has no priced market deal" in bridge
 
 
 def test_listener_module_loads_without_mt5_dependency():
@@ -21,7 +33,7 @@ def test_listener_module_loads_without_mt5_dependency():
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    assert module.ASSESSMENT_INTERVAL_SECONDS == 10
+    assert module.ASSESSMENT_INTERVAL_SECONDS == 5
     assert module._nzst("2026-09-03T09:30:00Z") == "03/09/26 21:30:00 NZST"
 
 

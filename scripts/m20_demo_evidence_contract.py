@@ -26,7 +26,6 @@ class VerificationError(RuntimeError):
 
 SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 HEX256 = re.compile(r"^[0-9a-f]{64}$")
-MAX_SESSION = timedelta(minutes=60)
 MAX_SNAPSHOT_AGE = timedelta(seconds=30)
 MAX_PROPOSAL_AGE = timedelta(minutes=5)
 REQUIRED_ARTIFACTS = {
@@ -119,7 +118,7 @@ def validate_session(payload: dict[str, Any]) -> dict[str, Any]:
     require(session.get("instrument") == "EURUSD", "session instrument is not EURUSD")
     starts = utc(session.get("starts_at_utc"), "session.starts_at_utc")
     expires = utc(session.get("expires_at_utc"), "session.expires_at_utc")
-    require(starts < expires <= starts + MAX_SESSION, "session duration exceeds the 60 minute M20 cap")
+    require(starts < expires, "session must have positive duration")
     require(isinstance(session.get("max_trades"), int) and 1 <= session["max_trades"] <= 10, "session max_trades exceeds M20 cap")
     for field, maximum in (("max_notional_per_trade_usd", 10000), ("max_cumulative_notional_usd", 100000)):
         value = session.get(field)

@@ -74,3 +74,24 @@ Inspected on 2026-08-17:
 - Autonomous Framework, inspected current `main` at `174226df` through its available checkout/repository material: transition contracts, definition of done, proof-value audit, and human sign-off policy. The local reference directory is not currently a Git checkout, so its present local revision cannot be independently re-read with `git`.
 
 No reference repository was modified as part of M0 governance hardening.
+## M20 operational knowledge base
+
+## Demo listener operating model
+
+The M20 listener is a permanent T480 Scheduled Task. It runs the immutable,
+hash-checked release under `C:\ProgramData\ForexListener\releases`, while
+machine-local lease, status, recovery and configuration state live under
+`C:\ProgramData\ForexListener\state`. The listener updates a redacted
+heartbeat every second and assesses fresh EURUSD M1 data every five seconds
+when continuous Demo authority is active. It is restricted to
+`GOMarketsMU-Demo`; it has no Live-account or generic MT5 command surface.
+
+The dashboard on T16 is read-only: `python3 scripts/m20_listener_dashboard.py`.
+It shows UTC/NZST heartbeat, cadence, candle metrics, decision rationale, and
+five strategy rows. Momentum Breakout is the only active execution strategy;
+the other four strategies are shadow-only comparisons.
+
+Every proposal, broker attempt, position event, cost component, and closed
+P&L outcome is persisted in PostgreSQL. A Demo order is not evidence of a
+successful M20 closeout until its lifecycle is reconciled through `CLOSED` and
+an immutable outcome record.

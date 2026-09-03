@@ -6,4 +6,7 @@ BEGIN;
 ALTER TABLE forex.demo_trade_session
     DROP CONSTRAINT IF EXISTS demo_trade_session_check;
 
+ALTER TABLE forex.demo_trade_session
+    DROP CONSTRAINT IF EXISTS demo_trade_session_check1;
+
 COMMIT;

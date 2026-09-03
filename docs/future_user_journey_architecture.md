@@ -1,8 +1,9 @@
 # Future user journey — plain-English view
 
 This describes the M20 MVP target. It is **not** saying that real-money live
-trading exists today or will be enabled by this project. A human starts a
-bounded `GOMarketsMU-Demo` session. During that lease, Codex assesses fresh
+trading exists today or will be enabled by this project. Chris has approved a
+continuous `GOMarketsMU-Demo` authority lease (duration `0`). During that
+lease, Codex assesses fresh
 EUR/USD market data, records a proposal and reasons, and a fixed Demo-only
 executor may submit an eligible trade. PostgreSQL retains the data, proposal,
 execution events, and outcome for back-testing. The human supervises and can
@@ -18,15 +19,15 @@ T480 assessment every 10 seconds: BUY / SELL / NO_TRADE
         ↓
 Persisted proposal, rationale and input hashes in PostgreSQL
         ↓
-Human-enabled bounded session lease
+Continuous Demo-only authority lease (duration 0)
         ↓
 Fixed Demo executor or recorded NO_TRADE/refusal
         ↓
 Position monitoring, reconciliation and back-testing record
 ```
 
-The important rule is simple: **the project may execute only a bounded,
-recorded `GOMarketsMU-Demo` trade during an active human-enabled lease. It
+The important rule is simple: **the project may execute only a recorded,
+fixed-cap `GOMarketsMU-Demo` trade during the active continuous Demo lease. It
 never accesses, advises execution on, or routes an order to a real-money
 account.**
 
@@ -34,13 +35,12 @@ account.**
 
 ## What you will do
 
-1. Start a Demo session with a maximum number of trades and short expiry. The
-   initial M20 contract fixes this at ten trades in sixty minutes, one open
-   position, USD 10,000 notional per trade, USD 100,000 cumulative notional,
-   and AUD 100 theoretical loss per trade.
-2. Inspect the fresh data, the M1/M5 assessment, and the proposed `BUY`,
+1. Configure or pause the continuous Demo lease. It has duration `0` (no time
+   expiry) and keeps one open position, USD 10,000 notional per trade, USD
+   100,000 cumulative notional, and AUD 100 theoretical loss per trade.
+2. Inspect the fresh M1 assessment and the proposed `BUY`,
    `SELL`, or `NO_TRADE` with reasons and decision inputs.
-3. Supervise, pause, or stop the session. An expired session cannot trade.
+3. Supervise, pause, or stop Demo automation. A disabled lease cannot trade.
 4. Inspect the recorded entry, exit, costs, slippage and realised result, then
    compare the proposal with the outcome during back-testing.
 
@@ -70,8 +70,8 @@ account.**
 ## Future Demo-trading operating architecture
 
 This is the **M20 Demo trading function to be proven**, not evidence that it
-is deployed today. Solid lines describe the bounded Demo path; the session
-lease and fixed checks prevent unconstrained execution. The project owns the
+is deployed today. Solid lines describe the continuous, cap-constrained Demo
+path; the fixed lease and checks prevent unrestricted execution. The project owns the
 closed Demo loop, including result capture and performance evaluation.
 Real-money accounts are deliberately outside this system.
 
@@ -96,7 +96,7 @@ flowchart TB
 
   subgraph operator[3. Human supervision — operator]
     VIEW[Operator view\ndata freshness • reasoning • audit]
-    RULES{Human starts bounded\nDemo session lease?}
+    RULES{Continuous Demo\nauthority lease active?}
     STOP[Human pause / stop control]
     DB --> VIEW
     INTENT --> VIEW --> RULES
@@ -106,7 +106,7 @@ flowchart TB
     REAL[Real-money broker account\nnot connected to Forex]
   end
 
-  subgraph execution[4. M20 bounded Demo execution — T480]
+  subgraph execution[4. M20 continuous Demo execution — T480]
     PRE[Fixed pre-trade checks\nDemo server • EUR/USD • lease • caps]
     ACTION[Fixed Demo executor\nactive lease only]
     RESULT[Execution and reconciliation\nentry • exit • costs • outcome]
@@ -128,8 +128,8 @@ flowchart TB
 
 ```text
 Codex assessment:    records BUY / SELL / NO_TRADE with reasons and input hashes
-System controls:     validate fresh data, fixed Demo criteria, session lease and caps
-Human operator:      starts, supervises, pauses or stops the Demo session
+System controls:     validate fresh data, fixed Demo criteria, lease and caps
+Human operator:      configures, supervises, pauses or stops Demo automation
 Project execution:   sends only a persisted, criteria-matched, limit-checked Demo action
 MT5 Demo:            returns the trade result for reconciliation and evaluation
 Real-money account:  human-managed outside this project; never connected
@@ -137,8 +137,8 @@ Real-money account:  human-managed outside this project; never connected
 
 ## Operator journey
 
-1. **Start.** The operator enables a short, capped Demo session. The lease is
-   visible, expires automatically, and can be paused or stopped.
+1. **Operate.** The operator configures the continuous, fixed-cap Demo lease.
+   It is visible and can be paused or stopped; it does not expire by time.
 2. **Observe.** The system checks fresh bid/ask/spread and completed M1
    candles every ten seconds. The T16 dashboard shows the latest decision and
    human-readable candle checks; it has no trading controls.
@@ -164,14 +164,14 @@ Real-money account:  human-managed outside this project; never connected
 | M20 assessment | Every 10 seconds, produces a persisted `BUY` / `SELL` / `NO_TRADE` proposal from fresh pricing and completed M1 candles | Forex repository, T480 |
 | MT5 Demo | Fresh Demo data and bounded M20 actions only | T480, `GOMarketsMU-Demo` only |
 | Fixed Demo executor | Sends an eligible, lease- and cap-checked Demo action and captures result events | Forex repository, T480, M20 target |
-| Human operator | Starts a bounded session; supervises and pause-stops Demo automation | Human-only |
+| Human operator | Configures the continuous Demo lease; supervises and pause-stops automation | Human-only |
 
 ## Delivery position
 
 - **Current contract:** M20 is the active target: fresh Demo data, a recorded
-  assessment, bounded execution, monitoring, and PostgreSQL reconciliation.
+  assessment, continuous-lease execution, monitoring, and PostgreSQL reconciliation.
 - **Later:** M21–M32 add event quality, richer controls, recovery hardening,
   and broader forward evaluation.
 - **Excluded:** real-money broker access and `GOMarketsMU-Live`. Any Demo
-  action remains limited to the fixed, session-capped M20 path; the project
+  action remains limited to the fixed, cap-constrained M20 path; the project
   never gains a live-account credential, connection, or order route.

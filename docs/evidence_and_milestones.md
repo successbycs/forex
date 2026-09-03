@@ -18,7 +18,8 @@ server, Git revision, governed configuration fingerprint, session lease,
 decision snapshot, persisted proposal, execution attempt or `NO_TRADE`, and
 reconciliation result.
 
-The M20 capture proves only the declared bounded Demo session. It does not
+The M20 capture proves only the declared continuous, cap-constrained Demo
+operation. It does not
 prove profitability, general broker access, ongoing availability, or any
 real-money capability. `GOMarketsMU-Live` remains prohibited and credentials
 must never appear in evidence bundles, logs, or tracked files.
@@ -92,10 +93,11 @@ Evidence capture and evidence verification are separate. The verifier does not c
 ### M20 evidence sequence
 
 For M20, first record that the fixed adapter observed the exact
-`GOMarketsMU-Demo` server, a fresh EUR/USD bid/ask/spread, and closed M1/M5
+`GOMarketsMU-Demo` server, a fresh EUR/USD bid/ask/spread, and closed M1
 candles. Then persist the decision snapshot and a hash-bound `BUY`, `SELL`, or
-`NO_TRADE` proposal. If the outcome is eligible for execution, capture the
-human-enabled session lease and the fixed executor's attempt; otherwise retain
+`NO_TRADE` proposal. Capture the configured continuous-Demo lease (duration
+`0`) and, if the outcome is eligible for execution, the fixed executor's
+attempt; otherwise retain
 the refusal or `NO_TRADE` record. Finally, capture the position lifecycle and
 PostgreSQL reconciliation. Each stage needs timestamps, hashes, and redaction
 declarations. A verifier may inspect these retained outputs but must not

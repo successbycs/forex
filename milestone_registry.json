@@ -2457,8 +2457,8 @@
     },
     {
       "milestone_id": "M20",
-      "title": "Capped automated GOMarketsMU-Demo trading MVP proven",
-      "objective": "Prove a bounded Demo-only loop from fresh EUR/USD data through recorded assessment, capped execution, monitoring, and PostgreSQL reconciliation.",
+      "title": "Continuous cap-constrained automated GOMarketsMU-Demo trading MVP proven",
+      "objective": "Prove a continuous, cap-constrained Demo-only loop from fresh EUR/USD M1 data through recorded assessment, automated execution, monitoring, and PostgreSQL reconciliation.",
       "delivery_type": "OPERATIONAL_SAFETY",
       "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
@@ -2469,20 +2469,20 @@
         "GOMarketsMU-Live remains structurally excluded and Demo-only operator authorization remains in force."
       ],
       "from_state": "The milestone capability is not yet proven.",
-      "to_state": "Capped automated GOMarketsMU-Demo trading MVP proven",
+      "to_state": "Continuous cap-constrained automated GOMarketsMU-Demo trading MVP proven",
       "scope": [
         "Use an adaptive fixed Demo-only EUR/USD M1 live-price listener that retains no tick stream and captures only the decision tick plus closed M1 candles through a fixed adapter.",
-        "Operate the fixed listener as a permanent T480 Scheduled Task with a redacted heartbeat and a read-only T16 dashboard showing its latest ten-second assessment.",
+        "Operate the fixed listener as a permanent T480 Scheduled Task with a redacted heartbeat and a read-only T16 dashboard showing its latest five-second assessment.",
         "Publish compact, human-readable candle and spread metrics with each read-only assessment status so a NO_TRADE conclusion is inspectable.",
         "Compare the five documented M1 strategies on the same closed-candle assessment and display each BUY, SELL, or NO_TRADE result, while allowing only momentum breakout to execute.",
         "Produce and persist an immutable BUY, SELL, or NO_TRADE assessment before any Demo execution, including rationale and hash-bound decision inputs.",
-        "Execute only fixed, Demo-only EUR/USD orders within a human-enabled session lease capped at ten trades, sixty minutes, one open position, USD 10,000 notional per trade, and USD 100,000 cumulative notional.",
+        "Execute only fixed, automated Demo-only EUR/USD M1 orders within an active continuous Demo lease (duration zero) capped at ten trades, one open position, USD 10,000 notional per trade, USD 100,000 cumulative notional, and AUD 100 maximum loss per trade.",
         "Persist proposal, execution attempt, position events, reconciliation, and outcome in PostgreSQL for backtesting and review.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
         "Any GOMarketsMU-Live access, credential retention, generic shell, generic MT5, or arbitrary order surface.",
-        "Orders outside an active bounded Demo session, or any order without a persisted proposal and idempotency key.",
+        "Orders outside an active cap-constrained continuous Demo lease, or any order without a persisted proposal and idempotency key.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -2506,7 +2506,7 @@
       "acceptance_criteria": [
         {
           "id": "M20-C1",
-          "description": "The fixed capability listens to fresh GOMarketsMU-Demo EUR/USD ticks at an MT5-refresh-derived cadence, retains no tick stream, captures closed M1 candles for its recorded assessment, and executes only a bounded Demo-session order or NO_TRADE outcome.",
+          "description": "The fixed capability listens to fresh GOMarketsMU-Demo EUR/USD ticks at least every ten seconds (currently every five), retains no tick stream, captures closed M1 candles for its recorded assessment, and executes only a cap-constrained continuous-Demo order or NO_TRADE outcome.",
           "kind": "CAPABILITY"
         },
         {
@@ -2553,7 +2553,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-      "surface": "bounded automated GOMarketsMU-Demo EUR/USD trading session",
+      "surface": "continuous cap-constrained automated GOMarketsMU-Demo EUR/USD M1 trading session",
       "capture_command": [
         "bash",
         "scripts/capture_m20_demo_evidence.sh"
@@ -2571,7 +2571,7 @@
       "evidence_requirements": [
         "Raw fixed Demo-only operation output with exit status, capture timestamps, redaction declaration, and exact server identity.",
         "Git revision, dirty-worktree declaration, configuration fingerprint, session lease, decision snapshot, proposal, execution result, and SHA-256 artifact hashes.",
-        "A human-observable summary of the bounded Demo trading session result containing FOREX_M20_DEMO_TRADING_PROOF_OK."
+        "A human-observable summary of the continuous cap-constrained Demo trading result containing FOREX_M20_DEMO_TRADING_PROOF_OK."
       ],
       "human_review_required": false,
       "triad_completion_recommendation_required": true,
@@ -2582,7 +2582,7 @@
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "MVP priority: fresh Demo data, recorded assessment, bounded execution, and reconciliation. This grants no GOMarketsMU-Live capability or unrestricted MT5 interface.",
+      "notes": "MVP priority: fresh Demo data, recorded assessment, automated cap-constrained execution, monitoring, and reconciliation. This grants no GOMarketsMU-Live capability or unrestricted MT5 interface.",
       "work_packages": [
         {
           "work_package_id": "M20.1",
@@ -2604,7 +2604,7 @@
         },
         {
           "work_package_id": "M20.4",
-          "title": "Bounded Demo session executor",
+          "title": "Continuous cap-constrained Demo executor",
           "dependencies": ["M20.3"],
           "acceptance_criteria": ["M20-C1", "M20-C4", "M20-C5"]
         },

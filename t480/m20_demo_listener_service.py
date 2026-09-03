@@ -35,7 +35,8 @@ CONFIG_PATH = STATE_ROOT / "m20_demo_listener_service.local.json"
 # extension; source remains reviewed Python in the repository.
 RUNNER_PATH = ROOT / "m20_demo_trading_session.payload"
 POLL_SECONDS = 1
-ASSESSMENT_INTERVAL_SECONDS = 10
+ASSESSMENT_INTERVAL_SECONDS = 5
+MONITOR_RETRY_SECONDS = 10
 
 
 def _utc_now() -> str:
@@ -137,29 +138,100 @@ def _assessment_metrics(snapshot: dict[str, Any], proposal: dict[str, Any]) -> d
     return metrics
 
 
+def _monitor_job_path() -> Path:
+    return LEASE_PATH.with_name("m20_demo_monitor_job.local.json")
+
+
+def _monitor_update(values: dict[str, str], previous: dict[str, Any], retry_at: float) -> tuple[dict[str, Any], float]:
+    """Perform one bounded MT5 monitor pass between assessment invocations.
+
+    MT5's Python connection is single-client in this deployment.  The monitor
+    is therefore independent in responsibility but serialized with the short
+    assessment process, preventing a ten-minute monitor from starving the
+    heartbeat or five-second assessment schedule.
+    """
+    now = time.monotonic()
+    state = previous
+    if now >= retry_at:
+        try:
+            completed = subprocess.run(
+                [str(values["python_path"]), str(RUNNER_PATH), str(values["terminal_path"]), str(LEASE_PATH), "--recover-open-positions-once"],
+                text=True, capture_output=True, check=False, env=os.environ.copy(), timeout=8,
+            )
+        except subprocess.TimeoutExpired:
+            # A slow MT5/WSL recovery must be observable as a monitor failure,
+            # never terminate the permanent supervisor and leave a stale
+            # STARTING heartbeat behind.
+            return {
+                "state": "FAILED", "exit_code": None,
+                "last_checked_at_utc": _utc_now(),
+                "result": {"error": "M20 monitor recovery exceeded its eight-second bound"},
+            }, now + MONITOR_RETRY_SECONDS
+        try:
+            result = json.loads(completed.stdout)
+        except json.JSONDecodeError:
+            result = {"error": completed.stderr.strip() or completed.stdout.strip()}
+        recovered = result.get("recovered") if isinstance(result, dict) else None
+        running = isinstance(recovered, list) and any(
+            isinstance(item, dict) and isinstance(item.get("reconciliation"), dict)
+            and item["reconciliation"].get("status") == "OPEN_MONITORING"
+            for item in recovered
+        )
+        state = {
+            "state": "RUNNING" if completed.returncode == 0 and running else ("IDLE" if completed.returncode == 0 else "FAILED"),
+            "exit_code": completed.returncode,
+            "last_checked_at_utc": _utc_now(),
+            "result": result,
+        }
+        retry_at = now + POLL_SECONDS
+    return state, retry_at
+
+
 def run() -> None:
     values = _load_environment()
     STOP_PATH.unlink(missing_ok=True)
     iteration = 0
     last_result: dict[str, Any] = {}
     next_assessment_at = 0.0
+    monitor_state: dict[str, Any] = {"state": "IDLE"}
+    monitor_retry_at = 0.0
+    last_assessment_completed_at_utc: str | None = None
+    last_assessment_duration_ms: int | None = None
+    # Publish a release-bound liveness record before the first bounded broker
+    # recovery pass.  Deployment health checks prove the supervisor is alive
+    # independently of any slow or failed historical reconciliation.
+    _write_status({"state": "STARTING", "iteration": iteration, "last_result": last_result,
+                   "next_assessment_at_utc": None, "monitor": monitor_state,
+                   "detail": "Supervisor started; broker-backed open-position recovery is pending."})
     while not STOP_PATH.exists():
+        monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
         now = time.monotonic()
         if not _active_lease():
             _write_status({"state": "WAITING_FOR_ACTIVE_DEMO_LEASE", "iteration": iteration,
                            "last_result": last_result, "next_assessment_at_utc": None,
-                           "detail": "Service is alive; no tick capture or Demo order is permitted without an active bounded lease."})
+                           "assessment_completed_at_utc": last_assessment_completed_at_utc,
+                           "assessment_duration_ms": last_assessment_duration_ms,
+                           "monitor": monitor_state,
+                           "detail": "Service is alive; no tick capture or Demo order is permitted without an active Demo lease."})
             time.sleep(POLL_SECONDS)
             continue
         if now < next_assessment_at:
             _write_status({"state": "RUNNING", "iteration": iteration, "last_result": last_result,
                            "next_assessment_at_utc": datetime.fromtimestamp(time.time() + next_assessment_at - now, timezone.utc).isoformat().replace("+00:00", "Z"),
-                           "detail": "Waiting for the next ten-second M1 assessment; decisions use only completed candles."})
+                           "assessment_completed_at_utc": last_assessment_completed_at_utc,
+                           "assessment_duration_ms": last_assessment_duration_ms,
+                           "monitor": monitor_state,
+                           "detail": "Waiting for the next five-second M1 assessment; decisions use only completed candles."})
             time.sleep(min(POLL_SECONDS, next_assessment_at - now))
             continue
         started = time.monotonic()
+        assessment_started_at_utc = _utc_now()
         completed = subprocess.run([str(values["python_path"]), str(RUNNER_PATH), str(values["terminal_path"]), str(LEASE_PATH)],
                                    text=True, capture_output=True, check=False, env=os.environ.copy())
+        assessment_completed_at_utc = _utc_now()
+        assessment_duration_ms = round((time.monotonic() - started) * 1000)
+        last_assessment_completed_at_utc = assessment_completed_at_utc
+        last_assessment_duration_ms = assessment_duration_ms
         iteration += 1
         next_assessment_at = started + ASSESSMENT_INTERVAL_SECONDS
         try:
@@ -171,10 +243,14 @@ def run() -> None:
             last_result = {"error": completed.stderr.strip() or completed.stdout.strip(), "exit_code": completed.returncode}
         _write_status({"state": "RUNNING" if completed.returncode == 0 else "LAST_ASSESSMENT_FAILED",
                        "iteration": iteration, "last_result": last_result,
+                       "assessment_started_at_utc": assessment_started_at_utc,
+                       "assessment_completed_at_utc": assessment_completed_at_utc,
+                       "assessment_duration_ms": assessment_duration_ms,
                        "next_assessment_at_utc": datetime.fromtimestamp(time.time() + max(0, next_assessment_at - time.monotonic()), timezone.utc).isoformat().replace("+00:00", "Z"),
-                       "detail": "The fixed M20 runner assesses every ten seconds using fresh pricing and completed M1 candles; raw tick observations are not retained."})
+                       "monitor": monitor_state,
+                       "detail": "The fixed M20 runner assesses every five seconds using fresh pricing and completed M1 candles; an accepted position is monitored by a bounded fixed check."})
     _write_status({"state": "STOPPED", "iteration": iteration, "last_result": last_result,
-                   "next_assessment_at_utc": None, "detail": "Stop sentinel observed."})
+                   "next_assessment_at_utc": None, "monitor": monitor_state, "detail": "Stop sentinel observed."})
 
 
 if __name__ == "__main__":

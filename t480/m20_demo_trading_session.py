@@ -9,6 +9,7 @@ and submission, then reconciled through the co-located PostgreSQL audit bridge.
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
@@ -17,6 +18,7 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+from types import SimpleNamespace
 from typing import Any
 from uuid import NAMESPACE_URL, UUID, uuid5
 import math
@@ -329,13 +331,18 @@ def _strategy_assessments(*, m1: list[dict[str, Any]], tick: dict[str, Any], act
     normal_spread = spread_points <= 12.0
     session_signal = breakout_signal if liquid_session and normal_spread else "NO_TRADE"
 
-    return [
-        record("momentum_breakout", "Momentum breakout", active_action, "Active rule: " + ("eligible after two aligned candles, range break, and spread check." if active_action != "NO_TRADE" else "no eligible closed-candle breakout."), active=True),
-        record("compression_breakout", "Compression breakout", compression_signal, f"Prior five-candle range {compression_points:.1f} pts; limit {compression_limit:.1f} pts."),
-        record("trend_pullback", "Trend pullback", pullback_signal, "Trend, pullback, and resumption checks are " + ("aligned." if pullback_signal != "NO_TRADE" else "not aligned.")),
-        record("range_reversion", "Range reversion", reversion_signal, "Range-edge rejection check is " + ("present." if reversion_signal != "NO_TRADE" else "not present.")),
-        record("session_breakout", "Session breakout", session_signal, f"UTC hour {observed_hour:02d}; liquid-session={liquid_session}, normal-spread={normal_spread}."),
-    ]
+    # Each rule receives the same immutable captured snapshot. Parallelising
+    # these pure calculations never adds MT5 reads or execution authority; the
+    # canonical order below keeps dashboard and audit interpretation stable.
+    rules = (
+        lambda: record("momentum_breakout", "Momentum breakout", active_action, "Active rule: " + ("eligible after two aligned candles, range break, and spread check." if active_action != "NO_TRADE" else "no eligible closed-candle breakout."), active=True),
+        lambda: record("compression_breakout", "Compression breakout", compression_signal, f"Prior five-candle range {compression_points:.1f} pts; limit {compression_limit:.1f} pts."),
+        lambda: record("trend_pullback", "Trend pullback", pullback_signal, "Trend, pullback, and resumption checks are " + ("aligned." if pullback_signal != "NO_TRADE" else "not aligned.")),
+        lambda: record("range_reversion", "Range reversion", reversion_signal, "Range-edge rejection check is " + ("present." if reversion_signal != "NO_TRADE" else "not present.")),
+        lambda: record("session_breakout", "Session breakout", session_signal, f"UTC hour {observed_hour:02d}; liquid-session={liquid_session}, normal-spread={normal_spread}."),
+    )
+    with ThreadPoolExecutor(max_workers=len(rules), thread_name_prefix="m20-strategy") as executor:
+        return list(executor.map(lambda rule: rule(), rules))
 
 
 def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, list[dict[str, Any]]], captured_at: datetime, risk: dict[str, float], listener_poll_seconds: float) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -464,20 +471,51 @@ def _closed_position_costs(*, position: Any, submitted_at: datetime, proposed_en
     ticket = int(getattr(position, "ticket", 0))
     volume = float(getattr(position, "volume", 0))
     position_type = int(getattr(position, "type", -1))
-    if ticket <= 0 or volume <= 0:
-        raise SystemExit("M20 closed position has invalid ticket or volume")
-    deals = mt5.history_deals_get(submitted_at - timedelta(minutes=1), datetime.now(timezone.utc) + timedelta(seconds=5), position=ticket)
+    if ticket <= 0:
+        raise SystemExit("M20 closed position has an invalid ticket")
+    # Recovery can restart well after broker-side SL/TP closure.  Query a
+    # bounded 24-hour window by exact position ticket rather than assuming the
+    # original process is still alive; this remains broker-backed evidence.
+    deals = mt5.history_deals_get(submitted_at - timedelta(days=1), datetime.now(timezone.utc) + timedelta(seconds=5), position=ticket)
     if not deals:
         raise SystemExit("M20 closed position deal history is unavailable")
     ordered = sorted(deals, key=lambda deal: int(getattr(deal, "time_msc", 0)))
-    exit_deal = ordered[-1]
+    if volume <= 0:
+        volume = max(float(getattr(deal, "volume", 0)) for deal in ordered)
+    if volume <= 0:
+        raise SystemExit("M20 closed position deal history has no volume")
+    # MT5 can append zero-price accounting rows (for example a commission or
+    # balance adjustment) after the actual closing market deal.  Those rows
+    # contribute to realised P&L but are not executable prices.  Select the
+    # last priced, volume-bearing deal for the exit price while retaining all
+    # deal rows below when calculating broker-reported P&L and fees.
+    priced_deals = [
+        deal for deal in ordered
+        if float(getattr(deal, "price", 0)) > 0 and float(getattr(deal, "volume", 0)) > 0
+    ]
+    if not priced_deals:
+        # Keep the diagnosis deliberately small and broker-derived.  It lets
+        # the fixed status surface distinguish an absent position history
+        # from post-close accounting rows without exposing credentials or a
+        # generic MT5-history interface.
+        diagnostic = [
+            {
+                "deal_ticket": int(getattr(deal, "ticket", 0)),
+                "position_id": int(getattr(deal, "position_id", 0)),
+                "entry": int(getattr(deal, "entry", -1)),
+                "type": int(getattr(deal, "type", -1)),
+                "volume": float(getattr(deal, "volume", 0)),
+                "price": float(getattr(deal, "price", 0)),
+            }
+            for deal in ordered[-6:]
+        ]
+        raise SystemExit(f"M20 close deal history has no priced market deal: {json.dumps(diagnostic, separators=(',', ':'))}")
+    exit_deal = priced_deals[-1]
     exit_price = float(getattr(exit_deal, "price", 0))
     gross_price_pnl = sum(float(getattr(deal, "profit", 0)) for deal in ordered)
     commission = sum(float(getattr(deal, "commission", 0)) for deal in ordered)
     swap = sum(float(getattr(deal, "swap", 0)) for deal in ordered)
     realized_pnl = gross_price_pnl + commission + swap
-    if exit_price <= 0:
-        raise SystemExit("M20 close deal has an invalid exit price")
     entry_price = float(getattr(position, "price_open", 0))
     tick_size, tick_value_loss = risk["tick_size"], risk["tick_value_loss"]
     if entry_price <= 0 or min(tick_size, tick_value_loss) <= 0:
@@ -660,7 +698,7 @@ def _apply_break_even(*, proposal: dict[str, Any], attempt_id: str, position: An
     _bridge({"result": result_payload, "state": state}, "update-open-position")
 
 
-def _monitor_open_position(*, proposal: dict[str, Any], attempt_id: str, position: Any, submitted_at: datetime, entry_spread: float, risk: dict[str, float], offset_seconds: int) -> dict[str, Any]:
+def _monitor_open_position(*, proposal: dict[str, Any], attempt_id: str, position: Any, submitted_at: datetime, entry_spread: float, risk: dict[str, float], offset_seconds: int, single_pass: bool = False, break_even_applied: bool = False) -> dict[str, Any]:
     """Hold one Demo position with static broker protection and M1 exits.
 
     Any monitor, pricing, candle, or audit failure stops discretionary action.
@@ -677,9 +715,11 @@ def _monitor_open_position(*, proposal: dict[str, Any], attempt_id: str, positio
     risk_distance = abs(entry - original_stop)
     if risk_distance <= 0:
         raise SystemExit("M20 open position has no measurable initial risk")
-    opened_at = datetime.now(timezone.utc)
-    deadline = time.monotonic() + MONITOR_MAX_HOLD_SECONDS
-    break_even_applied = False
+    # A recovery pass is deliberately short, but the trade's M1 exit window
+    # is not.  Use the durable submission time so its ten-minute maximum hold
+    # and two-opposite-candle check survive every five-second supervisor pass.
+    opened_at = submitted_at
+    closes_at = opened_at + timedelta(seconds=MONITOR_MAX_HOLD_SECONDS)
     while True:
         positions = mt5.positions_get(ticket=ticket) or ()
         if not positions:
@@ -705,7 +745,7 @@ def _monitor_open_position(*, proposal: dict[str, Any], attempt_id: str, positio
         if reached_one_r and not break_even_applied:
             _apply_break_even(proposal=proposal, attempt_id=attempt_id, position=current, entry=entry, take_profit=take_profit)
             break_even_applied = True
-        if time.monotonic() >= deadline:
+        if datetime.now(timezone.utc) >= closes_at:
             reference, exit_price, costs = _close_accepted_position(
                 position=current, submitted_at=submitted_at,
                 proposed_entry=float(proposal["proposed_entry"]), entry_spread=entry_spread, risk=risk,
@@ -728,7 +768,142 @@ def _monitor_open_position(*, proposal: dict[str, Any], attempt_id: str, positio
                 close_reason="M1_TWO_OPPOSITE_CLOSED_CANDLES", broker_order_reference=reference,
                 expected_exit_price=exit_price, closed_costs=costs,
             )
-        time.sleep(MONITOR_POLL_SECONDS)
+        if single_pass:
+            return {"status": "OPEN_MONITORING", "position_ticket": ticket}
+        remaining_seconds = max(0.0, (closes_at - datetime.now(timezone.utc)).total_seconds())
+        time.sleep(min(MONITOR_POLL_SECONDS, remaining_seconds))
+
+
+def _monitor_job_path(session_path: Path) -> Path:
+    """Return the fixed, durable monitor-job location for this listener."""
+    return session_path.with_name("m20_demo_monitor_job.local.json")
+
+
+def _write_monitor_job(*, session_path: Path, proposal: dict[str, Any], attempt_id: str, position: Any, submitted_at: str, entry_spread: float, risk: dict[str, float], offset_seconds: int) -> Path:
+    """Persist accepted-position context so monitoring survives supervisor restart."""
+    job = {
+        "schema_version": "forex.m20.monitor-job.v1",
+        "proposal": proposal,
+        "attempt_id": attempt_id,
+        "position": {"ticket": int(position.ticket), "price_open": float(position.price_open), "sl": float(position.sl), "tp": float(position.tp), "volume": float(position.volume), "type": int(position.type)},
+        "submitted_at_utc": submitted_at,
+        "entry_spread": entry_spread,
+        "risk": risk,
+        "tick_timestamp_offset_seconds": offset_seconds,
+    }
+    path = _monitor_job_path(session_path)
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(job, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+    temporary.replace(path)
+    return path
+
+
+def monitor(terminal_path: str, session_path: Path, *, single_pass: bool = False) -> dict[str, Any]:
+    """Monitor one durable Demo position independently of assessment cadence."""
+    path = _monitor_job_path(session_path)
+    try:
+        job = json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SystemExit("M20 monitor job is absent or unreadable") from error
+    required = {"schema_version", "proposal", "attempt_id", "position", "submitted_at_utc", "entry_spread", "risk", "tick_timestamp_offset_seconds"}
+    if not isinstance(job, dict) or set(job) != required or job["schema_version"] != "forex.m20.monitor-job.v1":
+        raise SystemExit("M20 monitor job fields are invalid")
+    proposal, position_data, risk = job["proposal"], job["position"], job["risk"]
+    if not isinstance(proposal, dict) or not isinstance(position_data, dict) or not isinstance(risk, dict):
+        raise SystemExit("M20 monitor job payload is invalid")
+    if not mt5.initialize(path=terminal_path):
+        raise SystemExit(mt5.last_error())
+    try:
+        account = mt5.account_info()
+        if not account or account.server != SERVER or getattr(account, "currency", "") != "AUD":
+            raise SystemExit("M20 monitor is not connected to the required AUD GOMarketsMU-Demo account")
+        # Legacy v1 jobs omitted volume/type.  The broker's immutable deal
+        # history supplies volume after a broker-side close; action supplies
+        # the owned direction without inventing a trading decision.
+        position_data.setdefault("type", mt5.POSITION_TYPE_BUY if proposal.get("action") == "BUY" else mt5.POSITION_TYPE_SELL)
+        reconciliation = _monitor_open_position(
+            proposal=proposal, attempt_id=str(job["attempt_id"]), position=SimpleNamespace(**position_data),
+            submitted_at=parse_utc(str(job["submitted_at_utc"]), "submitted_at_utc"),
+            entry_spread=float(job["entry_spread"]), risk={key: float(value) for key, value in risk.items()},
+            offset_seconds=int(job["tick_timestamp_offset_seconds"]), single_pass=single_pass,
+        )
+        if reconciliation.get("status") != "OPEN_MONITORING":
+            path.unlink(missing_ok=True)
+        return {"marker": "FOREX_M20_DEMO_MONITOR_OPERATION_OK", "reconciliation": reconciliation, "position_ticket": position_data["ticket"]}
+    finally:
+        mt5.shutdown()
+
+
+def recover_open_positions(terminal_path: str) -> dict[str, Any]:
+    """Perform one broker-backed pass for every durable M20 open projection."""
+    recovered = _bridge({}, "load-open-positions").get("open_positions")
+    if not isinstance(recovered, list):
+        raise SystemExit("M20 durable open-position recovery returned invalid data")
+    if not mt5.initialize(path=terminal_path):
+        raise SystemExit(mt5.last_error())
+    try:
+        account = mt5.account_info()
+        symbol = mt5.symbol_info(SYMBOL)
+        if not account or account.server != SERVER or getattr(account, "currency", "") != "AUD" or not symbol:
+            raise SystemExit("M20 recovery is not connected to the required AUD GOMarketsMU-Demo account")
+        base_risk = {"tick_size": float(symbol.trade_tick_size), "tick_value_loss": float(symbol.trade_tick_value_loss), "point": float(symbol.point)}
+        results: list[dict[str, Any]] = []
+        for row in recovered:
+            if not isinstance(row, dict) or row.get("action") not in {"BUY", "SELL"}:
+                results.append({"status": "RECOVERY_FAILED", "error": "invalid durable recovery row"})
+                continue
+            try:
+                volume = float(row["volume"])
+                if volume <= 0:
+                    raise ValueError("missing broker-recorded volume")
+                proposal = {"proposal_id": row["proposal_id"], "action": row["action"], "proposed_entry": float(row["proposed_entry"])}
+                position = SimpleNamespace(
+                    ticket=int(row["position_ticket"]), price_open=float(row["entry_price"]),
+                    sl=float(row["stop_loss"]), tp=float(row["take_profit"]), volume=volume,
+                    type=mt5.POSITION_TYPE_BUY if row["action"] == "BUY" else mt5.POSITION_TYPE_SELL,
+                )
+                reconciliation = _monitor_open_position(
+                    proposal=proposal, attempt_id=str(row["attempt_id"]), position=position,
+                    submitted_at=parse_utc(str(row["submitted_at_utc"]), "submitted_at_utc"),
+                    entry_spread=float(row["entry_spread"]), risk={**base_risk, "volume": volume},
+                    offset_seconds=tick_time_offset_seconds(), single_pass=True,
+                    break_even_applied=bool(row.get("break_even_applied", False)),
+                )
+                results.append({"attempt_id": row["attempt_id"], "position_ticket": row["position_ticket"], "reconciliation": reconciliation})
+            except (KeyError, TypeError, ValueError, SystemExit) as error:
+                results.append({"attempt_id": row.get("attempt_id"), "position_ticket": row.get("position_ticket"), "status": "RECOVERY_FAILED", "error": str(error)})
+        # The first MVP implementation persisted two accepted positions but
+        # the broker retains no market-deal history for either (only account
+        # rows with position_id=0), while the current terminal has no owned
+        # EURUSD position.  Preserve those raw diagnostics as terminal FAILED
+        # events and remove only their stale mutable-open projections.  This
+        # is intentionally limited to the exact, broker-derived condition;
+        # it does not invent a close price, P&L, or fee.
+        history_unavailable = [
+            {"attempt_id": item.get("attempt_id"), "history_diagnostic": item.get("error")}
+            for item in results
+            if item.get("status") == "RECOVERY_FAILED"
+            and isinstance(item.get("error"), str)
+            and item["error"].startswith("M20 close deal history has no priced market deal")
+        ]
+        owned_positions = [
+            item for item in (mt5.positions_get(symbol=SYMBOL) or ())
+            if int(getattr(item, "magic", -1)) == EXECUTOR_MAGIC
+        ]
+        if recovered and len(history_unavailable) == len(recovered) and not owned_positions:
+            archived = _bridge(
+                {"broker_open_position_count": 0, "reason": "BROKER_HISTORY_UNAVAILABLE", "attempts": history_unavailable},
+                "archive-history-unavailable-positions",
+            )
+            archived_ids = set(archived.get("archived_attempt_ids", ()))
+            results = [
+                {**item, "status": "RECOVERY_ARCHIVED_HISTORY_UNAVAILABLE"}
+                if item.get("attempt_id") in archived_ids else item
+                for item in results
+            ]
+        return {"marker": "FOREX_M20_DEMO_MONITOR_OPERATION_OK", "recovered": results}
+    finally:
+        mt5.shutdown()
 
 
 def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
@@ -786,11 +961,17 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
         revision, fingerprint = _provenance()
         bridge_session_keys = {"session_id", "server", "instrument", "starts_at_utc", "expires_at_utc", "max_trades", "max_notional_per_trade_usd", "max_cumulative_notional_usd", "max_open_positions", "strategy_version", "operator_label"}
         bridge_payload = {"session": {key: session[key] for key in bridge_session_keys}, "proposal": proposal, "decision_snapshot": snapshot, "application_revision": revision, "configuration_fingerprint": fingerprint}
-        persisted = _bridge(bridge_payload, "persist-proposal")
         if proposal["action"] != "NO_TRADE":
             positions = mt5.positions_get(symbol=SYMBOL) or ()
             if positions:
-                raise SystemExit("M20 one-position limit is reached before order reservation")
+                proposal.update({
+                    "action": "NO_TRADE", "proposed_entry": None, "stop_loss": None,
+                    "take_profit": None, "notional_usd": None, "confidence": 100,
+                    "rationale": "An owned EURUSD Demo position is already being monitored; this assessment is recorded without a second order.",
+                })
+                bridge_payload["proposal"] = proposal
+        persisted = _bridge(bridge_payload, "persist-proposal")
+        if proposal["action"] != "NO_TRADE":
             submitted_at = utc(datetime.now(timezone.utc))
             attempt_id = str(uuid5(NAMESPACE_URL, f"{proposal['proposal_id']}:attempt"))
             reservation = {
@@ -815,21 +996,18 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
             if accepted:
                 position = _wait_for_position()
                 _bridge({"state": {"proposal_id": proposal["proposal_id"], "attempt_id": attempt_id, "position_ticket": int(position.ticket), "action": proposal["action"], "opened_at_utc": utc(datetime.now(timezone.utc)), "observed_at_utc": utc(datetime.now(timezone.utc)), "entry_price": float(position.price_open), "stop_loss": float(position.sl), "take_profit": float(position.tp)}}, "record-open-position")
-                reconciliation = _monitor_open_position(
-                    proposal=proposal,
-                    attempt_id=attempt_id,
-                    position=position,
-                    submitted_at=parse_utc(submitted_at, "submitted_at_utc"),
-                    entry_spread=ask - bid,
-                    risk=risk,
-                    offset_seconds=offset_seconds,
+                monitor_job = _write_monitor_job(
+                    session_path=session_path, proposal=proposal, attempt_id=attempt_id,
+                    position=position, submitted_at=submitted_at, entry_spread=ask - bid,
+                    risk=risk, offset_seconds=offset_seconds,
                 )
+                reconciliation = {"status": "OPEN_MONITORING", "position_ticket": int(position.ticket)}
             else:
                 reconciliation = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")["reconciliation"]
-            expected_status = "MATCHED"
+            expected_status = "OPEN_MONITORING" if accepted else "MATCHED"
             if reconciliation.get("status") != expected_status:
                 raise SystemExit("M20 actionable execution was not reconciled")
-            return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "decision_snapshot": snapshot, "proposal": proposal, "strategy_assessments": strategy_assessments, "execution": {"status": "ACCEPTED" if accepted else "REJECTED", "attempt_id": attempt_id, "session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "idempotency_key": reservation["idempotency_key"], "submitted_at_utc": submitted_at, "open_positions_before": 0, "cumulative_notional_before_usd": 0, "broker_retcode": getattr(result, "retcode", None)}, "reconciliation": reconciliation, "postgres_audit": reserved["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
+            return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "decision_snapshot": snapshot, "proposal": proposal, "strategy_assessments": strategy_assessments, "execution": {"status": "ACCEPTED" if accepted else "REJECTED", "attempt_id": attempt_id, "session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "idempotency_key": reservation["idempotency_key"], "submitted_at_utc": submitted_at, "open_positions_before": 0, "cumulative_notional_before_usd": 0, "broker_retcode": getattr(result, "retcode", None), "monitor_job_scheduled": accepted, "monitor_job_path": str(monitor_job) if accepted else None}, "reconciliation": reconciliation, "postgres_audit": reserved["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
         reconciled = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")
         reconciliation = reconciled.get("reconciliation")
         if not isinstance(reconciliation, dict) or reconciliation.get("status") != "NO_TRADE_RECONCILED":
@@ -854,6 +1032,11 @@ def main(terminal_path: str, session_path: str) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) == 3:
+        main(sys.argv[1], sys.argv[2])
+    elif len(sys.argv) == 4 and sys.argv[3] == "--monitor-once":
+        print(json.dumps(monitor(sys.argv[1], Path(sys.argv[2]), single_pass=True), separators=(",", ":")))
+    elif len(sys.argv) == 4 and sys.argv[3] == "--recover-open-positions-once":
+        print(json.dumps(recover_open_positions(sys.argv[1]), separators=(",", ":")))
+    else:
         raise SystemExit("expected fixed terminal path and fixed M20 session lease path")
-    main(sys.argv[1], sys.argv[2])

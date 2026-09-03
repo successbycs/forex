@@ -15,7 +15,7 @@ no live-account access, generic order command, or profitability claim.
 | Price/GDELT join and replay | M13 fixed read-only T480 replay probe deployed; it applies a UTC availability and event-time cutoff |
 | T480 n8n adapter | Fixed Forex M11 adapter is deployed to the T480 |
 | Daily Forex n8n schedule | n8n-native design; not deployed or activated |
-| M20 Demo execution | In progress: permanent T480 M1 listener assesses every 10 seconds; fixed EUR/USD Demo path is capped at 10 trades/60 minutes, one open position, USD 10,000/trade, USD 100,000 cumulative, and AUD 100 theoretical loss/trade; no milestone proof yet |
+| M20 Demo execution | In progress: a permanent T480 M1 listener is deployed from a versioned ProgramData release and assesses every 5 seconds when its continuous Demo lease is active. It is restricted to EUR/USD, 10 trades per recorded session, one open position, USD 10,000/trade, USD 100,000 cumulative, and AUD 100 theoretical loss/trade; no milestone proof yet. |
 
 ## System topology and ownership
 
@@ -26,7 +26,10 @@ T16 operator laptop
           │ existing shared transport
           ▼
 T480 Windows + WSL
-  ├─ MetaTrader 5 (Demo-only historical source)
+  ├─ MetaTrader 5 (`GOMarketsMU-Demo` only for M20)
+  ├─ `C:\ProgramData\ForexListener`
+  │    ├─ `releases\<sha>` immutable listener/runner/audit payloads
+  │    └─ `state\` mutable lease, heartbeat, recovery, and local service config
   ├─ Forex checkout: adapters, collectors, research code
   └─ cs-ai-lab-infra Docker services
       ├─ PostgreSQL + pgvector
@@ -192,15 +195,18 @@ offline classifier, producing a research-only 0–100 advisory score and
 price-only and no-change baselines in chronological walk-forward windows.
 
 M20 replaces the former local-Ollama historical comparison with a fixed,
-bounded Demo-only loop. A current bid/ask/spread plus completed M1 candles
+continuous Demo-only loop. A current bid/ask/spread plus completed M1 candles
 produce an immutable `BUY`, `SELL`, or `NO_TRADE` proposal. Only an actionable
-proposal with an active session lease, idempotency key, and persisted decision
+proposal with an active Demo lease, idempotency key, and persisted decision
 snapshot may reach the one fixed `GOMarketsMU-Demo` EUR/USD executor. The
-session is capped at ten trades in 60 minutes, one open position, USD 10,000
+session is capped at ten trades, one open position, USD 10,000
 per trade, USD 100,000 cumulative, and AUD 100 theoretical loss per trade.
 PostgreSQL retains attempts, position events,
 and outcomes for reconciliation and backtesting. There is no `GOMarketsMU-Live`
-or generic MT5/order path.
+or generic MT5/order path. The listener evaluates five M1 strategies on every
+assessment; only Momentum Breakout is execution-eligible, while Compression
+Breakout, Trend Pullback, Range Reversion, and Session Breakout are displayed
+as non-executing shadow comparisons.
 
 Success is not a high in-sample score. The model must improve a pre-declared
 out-of-sample comparison after costs and retain an abstaining `NO_TRADE`

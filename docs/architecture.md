@@ -49,15 +49,21 @@ T16 / VS Code → read-only M20 terminal dashboard
        ▼
 T480 Scheduled Task: Forex-M20-Demo-Listener
   every 10 seconds → fresh EURUSD bid/ask/spread + completed M1 candles
-       ├─ BUY / SELL → fixed capped Demo executor → MT5 Demo position monitor
+       ├─ five strategy assessments → Momentum Breakout alone may execute
+       ├─ eligible BUY / SELL → fixed capped Demo executor
+       │                         ↘ asynchronous MT5 Demo position monitor
        └─ NO_TRADE → persisted proposal and reconciliation
        ▼
 T480 WSL PostgreSQL bridge → audit events and P&L ledger
 ```
 
-The listener retains no raw tick stream. Its compact assessment reports the
-prior five-candle range, last-two-candle direction, breakout checks, combined
-move and spread check. The T16 dashboard is read-only.
+The listener retains no raw tick stream. It assesses one completed-candle M1
+snapshot every ten seconds and reports the prior five-candle range,
+last-two-candle direction, breakout checks, combined move and spread check.
+It compares five named strategies on the same snapshot; Momentum Breakout is
+the sole execution-eligible row and the other four are shadow assessments.
+Assessment must remain independent of position monitoring so an open trade
+does not stall later observations. The T16 dashboard is read-only.
 
 ## Current historical-data and sentiment design
 
@@ -151,7 +157,7 @@ components remain planned or subject to their current contract state.
 | Demo historical export, fixed read-only bridge, persistence, multi-timeframe price data | M1–M6 |
 | Source qualification and candidate macro/calendar/sentiment adapters | M7–M11 |
 | Normalisation, provenance, point-in-time alignment, replay, deterministic hypotheses, one explainable offline ML baseline, walk-forward evaluation | M12–M16 |
-| Bounded Demo-only data-to-outcome MVP: fresh tick/candles, decision snapshot, recorded assessment, session-capped execution, monitoring and reconciliation | M20 |
+| Continuous Demo-only data-to-outcome MVP: fresh tick/candles, five-strategy assessment, recorded decision, capped execution, monitoring and reconciliation | M20 |
 | Event quality, richer risk/sizing/intent/approval/revalidation controls | M21–M26 |
 | Additional fresh-data, tick/spread and recovery hardening | M27–M29 |
 | Broader controlled Demo workflow evaluation and forward assessment | M30–M32 |
@@ -170,8 +176,8 @@ capability is currently deployed. The mutable execution record remains
 
 The roadmap retains its historical foundation through M19. M20 is now the MVP
 critical path: it must prove a fixed `GOMarketsMU-Demo` EUR/USD loop from a
-fresh bid/ask/spread and closed M1/M5 candles to a recorded assessment, a
-bounded Demo result, and PostgreSQL reconciliation. Historical bars never
+fresh bid/ask/spread and closed M1 candles to a recorded assessment, a
+continuous-lease Demo result, and PostgreSQL reconciliation. Historical bars never
 substitute for M20's fresh-tick, current-spread, or execution proof.
 
 M17 is the entry boundary for Phase 2. Its context builder accepts only historical EUR/USD bars available at a supplied UTC cutoff and research-only derived features. It excludes future data, account and credential data, MT5 controls, orders and execution fields. The result has no model, network, MT5 or order capability; later M18+ components may consume this bounded context but cannot widen it.
@@ -197,10 +203,10 @@ fresh bid/ask/spread plus completed M1 candles and emits `BUY`,
 execution attempt. The MVP is not a claim of trading edge or profitability.
 
 M20 may automate a Demo action only through a fixed, fail-closed executor. A
-human first enables a short session lease; the initial contract caps it at ten
-trades in sixty minutes, one open EUR/USD position, USD 10,000 notional per
-trade, USD 100,000 cumulative notional, and AUD 100 theoretical loss per
-trade. The executor refuses an expired lease,
+Demo-only authority lease with duration `0` is continuous rather than
+time-expiring; it remains constrained to one open EUR/USD position, USD 10,000
+notional per trade, USD 100,000 cumulative notional, and AUD 100 theoretical
+loss per trade. The executor refuses an absent or disabled lease,
 server mismatch, missing or duplicate proposal, cap breach, stale data, or
 unknown order state. Every attempt and `NO_TRADE` outcome is retained for
 reconciliation and later back-testing.
@@ -223,8 +229,8 @@ Capabilities are introduced vertically, one milestone at a time. Shared infrastr
 
 The hard boundary remains: no `GOMarketsMU-Live`, no real-money order path,
 and no unrestricted MT5 interface. M20 is the sole contracted, fixed
-`GOMarketsMU-Demo` execution path; it is bounded by the session lease and
-audit requirements above. It is not deployed or proven merely because this
+`GOMarketsMU-Demo` execution path; the continuous lease, fixed caps, and audit
+requirements constrain it. It is not deployed or proven merely because this
 architecture describes it. Broker credentials and machine-local account data
 remain outside the repository and evidence summaries. The evidence signature
 is self-attested integrity, not independent execution provenance.

@@ -148,9 +148,9 @@ def reserve_execution(payload: dict[str, Any]) -> dict[str, Any]:
         cursor.execute("SELECT COALESCE(sum(p.notional_usd),0) FROM forex.demo_execution_attempt a JOIN forex.demo_trade_proposal p ON p.proposal_id=a.proposal_id WHERE a.session_id=%s", (session["session_id"],))
         if float(cursor.fetchone()[0]) + float(proposal["notional_usd"]) > float(session["max_cumulative_notional_usd"]):
             raise SystemExit("M20 cumulative notional cap is reached")
-        cursor.execute("SELECT count(*) FROM forex.demo_execution_attempt a LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=a.proposal_id WHERE a.session_id=%s AND o.proposal_id IS NULL AND NOT EXISTS (SELECT 1 FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type IN ('REJECTED','FAILED'))", (session["session_id"],))
+        cursor.execute("SELECT count(*) FROM forex.demo_execution_attempt a LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=a.proposal_id WHERE o.proposal_id IS NULL AND NOT EXISTS (SELECT 1 FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type IN ('REJECTED','FAILED'))")
         if cursor.fetchone()[0] != 0:
-            raise SystemExit("M20 one-position limit is reached")
+            raise SystemExit("M20 global one-position limit is reached")
         cursor.execute("SELECT slot_number FROM forex.demo_trade_slot WHERE session_id=%s AND proposal_id IS NULL ORDER BY slot_number FOR UPDATE SKIP LOCKED LIMIT 1", (session["session_id"],))
         slot = cursor.fetchone()
         if slot is None:
@@ -236,6 +236,101 @@ def record_closed_outcome(payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "recorded_event_id": result["event_id"], "proposal_id": outcome["proposal_id"]}
 
 
+def archive_history_unavailable_positions(payload: dict[str, Any]) -> dict[str, Any]:
+    """Terminally retain old missing-history positions without inventing P&L.
+
+    This is a deliberately narrow MVP recovery action.  It can be called only
+    after the fixed MT5 runner has observed zero owned EURUSD positions and
+    only for durable rows whose broker history has no priced market deal.  It
+    appends a FAILED event containing that broker diagnostic, then removes the
+    mutable *open* projection.  It never fabricates a close, fee, or outcome.
+    """
+    required = {"broker_open_position_count", "reason", "attempts"}
+    if set(payload) != required or payload["broker_open_position_count"] != 0 or payload["reason"] != "BROKER_HISTORY_UNAVAILABLE":
+        raise SystemExit("M20 history-unavailable archival payload is invalid")
+    attempts = payload["attempts"]
+    if not isinstance(attempts, list) or not attempts:
+        raise SystemExit("M20 history-unavailable archival attempts are invalid")
+    normalized: list[tuple[str, str]] = []
+    for item in attempts:
+        if not isinstance(item, dict) or set(item) != {"attempt_id", "history_diagnostic"}:
+            raise SystemExit("M20 history-unavailable archival item is invalid")
+        attempt_id, diagnostic = item["attempt_id"], item["history_diagnostic"]
+        if not isinstance(attempt_id, str) or not attempt_id or not isinstance(diagnostic, str) or not diagnostic.startswith("M20 close deal history has no priced market deal"):
+            raise SystemExit("M20 history-unavailable archival item is not broker-derived")
+        normalized.append((attempt_id, diagnostic))
+    if len({attempt_id for attempt_id, _ in normalized}) != len(normalized):
+        raise SystemExit("M20 history-unavailable archival repeats an attempt")
+    with _connection() as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended('forex.m20.history-unavailable', 0))")
+        for attempt_id, diagnostic in normalized:
+            cursor.execute(
+                """SELECT state.proposal_id
+                     FROM forex.demo_open_position_state state
+                     JOIN forex.demo_execution_attempt attempt ON attempt.attempt_id=state.attempt_id
+                     LEFT JOIN forex.demo_trade_outcome outcome ON outcome.proposal_id=state.proposal_id
+                    WHERE state.attempt_id=%s AND outcome.proposal_id IS NULL
+                      AND EXISTS (SELECT 1 FROM forex.demo_position_event opened WHERE opened.attempt_id=state.attempt_id AND opened.event_type='OPENED')
+                      AND NOT EXISTS (SELECT 1 FROM forex.demo_position_event terminal WHERE terminal.attempt_id=state.attempt_id AND terminal.event_type IN ('CLOSED','REJECTED','FAILED'))
+                    FOR UPDATE OF state""",
+                (attempt_id,),
+            )
+            if cursor.fetchone() is None:
+                raise SystemExit("M20 history-unavailable archival target is not a sole unresolved open position")
+            event_payload = {
+                "reason": "BROKER_HISTORY_UNAVAILABLE",
+                "broker_open_position_count": 0,
+                "history_diagnostic": diagnostic,
+            }
+            event_id = f"{attempt_id}:broker-history-unavailable"
+            cursor.execute(
+                """INSERT INTO forex.demo_position_event
+                   (event_id,attempt_id,event_type,observed_at_utc,payload_sha256,payload)
+                   VALUES (%s,%s,'FAILED',now(),%s,%s::jsonb)
+                   ON CONFLICT (event_id) DO NOTHING""",
+                (event_id, attempt_id, _digest(event_payload), json.dumps(event_payload)),
+            )
+            cursor.execute("DELETE FROM forex.demo_open_position_state WHERE attempt_id=%s", (attempt_id,))
+            if cursor.rowcount != 1:
+                raise SystemExit("M20 history-unavailable archival did not remove its mutable open projection")
+    return {"ok": True, "archived_attempt_ids": [attempt_id for attempt_id, _ in normalized], "disposition": "HISTORY_UNAVAILABLE"}
+
+
+def load_open_positions(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return only durable M20 monitor context; this is a fixed read surface."""
+    if payload:
+        raise SystemExit("M20 open-position recovery accepts no arguments")
+    with _connection() as conn, conn.cursor() as cursor:
+        cursor.execute(
+            """SELECT state.proposal_id,p.action,p.proposed_entry,a.attempt_id,a.submitted_at_utc,
+                      state.position_ticket,state.entry_price,state.stop_loss,state.take_profit,state.break_even_applied,
+                      snapshot.ask-snapshot.bid,
+                      COALESCE((SELECT event.payload->>'volume' FROM forex.demo_position_event event
+                                WHERE event.attempt_id=a.attempt_id AND event.event_type='OPENED'
+                                ORDER BY event.observed_at_utc DESC LIMIT 1),'')
+                 FROM forex.demo_open_position_state state
+                 JOIN forex.demo_trade_proposal p ON p.proposal_id=state.proposal_id
+                 JOIN forex.demo_execution_attempt a ON a.attempt_id=state.attempt_id
+                 JOIN forex.demo_decision_snapshot snapshot ON snapshot.proposal_id=p.proposal_id
+                ORDER BY state.opened_at_utc"""
+        )
+        rows = cursor.fetchall()
+    positions = []
+    for row in rows:
+        try:
+            volume = float(row[11])
+        except (TypeError, ValueError):
+            volume = 0.0
+        positions.append({
+            "proposal_id": row[0], "action": row[1], "proposed_entry": float(row[2]),
+            "attempt_id": row[3], "submitted_at_utc": row[4].astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "position_ticket": int(row[5]), "entry_price": float(row[6]),
+            "stop_loss": float(row[7]), "take_profit": float(row[8]),
+            "break_even_applied": bool(row[9]), "entry_spread": float(row[10]), "volume": volume,
+        })
+    return {"ok": True, "open_positions": positions}
+
+
 def reconcile(payload: dict[str, Any]) -> dict[str, Any]:
     """Read back the immutable lifecycle for one fixed persisted proposal."""
     proposal_id = payload.get("proposal_id")
@@ -260,7 +355,7 @@ def reconcile(payload: dict[str, Any]) -> dict[str, Any]:
 
 def main() -> int:
     command = sys.argv[1] if len(sys.argv) == 2 else ""
-    actions = {"persist-proposal": persist_proposal, "reserve-execution": reserve_execution, "record-result": record_result, "record-open-position": record_open_position, "update-open-position": update_open_position, "record-closed-outcome": record_closed_outcome, "reconcile": reconcile}
+    actions = {"persist-proposal": persist_proposal, "reserve-execution": reserve_execution, "record-result": record_result, "record-open-position": record_open_position, "update-open-position": update_open_position, "record-closed-outcome": record_closed_outcome, "archive-history-unavailable-positions": archive_history_unavailable_positions, "load-open-positions": load_open_positions, "reconcile": reconcile}
     if command not in actions:
         raise SystemExit("M20 audit bridge command is not fixed")
     print(json.dumps(actions[command](_payload()), separators=(",", ":")))

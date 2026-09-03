@@ -8,8 +8,8 @@ explicit `--approve`. It has no caller-supplied SQL, URL, host, shell, MT5, or
 order argument. The historical MT5/data exception is the fixed
 `m1_mt5_demo_probe`: it is Demo-only and exports exactly 720 closed EUR/USD H1
 bars solely to prepare M1. M20 adds its separate, fixed `m20_demo_trading_session`
-path, which starts by requiring a bounded local lease and captures only fresh
-EUR/USD tick plus closed M1/M5 data until its executor/audit prerequisites are
+path, which requires a fixed local Demo authority lease and captures only fresh
+EUR/USD tick plus closed M1 data until its executor/audit prerequisites are
 proven. Neither path provides generic MT5, generic market-data, arbitrary
 account, shell, deployment, or order access.
 
@@ -17,14 +17,14 @@ account, shell, deployment, or order access.
 
 M20 is the sole planned order-capable path. It is a fixed
 `GOMarketsMU-Demo` EUR/USD loop, not a generic MT5 or broker capability. A
-human operator enables a short session lease before it can act; the initial
-lease is capped at ten trades in sixty minutes, one open position, USD 100
-notional per trade, and USD 1,000 cumulative notional. A trade assessment must
+Demo-only authority lease with duration `0` is continuous rather than
+time-expiring. It retains one-open-position, USD 10,000 per-trade notional,
+USD 100,000 cumulative-notional, and AUD 100 theoretical-loss caps. A trade assessment must
 be persisted before an execution attempt, including the fresh tick/candle
 snapshot, reasons, decision timestamp, input hashes, and an idempotency key.
-The executor must fail closed on an expired or absent lease, server or symbol
+The executor must fail closed on an absent or disabled lease, server or symbol
 mismatch, stale data, cap breach, duplicate proposal, missing audit record, or
-unknown broker state. The operator can pause or stop the session.
+unknown broker state. The operator can pause or stop Demo automation.
 
 PostgreSQL retains the proposal, execution attempt, position events,
 reconciliation, and outcome for back-testing. It retains no broker credential.
@@ -37,8 +37,8 @@ Hard boundaries:
   credential, endpoint, server selection, or order route in the project.
 - No configuration may turn the fixed M20 Demo adapter into a generic MT5,
   arbitrary-symbol, arbitrary-account, or arbitrary-order interface.
-- Demo execution is permitted only through the active M20 bounded-session
-  contract; all other broker operations fail closed.
+- Demo execution is permitted only through the active M20 continuous-Demo
+  lease and fixed caps; all other broker operations fail closed.
 - Secrets, credentials, account identifiers, private host addresses, and
   populated `.env` files are excluded from version control, logs, and proof
   summaries. They are supplied only through ignored, machine-local settings.

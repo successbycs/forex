@@ -12,7 +12,8 @@ The execution boundary remains fixed:
 
 - no live account or `GOMarketsMU-Live` access;
 - at most one open EUR/USD position;
-- a bounded session of at most ten trades in sixty minutes;
+- a continuous Demo authority lease (`duration_minutes: 0`) with no
+  time-expiry;
 - maximum USD 10,000 notional per trade and USD 100,000 cumulative notional;
 - a broker-side protective stop whose maximum theoretical loss is AUD 100;
 - every proposal, execution attempt, position event, and closed P&L outcome
@@ -65,7 +66,7 @@ market has moved on.
 | Two candles point the same way | The last two completed one-minute candles agree on direction. | Both closed higher than they opened. | Both closed lower than they opened. | `NO_TRADE` — momentum is mixed. |
 | Breakout of the recent range | The latest close has escaped the range made by the five candles before it. | Closes above the prior five-candle high. | Closes below the prior five-candle low. | `NO_TRADE` — price is still inside the range. |
 | Movement pays for spread | The combined move of the two candles is larger than the immediate bid/ask cost. | Upward combined move exceeds spread. | Downward combined move exceeds spread. | `NO_TRADE` — expected move is too small. |
-| Fresh, tradeable market | The quote is current and the bounded Demo session can safely act. | Fresh ask, active lease, no open EUR/USD position. | Fresh bid, active lease, no open EUR/USD position. | `NO_TRADE` — operating condition is not safe. |
+| Fresh, tradeable market | The quote is current and the continuous Demo lease can safely act. | Fresh ask, active lease, no open EUR/USD position. | Fresh bid, active lease, no open EUR/USD position. | `NO_TRADE` — operating condition is not safe. |
 | Enough room for target | There is enough space before nearby support/resistance to justify the risk. | At least 1.25R above entry. | At least 1.25R below entry. | `NO_TRADE` — reward is too small. |
 
 The live dashboard labels each row as a pass or fail using `Direction`,
@@ -147,13 +148,13 @@ The visual patterns are filters for a trade proposal, not guarantees that a
 trade should be placed.  Every one still needs the same spread, session-cap,
 one-position, stop-loss, take-profit, and post-cost validation rules.
 
-| Test order | Strategy | Simple entry idea | Simple exit idea |
+| When we test it | Strategy | In plain English: when it looks interesting | In plain English: when we get out |
 | --- | --- | --- | --- |
-| 1 — current | Momentum breakout | Two one-minute candles agree, then price closes outside the recent five-minute range. | Aim for 1.5 times the risk; exit if two candles reverse or after ten minutes. |
-| 2 — next | Compression breakout | Price has been unusually quiet, then starts moving strongly out of that small range. | Stop on the far side of the quiet range. |
-| 3 — next | Trend pullback | A short trend pauses, then resumes in its original direction. | Stop beyond the pullback low/high. |
-| 4 — next | Range reversion | Price rejects the top or bottom of a well-defined quiet range. | Take profit near the middle; stop outside the range. |
-| 5 — next | Session breakout | A small range breaks during a liquid market period when spread is normal. | Exit if price returns inside the range or at the planned R target. |
+| Trading now | Momentum breakout | Two M1 candles point the same way and price breaks above or below the last five minutes. | Target 1.5× the initial risk; exit after two opposite candles or ten minutes. |
+| Watching | Compression breakout | Price was quiet, then breaks out with momentum. | Stop beyond the quiet range. |
+| Watching | Trend pullback | A short trend pauses, then starts moving in its original direction again. | Stop beyond the pullback. |
+| Watching | Range reversion | Price rejects the top or bottom of a clear range. | Take profit near the range middle; stop outside the range. |
+| Watching | Session breakout | A small range breaks during a liquid session with a normal spread. | Exit if price returns inside the range or hits the planned target. |
 
 Only one strategy version may be active in a Demo session.  The strategy
 identifier and every parameter used must be part of each decision snapshot,
@@ -165,13 +166,13 @@ The listener now evaluates every row above on completed M1 candles and shows
 its `BUY`, `SELL`, or `NO_TRADE` conclusion in the terminal. These four rules
 are observation-only hypotheses: they never change the executable proposal.
 
-| Strategy | Fixed M1 comparison rule | Execution status |
+| Strategy | What the listener checks | What happens today |
 | --- | --- | --- |
-| Momentum breakout | Two aligned candles, close outside the prior five-candle range, combined move greater than spread. | Active; the only strategy allowed to submit a Demo order. |
-| Compression breakout | Momentum-breakout conditions plus a prior five-candle range no wider than `max(12 points, 3 × spread)`. | Shadow only. |
-| Trend pullback | Three closes in one direction, one pullback close, then a resumption close whose two-candle move exceeds spread. | Shadow only. |
-| Range reversion | Latest candle rejects the prior five-candle high or low and its body exceeds spread. | Shadow only. |
-| Session breakout | Momentum-breakout conditions during 07:00–19:59 UTC with spread at or below 12 points. | Shadow only. |
+| Momentum breakout | Two aligned M1 candles break outside the prior five-candle range and the move is larger than the spread. | **Active:** may place one Demo order. |
+| Compression breakout | The same breakout happens after a very tight prior range: no wider than `max(12 points, 3 × spread)`. | **Watching only:** records a signal, never places an order. |
+| Trend pullback | Three closes trend one way, a pullback occurs, then price resumes strongly. | **Watching only:** records a signal, never places an order. |
+| Range reversion | The latest candle rejects the top or bottom of the recent range and has a body larger than the spread. | **Watching only:** records a signal, never places an order. |
+| Session breakout | Momentum breakout conditions occur between 07:00–19:59 UTC with spread no more than 12 points. | **Watching only:** records a signal, never places an order. |
 
 The displayed strategy comparison is a current operator view. The immutable
 M20 proposal and audit record remain bound to the active momentum-breakout
