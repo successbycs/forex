@@ -324,7 +324,7 @@ OPERATIONS: dict[str, Operation] = {
         "m20_demo_trading_session",
         "Run the fixed bounded GOMarketsMU-Demo EURUSD M1/M5 session; a hash-bound PostgreSQL audit bridge must persist before any transaction.",
         powershell_command=_m20_demo_trading_session_command(),
-        timeout_seconds=120,
+        timeout_seconds=720,
     ),
 }
 
