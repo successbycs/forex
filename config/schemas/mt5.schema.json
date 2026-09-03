@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "platform", "canonical_instrument", "expected_broker_symbol", "permitted_server", "forbidden_server", "allow_demo_order_operations", "allow_live_server", "terminal_path_environment_variable", "demo_credentials_environment_variable"],
+  "required": ["schema_version", "platform", "canonical_instrument", "expected_broker_symbol", "permitted_server", "forbidden_server", "allow_demo_order_operations", "allow_live_server", "terminal_path_environment_variable", "demo_credentials_environment_variable", "broker_tick_time_offset_seconds"],
   "properties": {
     "schema_version": {"const": "forex.mt5.v2"},
     "platform": {"const": "MetaTrader 5"},
@@ -13,6 +13,7 @@
     "allow_demo_order_operations": {"const": true},
     "allow_live_server": {"const": false},
     "terminal_path_environment_variable": {"const": "FOREX_MT5_TERMINAL_PATH"},
-    "demo_credentials_environment_variable": {"const": "FOREX_MT5_DEMO_CREDENTIALS"}
+    "demo_credentials_environment_variable": {"const": "FOREX_MT5_DEMO_CREDENTIALS"},
+    "broker_tick_time_offset_seconds": {"type": "integer", "minimum": -50400, "maximum": 50400, "multipleOf": 900}
   }
 }

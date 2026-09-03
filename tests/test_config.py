@@ -35,6 +35,7 @@ def test_all_initial_configuration_loads_as_typed_models() -> None:
     assert configuration.mt5.allow_demo_order_operations is True
     assert configuration.mt5.allow_live_server is False
     assert configuration.mt5.demo_credentials_environment_variable == "FOREX_MT5_DEMO_CREDENTIALS"
+    assert configuration.mt5.broker_tick_time_offset_seconds == 10800
     limits = configuration.runtime.demo_session_limits
     assert limits.maximum_trades == 10
     assert limits.maximum_duration_minutes == 60
@@ -82,6 +83,7 @@ def test_unknown_fields_are_rejected(tmp_path: Path) -> None:
         ("runtime", {"live_trading_enabled": True}),
         ("mt5", {"permitted_server": "GOMarketsMU-Live"}),
         ("mt5", {"allow_live_server": True}),
+        ("mt5", {"broker_tick_time_offset_seconds": 50401}),
         ("agent", {"mode": "OFFLINE_CONTEXT_ONLY"}),
     ],
 )

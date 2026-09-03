@@ -11,3 +11,6 @@ terminal_path_environment_variable: FOREX_MT5_TERMINAL_PATH
 # The value is an environment-variable name only.  The credential itself stays
 # in an ignored machine-local environment or override file.
 demo_credentials_environment_variable: FOREX_MT5_DEMO_CREDENTIALS
+# MT5 reports this Demo broker's tick timestamps in broker-server time. The
+# runner normalizes this explicit offset to UTC before enforcing tick freshness.
+broker_tick_time_offset_seconds: 10800

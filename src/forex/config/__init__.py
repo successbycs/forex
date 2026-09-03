@@ -72,6 +72,7 @@ class MT5Config:
     allow_live_server: bool
     terminal_path_environment_variable: str
     demo_credentials_environment_variable: str
+    broker_tick_time_offset_seconds: int
 
 
 @dataclass(frozen=True)

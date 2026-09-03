@@ -26,6 +26,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from forex.t480_dependency import inspect_dependency, require_dependency  # noqa: E402
+from forex.config import load_configuration  # noqa: E402
 from forex.milestones import configuration_fingerprint  # noqa: E402
 
 CONFIG_PATH = ROOT / "config" / "t480.json"
@@ -173,6 +174,7 @@ def _m20_demo_trading_session_command() -> str:
     bridge_source = (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()
     bridge_digest = hashlib.sha256(bridge_source).hexdigest()
     fingerprint = project_configuration_fingerprint()
+    tick_offset_seconds = load_configuration(ROOT, environ={}).mt5.broker_tick_time_offset_seconds
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     return (
         "$ErrorActionPreference='Stop'; "
@@ -189,6 +191,7 @@ def _m20_demo_trading_session_command() -> str:
         "$env:FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + digest + "'; "
         "$env:FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "'; "
         "$env:FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "'; "
+        "$env:FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(tick_offset_seconds) + "'; "
         "$env:FOREX_M20_APPLICATION_REVISION='" + revision + "'; & $s.python_path $p $s.terminal_path $lease; exit $LASTEXITCODE"
     )
 

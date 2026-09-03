@@ -122,6 +122,7 @@ def test_m20_session_operation_is_fixed_demo_only_fresh_data_capture():
     assert "Get-FileHash" in command
     assert "FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256" in command
     assert "FOREX_M20_CONFIGURATION_FINGERPRINT" in command
+    assert "FOREX_M20_TICK_TIME_OFFSET_SECONDS" in command
     assert "FOREX_M20_APPLICATION_REVISION" in command
     assert "GOMarketsMU-Demo" in probe
     assert "GOMarketsMU-Live" not in probe
@@ -130,6 +131,7 @@ def test_m20_session_operation_is_fixed_demo_only_fresh_data_capture():
     assert "TIMEFRAME_M5" in probe
     assert "copy_rates_from_pos" in probe
     assert "MAX_TICK_AGE_SECONDS = 30" in probe
+    assert "tick_time_offset_seconds" in probe
     assert "FOREX_M20_DEMO_TRADING_OPERATION_OK" in probe
     assert '"persist-proposal"' in probe
     assert '"reconcile"' in probe

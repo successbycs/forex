@@ -7765,6 +7765,37 @@
       "detail": {
         "work_package_id": "M20.6"
       }
+    },
+    {
+      "event_id": "E000548",
+      "timestamp": "2026-09-03T07:08:27Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:e22503ae496b311f8b14c0f09a19992de7fa30f135c6df5ceeb7cdf1463626f7",
+        "current": "sha256:6b48f9d654522af9a20bff61711ffd64f45509c1532adbd9b33e80c2e5322000",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
     }
   ]
 }

@@ -128,13 +128,13 @@ def load_session_lease(path: Path, now: datetime) -> dict[str, Any]:
     }
 
 
-def _bar_rows(rates: Any, *, timeframe_name: str, seconds: int, cutoff: int) -> tuple[list[dict[str, Any]], str]:
+def _bar_rows(rates: Any, *, timeframe_name: str, seconds: int, cutoff: int, timestamp_offset_seconds: int) -> tuple[list[dict[str, Any]], str]:
     if rates is None:
         raise SystemExit(f"expected closed EURUSD {timeframe_name} candles")
     rows: list[dict[str, Any]] = []
     previous_open: int | None = None
     for rate in rates:
-        opened_at = int(rate["time"])
+        opened_at = int(rate["time"]) - timestamp_offset_seconds
         # A candle is admissible only when its complete interval ended before
         # the current observed-tick timeframe boundary.
         if opened_at + seconds > cutoff:
@@ -193,6 +193,17 @@ def _provenance() -> tuple[str, str]:
     if len(revision) != 40 or not fingerprint.startswith("sha256:"):
         raise SystemExit("M20 session provenance is absent or invalid")
     return revision, fingerprint
+
+
+def tick_time_offset_seconds() -> int:
+    """Return the explicit, bounded broker-server to UTC time offset."""
+    try:
+        value = int(os.environ.get("FOREX_M20_TICK_TIME_OFFSET_SECONDS", ""))
+    except ValueError as error:
+        raise SystemExit("M20 tick timestamp offset is absent or invalid") from error
+    if not -50_400 <= value <= 50_400 or value % 900:
+        raise SystemExit("M20 tick timestamp offset is outside the governed range")
+    return value
 
 
 def _session(lease: dict[str, Any]) -> dict[str, Any]:
@@ -262,7 +273,9 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
         captured_at = datetime.now(timezone.utc)
         if captured_at > parse_utc(lease["expires_at_utc"], "expires_at_utc"):
             raise SystemExit("M20 session lease expired during market snapshot capture")
-        observed_at = datetime.fromtimestamp(int(tick.time), timezone.utc)
+        offset_seconds = tick_time_offset_seconds()
+        broker_observed_at = datetime.fromtimestamp(int(tick.time), timezone.utc)
+        observed_at = broker_observed_at - timedelta(seconds=offset_seconds)
         freshness_seconds = (captured_at - observed_at).total_seconds()
         if not 0 <= freshness_seconds <= MAX_TICK_AGE_SECONDS:
             raise SystemExit("EURUSD tick is stale or later than the local capture clock")
@@ -273,7 +286,13 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
         for name, timeframe, seconds in TIMEFRAMES:
             rates = mt5.copy_rates_from_pos(SYMBOL, timeframe, 1, CLOSED_BAR_COUNT + 8)
             boundary = int(observed_at.timestamp()) // seconds * seconds
-            rows, digest = _bar_rows(rates, timeframe_name=name, seconds=seconds, cutoff=boundary)
+            rows, digest = _bar_rows(
+                rates,
+                timeframe_name=name,
+                seconds=seconds,
+                cutoff=boundary,
+                timestamp_offset_seconds=offset_seconds,
+            )
             raw_bars[name] = [{"timeframe": name, **row} for row in rows]
         session = _session(lease)
         tick_record = {
@@ -298,6 +317,7 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
             "schema_version": "forex.m20.demo-trading-operation.v1",
             "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL,
             "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint,
+            "tick_timestamp_offset_seconds": offset_seconds,
             "session": session, "decision_snapshot": snapshot, "proposal": proposal,
             "execution": {"status": "NOT_SUBMITTED", "attempt_id": None},
             "reconciliation": reconciliation, "postgres_audit": persisted["postgres_audit"],
