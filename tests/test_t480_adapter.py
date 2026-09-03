@@ -150,8 +150,8 @@ def test_m20_runner_builds_the_same_no_trade_shape_accepted_by_the_evidence_cont
         "session_id": "06f0cf82-0651-423a-9c08-078dce04db21", "server": "GOMarketsMU-Demo",
         "instrument": "EURUSD", "starts_at_utc": stamp(observed.replace(minute=0)),
         "expires_at_utc": stamp(observed + timedelta(minutes=50)), "max_trades": 10,
-        "max_notional_per_trade_usd": 100, "max_cumulative_notional_usd": 1000,
-        "max_open_positions": 1, "strategy_version": probe.STRATEGY_VERSION,
+            "max_notional_per_trade_usd": 100, "max_cumulative_notional_usd": 1000,
+            "max_open_positions": 1, "maximum_loss_per_trade_aud": 100, "strategy_version": probe.STRATEGY_VERSION,
         "operator_label": probe.OPERATOR_LABEL, "status": "ACTIVE",
     }
     def bars(timeframe, minutes, values):
@@ -163,7 +163,7 @@ def test_m20_runner_builds_the_same_no_trade_shape_accepted_by_the_evidence_cont
     # M1 rises while M5 falls, therefore the actual runner's rule abstains.
     raw_bars = {"M1": bars("M1", 1, (1.1000, 1.1001)), "M5": bars("M5", 5, (1.1002, 1.1001))}
     tick = {"observed_at_utc": stamp(observed), "freshness_seconds": 2, "bid": 1.1, "ask": 1.1002, "spread_points": 2.0}
-    snapshot, proposal = probe._assessment(session, tick, raw_bars, observed.replace(second=2))
+    snapshot, proposal = probe._assessment(session, tick, raw_bars, observed.replace(second=2), {"volume": 0.01, "tick_size": 0.00001, "tick_value_loss": 1.395, "point": 0.00001})
     digest = "sha256:" + "a" * 64
     payload = {
         "configuration_fingerprint": digest, "session": session, "decision_snapshot": snapshot, "proposal": proposal,

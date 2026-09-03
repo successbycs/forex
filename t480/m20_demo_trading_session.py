@@ -23,6 +23,7 @@ import subprocess
 import sys
 from typing import Any
 from uuid import NAMESPACE_URL, UUID, uuid5
+import math
 
 import MetaTrader5 as mt5
 
@@ -238,7 +239,27 @@ def _session(lease: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, list[dict[str, Any]]], captured_at: datetime) -> tuple[dict[str, Any], dict[str, Any]]:
+def _risk_levels(*, action: str, entry: float, volume: float, tick_size: float, tick_value_loss: float, point: float, maximum_loss_aud: int) -> tuple[float, float, float]:
+    """Return stop, take-profit, and USD notional for the fixed minimum lot.
+
+    Tick value is broker-reported in the account currency for one whole lot;
+    rounding is away from the entry so a stop cannot exceed the AUD loss cap.
+    """
+    if action not in {"BUY", "SELL"} or min(entry, volume, tick_size, tick_value_loss, point) <= 0:
+        raise SystemExit("M20 broker risk inputs are invalid")
+    ticks = max(1, math.ceil(maximum_loss_aud / (volume * tick_value_loss)))
+    distance = ticks * tick_size
+    if action == "BUY":
+        stop, take = entry - distance, entry + distance
+    else:
+        stop, take = entry + distance, entry - distance
+    if stop <= 0 or take <= 0:
+        raise SystemExit("M20 AUD loss cap cannot produce valid EURUSD levels")
+    # EURUSD quote currency is USD; contract size times price is USD notional.
+    return round(stop / point) * point, round(take / point) * point, volume * 100000 * entry
+
+
+def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, list[dict[str, Any]]], captured_at: datetime, risk: dict[str, float]) -> tuple[dict[str, Any], dict[str, Any]]:
     """Create a deterministic M1/M5 proposal bound to the raw closed bars."""
     observed_at = tick["observed_at_utc"]
     snapshot_body = {
@@ -267,7 +288,10 @@ def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, l
     }
     if action != "NO_TRADE":
         entry = tick["ask"] if action == "BUY" else tick["bid"]
-        proposal.update({"proposed_entry": entry, "stop_loss": entry, "take_profit": entry, "notional_usd": session["max_notional_per_trade_usd"]})
+        stop, take, notional = _risk_levels(action=action, entry=entry, maximum_loss_aud=session["maximum_loss_per_trade_aud"], **risk)
+        if notional > session["max_notional_per_trade_usd"]:
+            raise SystemExit("M20 minimum EURUSD volume exceeds the Demo notional cap")
+        proposal.update({"proposed_entry": entry, "stop_loss": stop, "take_profit": take, "notional_usd": round(notional, 2), "rationale": f"M1 and M5 closed-candle momentum agree; {risk['volume']:.2f} lot stop is capped at AUD {session['maximum_loss_per_trade_aud']}."})
     return snapshot, proposal
 
 
@@ -317,7 +341,8 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
                 "ask": ask,
                 "spread_points": round((ask - bid) / float(symbol.point), 4),
         }
-        snapshot, proposal = _assessment(session, tick_record, raw_bars, captured_at)
+        risk = {"volume": float(symbol.volume_min), "tick_size": float(symbol.trade_tick_size), "tick_value_loss": float(symbol.trade_tick_value_loss), "point": float(symbol.point)}
+        snapshot, proposal = _assessment(session, tick_record, raw_bars, captured_at, risk)
         revision, fingerprint = _provenance()
         bridge_session_keys = {"session_id", "server", "instrument", "starts_at_utc", "expires_at_utc", "max_trades", "max_notional_per_trade_usd", "max_cumulative_notional_usd", "max_open_positions", "strategy_version", "operator_label"}
         bridge_payload = {"session": {key: session[key] for key in bridge_session_keys}, "proposal": proposal, "decision_snapshot": snapshot, "application_revision": revision, "configuration_fingerprint": fingerprint}
