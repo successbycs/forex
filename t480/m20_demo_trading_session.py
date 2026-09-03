@@ -431,6 +431,27 @@ def _listen_for_tick() -> tuple[Any, float]:
     return first, poll_seconds
 
 
+def quote_identity(terminal_path: str) -> dict[str, Any]:
+    """Read one fixed Demo EURUSD quote identity without assessing or trading."""
+    if not mt5.initialize(path=terminal_path):
+        raise SystemExit(mt5.last_error())
+    try:
+        account = mt5.account_info()
+        symbol = mt5.symbol_info(SYMBOL)
+        tick = mt5.symbol_info_tick(SYMBOL)
+        if not account or account.server != SERVER or getattr(account, "currency", "") != "AUD":
+            raise SystemExit("M20 quote identity is not connected to the required AUD GOMarketsMU-Demo account")
+        if not symbol or symbol.name != SYMBOL or not tick:
+            raise SystemExit("M20 quote identity has no EURUSD quote")
+        bid, ask, tick_msc = float(tick.bid), float(tick.ask), int(getattr(tick, "time_msc", 0))
+        if tick_msc <= 0 or bid <= 0 or ask < bid:
+            raise SystemExit("M20 quote identity is invalid")
+        return {"marker": "FOREX_M20_DEMO_QUOTE_IDENTITY_OK", "server": account.server,
+                "symbol": SYMBOL, "tick_time_msc": tick_msc, "bid": bid, "ask": ask}
+    finally:
+        mt5.shutdown()
+
+
 def _wait_for_position() -> Any:
     """Return the sole fixed-executor EURUSD position or fail closed.
 
@@ -473,10 +494,8 @@ def _closed_position_costs(*, position: Any, submitted_at: datetime, proposed_en
     position_type = int(getattr(position, "type", -1))
     if ticket <= 0:
         raise SystemExit("M20 closed position has an invalid ticket")
-    # Recovery can restart well after broker-side SL/TP closure.  Query a
-    # bounded 24-hour window by exact position ticket rather than assuming the
-    # original process is still alive; this remains broker-backed evidence.
-    deals = mt5.history_deals_get(submitted_at - timedelta(days=1), datetime.now(timezone.utc) + timedelta(seconds=5), position=ticket)
+    # MT5 position history must be queried by identifier without a date range.
+    deals = mt5.history_deals_get(position=ticket)
     if not deals:
         raise SystemExit("M20 closed position deal history is unavailable")
     ordered = sorted(deals, key=lambda deal: int(getattr(deal, "time_msc", 0)))
@@ -906,7 +925,7 @@ def recover_open_positions(terminal_path: str) -> dict[str, Any]:
         mt5.shutdown()
 
 
-def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
+def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int | None = None) -> dict[str, Any]:
     lease = load_session_lease(session_path, datetime.now(timezone.utc))
     if not mt5.initialize(path=terminal_path):
         raise SystemExit(mt5.last_error())
@@ -919,7 +938,14 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
         symbol = mt5.symbol_info(SYMBOL)
         if not symbol or symbol.name != SYMBOL or float(symbol.point) <= 0:
             raise SystemExit("required EURUSD symbol is unavailable")
-        tick, listener_poll_seconds = _listen_for_tick()
+        if trigger_tick_time_msc is None:
+            tick, listener_poll_seconds = _listen_for_tick()
+        else:
+            tick = mt5.symbol_info_tick(SYMBOL)
+            actual_tick_time_msc = int(getattr(tick, "time_msc", 0)) if tick else 0
+            if not tick or actual_tick_time_msc < trigger_tick_time_msc:
+                raise SystemExit("M20 assessment tick predates its fresh-quote trigger")
+            listener_poll_seconds = 0.0
         captured_at = datetime.now(timezone.utc)
         if captured_at > parse_utc(lease["expires_at_utc"], "expires_at_utc"):
             raise SystemExit("M20 session lease expired during market snapshot capture")
@@ -988,13 +1014,59 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
             accepted = bool(result) and result.retcode == mt5.TRADE_RETCODE_DONE
             event_type = "OPENED" if accepted else "REJECTED"
             broker_reference = str(getattr(result, "order", "")) if result else ""
+            # Preserve the complete non-secret request and market/cap context
+            # on the immutable broker-result event.  This makes future MT5
+            # rejections diagnosable without an unsafe retry or generic order
+            # interface.  Existing sparse historical rejections remain raw
+            # incomplete evidence rather than receiving invented causes.
+            position = _wait_for_position() if accepted else None
+            broker_request = getattr(result, "request", None) if result else None
+            result_context = {
+                "schema_version": "forex.m20.mt5-result-context.v1",
+                "retcode": getattr(result, "retcode", None),
+                "broker_comment": str(getattr(result, "comment", ""))[:160] if result else "MT5 returned no result",
+                "symbol": SYMBOL,
+                "action": proposal["action"],
+                "volume": risk["volume"],
+                "requested_price": request["price"],
+                "stop_loss": request["sl"],
+                "take_profit": request["tp"],
+                "deviation_points": request["deviation"],
+                "filling_mode": request["type_filling"],
+                "time_mode": request["type_time"],
+                "magic": EXECUTOR_MAGIC,
+                "observed_bid": bid,
+                "observed_ask": ask,
+                "spread_points": tick_record["spread_points"],
+                "tick_freshness_seconds": int(freshness_seconds),
+                "symbol_point": float(symbol.point),
+                "trade_tick_size": float(symbol.trade_tick_size),
+                "stops_level_points": int(getattr(symbol, "trade_stops_level", 0)),
+                "freeze_level_points": int(getattr(symbol, "trade_freeze_level", 0)),
+                "volume_min": float(symbol.volume_min),
+                "volume_max": float(symbol.volume_max),
+                "volume_step": float(symbol.volume_step),
+                "visible_positions_count": len(positions),
+                "lease_max_trades": session["max_trades"],
+                "max_open_positions": session["max_open_positions"],
+                "max_notional_per_trade_usd": session["max_notional_per_trade_usd"],
+                "max_cumulative_notional_usd": session["max_cumulative_notional_usd"],
+                "reservation_slot_number": reserved["reservation"]["slot_number"],
+                "broker_order_reference": broker_reference,
+                "broker_requested_price": getattr(broker_request, "price", None),
+                "broker_requested_volume": getattr(broker_request, "volume", None),
+                "broker_requested_stop_loss": getattr(broker_request, "sl", None),
+                "broker_requested_take_profit": getattr(broker_request, "tp", None),
+                "position_ticket": int(position.ticket) if position else None,
+            }
             result_payload = {"event_id": str(uuid5(NAMESPACE_URL, f"{attempt_id}:result")), "attempt_id": attempt_id,
                               "event_type": event_type, "observed_at_utc": utc(datetime.now(timezone.utc)),
-                              "broker_order_reference": broker_reference, "payload_sha256": "sha256:" + hashlib.sha256(json.dumps({"retcode": getattr(result, "retcode", None), "order": broker_reference}, sort_keys=True).encode()).hexdigest(),
-                              "payload": {"retcode": getattr(result, "retcode", None), "volume": risk["volume"]}}
+                              "broker_order_reference": broker_reference, "payload_sha256": "sha256:" + hashlib.sha256(json.dumps(result_context, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+                              "payload": result_context}
             _bridge({"result": result_payload}, "record-result")
             if accepted:
-                position = _wait_for_position()
+                if position is None:
+                    raise SystemExit("M20 accepted broker result has no owned EURUSD position")
                 _bridge({"state": {"proposal_id": proposal["proposal_id"], "attempt_id": attempt_id, "position_ticket": int(position.ticket), "action": proposal["action"], "opened_at_utc": utc(datetime.now(timezone.utc)), "observed_at_utc": utc(datetime.now(timezone.utc)), "entry_price": float(position.price_open), "stop_loss": float(position.sl), "take_profit": float(position.tp)}}, "record-open-position")
                 monitor_job = _write_monitor_job(
                     session_path=session_path, proposal=proposal, attempt_id=attempt_id,
@@ -1027,16 +1099,26 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
         mt5.shutdown()
 
 
-def main(terminal_path: str, session_path: str) -> None:
-    print(json.dumps(capture(terminal_path, Path(session_path)), separators=(",", ":")))
+def main(terminal_path: str, session_path: str, trigger_tick_time_msc: int | None = None) -> None:
+    print(json.dumps(capture(terminal_path, Path(session_path), trigger_tick_time_msc), separators=(",", ":")))
 
 
 if __name__ == "__main__":
     if len(sys.argv) == 3:
         main(sys.argv[1], sys.argv[2])
+    elif len(sys.argv) == 5 and sys.argv[3] == "--assessment-trigger-tick-ms":
+        try:
+            trigger = int(sys.argv[4])
+        except ValueError as error:
+            raise SystemExit("M20 assessment trigger tick must be an integer") from error
+        if trigger <= 0:
+            raise SystemExit("M20 assessment trigger tick must be positive")
+        main(sys.argv[1], sys.argv[2], trigger)
     elif len(sys.argv) == 4 and sys.argv[3] == "--monitor-once":
         print(json.dumps(monitor(sys.argv[1], Path(sys.argv[2]), single_pass=True), separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--recover-open-positions-once":
         print(json.dumps(recover_open_positions(sys.argv[1]), separators=(",", ":")))
+    elif len(sys.argv) == 4 and sys.argv[3] == "--quote-identity":
+        print(json.dumps(quote_identity(sys.argv[1]), separators=(",", ":")))
     else:
         raise SystemExit("expected fixed terminal path and fixed M20 session lease path")

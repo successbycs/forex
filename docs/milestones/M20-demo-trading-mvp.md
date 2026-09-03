@@ -79,6 +79,17 @@ If the T480 status request stalls, the dashboard times it out after eight
 seconds and continues refreshing with an `UNAVAILABLE` state rather than
 freezing the terminal view.
 
+For trade-focused monitoring, use the separate read-only ledger dashboard:
+
+```bash
+python3 scripts/m20_trade_ledger_dashboard.py
+```
+
+It lists the latest ten Demo BUY and SELL attempts with lot size, entry, SL,
+TP, monitoring/reconciliation state, sold time and price when available, and
+realised AUD P&L only when MT5 has been reconciled. `Pending` means the system
+does not yet have a verifiable P&L outcome.
+
 ## Current M20 work packages
 
 - **M20.7 — Permanent M1 listener and operator observability:** documents and
@@ -92,6 +103,9 @@ freezing the terminal view.
   ProgramData release, prepares non-secret local state, atomically switches the
   Scheduled Task with rollback, and keeps lease, status, recovery, runner, and
   dashboard paths aligned.
+- **M20.10 — Trade lifecycle and P&L dashboard:** provides a separate
+  read-only terminal view of the immutable PostgreSQL trade ledger, clearly
+  distinguishing monitoring, sold/verified, rejected, and unreconciled states.
 
 All M20 packages remain Demo-only. They do not claim M20 completion or
 authorize Live trading.

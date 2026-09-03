@@ -82,8 +82,9 @@ The M20 listener is a permanent T480 Scheduled Task. It runs the immutable,
 hash-checked release under `C:\ProgramData\ForexListener\releases`, while
 machine-local lease, status, recovery and configuration state live under
 `C:\ProgramData\ForexListener\state`. The listener updates a redacted
-heartbeat every second and assesses fresh EURUSD M1 data every five seconds
-when continuous Demo authority is active. It is restricted to
+heartbeat every second. After its five-second minimum interval, a new MT5
+EURUSD quote triggers one assessment; it cannot assess the same quote twice.
+It is restricted to
 `GOMarketsMU-Demo`; it has no Live-account or generic MT5 command surface.
 
 The dashboard on T16 is read-only: `python3 scripts/m20_listener_dashboard.py`.
@@ -91,7 +92,57 @@ It shows UTC/NZST heartbeat, cadence, candle metrics, decision rationale, and
 five strategy rows. Momentum Breakout is the only active execution strategy;
 the other four strategies are shadow-only comparisons.
 
+The separate read-only trade ledger dashboard is
+`python3 scripts/m20_trade_ledger_dashboard.py`. It shows the last ten Demo
+attempts as BUY or SELL, their entry, SL, TP, lot size, monitoring state, and
+only a broker-reconciled realised profit or loss. A missing P&L is shown as
+`Pending`, never guessed.
+
+### M20 SL, profit target, and exit rule
+
+For each eligible M1 momentum-breakout trade, the executor sets broker-side
+SL and TP at order submission. The stop begins at the recent five-candle
+technical invalidation level, but is moved closer to entry whenever needed to
+keep the planned loss at or below A$100 using MT5's tick value, tick size,
+minimum lot, and allowed price increment. The initial target is 1.5R, where
+R is the actual entry-to-stop distance. The system refuses a trade if the
+nearest credible target offers less than 1.25R.
+
+After +1R, the monitor requests a broker-side breakeven stop. MT5 closes at
+SL or TP when reached; otherwise the monitor exits after two opposite
+completed M1 candles or ten completed M1 candles. PostgreSQL records the
+broker-confirmed exit and realised AUD P&L only after reconciliation.
+
 Every proposal, broker attempt, position event, cost component, and closed
 P&L outcome is persisted in PostgreSQL. A Demo order is not evidence of a
 successful M20 closeout until its lifecycle is reconciled through `CLOSED` and
 an immutable outcome record.
+
+### M20 six-step operating procedure
+
+1. **Read the market.** The listener reads a fresh Demo EURUSD quote and only
+   completed M1 candles. A quote can be a new MT5 update even when its displayed
+   bid and ask are unchanged; the MT5 tick time prevents reuse of a cached quote.
+2. **Assess before any order.** Momentum Breakout is the sole executable rule.
+   It requires at least six completed M1 candles, two latest candles aligned in
+   one direction, a close beyond the prior five-candle high (BUY) or low (SELL),
+   and a combined move greater than the current spread. The other four strategy
+   signals are recorded as shadow comparisons only.
+3. **Open one protected trade when eligible.** A qualifying BUY or SELL uses
+   the current executable price with broker-side stop loss and take profit. The
+   stop is based on candle invalidation but capped to the A$100 planned-loss
+   limit; the initial target is 1.5R. A trade may also exit after two opposite
+   completed M1 candles or ten minutes.
+4. **Record the lifecycle.** PostgreSQL receives the assessment, proposal,
+   reservation, broker response, opening event, stop/target changes, close,
+   costs, exit price, and realised AUD P&L. Rejections are terminal non-trades;
+   no automatic retry is permitted.
+5. **Add a read-only outcome hypothesis later.** A future post-close analysis
+   agent should append a separate hypothesis record beside the immutable ledger,
+   not change the trade record. It should state its evidence, confidence, and
+   `UNTESTED`, `SUPPORTED`, or `REJECTED` status for wins as well as losses.
+   This is planned work, not an active M20 execution authority.
+6. **Refine rules through versioned experiments.** Keep the live rule fixed;
+   run candidate rules in shadow mode against the same assessments, compare
+   closed post-cost outcomes, then promote one tested rule version at a time.
+   A rule refinement never edits past assessments or trades.

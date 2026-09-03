@@ -43,15 +43,17 @@ def render(status: dict[str, Any]) -> str:
     execution = result.get("execution") or {}
     reconciliation = result.get("reconciliation") or {}
     monitor = status.get("monitor") or {}
+    quote = status.get("quote") or {}
     strategies = result.get("strategy_assessments") or []
     lines = [
         "M20 Demo Listener — live assessment dashboard",
         "=" * 47,
         f"Listener: {_value(status.get('state'))}",
         f"Heartbeat: UTC {_value(status.get('heartbeat_at_utc'))} | NZST {_value(status.get('heartbeat_at_nzst'))}",
-        f"Assessment: #{_value(status.get('iteration'))}",
+        f"Assessment: #{_value(status.get('iteration'))} in this service | #{_value(status.get('assessment_total'))} since persistent counter began",
         f"Assessment completed: {_value(status.get('assessment_completed_at_utc'))} ({_value(status.get('assessment_duration_ms'))} ms)",
         f"Next: UTC {_value(status.get('next_assessment_at_utc'))} | NZST {_value(status.get('next_assessment_at_nzst'))}",
+        f"Quote gate: MT5 tick {_value(quote.get('tick_time_msc'))} | bid/ask {_value(quote.get('bid'))}/{_value(quote.get('ask'))}",
         f"Market: {_value(result.get('server'))}  {_value(result.get('symbol'))} / {_value(proposal.get('selected_timeframe'))}",
         "",
         f"Decision: {_value(proposal.get('action'))}   Order: {_value(execution.get('status'))}",

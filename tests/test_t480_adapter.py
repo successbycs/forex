@@ -157,6 +157,8 @@ def test_m20_listener_status_is_fixed_and_redacted():
     assert "state=if ($stale) { 'STALE' }" in command
     assert "Forex-M20-Demo-Listener" in command
     assert "RESTART_REQUESTED" in command and "COOLDOWN" in command
+    assert "assessment_total=$s.assessment_total" in command
+    assert "$s.monitor.state -eq 'RUNNING'" in command
 
 
 def test_m20_listener_recovery_is_fixed_to_the_listener_task_only():
@@ -195,6 +197,8 @@ def test_m20_listener_install_is_hash_checked_and_fixed():
     assert "C:\\ProgramData\\ForexListener" in command
     assert "Export-ScheduledTask" in command
     assert "M20 deployment rolled back" in command
+    assert "-RestartCount 3" in command
+    assert "-ExecutionTimeLimit ([TimeSpan]::Zero)" in command
     assert "FOREX_M20_POSTGRES_DSN" not in command
 
 
@@ -207,7 +211,7 @@ def test_m20_listener_prepare_verifies_all_payloads_before_activation():
 
 def test_m20_listener_staging_is_split_and_hash_checked():
     first = t480_adapter.OPERATIONS["m20_listener_stage_1"].powershell_command
-    final = t480_adapter.OPERATIONS["m20_listener_stage_10"].powershell_command
+    final = t480_adapter.OPERATIONS["m20_listener_stage_12"].powershell_command
     assert len(first) < 4000 and len(final) < 4000
     assert "WriteAllBytes" in first
     assert "Add-Content" in final and "Get-FileHash" in final
@@ -215,7 +219,7 @@ def test_m20_listener_staging_is_split_and_hash_checked():
 
 def test_m20_listener_runner_and_bridge_staging_are_fixed_and_hash_checked():
     runner_first = t480_adapter.OPERATIONS["m20_listener_runner_stage_1"].powershell_command
-    runner_final = t480_adapter.OPERATIONS["m20_listener_runner_stage_32"].powershell_command
+    runner_final = t480_adapter.OPERATIONS["m20_listener_runner_stage_40"].powershell_command
     bridge_first = t480_adapter.OPERATIONS["m20_listener_bridge_stage_1"].powershell_command
     bridge_final = t480_adapter.OPERATIONS["m20_listener_bridge_stage_24"].powershell_command
     for first, final, filename in (

@@ -50,3 +50,14 @@ def test_m20_cost_ledger_keeps_recorded_costs_separate_from_broker_pnl():
     ):
         assert required in ledger
     assert "GOMarketsMU-Live" not in ledger
+
+
+def test_m20_outcome_reconciliation_overlay_is_append_only_and_hides_invalidated_pnl():
+    migration = (ROOT / "sql/migrations/012_m20_outcome_reconciliation_revision.sql").read_text()
+    for required in (
+        "demo_outcome_reconciliation_revision", "INVALIDATED", "HISTORY_UNAVAILABLE", "REPAIRED",
+        "demo_outcome_reconciliation_revision_immutable", "LEGACY_MIXED_RANGE_POSITION_HISTORY_QUERY",
+        "RECONCILIATION_ERROR", "realized_pnl_account = 100000.18",
+    ):
+        assert required in migration
+    assert "GOMarketsMU-Live" not in migration

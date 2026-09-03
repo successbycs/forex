@@ -14,6 +14,7 @@ def test_dashboard_status_timeout_remains_refreshable():
 def test_dashboard_renders_decision_and_candle_metrics():
     screen = render({
         "state": "RUNNING", "iteration": 7, "heartbeat_at_utc": "2026-09-03T09:33:00Z", "heartbeat_at_nzst": "03/09/26 21:33:00 NZST",
+        "quote": {"tick_time_msc": 123456, "bid": 1.161, "ask": 1.16108},
         "last_result": {
             "server": "GOMarketsMU-Demo", "symbol": "EURUSD",
             "proposal": {"action": "NO_TRADE", "selected_timeframe": "M1", "rationale": "No breakout."},
@@ -29,6 +30,7 @@ def test_dashboard_renders_decision_and_candle_metrics():
         },
     })
     assert "M20 Demo Listener" in screen
+    assert "Quote gate: MT5 tick 123456 | bid/ask 1.161/1.16108" in screen
     assert "Decision: NO_TRADE" in screen
     assert "NZST 03/09/26 21:33:00 NZST" in screen
     assert "Direction: MIXED" in screen

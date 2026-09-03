@@ -48,7 +48,7 @@ T16 / VS Code → read-only M20 terminal dashboard
        │ fixed status operation
        ▼
 T480 Scheduled Task: Forex-M20-Demo-Listener
-  every 10 seconds → fresh EURUSD bid/ask/spread + completed M1 candles
+  every 5 seconds → fresh EURUSD bid/ask/spread + completed M1 candles
        ├─ five strategy assessments → Momentum Breakout alone may execute
        ├─ eligible BUY / SELL → fixed capped Demo executor
        │                         ↘ asynchronous MT5 Demo position monitor
@@ -58,12 +58,43 @@ T480 WSL PostgreSQL bridge → audit events and P&L ledger
 ```
 
 The listener retains no raw tick stream. It assesses one completed-candle M1
-snapshot every ten seconds and reports the prior five-candle range,
+snapshot every five seconds and reports the prior five-candle range,
 last-two-candle direction, breakout checks, combined move and spread check.
 It compares five named strategies on the same snapshot; Momentum Breakout is
 the sole execution-eligible row and the other four are shadow assessments.
 Assessment must remain independent of position monitoring so an open trade
 does not stall later observations. The T16 dashboard is read-only.
+
+### How M20 code is deployed to T480
+
+The repository does not copy arbitrary code to MT5. A fixed T480 adapter
+stages exactly three reviewed payloads into a new immutable ProgramData release:
+
+```text
+Forex checkout on T16 / WSL
+  reviewed source: listener service + trading runner + PostgreSQL audit bridge
+       │ each payload split into fixed-size fragments
+       │ Base64 transfer; final fragment verifies SHA-256
+       ▼
+T480: C:\ProgramData\ForexListener\releases\<release-id>\
+  m20_demo_listener_service.payload
+  m20_demo_trading_session.payload
+  m20_postgres_audit_bridge.payload
+       │ prepare: verify all three hashes and write only non-secret local config
+       ▼
+Atomic Scheduled Task switch
+  Forex-M20-Demo-Listener → python.exe <new release>\m20_demo_listener_service.payload
+       │ wait for a fresh release-bound heartbeat
+       ├─ healthy → retain new task and prior task XML for rollback
+       └─ unhealthy → restore the previous Scheduled Task automatically
+```
+
+`C:\ProgramData\ForexListener\state` is deliberately separate from immutable
+release code. It holds the Demo lease, status heartbeat, recovery marker,
+monitor job and machine-local configuration; it contains no tracked secrets.
+The status operation exposes the release ID and task action so an operator can
+confirm that T480 is executing the intended release. Deployment does not
+change the Demo-only server allowlist, EURUSD symbol, caps, or strategy rules.
 
 ## Current historical-data and sentiment design
 

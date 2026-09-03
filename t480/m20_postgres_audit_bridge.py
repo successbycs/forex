@@ -169,6 +169,19 @@ def record_result(payload: dict[str, Any]) -> dict[str, Any]:
     required = {"event_id", "attempt_id", "event_type", "observed_at_utc", "broker_order_reference", "payload_sha256", "payload"}
     if set(result) != required or result["event_type"] not in {"OPENED", "REJECTED", "FAILED"} or not isinstance(result["payload"], dict):
         raise SystemExit("M20 broker result is invalid")
+    if result["event_type"] == "REJECTED":
+        diagnostic_fields = {
+            "schema_version", "retcode", "broker_comment", "symbol", "action", "volume", "requested_price",
+            "stop_loss", "take_profit", "deviation_points", "filling_mode", "time_mode", "magic",
+            "observed_bid", "observed_ask", "spread_points", "tick_freshness_seconds", "symbol_point",
+            "trade_tick_size", "stops_level_points", "freeze_level_points", "volume_min", "volume_max",
+            "volume_step", "visible_positions_count", "lease_max_trades", "max_open_positions",
+            "max_notional_per_trade_usd", "max_cumulative_notional_usd", "reservation_slot_number",
+            "broker_order_reference", "broker_requested_price", "broker_requested_volume",
+            "broker_requested_stop_loss", "broker_requested_take_profit", "position_ticket",
+        }
+        if set(result["payload"]) != diagnostic_fields or result["payload"].get("schema_version") != "forex.m20.mt5-result-context.v1":
+            raise SystemExit("M20 rejected broker result lacks fixed diagnostic context")
     with _connection() as conn, conn.cursor() as cursor:
         cursor.execute("SELECT 1 FROM forex.demo_execution_attempt WHERE attempt_id=%s FOR UPDATE", (result["attempt_id"],))
         if cursor.fetchone() is None:

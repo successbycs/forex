@@ -2473,6 +2473,7 @@
       "scope": [
         "Use an adaptive fixed Demo-only EUR/USD M1 live-price listener that retains no tick stream and captures only the decision tick plus closed M1 candles through a fixed adapter.",
         "Operate the fixed listener as a permanent T480 Scheduled Task with a redacted heartbeat and a read-only T16 dashboard showing its latest five-second assessment.",
+        "Provide a separate read-only T16 terminal dashboard that shows the latest Demo BUY/SELL lifecycle, monitoring or sold state, and broker-reconciled realised P&L without an order-control surface.",
         "Publish compact, human-readable candle and spread metrics with each read-only assessment status so a NO_TRADE conclusion is inspectable.",
         "Compare the five documented M1 strategies on the same closed-candle assessment and display each BUY, SELL, or NO_TRADE result, while allowing only momentum breakout to execute.",
         "Produce and persist an immutable BUY, SELL, or NO_TRADE assessment before any Demo execution, including rationale and hash-bound decision inputs.",
@@ -2496,11 +2497,13 @@
         "docs/milestones/M20-mvp-retrospective.md",
         "docs/m1_trading_strategy.md",
         "scripts/m20_listener_dashboard.py",
+        "scripts/m20_trade_ledger_dashboard.py",
         "t480/m20_demo_listener_service.py",
         "scripts/postgres_pgvector_adapter.py",
         "tests/milestones/test_m20_demo_trading.py",
         "tests/milestones/test_m20_listener_service.py",
         "tests/test_m20_listener_dashboard.py",
+        "tests/test_m20_trade_ledger_dashboard.py",
         "tests/test_postgres_pgvector_adapter.py"
       ],
       "acceptance_criteria": [
@@ -2637,6 +2640,12 @@
           "title": "Atomic T480 listener deployment remediation",
           "dependencies": ["M20.7"],
           "acceptance_criteria": ["M20-C1", "M20-C2", "M20-C4"]
+        },
+        {
+          "work_package_id": "M20.10",
+          "title": "Read-only Demo trade lifecycle and P&L dashboard",
+          "dependencies": ["M20.5", "M20.7", "M20.8"],
+          "acceptance_criteria": ["M20-C2", "M20-C4", "M20-C5"]
         }
       ]
     },

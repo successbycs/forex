@@ -16,6 +16,7 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+from types import SimpleNamespace
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -29,6 +30,8 @@ STATUS_PATH = STATE_ROOT / "m20_demo_listener_status.local.json"
 STOP_PATH = STATE_ROOT / "m20_demo_listener.stop"
 LEASE_PATH = STATE_ROOT / "m20_demo_session.local.json"
 CONFIG_PATH = STATE_ROOT / "m20_demo_listener_service.local.json"
+ASSESSMENT_TOTAL_PATH = STATE_ROOT / "m20_demo_assessment_total.local.json"
+ASSESSMENT_GATE_PATH = STATE_ROOT / "m20_demo_assessment_gate.local.json"
 # Windows endpoint protection can block newly-created executable script
 # extensions under ProgramData.  Python executes this immutable hash-checked
 # payload explicitly, so the deployment artifact intentionally has no .py
@@ -51,6 +54,10 @@ def _nzst(timestamp: str | None) -> str | None:
 
 
 def _write_status(payload: dict[str, Any]) -> None:
+    # `iteration` restarts with the supervisor.  Show it as such and retain a
+    # separate monotonic total in mutable ProgramData state for operators.
+    payload["process_iteration"] = payload.get("iteration", 0)
+    payload["assessment_total"] = _assessment_total()
     payload["release_id"] = ROOT.name
     payload["heartbeat_at_utc"] = _utc_now()
     payload["heartbeat_at_nzst"] = _nzst(payload["heartbeat_at_utc"])
@@ -59,6 +66,39 @@ def _write_status(payload: dict[str, Any]) -> None:
     temporary = STATUS_PATH.with_suffix(".tmp")
     temporary.write_text(json.dumps(payload, sort_keys=True, separators=(",", ":")), encoding="utf-8")
     temporary.replace(STATUS_PATH)
+
+
+def _assessment_total() -> int:
+    try:
+        value = json.loads(ASSESSMENT_TOTAL_PATH.read_text(encoding="utf-8-sig"))
+        total = int(value["assessment_total"])
+        return max(0, total)
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return 0
+
+
+def _increment_assessment_total() -> int:
+    total = _assessment_total() + 1
+    temporary = ASSESSMENT_TOTAL_PATH.with_suffix(".tmp")
+    temporary.write_text(json.dumps({"assessment_total": total}, separators=(",", ":")), encoding="utf-8")
+    temporary.replace(ASSESSMENT_TOTAL_PATH)
+    return total
+
+
+def _last_assessed_tick_time_msc() -> int:
+    try:
+        value = json.loads(ASSESSMENT_GATE_PATH.read_text(encoding="utf-8-sig"))
+        return max(0, int(value["last_assessed_tick_time_msc"]))
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return 0
+
+
+def _record_assessed_tick_time_msc(tick_time_msc: int) -> None:
+    if tick_time_msc <= 0:
+        raise ValueError("assessment tick watermark must be positive")
+    temporary = ASSESSMENT_GATE_PATH.with_suffix(".tmp")
+    temporary.write_text(json.dumps({"last_assessed_tick_time_msc": tick_time_msc}, separators=(",", ":")), encoding="utf-8")
+    temporary.replace(ASSESSMENT_GATE_PATH)
 
 
 def _active_lease() -> bool:
@@ -142,6 +182,32 @@ def _monitor_job_path() -> Path:
     return LEASE_PATH.with_name("m20_demo_monitor_job.local.json")
 
 
+def _quote_identity(values: dict[str, str]) -> dict[str, Any]:
+    """Read one current MT5 quote identity; it has no assessment or order path."""
+    try:
+        completed = subprocess.run(
+            [str(values["python_path"]), str(RUNNER_PATH), str(values["terminal_path"]), str(LEASE_PATH), "--quote-identity"],
+            text=True, capture_output=True, check=False, env=os.environ.copy(), timeout=5,
+        )
+    except subprocess.TimeoutExpired:
+        return {"error": "M20 quote observation exceeded its five-second bound"}
+    try:
+        value = json.loads(completed.stdout)
+    except json.JSONDecodeError:
+        return {"error": completed.stderr.strip() or completed.stdout.strip() or "M20 quote observation returned no JSON"}
+    expected = {"marker", "server", "symbol", "tick_time_msc", "bid", "ask"}
+    if (completed.returncode != 0 or not isinstance(value, dict) or set(value) != expected
+            or value.get("marker") != "FOREX_M20_DEMO_QUOTE_IDENTITY_OK"
+            or value.get("server") != "GOMarketsMU-Demo" or value.get("symbol") != "EURUSD"):
+        return {"error": "M20 quote observation is invalid"}
+    return value
+
+
+def _quote_key(quote: dict[str, Any]) -> str:
+    """Include MT5 time and price so a cached quote cannot trigger twice."""
+    return f"{quote['tick_time_msc']}:{quote['bid']}:{quote['ask']}"
+
+
 def _monitor_update(values: dict[str, str], previous: dict[str, Any], retry_at: float) -> tuple[dict[str, Any], float]:
     """Perform one bounded MT5 monitor pass between assessment invocations.
 
@@ -183,7 +249,7 @@ def _monitor_update(values: dict[str, str], previous: dict[str, Any], retry_at: 
             "last_checked_at_utc": _utc_now(),
             "result": result,
         }
-        retry_at = now + POLL_SECONDS
+        retry_at = now + ASSESSMENT_INTERVAL_SECONDS
     return state, retry_at
 
 
@@ -193,6 +259,7 @@ def run() -> None:
     iteration = 0
     last_result: dict[str, Any] = {}
     next_assessment_at = 0.0
+    last_assessed_tick_time_msc = _last_assessed_tick_time_msc()
     monitor_state: dict[str, Any] = {"state": "IDLE"}
     monitor_retry_at = 0.0
     last_assessment_completed_at_utc: str | None = None
@@ -204,9 +271,9 @@ def run() -> None:
                    "next_assessment_at_utc": None, "monitor": monitor_state,
                    "detail": "Supervisor started; broker-backed open-position recovery is pending."})
     while not STOP_PATH.exists():
-        monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
         now = time.monotonic()
         if not _active_lease():
+            monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
             _write_status({"state": "WAITING_FOR_ACTIVE_DEMO_LEASE", "iteration": iteration,
                            "last_result": last_result, "next_assessment_at_utc": None,
                            "assessment_completed_at_utc": last_assessment_completed_at_utc,
@@ -216,23 +283,58 @@ def run() -> None:
             time.sleep(POLL_SECONDS)
             continue
         if now < next_assessment_at:
+            # A bounded monitor pass belongs in the idle period.  It must not
+            # delay an eligible fresh-quote assessment and its trade decision.
+            monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
+            now = time.monotonic()
             _write_status({"state": "RUNNING", "iteration": iteration, "last_result": last_result,
                            "next_assessment_at_utc": datetime.fromtimestamp(time.time() + next_assessment_at - now, timezone.utc).isoformat().replace("+00:00", "Z"),
                            "assessment_completed_at_utc": last_assessment_completed_at_utc,
                            "assessment_duration_ms": last_assessment_duration_ms,
                            "monitor": monitor_state,
-                           "detail": "Waiting for the next five-second M1 assessment; decisions use only completed candles."})
+                           "detail": "Waiting for the five-second minimum before accepting the next MT5 quote update."})
             time.sleep(min(POLL_SECONDS, next_assessment_at - now))
             continue
+        quote = _quote_identity(values)
+        if quote.get("error"):
+            monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
+            _write_status({"state": "WAITING_FOR_FRESH_MT5_QUOTE", "iteration": iteration,
+                           "last_result": last_result, "next_assessment_at_utc": None,
+                           "assessment_completed_at_utc": last_assessment_completed_at_utc,
+                           "assessment_duration_ms": last_assessment_duration_ms,
+                           "monitor": monitor_state, "quote": quote,
+                           "detail": "Waiting for a readable fresh Demo EURUSD quote; no assessment or order is submitted."})
+            time.sleep(POLL_SECONDS)
+            continue
+        if int(quote["tick_time_msc"]) <= last_assessed_tick_time_msc:
+            monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
+            _write_status({"state": "WAITING_FOR_FRESH_MT5_QUOTE", "iteration": iteration,
+                           "last_result": last_result, "next_assessment_at_utc": None,
+                           "assessment_completed_at_utc": last_assessment_completed_at_utc,
+                           "assessment_duration_ms": last_assessment_duration_ms,
+                           "monitor": monitor_state, "quote": quote,
+                           "detail": "The five-second interval has elapsed; waiting for the next MT5 quote update before assessing again."})
+            time.sleep(POLL_SECONDS)
+            continue
+        _record_assessed_tick_time_msc(int(quote["tick_time_msc"]))
+        last_assessed_tick_time_msc = int(quote["tick_time_msc"])
         started = time.monotonic()
         assessment_started_at_utc = _utc_now()
-        completed = subprocess.run([str(values["python_path"]), str(RUNNER_PATH), str(values["terminal_path"]), str(LEASE_PATH)],
-                                   text=True, capture_output=True, check=False, env=os.environ.copy())
+        try:
+            completed = subprocess.run(
+                [str(values["python_path"]), str(RUNNER_PATH), str(values["terminal_path"]), str(LEASE_PATH), "--assessment-trigger-tick-ms", str(last_assessed_tick_time_msc)],
+                text=True, capture_output=True, check=False, env=os.environ.copy(), timeout=12,
+            )
+        except subprocess.TimeoutExpired:
+            completed = SimpleNamespace(
+                returncode=124, stdout="", stderr="M20 assessment exceeded its twelve-second bound"
+            )
         assessment_completed_at_utc = _utc_now()
         assessment_duration_ms = round((time.monotonic() - started) * 1000)
         last_assessment_completed_at_utc = assessment_completed_at_utc
         last_assessment_duration_ms = assessment_duration_ms
         iteration += 1
+        _increment_assessment_total()
         next_assessment_at = started + ASSESSMENT_INTERVAL_SECONDS
         try:
             output = json.loads(completed.stdout)
@@ -247,8 +349,8 @@ def run() -> None:
                        "assessment_completed_at_utc": assessment_completed_at_utc,
                        "assessment_duration_ms": assessment_duration_ms,
                        "next_assessment_at_utc": datetime.fromtimestamp(time.time() + max(0, next_assessment_at - time.monotonic()), timezone.utc).isoformat().replace("+00:00", "Z"),
-                       "monitor": monitor_state,
-                       "detail": "The fixed M20 runner assesses every five seconds using fresh pricing and completed M1 candles; an accepted position is monitored by a bounded fixed check."})
+                       "monitor": monitor_state, "quote": quote,
+                       "detail": "This assessment started from a fresh MT5 quote. The next needs a later quote update and the five-second minimum; decisions use completed M1 candles."})
     _write_status({"state": "STOPPED", "iteration": iteration, "last_result": last_result,
                    "next_assessment_at_utc": None, "monitor": monitor_state, "detail": "Stop sentinel observed."})
 

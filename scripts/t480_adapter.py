@@ -138,6 +138,12 @@ def _m1_mt5_demo_probe_command() -> str:
     )
 
 
+def _m20_demo_account_liquidity_command() -> str:
+    """Return fixed, read-only liquidity fields from the governed Demo account."""
+    code = "import json,sys;import MetaTrader5 as m;p=sys.argv[1];ok=m.initialize(path=p);a=m.account_info() if ok else None;bad=(not a or a.server!='GOMarketsMU-Demo' or a.currency!='AUD');print(json.dumps({'ok':bool(a) and not bad,'server':getattr(a,'server',None),'currency':getattr(a,'currency',None),'balance':getattr(a,'balance',None),'equity':getattr(a,'equity',None),'margin':getattr(a,'margin',None),'free_margin':getattr(a,'margin_free',None),'margin_level':getattr(a,'margin_level',None),'leverage':getattr(a,'leverage',None),'open_positions':len(m.positions_get() or ()),'mt5_error':None if a else str(m.last_error())},separators=(',',':')));m.shutdown() if ok else None;sys.exit(0 if a and not bad else 3)"
+    return "$ErrorActionPreference='Stop'; $s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json; if ([string]::IsNullOrWhiteSpace($s.python_path) -or !(Test-Path -LiteralPath $s.python_path)) { throw 'M20 configured Python interpreter is absent' }; & $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path; exit $LASTEXITCODE"
+
+
 def _m3_mt5_history_depth_probe_command() -> str:
     """Return the fixed read-only M3 history-depth command for Windows."""
     source = (ROOT / "t480" / "m3_mt5_history_depth_probe.py").read_bytes()
@@ -208,7 +214,7 @@ def _m20_listener_status_command() -> str:
         "$s=gc -Raw -LiteralPath $p|ConvertFrom-Json; "
         "$age=$null; $stale=$false; try { $age=[Math]::Round(((Get-Date).ToUniversalTime()-([datetime]::Parse([string]$s.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds,1); $stale=($age -ge 30) } catch { $stale=$true }; "
         "$recovery='NOT_REQUIRED'; $recoveryDetail=$null; if ($stale) { $marker=Join-Path $state 'm20_demo_listener_recovery.local.json'; $last=$null; if (Test-Path -LiteralPath $marker) { try { $last=([datetime]::Parse((gc -Raw -LiteralPath $marker|ConvertFrom-Json).restart_at_utc)).ToUniversalTime() } catch {} }; if (($null -eq $last) -or (((Get-Date).ToUniversalTime()-$last).TotalSeconds -ge 60)) { try { $task=Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop; if ($task.State -eq 'Running') { Stop-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop }; Start-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop; [pscustomobject]@{restart_at_utc=(Get-Date).ToUniversalTime().ToString('o')}|ConvertTo-Json -Compress|Set-Content -LiteralPath $marker -Encoding UTF8; $recovery='RESTART_REQUESTED' } catch { $recovery='RESTART_FAILED'; $recoveryDetail=$_.Exception.Message } } else { $recovery='COOLDOWN' } }; "
-        "$taskAction=$null; try { $taskAction=(Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop).Actions|Select-Object -First 1|ForEach-Object {$_.Execute+' '+$_.Arguments} } catch {}; $state=if ($stale) { 'STALE' } else { $s.state }; [pscustomobject]@{running=(!$stale -and ($s.state -eq 'RUNNING'));state=$state;release_id=$s.release_id;task_action=$taskAction;heartbeat_at_utc=$s.heartbeat_at_utc;heartbeat_at_nzst=$s.heartbeat_at_nzst;heartbeat_age_seconds=$age;iteration=$s.iteration;assessment_started_at_utc=$s.assessment_started_at_utc;assessment_completed_at_utc=$s.assessment_completed_at_utc;assessment_duration_ms=$s.assessment_duration_ms;next_assessment_at_utc=$s.next_assessment_at_utc;next_assessment_at_nzst=$s.next_assessment_at_nzst;detail=$s.detail;monitor=$s.monitor;last_result=$s.last_result;recovery_action=$recovery;recovery_detail=$recoveryDetail}|ConvertTo-Json -Compress -Depth 8"
+        "$taskAction=$null; try { $taskAction=(Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop).Actions|Select-Object -First 1|ForEach-Object {$_.Execute+' '+$_.Arguments} } catch {}; $protection=$null; $job=Join-Path $state 'm20_demo_monitor_job.local.json'; if (($s.monitor.state -eq 'RUNNING') -and (Test-Path -LiteralPath $job)) { try { $j=gc -Raw -LiteralPath $job|ConvertFrom-Json; $protection=[ordered]@{ticket=$j.position.ticket;action=$j.proposal.action;entry_price=$j.position.price_open;stop_loss=$j.position.sl;take_profit=$j.position.tp;submitted_at_utc=$j.submitted_at_utc} } catch {} }; $state=if ($stale) { 'STALE' } else { $s.state }; [pscustomobject]@{running=(!$stale -and ($s.state -eq 'RUNNING'));state=$state;release_id=$s.release_id;task_action=$taskAction;heartbeat_at_utc=$s.heartbeat_at_utc;heartbeat_at_nzst=$s.heartbeat_at_nzst;heartbeat_age_seconds=$age;iteration=$s.process_iteration;assessment_total=$s.assessment_total;assessment_started_at_utc=$s.assessment_started_at_utc;assessment_completed_at_utc=$s.assessment_completed_at_utc;assessment_duration_ms=$s.assessment_duration_ms;next_assessment_at_utc=$s.next_assessment_at_utc;next_assessment_at_nzst=$s.next_assessment_at_nzst;detail=$s.detail;monitor=$s.monitor;open_position_protection=$protection;last_result=$s.last_result;recovery_action=$recovery;recovery_detail=$recoveryDetail}|ConvertTo-Json -Compress -Depth 8"
     )
 
 
@@ -293,8 +299,8 @@ def _m20_listener_install_command() -> str:
         "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; $state=Join-Path $base 'state'; $service=Join-Path $root 'm20_demo_listener_service.payload'; $task='Forex-M20-Demo-Listener'; "
         "$c=Get-Content -Raw (Join-Path $state 'm20_demo_listener_service.local.json')|ConvertFrom-Json; if (!(Test-Path -LiteralPath $service)) { throw 'M20 release was not prepared' }; "
         "$previous=$null; try { $previous=Export-ScheduledTask -TaskName $task -ErrorAction Stop } catch {}; if ($null -ne $previous) { [IO.File]::WriteAllText((Join-Path $state 'previous-task.xml'),$previous,(New-Object Text.UTF8Encoding($false))) }; "
-        "$action=New-ScheduledTaskAction -Execute $c.python_path -Argument ('\"'+$service+'\"'); $trigger=New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME; "
-        "try { if ($null -ne $previous) { Stop-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue }; Register-ScheduledTask -TaskName $task -Action $action -Trigger $trigger -RunLevel Highest -Force|Out-Null; Start-ScheduledTask -TaskName $task; Start-Sleep -Seconds 5; $h=Get-Content -Raw (Join-Path $state 'm20_demo_listener_status.local.json')|ConvertFrom-Json; $age=((Get-Date).ToUniversalTime()-([datetime]::Parse($h.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds; if (($h.release_id -ne '" + release_id + "') -or ($age -ge 30) -or ($h.state -eq 'STARTUP_FAILED')) { throw 'new listener did not produce a fresh ProgramData heartbeat' } } catch { $failure=$_.Exception.Message; if ($null -ne $previous) { Stop-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue; Register-ScheduledTask -TaskName $task -Xml $previous -Force|Out-Null; Start-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue }; throw ('M20 deployment rolled back: '+$failure) }; "
+        "$action=New-ScheduledTaskAction -Execute $c.python_path -Argument ('\"'+$service+'\"'); $trigger=New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME; $settings=New-ScheduledTaskSettingsSet -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero); "
+        "try { if ($null -ne $previous) { Stop-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue }; Register-ScheduledTask -TaskName $task -Action $action -Trigger $trigger -Settings $settings -RunLevel Highest -Force|Out-Null; Start-ScheduledTask -TaskName $task; Start-Sleep -Seconds 5; $h=Get-Content -Raw (Join-Path $state 'm20_demo_listener_status.local.json')|ConvertFrom-Json; $age=((Get-Date).ToUniversalTime()-([datetime]::Parse($h.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds; if (($h.release_id -ne '" + release_id + "') -or ($age -ge 30) -or ($h.state -eq 'STARTUP_FAILED')) { throw 'new listener did not produce a fresh ProgramData heartbeat' } } catch { $failure=$_.Exception.Message; if ($null -ne $previous) { Stop-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue; Register-ScheduledTask -TaskName $task -Xml $previous -Force|Out-Null; Start-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue }; throw ('M20 deployment rolled back: '+$failure) }; "
         "[pscustomobject]@{installed=$true;task=$task;release_id='" + release_id + "';service_sha256='sha256:" + service_digest + "'}|ConvertTo-Json -Compress"
     )
 
@@ -304,9 +310,10 @@ def _m20_listener_stage_command(index: int) -> str:
     source = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
     release_id = hashlib.sha256(source + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()).hexdigest()[:16]
     # Raw Base64 decoding is accepted by the T480 endpoint; in-process gzip
-    # expansion is not.  Ten small fixed fragments stay below its command cap.
+    # expansion is not.  Twelve bounded fixed fragments stay below its command
+    # cap and match the catalogued release protocol.
     encoded = base64.b64encode(source).decode("ascii")
-    chunk_size = ((len(encoded) + 39) // 40) * 4
+    chunk_size = ((len(encoded) + (12 * 4) - 1) // (12 * 4)) * 4
     chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
     if index not in range(1, len(chunks) + 1):
         raise ValueError("M20 listener stage index is invalid")
@@ -325,7 +332,7 @@ def _m20_listener_dependency_stage_command(source_name: str, runtime_name: str, 
     source = (ROOT / "t480" / source_name).read_bytes()
     release_id = hashlib.sha256((ROOT / "t480" / "m20_demo_listener_service.py").read_bytes() + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()).hexdigest()[:16]
     encoded = base64.b64encode(source).decode("ascii")
-    parts = 32 if source_name == "m20_demo_trading_session.py" else 24
+    parts = 40 if source_name == "m20_demo_trading_session.py" else 24
     # The runner is deliberately split into small fixed direct-decode chunks:
     # this avoids a blocked in-process decompressor and bridge length limits.
     chunk_size = ((len(encoded) + (parts * 4) - 1) // (parts * 4)) * 4
@@ -458,6 +465,7 @@ OPERATIONS: dict[str, Operation] = {
         powershell_command=_m1_mt5_demo_probe_command(),
         timeout_seconds=60,
     ),
+    "m20_demo_account_liquidity": Operation("m20_demo_account_liquidity", "Read fixed GOMarketsMU-Demo account liquidity fields without trading.", powershell_command=_m20_demo_account_liquidity_command()),
     "m3_mt5_history_depth_probe": Operation(
         "m3_mt5_history_depth_probe",
         "Measure fixed closed EURUSD H1 history depth from GOMarketsMU-Demo without persisting or trading.",
@@ -516,15 +524,15 @@ OPERATIONS: dict[str, Operation] = {
     "m20_listener_stage_5": Operation("m20_listener_stage_5", "Stage fixed M20 listener payload part five.", powershell_command=_m20_listener_stage_command(5)),
 }
 
-for _index in range(6, 11):
+for _index in range(6, 13):
     OPERATIONS[f"m20_listener_stage_{_index}"] = Operation(
         f"m20_listener_stage_{_index}",
-        ("Stage and verify" if _index == 10 else "Stage") + f" fixed M20 listener payload part {_index}.",
+        ("Stage and verify" if _index == 12 else "Stage") + f" fixed M20 listener payload part {_index}.",
         powershell_command=_m20_listener_stage_command(_index),
     )
 
-for _index in range(1, 33):
-    _final = _index == 32
+for _index in range(1, 41):
+    _final = _index == 40
     OPERATIONS[f"m20_listener_runner_stage_{_index}"] = Operation(
         f"m20_listener_runner_stage_{_index}",
         ("Stage and verify" if _final else "Stage") + f" fixed M20 listener runner payload part {_index}.",

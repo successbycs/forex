@@ -58,6 +58,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_demo_account_liquidity",
+      "purpose": "Read current GOMarketsMU-Demo account liquidity fields without trading or exposing credentials.",
+      "approval_required": false
+    },
+    {
       "id": "m3_mt5_history_depth_probe",
       "purpose": "Measure fixed closed EURUSD H1 history depth from GOMarketsMU-Demo without persisting or trading.",
       "approval_required": false
@@ -154,6 +159,16 @@
     },
     {
       "id": "m20_listener_stage_10",
+      "purpose": "Stage fixed payload segment ten for the permanent M20 Demo listener.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_11",
+      "purpose": "Stage fixed payload segment eleven for the permanent M20 Demo listener.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_12",
       "purpose": "Stage and verify final fixed payload segment for the permanent M20 Demo listener.",
       "approval_required": false
     },
@@ -315,6 +330,46 @@
     {
       "id": "m20_listener_runner_stage_32",
       "purpose": "Stage and verify final fixed M20 listener runner payload part thirty-two.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_33",
+      "purpose": "Stage fixed M20 listener runner payload part thirty-three.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_34",
+      "purpose": "Stage fixed M20 listener runner payload part thirty-four.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_35",
+      "purpose": "Stage fixed M20 listener runner payload part thirty-five.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_36",
+      "purpose": "Stage fixed M20 listener runner payload part thirty-six.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_37",
+      "purpose": "Stage fixed M20 listener runner payload part thirty-seven.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_38",
+      "purpose": "Stage fixed M20 listener runner payload part thirty-eight.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_39",
+      "purpose": "Stage fixed M20 listener runner payload part thirty-nine.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_40",
+      "purpose": "Stage and verify final fixed M20 listener runner payload part forty.",
       "approval_required": false
     },
     {

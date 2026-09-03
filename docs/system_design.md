@@ -41,6 +41,14 @@ backups. Forex owns the `forex` schema, source contracts, collectors, workflow
 definitions, research logic and evidence. Shared infrastructure does not own
 Forex trading or research logic.
 
+For M20 release deployment, Forex stages the fixed listener, runner and audit
+bridge as SHA-256-verified payloads under
+`C:\ProgramData\ForexListener\releases\<release-id>`. The adapter prepares
+non-secret local configuration, atomically switches the Scheduled Task, waits
+for a fresh release-bound heartbeat, and restores the prior task if that check
+fails. Mutable machine-local state stays under `ProgramData\ForexListener\state`;
+it is never mixed with the immutable release payloads.
+
 ## Existing PostgreSQL design
 
 | Table | Purpose | Important fields |

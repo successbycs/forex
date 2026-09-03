@@ -90,6 +90,19 @@ level.  The trade is refused when that reduced target is below 1.25R.  Both
 SL and TP must be set with the broker at submission time, so an interruption
 of the listener cannot leave the position unprotected.
 
+### The MVP SL/TP rule in one example
+
+For a BUY at `1.16153`, an actual stop at `1.16110` is `0.00043` lower: 43
+points, or 4.3 pips. The first target is 1.5 times that distance: 64 points,
+or 6.4 pips, giving `1.16217`. The numbers are derived from the price at that
+specific assessment; they are not fixed prices and they change with each
+valid setup.
+
+In plain language: the system first identifies where the recent M1 setup is
+wrong, then moves the stop closer if needed to stay under the A$100 planned
+loss limit. It places the first profit target 1.5 times as far from entry as
+that final stop. If there is not enough room for the target, it does not trade.
+
 ## Open-position state and exit management
 
 An accepted order remains open.  PostgreSQL stores a current position record
@@ -177,6 +190,37 @@ are observation-only hypotheses: they never change the executable proposal.
 The displayed strategy comparison is a current operator view. The immutable
 M20 proposal and audit record remain bound to the active momentum-breakout
 decision until a later, separately governed strategy-promotion change.
+
+## Rules-engine investigation: choose the strategy that fits the situation
+
+This is a future M1 investigation, not a change to the current executor.
+Today, Momentum Breakout is the sole strategy allowed to submit a Demo order.
+
+The intended next model is **strategy selection**, not five independent
+strategies all placing orders. The rules engine would first apply the shared
+safety checks—fresh data, normal spread, active Demo lease, no open position,
+and any cooldown. It would then classify the market situation and select only
+one eligible strategy to own the next trade.
+
+| Market situation | Preferred strategy | What “eligible” means | What all other strategies do |
+| --- | --- | --- | --- |
+| A very tight M1 range breaks with confirmation | Compression breakout | The prior range is sufficiently narrow, then price breaks upward for a BUY or downward for a SELL. | Record their view only. They cannot add another order. |
+| A normal recent range breaks after two aligned candles | Momentum breakout | The active five-candle breakout, alignment, and spread rules pass. | Record their view only. |
+| A short directional trend pauses then resumes | Trend pullback | Trend, pullback, and resumption checks all agree. | Record their view only. |
+| Price strongly rejects the top or bottom of a clear range | Range reversion | The rejection and range-edge checks pass. | Record their view only. |
+| A valid breakout occurs during the liquid trading session | Session breakout | Session, spread, and breakout checks all pass. | Record their view only. |
+
+This design needs explicit testing before it can trade. The rules must define
+the priority order when more than one situation applies, a minimum confidence
+or quality threshold, a cooldown after an exit, and how a strategy is
+disqualified when spread or volatility is abnormal. The selected strategy must
+be persisted on the proposal and becomes the sole owner of the position: its
+own SL, TP, and exit rules apply. A SELL signal from another strategy must not
+close that position.
+
+The outcome record should retain both the selected strategy and the four
+non-selected strategy assessments. That will allow later comparison of
+strategy performance without confusing a shadow signal with a real trade.
 
 ## How a strategy earns promotion
 
