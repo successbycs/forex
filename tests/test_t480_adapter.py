@@ -135,8 +135,9 @@ def test_m20_session_operation_is_fixed_demo_only_fresh_data_capture():
     assert "FOREX_M20_DEMO_TRADING_OPERATION_OK" in probe
     assert '"persist-proposal"' in probe
     assert '"reconcile"' in probe
-    assert "order_send" not in probe
-    assert "positions_get" not in probe
+    assert "order_send" in probe
+    assert probe.index('"reserve-execution"') < probe.index("order_send")
+    assert "positions_get" in probe
     assert t480_adapter.OPERATIONS["m20_demo_trading_session"].approval_required is False
 
 

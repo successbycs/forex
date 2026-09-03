@@ -348,7 +348,32 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
         bridge_payload = {"session": {key: session[key] for key in bridge_session_keys}, "proposal": proposal, "decision_snapshot": snapshot, "application_revision": revision, "configuration_fingerprint": fingerprint}
         persisted = _bridge(bridge_payload, "persist-proposal")
         if proposal["action"] != "NO_TRADE":
-            raise SystemExit("M20 actionable proposal persisted; fixed Demo executor is not yet deployed")
+            positions = mt5.positions_get(symbol=SYMBOL) or ()
+            if positions:
+                raise SystemExit("M20 one-position limit is reached before order reservation")
+            submitted_at = utc(datetime.now(timezone.utc))
+            attempt_id = str(uuid5(NAMESPACE_URL, f"{proposal['proposal_id']}:attempt"))
+            reservation = {
+                "attempt_id": attempt_id, "idempotency_key": str(uuid5(NAMESPACE_URL, f"{proposal['proposal_id']}:idempotency")),
+                "submitted_at_utc": submitted_at, "redacted_result": "MT5 result pending", "broker_open_positions": 0,
+            }
+            reserved = _bridge({**bridge_payload, "reservation": reservation}, "reserve-execution")
+            order_type = mt5.ORDER_TYPE_BUY if proposal["action"] == "BUY" else mt5.ORDER_TYPE_SELL
+            request = {"action": mt5.TRADE_ACTION_DEAL, "symbol": SYMBOL, "volume": risk["volume"], "type": order_type,
+                       "price": proposal["proposed_entry"], "sl": proposal["stop_loss"], "tp": proposal["take_profit"],
+                       "deviation": 20, "magic": 20260020, "comment": "forex-m20-demo", "type_time": mt5.ORDER_TIME_GTC,
+                       "type_filling": mt5.ORDER_FILLING_IOC}
+            result = mt5.order_send(request)
+            accepted = bool(result) and result.retcode == mt5.TRADE_RETCODE_DONE
+            event_type = "OPENED" if accepted else "REJECTED"
+            broker_reference = str(getattr(result, "order", "")) if result else ""
+            result_payload = {"event_id": str(uuid5(NAMESPACE_URL, f"{attempt_id}:result")), "attempt_id": attempt_id,
+                              "event_type": event_type, "observed_at_utc": utc(datetime.now(timezone.utc)),
+                              "broker_order_reference": broker_reference, "payload_sha256": "sha256:" + hashlib.sha256(json.dumps({"retcode": getattr(result, "retcode", None), "order": broker_reference}, sort_keys=True).encode()).hexdigest(),
+                              "payload": {"retcode": getattr(result, "retcode", None), "volume": risk["volume"]}}
+            _bridge({"result": result_payload}, "record-result")
+            reconciliation = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")["reconciliation"]
+            return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "decision_snapshot": snapshot, "proposal": proposal, "execution": {"status": "ACCEPTED" if accepted else "REJECTED", "attempt_id": attempt_id, "session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "idempotency_key": reservation["idempotency_key"], "submitted_at_utc": submitted_at, "open_positions_before": 0, "cumulative_notional_before_usd": 0}, "reconciliation": reconciliation, "postgres_audit": reserved["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
         reconciled = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")
         reconciliation = reconciled.get("reconciliation")
         if not isinstance(reconciliation, dict) or reconciliation.get("status") != "NO_TRADE_RECONCILED":
