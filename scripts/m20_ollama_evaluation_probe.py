@@ -73,6 +73,17 @@ def main() -> int:
     model_line = next((line.strip() for line in compose("ollama", "ollama", "list").stdout.splitlines() if line.startswith(f"{MODEL} ")), "")
     if not model_line:
         raise RuntimeError(f"approved local model is unavailable: {MODEL}")
+    runtime_version = compose("ollama", "ollama", "--version").stdout.strip()
+    model_details = compose("ollama", "ollama", "show", MODEL).stdout.strip()
+    if not runtime_version or not model_details:
+        raise RuntimeError("M20 requires non-empty Ollama runtime and model provenance")
+    model_provenance = {
+        "runtime_version": runtime_version,
+        "model_inventory": model_line,
+        "model_inventory_sha256": sha256(model_line),
+        "model_details": model_details,
+        "model_details_sha256": sha256(model_details),
+    }
     # A fixed harmless warm-up keeps the already-approved local model resident
     # before the three bounded historical requests; no output is retained.
     compose("ollama", "ollama", "run", MODEL, "Reply READY only.")
@@ -99,12 +110,18 @@ def main() -> int:
             "exit_at_utc": bars[exit_index]["time_utc"], "entry_close": bars[entry_index]["close"],
             "exit_close": bars[exit_index]["close"], "context_bar_count": len(context_bars),
             "model_output_sha256": sha256(raw_value), "model_response_valid": model_response_valid,
+            "invocation_metadata": {
+                "input_context_sha256": request["input_context_sha256"],
+                "prompt_sha256": sha256(request["prompt"]),
+                "response_schema_sha256": sha256(request["response_schema"]),
+            },
             "response": response, "price_only_action": price_only_action,
         })
     evaluation = evaluate(experiments)
     print(json.dumps({
         "marker": "FOREX_M20_OLLAMA_EVALUATION_PROBE_OK", "snapshot": SNAPSHOT_ID,
         "source": "DEMO_ONLY_HISTORICAL", "model_definition_sha256": sha256(model_line),
+        "ollama_provenance": model_provenance,
         "evaluation": evaluation, "order_capability": False, "live_trading_capability": False,
     }, separators=(",", ":")))
     return 0

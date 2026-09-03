@@ -14,6 +14,7 @@ def experiments() -> list[dict]:
             "exit_at_utc": f"2026-07-{day:02d}T20:00:00+00:00", "entry_close": 1.10, "exit_close": 1.11 if day % 2 else 1.09,
             "context_bar_count": 12, "model_output_sha256": f"sha256:{day:064x}",
             "model_response_valid": True,
+            "invocation_metadata": {"input_context_sha256": f"sha256:{day:064x}", "prompt_sha256": f"sha256:{day + 3:064x}", "response_schema_sha256": f"sha256:{day + 6:064x}"},
             "response": response("POSITIVE" if day % 2 else "NEGATIVE"), "price_only_action": "BUY",
         }
         for day in range(1, EXPERIMENT_SESSIONS + 1)
@@ -27,6 +28,7 @@ def test_m20_evaluation_is_fixed_chronological_and_research_only():
     assert result["predeclared_controls"]["random_shuffling_used"] is False
     assert len(result["rows"]) == 3
     assert result["valid_model_response_count"] == 3
+    assert all("invocation_metadata" in row for row in result["rows"])
     assert result["comparison"]["no_change"]["actionable_sessions"] == 0
     assert result["research_only"] is True and result["order_capability"] is False
 

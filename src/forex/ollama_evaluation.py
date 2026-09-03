@@ -72,6 +72,13 @@ def evaluate(experiments: list[dict[str, Any]]) -> dict[str, Any]:
             raise ValueError("M20 requires positive closed prices")
         response = item["response"]
         ollama_action = action_from_sentiment(response)
+        invocation = item["invocation_metadata"]
+        if not isinstance(invocation, dict) or set(invocation) != {
+            "input_context_sha256", "prompt_sha256", "response_schema_sha256"
+        }:
+            raise ValueError("M20 requires complete hash-addressed model invocation metadata")
+        if any(not isinstance(value, str) or not value.startswith("sha256:") for value in invocation.values()):
+            raise ValueError("M20 invocation metadata must contain SHA-256 values")
         price_action = item["price_only_action"]
         if price_action not in {"BUY", "SELL"}:
             raise ValueError("M20 price-only baseline must be directional")
@@ -83,6 +90,7 @@ def evaluate(experiments: list[dict[str, Any]]) -> dict[str, Any]:
             "context_bar_count": item["context_bar_count"],
             "model_output_sha256": item["model_output_sha256"],
             "model_response_valid": bool(item["model_response_valid"]),
+            "invocation_metadata": invocation,
         }
         for name, action in (("ollama_sentiment", ollama_action), ("price_only_return_2", price_action), ("no_change", "NO_TRADE")):
             result[name] = {

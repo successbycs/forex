@@ -13,5 +13,7 @@ for a in m['artifacts']:
 p=json.loads((b/'evaluation-probe.json').read_text()); x=json.loads(p['result']['stdout']); e=x['evaluation']
 assert p['ok'] and x['marker']=='FOREX_M20_OLLAMA_EVALUATION_PROBE_OK' and x['source']=='DEMO_ONLY_HISTORICAL' and not x['order_capability'] and not x['live_trading_capability']
 assert e['marker']=='FOREX_M20_EVALUATION_OK' and e['model']=='qwen2.5:3b' and len(e['rows'])==3 and e['valid_model_response_count'] >= 1 and e['predeclared_controls']['chronological_only'] and not e['predeclared_controls']['random_shuffling_used'] and e['research_only'] and not e['order_capability']
+provenance=x['ollama_provenance']; assert provenance['runtime_version'] and provenance['model_inventory'] and provenance['model_details'] and provenance['model_inventory_sha256'].startswith('sha256:') and provenance['model_details_sha256'].startswith('sha256:')
+assert all(set(row['invocation_metadata']) == {'input_context_sha256','prompt_sha256','response_schema_sha256'} and all(v.startswith('sha256:') for v in row['invocation_metadata'].values()) for row in e['rows'])
 assert 'FOREX_M20_PROOF_OK' in (b/'summary.txt').read_text(); print('FOREX_M20_EVIDENCE_VERIFIED')
 PY

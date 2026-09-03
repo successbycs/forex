@@ -7206,6 +7206,113 @@
         "from": "READY",
         "to": "IN_PROGRESS"
       }
+    },
+    {
+      "event_id": "E000509",
+      "timestamp": "2026-09-03T01:26:48Z",
+      "milestone_id": "M20",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M20/20260903T012150Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000510",
+      "timestamp": "2026-09-03T01:26:50Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000511",
+      "timestamp": "2026-09-03T01:26:55Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000512",
+      "timestamp": "2026-09-03T01:27:01Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000513",
+      "timestamp": "2026-09-03T01:27:06Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000514",
+      "timestamp": "2026-09-03T01:27:10Z",
+      "milestone_id": "M20",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "IN_PROGRESS",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
+    },
+    {
+      "event_id": "E000515",
+      "timestamp": "2026-09-03T01:27:15Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260903T012714Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T012714Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260903T012714Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260903T012714Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000516",
+      "timestamp": "2026-09-03T01:34:13Z",
+      "milestone_id": "M20",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "AWAITING_REAL_WORLD_PROOF",
+        "to": "NEEDS_FIX",
+        "reason": "Required Triad-plus-domain review automation failed before any schema-valid reviewer submission: the isolated Solution Architect session exceeded its 120-second bound in cycle M20-20260903T012737Z-62ca5836. Retained raw runner attempts document the failure; no completion recommendation was produced."
+      }
     }
   ]
 }

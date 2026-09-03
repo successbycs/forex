@@ -28,6 +28,12 @@ M20 proof requires at least one schema-valid, research-only local-model
 response. Three timeout-derived abstentions prove the fallback but do not prove
 the Ollama-assisted comparison.
 
+The retained probe output includes the local Ollama CLI version, the exact
+approved-model inventory line and detail output (with their SHA-256 hashes),
+plus hash-addressed context, prompt, response-schema, and model-output metadata
+for every bounded invocation. These fields support reproducibility without
+retaining an account, credential, broker, order, or execution surface.
+
 Because the retained M2 observation has one snapshot-capture timestamp rather
 than a source observation time for each bar, M20 uses the already documented
 M16 `RETROSPECTIVE_H1_BAR_CLOSE_ASSUMPTION`: a closed H1 bar is treated as
