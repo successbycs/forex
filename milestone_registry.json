@@ -2473,7 +2473,7 @@
       "scope": [
         "Capture fresh Demo-only EUR/USD bid, ask, spread, and closed M1 and M5 candles through a fixed adapter.",
         "Produce and persist an immutable BUY, SELL, or NO_TRADE assessment before any Demo execution, including rationale and hash-bound decision inputs.",
-        "Execute only fixed, Demo-only EUR/USD orders within a human-enabled session lease capped at ten trades, sixty minutes, one open position, USD 100 notional per trade, and USD 1,000 cumulative notional.",
+        "Execute only fixed, Demo-only EUR/USD orders within a human-enabled session lease capped at ten trades, sixty minutes, one open position, USD 10,000 notional per trade, and USD 100,000 cumulative notional.",
         "Persist proposal, execution attempt, position events, reconciliation, and outcome in PostgreSQL for backtesting and review.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],

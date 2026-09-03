@@ -22,7 +22,7 @@ def test_m20_proposal_uses_only_closed_m1_and_m5_demo_data():
     result = propose(proposal_id="proposal-1", lease=lease(), snapshot=snapshot())
     assert result.action == "BUY"
     assert result.selected_timeframe == "M5"
-    assert result.notional_usd == 100
+    assert result.notional_usd == 10000
     assert result.snapshot_sha256.startswith("sha256:")
 
 

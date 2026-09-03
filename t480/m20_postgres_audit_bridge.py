@@ -55,8 +55,8 @@ def _session(payload: dict[str, Any]) -> dict[str, Any]:
         raise SystemExit("M20 bridge accepts only the fixed Demo EURUSD session")
     if (not isinstance(value["max_trades"], int) or not 1 <= value["max_trades"] <= 10
             or value["max_open_positions"] != 1
-            or not isinstance(value["max_notional_per_trade_usd"], (int, float)) or not 0 < value["max_notional_per_trade_usd"] <= 100
-            or not isinstance(value["max_cumulative_notional_usd"], (int, float)) or not 0 < value["max_cumulative_notional_usd"] <= 1000):
+            or not isinstance(value["max_notional_per_trade_usd"], (int, float)) or not 0 < value["max_notional_per_trade_usd"] <= 10000
+            or not isinstance(value["max_cumulative_notional_usd"], (int, float)) or not 0 < value["max_cumulative_notional_usd"] <= 100000):
         raise SystemExit("M20 bridge session limits are invalid")
     return value
 

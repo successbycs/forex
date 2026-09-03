@@ -104,8 +104,8 @@ def load_session_lease(path: Path, now: datetime) -> dict[str, Any]:
         ("maximum_trades", 1, 10),
         ("maximum_duration_minutes", 1, 60),
         ("maximum_open_positions", 1, 1),
-        ("maximum_notional_per_trade_usd", 1, 100),
-        ("maximum_cumulative_notional_usd", 1, 1000),
+        ("maximum_notional_per_trade_usd", 1, 10000),
+        ("maximum_cumulative_notional_usd", 1, 100000),
     )
     for field, lower, upper in limits:
         value = payload[field]

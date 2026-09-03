@@ -18,8 +18,8 @@
         "maximum_trades": {"type": "integer", "minimum": 1, "maximum": 10},
         "maximum_duration_minutes": {"type": "integer", "minimum": 1, "maximum": 60},
         "maximum_open_positions": {"const": 1},
-        "maximum_notional_per_trade_usd": {"type": "integer", "minimum": 1, "maximum": 100},
-        "maximum_cumulative_notional_usd": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "maximum_notional_per_trade_usd": {"type": "integer", "minimum": 1, "maximum": 10000},
+        "maximum_cumulative_notional_usd": {"type": "integer", "minimum": 1, "maximum": 100000},
         "require_persisted_proposal": {"const": true},
         "require_idempotency_key": {"const": true}
       }

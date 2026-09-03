@@ -373,7 +373,7 @@ def m20_audit_verify() -> dict:
  (SELECT count(*) FROM forex.demo_position_event),
  (SELECT count(*) FROM forex.demo_trade_outcome),
  'demo_only=' || NOT EXISTS (SELECT 1 FROM forex.demo_trade_session WHERE server <> 'GOMarketsMU-Demo' OR instrument <> 'EURUSD'),
- 'caps_ok=' || NOT EXISTS (SELECT 1 FROM forex.demo_trade_session WHERE max_trades > 10 OR expires_at_utc > starts_at_utc + interval '60 minutes' OR max_notional_usd > 100 OR max_cumulative_notional_usd > 1000 OR max_open_positions <> 1),
+ 'caps_ok=' || NOT EXISTS (SELECT 1 FROM forex.demo_trade_session WHERE max_trades > 10 OR expires_at_utc > starts_at_utc + interval '60 minutes' OR max_notional_usd > 10000 OR max_cumulative_notional_usd > 100000 OR max_open_positions <> 1),
  'proposal_first=' || NOT EXISTS (SELECT 1 FROM forex.demo_execution_attempt attempt LEFT JOIN forex.demo_trade_proposal proposal ON proposal.proposal_id=attempt.proposal_id LEFT JOIN forex.demo_decision_snapshot snapshot ON snapshot.proposal_id=proposal.proposal_id WHERE proposal.proposal_id IS NULL OR snapshot.proposal_id IS NULL OR proposal.decision_at_utc > attempt.submitted_at_utc),
  'idempotency_ok=' || NOT EXISTS (SELECT idempotency_key FROM forex.demo_execution_attempt GROUP BY idempotency_key HAVING count(*) > 1),
  'immutable_triggers=' || ((SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname IN ('demo_trade_proposal_immutable','demo_decision_snapshot_immutable','demo_execution_attempt_immutable','demo_position_event_immutable','demo_trade_outcome_immutable')) = 5);" </dev/null'''

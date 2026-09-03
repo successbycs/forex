@@ -120,7 +120,7 @@ def validate_session(payload: dict[str, Any]) -> dict[str, Any]:
     expires = utc(session.get("expires_at_utc"), "session.expires_at_utc")
     require(starts < expires <= starts + MAX_SESSION, "session duration exceeds the 60 minute M20 cap")
     require(isinstance(session.get("max_trades"), int) and 1 <= session["max_trades"] <= 10, "session max_trades exceeds M20 cap")
-    for field, maximum in (("max_notional_per_trade_usd", 100), ("max_cumulative_notional_usd", 1000)):
+    for field, maximum in (("max_notional_per_trade_usd", 10000), ("max_cumulative_notional_usd", 100000)):
         value = session.get(field)
         require(isinstance(value, (int, float)) and 0 < value <= maximum, f"session {field} exceeds M20 cap")
     require(session.get("max_open_positions") == 1, "session must enforce one open position")

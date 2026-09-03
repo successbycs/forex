@@ -8,7 +8,7 @@ demo_session_limits:
   maximum_trades: 10
   maximum_duration_minutes: 60
   maximum_open_positions: 1
-  maximum_notional_per_trade_usd: 100
-  maximum_cumulative_notional_usd: 1000
+  maximum_notional_per_trade_usd: 10000
+  maximum_cumulative_notional_usd: 100000
   require_persisted_proposal: true
   require_idempotency_key: true
