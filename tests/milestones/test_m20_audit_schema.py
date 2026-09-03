@@ -27,9 +27,10 @@ def test_m20_postgres_adapter_exposes_only_fixed_schema_and_audit_verification_o
 
 
 def test_m20_trade_ledger_is_a_read_only_profit_and_loss_projection():
-    ledger = (ROOT / "sql/migrations/007_m20_demo_trade_ledger.sql").read_text()
+    ledger = (ROOT / "sql/migrations/008_m20_account_currency_pnl.sql").read_text()
     assert "CREATE OR REPLACE VIEW forex.demo_trade_ledger" in ledger
+    assert "account_currency" in ledger
     assert "PROFIT" in ledger and "LOSS" in ledger and "BREAKEVEN" in ledger
     assert "cumulative_pnl_recorded" in ledger
     assert "GOMarketsMU-Live" not in ledger
-    assert "10000.00" in ledger and "100000.00" in ledger
+    assert "realized_pnl_account" in ledger

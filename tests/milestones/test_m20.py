@@ -198,6 +198,17 @@ def test_m20_demo_evidence_verifier_rejects_tampering_even_with_python_optimizat
     assert "artifact digest mismatch" in result.stderr
 
 
+def test_m20_demo_evidence_verifier_rejects_mismatched_configuration_fingerprint(tmp_path: Path):
+    root, bundle = fixture(tmp_path)
+    configuration = json.loads((bundle / "configuration.json").read_text(encoding="utf-8"))
+    configuration["configuration_fingerprint"] = "sha256:" + "c" * 64
+    write(bundle / "configuration.json", configuration)
+    update_artifact_digest(bundle, "configuration.json")
+    result = verify(root, bundle)
+    assert result.returncode != 0
+    assert "configuration artifact fingerprint does not match manifest binding" in result.stderr
+
+
 def test_m20_demo_evidence_verifier_rejects_obsolete_ollama_operation_shape(tmp_path: Path):
     root, bundle = fixture(tmp_path)
     wrapper = json.loads((bundle / "demo-trading-operation.json").read_text(encoding="utf-8"))

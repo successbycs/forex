@@ -228,7 +228,8 @@ def validate_execution_and_reconciliation(payload: dict[str, Any], session: dict
     require(outcome.get("proposal_id") == proposal["proposal_id"], "outcome proposal mismatch")
     utc(outcome.get("closed_at_utc"), "outcome.closed_at_utc")
     require(isinstance(outcome.get("exit_price"), (int, float)) and outcome["exit_price"] > 0, "outcome exit price is invalid")
-    require(isinstance(outcome.get("realized_pnl_usd"), (int, float)), "outcome realized P&L is invalid")
+    require(isinstance(outcome.get("realized_pnl_account"), (int, float)), "outcome realized P&L is invalid")
+    require(outcome.get("account_currency") == "AUD", "outcome account currency is invalid")
     string(outcome.get("close_reason"), "outcome.close_reason")
 
 
@@ -345,7 +346,10 @@ def verify(bundle: Path, root: Path) -> None:
     require(configuration.get("agent_authority_mode") == "DEMO_SESSION_BOUNDED", "configuration does not declare bounded Demo authority")
     require(configuration.get("live_trading_enabled") is False, "configuration enables live trading")
     require(configuration.get("permitted_mt5_server") == "GOMarketsMU-Demo", "configuration does not permit the Demo server")
-    sha256(configuration.get("configuration_fingerprint"), "configuration artifact fingerprint")
+    require(
+        configuration.get("configuration_fingerprint") == fingerprint,
+        "configuration artifact fingerprint does not match manifest binding",
+    )
     wrapper = read_json(bundle / "demo-trading-operation.json")
     payload = parse_operation(wrapper, fingerprint)
     validate_payload(payload, fingerprint)

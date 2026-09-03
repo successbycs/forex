@@ -182,8 +182,10 @@ def record_closed_outcome(payload: dict[str, Any]) -> dict[str, Any]:
     result = _object(payload, "result")
     outcome = _object(payload, "outcome")
     result_required = {"event_id", "attempt_id", "event_type", "observed_at_utc", "broker_order_reference", "payload_sha256", "payload"}
-    outcome_required = {"proposal_id", "closed_at_utc", "exit_price", "realized_pnl_usd", "close_reason", "reconciliation_status"}
-    if set(result) != result_required or result["event_type"] != "CLOSED" or not isinstance(result["payload"], dict) or set(outcome) != outcome_required or outcome["reconciliation_status"] != "MATCHED":
+    outcome_required = {"proposal_id", "closed_at_utc", "exit_price", "realized_pnl_account", "account_currency", "close_reason", "reconciliation_status"}
+    if (set(result) != result_required or result["event_type"] != "CLOSED" or not isinstance(result["payload"], dict)
+            or set(outcome) != outcome_required or outcome["reconciliation_status"] != "MATCHED"
+            or outcome["account_currency"] != "AUD" or not isinstance(outcome["realized_pnl_account"], (int, float))):
         raise SystemExit("M20 closed lifecycle outcome is invalid")
     with _connection() as conn, conn.cursor() as cursor:
         cursor.execute("SELECT proposal_id FROM forex.demo_execution_attempt WHERE attempt_id=%s FOR UPDATE", (result["attempt_id"],))
@@ -191,7 +193,7 @@ def record_closed_outcome(payload: dict[str, Any]) -> dict[str, Any]:
         if attempt is None or attempt[0] != outcome["proposal_id"]:
             raise SystemExit("M20 closed outcome does not match its reserved attempt")
         cursor.execute("INSERT INTO forex.demo_position_event (event_id,attempt_id,event_type,observed_at_utc,payload_sha256,payload) VALUES (%s,%s,'CLOSED',%s,%s,%s::jsonb)", (result["event_id"], result["attempt_id"], result["observed_at_utc"], result["payload_sha256"], json.dumps({"broker_order_reference": result["broker_order_reference"], **result["payload"]})))
-        cursor.execute("INSERT INTO forex.demo_trade_outcome (proposal_id,closed_at_utc,exit_price,realized_pnl_usd,close_reason,reconciliation_status) VALUES (%s,%s,%s,%s,%s,'MATCHED')", (outcome["proposal_id"], outcome["closed_at_utc"], outcome["exit_price"], outcome["realized_pnl_usd"], outcome["close_reason"]))
+        cursor.execute("INSERT INTO forex.demo_trade_outcome (proposal_id,closed_at_utc,exit_price,realized_pnl_account,account_currency,close_reason,reconciliation_status) VALUES (%s,%s,%s,%s,%s,%s,'MATCHED')", (outcome["proposal_id"], outcome["closed_at_utc"], outcome["exit_price"], outcome["realized_pnl_account"], outcome["account_currency"], outcome["close_reason"]))
     return {"ok": True, "recorded_event_id": result["event_id"], "proposal_id": outcome["proposal_id"]}
 
 
@@ -201,16 +203,16 @@ def reconcile(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(proposal_id, str) or not proposal_id:
         raise SystemExit("M20 reconciliation proposal id is invalid")
     with _connection() as conn, conn.cursor() as cursor:
-        cursor.execute("SELECT p.session_id,p.action,s.snapshot_id,a.attempt_id,COALESCE(array_agg(e.event_type) FILTER (WHERE e.event_id IS NOT NULL), ARRAY[]::text[]),o.closed_at_utc,o.exit_price,o.realized_pnl_usd,o.close_reason,o.reconciliation_status FROM forex.demo_trade_proposal p JOIN forex.demo_decision_snapshot s ON s.proposal_id=p.proposal_id LEFT JOIN forex.demo_execution_attempt a ON a.proposal_id=p.proposal_id LEFT JOIN forex.demo_position_event e ON e.attempt_id=a.attempt_id LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=p.proposal_id WHERE p.proposal_id=%s GROUP BY p.session_id,p.action,s.snapshot_id,a.attempt_id,o.closed_at_utc,o.exit_price,o.realized_pnl_usd,o.close_reason,o.reconciliation_status", (proposal_id,))
+        cursor.execute("SELECT p.session_id,p.action,s.snapshot_id,a.attempt_id,COALESCE(array_agg(e.event_type) FILTER (WHERE e.event_id IS NOT NULL), ARRAY[]::text[]),o.closed_at_utc,o.exit_price,o.realized_pnl_account,o.account_currency,o.close_reason,o.reconciliation_status FROM forex.demo_trade_proposal p JOIN forex.demo_decision_snapshot s ON s.proposal_id=p.proposal_id LEFT JOIN forex.demo_execution_attempt a ON a.proposal_id=p.proposal_id LEFT JOIN forex.demo_position_event e ON e.attempt_id=a.attempt_id LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=p.proposal_id WHERE p.proposal_id=%s GROUP BY p.session_id,p.action,s.snapshot_id,a.attempt_id,o.closed_at_utc,o.exit_price,o.realized_pnl_account,o.account_currency,o.close_reason,o.reconciliation_status", (proposal_id,))
         row = cursor.fetchone()
         if row is None:
             raise SystemExit("M20 reconciliation proposal is absent")
-    closed_and_outcome = row[3] is not None and "CLOSED" in row[4] and row[5] is not None and row[9] == "MATCHED"
+    closed_and_outcome = row[3] is not None and "CLOSED" in row[4] and row[5] is not None and row[10] == "MATCHED"
     terminal_rejection = row[3] is not None and ("REJECTED" in row[4] or "FAILED" in row[4])
     status = "NO_TRADE_RECONCILED" if row[1] == "NO_TRADE" and row[3] is None else ("MATCHED" if closed_and_outcome or terminal_rejection else "PENDING")
     reconciliation = {"session_id": row[0], "proposal_id": proposal_id, "snapshot_id": row[2], "execution_attempt_id": row[3], "status": status}
     if closed_and_outcome:
-        reconciliation["outcome"] = {"proposal_id": proposal_id, "closed_at_utc": row[5].astimezone(timezone.utc).isoformat().replace("+00:00", "Z"), "exit_price": float(row[6]), "realized_pnl_usd": float(row[7]), "close_reason": row[8]}
+        reconciliation["outcome"] = {"proposal_id": proposal_id, "closed_at_utc": row[5].astimezone(timezone.utc).isoformat().replace("+00:00", "Z"), "exit_price": float(row[6]), "realized_pnl_account": float(row[7]), "account_currency": row[8], "close_reason": row[9]}
     return {"ok": True, "reconciliation": reconciliation}
 
 

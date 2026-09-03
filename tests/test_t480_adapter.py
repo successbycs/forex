@@ -136,7 +136,8 @@ def test_m20_session_operation_is_fixed_demo_only_fresh_data_capture():
     assert '"persist-proposal"' in probe
     assert '"reconcile"' in probe
     assert "order_send" in probe
-    assert probe.index('"reserve-execution"') < probe.index("order_send")
+    capture_source = probe[probe.index("def capture("):]
+    assert capture_source.index('"reserve-execution"') < capture_source.index("order_send")
     assert "positions_get" in probe
     assert t480_adapter.OPERATIONS["m20_demo_trading_session"].approval_required is False
 
@@ -199,7 +200,7 @@ def test_m20_reconciliation_requires_both_closed_event_and_outcome():
     bridge = (t480_adapter.ROOT / "t480" / "m20_postgres_audit_bridge.py").read_text(encoding="utf-8")
     assert '"CLOSED" in row[4]' in bridge
     assert 'row[5] is not None' in bridge
-    assert 'row[9] == "MATCHED"' in bridge
+    assert 'row[10] == "MATCHED"' in bridge
     assert 'else "PENDING"' in bridge
     assert 'row[1] == "NO_TRADE" and row[3] is None' in bridge
 
@@ -248,6 +249,22 @@ def test_m20_session_lease_rejects_missing_audit_or_widened_cap(tmp_path, monkey
     path.write_text(json.dumps(lease), encoding="utf-8")
     with pytest.raises(SystemExit, match="audit prerequisites are absent"):
         probe.load_session_lease(path, now)
+
+
+def test_m20_risk_stop_is_conservative_against_the_aud_loss_cap(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    entry, volume, tick_size, tick_value, point = 1.16018, 0.01, 0.00001, 1.395, 0.00001
+    stop, _, _ = probe._risk_levels(
+        action="SELL", entry=entry, volume=volume, tick_size=tick_size,
+        tick_value_loss=tick_value, point=point, maximum_loss_aud=100,
+    )
+    actual_loss = abs(entry - stop) / tick_size * volume * tick_value
+    assert actual_loss <= 100
+    with pytest.raises(SystemExit, match="minimum EURUSD price increment"):
+        probe._risk_levels(
+            action="BUY", entry=entry, volume=volume, tick_size=tick_size,
+            tick_value_loss=20_000, point=point, maximum_loss_aud=100,
+        )
 
 
 def test_shared_core_root_cannot_be_redirected_by_environment(monkeypatch):

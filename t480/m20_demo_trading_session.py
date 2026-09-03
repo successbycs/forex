@@ -1,15 +1,10 @@
-"""Fixed M20 Demo session preflight and fresh EUR/USD market snapshot.
+"""Fixed M20 Demo-only EUR/USD assessment, execution, and audit loop.
 
-This script is deliberately not a general MetaTrader interface.  It accepts
-only the configured terminal path and the fixed, machine-local session lease
-path supplied by the T480 adapter.  It never accepts a symbol, server,
-timeframe, account, shell command, or transaction parameter from a caller.
-
-The runner records a complete, reconciled ``NO_TRADE`` decision through the
-fixed PostgreSQL bridge.  An actionable assessment fails closed after its
-proposal has been persisted: this runner deliberately contains no order API
-call.  A future executor must independently re-check the persisted proposal,
-PostgreSQL audit state, and every lease limit before it can submit an order.
+The runner accepts only the configured terminal path and fixed local session
+lease supplied by the T480 adapter.  It is not a general MetaTrader interface:
+callers cannot choose a server, symbol, account, timeframe, shell command, or
+order parameters.  Any actionable assessment is persisted before reservation
+and submission, then reconciled through the co-located PostgreSQL audit bridge.
 """
 
 from __future__ import annotations
@@ -21,6 +16,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
 from typing import Any
 from uuid import NAMESPACE_URL, UUID, uuid5
 import math
@@ -44,6 +40,8 @@ TIMEFRAMES = (
 )
 STRATEGY_VERSION = "forex.m20.closed-candle-momentum.v1"
 OPERATOR_LABEL = "codex-m20-demo"
+EXECUTOR_MAGIC = 20260020
+CLOSE_TIMEOUT_SECONDS = 20
 
 
 def utc(value: datetime) -> str:
@@ -243,11 +241,16 @@ def _risk_levels(*, action: str, entry: float, volume: float, tick_size: float, 
     """Return stop, take-profit, and USD notional for the fixed minimum lot.
 
     Tick value is broker-reported in the account currency for one whole lot;
-    rounding is away from the entry so a stop cannot exceed the AUD loss cap.
+    the stop is always rounded toward the entry, so its theoretical loss never
+    exceeds the AUD cap.  If even one broker tick would exceed that cap, the
+    fixed executor refuses the order rather than widening the risk boundary.
     """
     if action not in {"BUY", "SELL"} or min(entry, volume, tick_size, tick_value_loss, point) <= 0:
         raise SystemExit("M20 broker risk inputs are invalid")
-    ticks = max(1, math.ceil(maximum_loss_aud / (volume * tick_value_loss)))
+    loss_per_tick = volume * tick_value_loss
+    ticks = math.floor(maximum_loss_aud / loss_per_tick)
+    if ticks < 1:
+        raise SystemExit("M20 minimum EURUSD price increment exceeds the AUD loss cap")
     distance = ticks * tick_size
     if action == "BUY":
         stop, take = entry - distance, entry + distance
@@ -255,8 +258,18 @@ def _risk_levels(*, action: str, entry: float, volume: float, tick_size: float, 
         stop, take = entry + distance, entry - distance
     if stop <= 0 or take <= 0:
         raise SystemExit("M20 AUD loss cap cannot produce valid EURUSD levels")
+    # Align the protective stop towards the entry.  Ordinary rounding or an
+    # away-from-entry alignment could silently exceed the hard loss limit.
+    epsilon = 1e-9
+    if action == "BUY":
+        stop = math.ceil(stop / point - epsilon) * point
+    else:
+        stop = math.floor(stop / point + epsilon) * point
+    actual_loss = abs(entry - stop) / tick_size * loss_per_tick
+    if actual_loss > maximum_loss_aud + 1e-7:
+        raise SystemExit("M20 calculated stop would exceed the AUD loss cap")
     # EURUSD quote currency is USD; contract size times price is USD notional.
-    return round(stop / point) * point, round(take / point) * point, volume * 100000 * entry
+    return round(stop, 10), round(take, 10), volume * 100000 * entry
 
 
 def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, list[dict[str, Any]]], captured_at: datetime, risk: dict[str, float]) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -295,6 +308,87 @@ def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, l
     return snapshot, proposal
 
 
+def _wait_for_position() -> Any:
+    """Return the sole fixed-executor EURUSD position or fail closed.
+
+    An accepted market order is not treated as a completed M20 action until
+    the terminal exposes its position.  The runner never searches other
+    symbols or positions belonging to another strategy.
+    """
+    deadline = time.monotonic() + CLOSE_TIMEOUT_SECONDS
+    while time.monotonic() < deadline:
+        positions = mt5.positions_get(symbol=SYMBOL) or ()
+        owned = [position for position in positions if int(getattr(position, "magic", -1)) == EXECUTOR_MAGIC]
+        if len(owned) == 1:
+            return owned[0]
+        if len(owned) > 1:
+            raise SystemExit("M20 executor observed more than one owned EURUSD position")
+        time.sleep(0.25)
+    raise SystemExit("M20 accepted order did not produce a fixed EURUSD position before close timeout")
+
+
+def _wait_until_closed(ticket: int) -> None:
+    deadline = time.monotonic() + CLOSE_TIMEOUT_SECONDS
+    while time.monotonic() < deadline:
+        if not (mt5.positions_get(ticket=ticket) or ()):
+            return
+        time.sleep(0.25)
+    raise SystemExit("M20 fixed EURUSD position did not close before close timeout")
+
+
+def _close_accepted_position(*, position: Any, submitted_at: datetime) -> tuple[str, float, float]:
+    """Immediately close the single accepted Demo position and derive P&L.
+
+    The short-lived MVP executor deliberately has no discretionary holding
+    period.  Its purpose is a bounded data-to-ledger drill: accepted order,
+    close, immutable outcome, reconciliation.  P&L is taken only from the
+    terminal's position-scoped deal history after the close is confirmed.
+    """
+    ticket = int(getattr(position, "ticket", 0))
+    volume = float(getattr(position, "volume", 0))
+    position_type = int(getattr(position, "type", -1))
+    if ticket <= 0 or volume <= 0:
+        raise SystemExit("M20 accepted position has invalid ticket or volume")
+    tick = mt5.symbol_info_tick(SYMBOL)
+    if not tick:
+        raise SystemExit("M20 close tick is unavailable")
+    is_buy = position_type == mt5.POSITION_TYPE_BUY
+    close_type = mt5.ORDER_TYPE_SELL if is_buy else mt5.ORDER_TYPE_BUY
+    close_price = float(tick.bid if is_buy else tick.ask)
+    if close_price <= 0:
+        raise SystemExit("M20 close price is invalid")
+    close_request = {
+        "action": mt5.TRADE_ACTION_DEAL,
+        "symbol": SYMBOL,
+        "volume": volume,
+        "type": close_type,
+        "position": ticket,
+        "price": close_price,
+        "deviation": 20,
+        "magic": EXECUTOR_MAGIC,
+        "comment": "forex-m20-demo-close",
+        "type_time": mt5.ORDER_TIME_GTC,
+        "type_filling": mt5.ORDER_FILLING_IOC,
+    }
+    close_result = mt5.order_send(close_request)
+    if not close_result or close_result.retcode != mt5.TRADE_RETCODE_DONE:
+        raise SystemExit("M20 accepted EURUSD position close was rejected")
+    _wait_until_closed(ticket)
+    deals = mt5.history_deals_get(submitted_at - timedelta(minutes=1), datetime.now(timezone.utc) + timedelta(seconds=5), position=ticket)
+    if not deals:
+        raise SystemExit("M20 close deal history is unavailable")
+    ordered = sorted(deals, key=lambda deal: int(getattr(deal, "time_msc", 0)))
+    exit_deal = ordered[-1]
+    exit_price = float(getattr(exit_deal, "price", 0))
+    realized_pnl = sum(
+        float(getattr(deal, "profit", 0)) + float(getattr(deal, "swap", 0)) + float(getattr(deal, "commission", 0))
+        for deal in ordered
+    )
+    if exit_price <= 0:
+        raise SystemExit("M20 close deal has an invalid exit price")
+    return str(getattr(close_result, "order", "")), exit_price, realized_pnl
+
+
 def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
     lease = load_session_lease(session_path, datetime.now(timezone.utc))
     if not mt5.initialize(path=terminal_path):
@@ -303,6 +397,8 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
         account = mt5.account_info()
         if not account or account.server != SERVER:
             raise SystemExit("MT5 is not connected to GOMarketsMU-Demo")
+        if getattr(account, "currency", "") != "AUD":
+            raise SystemExit("M20 AUD loss-cap executor requires an AUD Demo account")
         symbol = mt5.symbol_info(SYMBOL)
         if not symbol or symbol.name != SYMBOL or float(symbol.point) <= 0:
             raise SystemExit("required EURUSD symbol is unavailable")
@@ -361,7 +457,7 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
             order_type = mt5.ORDER_TYPE_BUY if proposal["action"] == "BUY" else mt5.ORDER_TYPE_SELL
             request = {"action": mt5.TRADE_ACTION_DEAL, "symbol": SYMBOL, "volume": risk["volume"], "type": order_type,
                        "price": proposal["proposed_entry"], "sl": proposal["stop_loss"], "tp": proposal["take_profit"],
-                       "deviation": 20, "magic": 20260020, "comment": "forex-m20-demo", "type_time": mt5.ORDER_TIME_GTC,
+                       "deviation": 20, "magic": EXECUTOR_MAGIC, "comment": "forex-m20-demo", "type_time": mt5.ORDER_TIME_GTC,
                        "type_filling": mt5.ORDER_FILLING_IOC}
             result = mt5.order_send(request)
             accepted = bool(result) and result.retcode == mt5.TRADE_RETCODE_DONE
@@ -372,7 +468,40 @@ def capture(terminal_path: str, session_path: Path) -> dict[str, Any]:
                               "broker_order_reference": broker_reference, "payload_sha256": "sha256:" + hashlib.sha256(json.dumps({"retcode": getattr(result, "retcode", None), "order": broker_reference}, sort_keys=True).encode()).hexdigest(),
                               "payload": {"retcode": getattr(result, "retcode", None), "volume": risk["volume"]}}
             _bridge({"result": result_payload}, "record-result")
+            if accepted:
+                position = _wait_for_position()
+                close_reference, exit_price, realized_pnl = _close_accepted_position(
+                    position=position,
+                    submitted_at=datetime.now(timezone.utc),
+                )
+                closed_at = utc(datetime.now(timezone.utc))
+                closed_payload = {
+                    "event_id": str(uuid5(NAMESPACE_URL, f"{attempt_id}:closed")),
+                    "attempt_id": attempt_id,
+                    "event_type": "CLOSED",
+                    "observed_at_utc": closed_at,
+                    "broker_order_reference": close_reference,
+                    "payload_sha256": "sha256:" + hashlib.sha256(
+                        json.dumps(
+                            {"position_ticket": int(position.ticket), "exit_price": exit_price, "realized_pnl_account": realized_pnl, "account_currency": "AUD"},
+                            sort_keys=True,
+                        ).encode()
+                    ).hexdigest(),
+                    "payload": {"position_ticket": int(position.ticket), "volume": risk["volume"]},
+                }
+                outcome = {
+                    "proposal_id": proposal["proposal_id"],
+                    "closed_at_utc": closed_at,
+                    "exit_price": exit_price,
+                    "realized_pnl_account": realized_pnl,
+                    "account_currency": "AUD",
+                    "close_reason": "M20_IMMEDIATE_RECONCILIATION_CLOSE",
+                    "reconciliation_status": "MATCHED",
+                }
+                _bridge({"result": closed_payload, "outcome": outcome}, "record-closed-outcome")
             reconciliation = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")["reconciliation"]
+            if reconciliation.get("status") != "MATCHED":
+                raise SystemExit("M20 actionable execution was not reconciled")
             return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "decision_snapshot": snapshot, "proposal": proposal, "execution": {"status": "ACCEPTED" if accepted else "REJECTED", "attempt_id": attempt_id, "session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "idempotency_key": reservation["idempotency_key"], "submitted_at_utc": submitted_at, "open_positions_before": 0, "cumulative_notional_before_usd": 0}, "reconciliation": reconciliation, "postgres_audit": reserved["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
         reconciled = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")
         reconciliation = reconciled.get("reconciliation")

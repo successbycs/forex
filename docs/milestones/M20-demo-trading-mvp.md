@@ -15,7 +15,8 @@ following:
 - exactly `GOMarketsMU-Demo` and `EURUSD`;
 - no more than ten trades in a maximum sixty-minute window;
 - one open position at a time;
-- no more than USD 100 notional per trade and USD 1,000 cumulative notional;
+- no more than USD 10,000 notional per trade and USD 100,000 cumulative notional;
+- a calculated protective stop whose theoretical loss is no more than AUD 100;
 - a persisted, unexpired proposal and unique idempotency key before execution.
 
 The broker credential is never tracked or retained in evidence. The only
@@ -35,10 +36,10 @@ inspectable operational loop, not a profitability claim.
 Migration `006_m20_demo_trading_audit.sql` introduces separate append-only
 Demo-session, proposal, decision-snapshot, execution-attempt, position-event,
 and outcome tables. It does not relax M19's historical, research-only lineage
-tables. The fixed runner now writes and reads back a `NO_TRADE` proposal
-before emitting its success marker. A future fixed MT5 executor must write the
-proposal before invoking the broker and reconcile each broker response into
-these audit records; it is intentionally not implied by the `NO_TRADE` path.
+tables. The fixed runner persists a proposal before invoking the broker. An
+accepted Demo order is monitored, closed by the same fixed executor, and then
+written as a `CLOSED` lifecycle event plus immutable P&L outcome before it can
+be reconciled. A rejected order is retained as its terminal broker result.
 
 ## Completion evidence
 
