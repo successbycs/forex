@@ -12,6 +12,23 @@ git diff --quiet
 python3 -m pytest tests/milestones/test_m20_demo_trading.py >"$bundle/tests.txt" 2>&1
 python3 scripts/forex_milestones.py validate >"$bundle/governance.txt" 2>&1
 python3 scripts/validate_config.py --root "$root" --json >"$bundle/configuration.json"
+# The runtime-config digest is useful context, but evidence must bind the
+# complete governed configuration set used by the adapter and milestone state.
+python3 - "$bundle/configuration.json" <<'PY'
+import json
+import subprocess
+import sys
+
+path = sys.argv[1]
+configuration = json.loads(open(path, encoding="utf-8").read())
+runtime_fingerprint = configuration["configuration_fingerprint"]
+state = json.loads(subprocess.check_output(
+    ["python3", "scripts/forex_milestones.py", "status", "--json"], text=True
+))
+configuration["runtime_configuration_fingerprint"] = runtime_fingerprint
+configuration["configuration_fingerprint"] = state["configuration_fingerprint"]
+open(path, "w", encoding="utf-8").write(json.dumps(configuration, indent=2) + "\n")
+PY
 
 # This is deliberately the sole external action.  The adapter exposes no
 # parameters: its committed fixed operation owns the server, symbol, lease,
