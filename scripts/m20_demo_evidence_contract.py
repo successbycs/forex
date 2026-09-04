@@ -120,7 +120,8 @@ def validate_session(payload: dict[str, Any]) -> dict[str, Any]:
     starts = utc(session.get("starts_at_utc"), "session.starts_at_utc")
     expires = utc(session.get("expires_at_utc"), "session.expires_at_utc")
     require(starts < expires, "session must have positive duration")
-    require(isinstance(session.get("max_trades"), int) and 1 <= session["max_trades"] <= 10, "session max_trades exceeds M20 cap")
+    max_trades = session.get("max_trades")
+    require(max_trades is None or (isinstance(max_trades, int) and 1 <= max_trades <= 10), "session max_trades is invalid")
     for field, maximum in (("max_notional_per_trade_usd", 10000), ("max_cumulative_notional_usd", 100000)):
         value = session.get(field)
         require(isinstance(value, (int, float)) and 0 < value <= maximum, f"session {field} exceeds M20 cap")

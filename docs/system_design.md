@@ -15,7 +15,7 @@ no live-account access, generic order command, or profitability claim.
 | Price/GDELT join and replay | M13 fixed read-only T480 replay probe deployed; it applies a UTC availability and event-time cutoff |
 | T480 n8n adapter | Fixed Forex M11 adapter is deployed to the T480 |
 | Daily Forex n8n schedule | n8n-native design; not deployed or activated |
-| M20 Demo execution | In progress: a permanent T480 M1 listener is deployed from a versioned ProgramData release and assesses every 5 seconds when its continuous Demo lease is active. It is restricted to EUR/USD, 10 trades per recorded session, one open position, USD 10,000/trade, USD 100,000 cumulative, and AUD 100 theoretical loss/trade; no milestone proof yet. |
+| M20 Demo execution | In progress: a permanent T480 M1 listener is deployed from a versioned ProgramData release and assesses every 5 seconds when its continuous Demo lease is active. It is restricted to EUR/USD, one open position, USD 10,000/trade, USD 100,000 cumulative, and AUD 100 theoretical loss/trade; the legacy ten-trade count cap is removed; no milestone proof yet. |
 
 ## System topology and ownership
 

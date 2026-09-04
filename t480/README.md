@@ -38,7 +38,7 @@ Strict host-key checking and SSH batch mode cannot be disabled.
 The adapter cannot deploy or alter the T480. Most operations are inspection
 only. M20 has one exception: `m20_demo_trading_session` is a no-argument,
 hash-bound `GOMarketsMU-Demo`/`EURUSD` session path. Before it contacts MT5 it
-requires an ignored machine-local lease with fixed 10-trade/60-minute,
+requires an ignored machine-local lease with fixed Demo-only exposure limits,
 one-position, USD 100-per-trade and USD 1,000 cumulative limits, plus audit
 prerequisites. It must fail closed on any mismatch. It is not a generic MT5,
 symbol, account, shell, or broker-control interface, and it is not proven or

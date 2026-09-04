@@ -86,7 +86,7 @@ class DemoSessionLease:
     session_id: str
     starts_at_utc: datetime
     expires_at_utc: datetime
-    max_trades: int = 10
+    max_trades: int | None = None
     max_notional_per_trade_usd: int = 10000
     max_cumulative_notional_usd: int = 100000
     max_open_positions: int = 1
@@ -94,10 +94,10 @@ class DemoSessionLease:
     def __post_init__(self) -> None:
         if not self.session_id.strip() or _utc(self.expires_at_utc) <= _utc(self.starts_at_utc):
             raise DemoTradingError("a Demo session needs an identifier and positive duration")
-        if self.max_trades < 1:
-            raise DemoTradingError("a Demo session must retain a positive trade cap")
-        if not 1 <= self.max_trades <= 10 or self.max_open_positions != 1:
-            raise DemoTradingError("M20 permits at most 10 trades and one open position")
+        if self.max_trades is not None and (not 1 <= self.max_trades <= 10):
+            raise DemoTradingError("a legacy Demo trade cap must be between one and ten")
+        if self.max_open_positions != 1:
+            raise DemoTradingError("M20 permits one open position")
         if not 0 < self.max_notional_per_trade_usd <= 10000 or not 0 < self.max_cumulative_notional_usd <= 100000:
             raise DemoTradingError("M20 notional limits are invalid")
 
