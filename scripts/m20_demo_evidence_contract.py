@@ -160,7 +160,10 @@ def validate_snapshot(payload: dict[str, Any], session: dict[str, Any]) -> dict[
     expected_gates = {"fresh_quote", "completed_m1", "normal_spread", "no_existing_position", "demo_lease_active", "news_blackout_inactive", "abnormal_volatility_inactive"}
     require(isinstance(gates, dict) and set(gates) == expected_gates and all(value is True or value is False for value in gates.values()), "snapshot safety gates are invalid")
     validate_bars(snapshot.get("m1_closed_bars"), "M1", observed)
-    require(snapshot.get("m5_closed_bars") == [], "M1-only listener must not retain M5 candles")
+    m5_bars = snapshot.get("m5_closed_bars")
+    require(isinstance(m5_bars, list), "M5 shadow-context candles must be a list")
+    if m5_bars:
+        validate_bars(m5_bars, "M5", observed)
     sha256(snapshot.get("payload_sha256"), "decision_snapshot.payload_sha256")
     return snapshot
 
