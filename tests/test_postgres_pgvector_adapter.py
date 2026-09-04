@@ -12,9 +12,11 @@ def test_adapter_exposes_only_fixed_forex_operations():
     }
     expected.update({
         "forex-m20-stage-projected-cost-schema", "forex-m20-apply-projected-cost-schema",
-            "forex-m20-strategy-trial-summary", "forex-m20-stage-mtf-context-schema",
-            "forex-m20-apply-mtf-context-schema", "forex-m20-mtf-context-verify",
-            "forex-m20-mtf-context-summary", "forex-m20-stage-strategy-trial-query",
+        "forex-m20-strategy-trial-summary", "forex-m20-stage-mtf-context-schema",
+        "forex-m20-apply-mtf-context-schema", "forex-m20-mtf-context-verify",
+        "forex-m20-mtf-context-summary", "forex-m20-stage-strategy-trial-query",
+        "forex-m20-stage-remove-trade-count-cap-schema",
+        "forex-m20-apply-remove-trade-count-cap-schema",
     })
     assert postgres_pgvector_adapter.READ_ONLY | postgres_pgvector_adapter.MUTATING == expected
 

@@ -53,7 +53,7 @@ def _session(payload: dict[str, Any]) -> dict[str, Any]:
     required = {"session_id", "server", "instrument", "starts_at_utc", "expires_at_utc", "max_trades", "max_notional_per_trade_usd", "max_cumulative_notional_usd", "max_open_positions", "strategy_version", "operator_label"}
     if set(value) != required or value["server"] != "GOMarketsMU-Demo" or value["instrument"] != "EURUSD":
         raise SystemExit("M20 bridge accepts only the fixed Demo EURUSD session")
-    if (not isinstance(value["max_trades"], int) or not 1 <= value["max_trades"] <= 10
+    if ((value["max_trades"] is not None and (not isinstance(value["max_trades"], int) or not 1 <= value["max_trades"] <= 10))
             or value["max_open_positions"] != 1
             or not isinstance(value["max_notional_per_trade_usd"], (int, float)) or not 0 < value["max_notional_per_trade_usd"] <= 10000
             or not isinstance(value["max_cumulative_notional_usd"], (int, float)) or not 0 < value["max_cumulative_notional_usd"] <= 100000):
@@ -200,7 +200,8 @@ def persist_proposal(payload: dict[str, Any]) -> dict[str, Any]:
         row = cursor.fetchone()
         if row is None or row[0] != "ACTIVE" or tuple(row[1:]) != (session["max_trades"], session["max_notional_per_trade_usd"], session["max_cumulative_notional_usd"], 1):
             raise SystemExit("M20 PostgreSQL session is missing, inactive, or differs from the local lease")
-        cursor.execute("INSERT INTO forex.demo_trade_slot (session_id,slot_number) SELECT %s, generate_series(1,%s) ON CONFLICT DO NOTHING", (session["session_id"], session["max_trades"]))
+        if session["max_trades"] is not None:
+            cursor.execute("INSERT INTO forex.demo_trade_slot (session_id,slot_number) SELECT %s, generate_series(1,%s) ON CONFLICT DO NOTHING", (session["session_id"], session["max_trades"]))
         cursor.execute(
             "INSERT INTO forex.demo_trade_proposal (proposal_id,session_id,decision_at_utc,expires_at_utc,selected_timeframe,action,proposed_entry,stop_loss,take_profit,notional_usd,confidence,rationale,decision_snapshot_sha256,strategy_version,application_revision,configuration_fingerprint) VALUES (%(proposal_id)s,%(session_id)s,%(decision_at_utc)s,%(expires_at_utc)s,%(selected_timeframe)s,%(action)s,%(proposed_entry)s,%(stop_loss)s,%(take_profit)s,%(notional_usd)s,%(confidence)s,%(rationale)s,%(decision_snapshot_sha256)s,%(strategy_version)s,%(application_revision)s,%(configuration_fingerprint)s)",
             {**proposal, "application_revision": revision, "configuration_fingerprint": fingerprint},
@@ -260,7 +261,7 @@ def reserve_execution(payload: dict[str, Any]) -> dict[str, Any]:
         if cursor.fetchone() is None:
             raise SystemExit("M20 proposal is absent, unpersisted, expired, or non-actionable")
         cursor.execute("SELECT count(*) FROM forex.demo_execution_attempt WHERE session_id=%s", (session["session_id"],))
-        if cursor.fetchone()[0] >= session["max_trades"]:
+        if session["max_trades"] is not None and cursor.fetchone()[0] >= session["max_trades"]:
             raise SystemExit("M20 maximum trade count is reached")
         cursor.execute("SELECT COALESCE(sum(p.notional_usd),0) FROM forex.demo_execution_attempt a JOIN forex.demo_trade_proposal p ON p.proposal_id=a.proposal_id WHERE a.session_id=%s", (session["session_id"],))
         if float(cursor.fetchone()[0]) + float(proposal["notional_usd"]) > float(session["max_cumulative_notional_usd"]):
@@ -268,15 +269,18 @@ def reserve_execution(payload: dict[str, Any]) -> dict[str, Any]:
         cursor.execute("SELECT count(*) FROM forex.demo_execution_attempt a LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=a.proposal_id WHERE o.proposal_id IS NULL AND NOT EXISTS (SELECT 1 FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type IN ('REJECTED','FAILED'))")
         if cursor.fetchone()[0] != 0:
             raise SystemExit("M20 global one-position limit is reached")
-        cursor.execute("SELECT slot_number FROM forex.demo_trade_slot WHERE session_id=%s AND proposal_id IS NULL ORDER BY slot_number FOR UPDATE SKIP LOCKED LIMIT 1", (session["session_id"],))
-        slot = cursor.fetchone()
-        if slot is None:
-            raise SystemExit("M20 no unclaimed execution slot remains")
-        cursor.execute("UPDATE forex.demo_trade_slot SET proposal_id=%s,claimed_at_utc=%s WHERE session_id=%s AND slot_number=%s AND proposal_id IS NULL", (proposal["proposal_id"], reservation["submitted_at_utc"], session["session_id"], slot[0]))
-        if cursor.rowcount != 1:
-            raise SystemExit("M20 execution slot claim lost its atomic race")
-        cursor.execute("INSERT INTO forex.demo_execution_attempt (attempt_id,proposal_id,session_id,slot_number,idempotency_key,submitted_at_utc,status,redacted_result) VALUES (%s,%s,%s,%s,%s,%s,'SUBMITTED',%s)", (reservation["attempt_id"], proposal["proposal_id"], session["session_id"], slot[0], reservation["idempotency_key"], reservation["submitted_at_utc"], reservation["redacted_result"]))
-    receipt = {"session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "snapshot_id": proposal["snapshot_id"], "execution_attempt_id": reservation["attempt_id"], "slot_number": slot[0]}
+        slot_number = None
+        if session["max_trades"] is not None:
+            cursor.execute("SELECT slot_number FROM forex.demo_trade_slot WHERE session_id=%s AND proposal_id IS NULL ORDER BY slot_number FOR UPDATE SKIP LOCKED LIMIT 1", (session["session_id"],))
+            slot = cursor.fetchone()
+            if slot is None:
+                raise SystemExit("M20 no unclaimed execution slot remains")
+            slot_number = slot[0]
+            cursor.execute("UPDATE forex.demo_trade_slot SET proposal_id=%s,claimed_at_utc=%s WHERE session_id=%s AND slot_number=%s AND proposal_id IS NULL", (proposal["proposal_id"], reservation["submitted_at_utc"], session["session_id"], slot_number))
+            if cursor.rowcount != 1:
+                raise SystemExit("M20 execution slot claim lost its atomic race")
+        cursor.execute("INSERT INTO forex.demo_execution_attempt (attempt_id,proposal_id,session_id,slot_number,idempotency_key,submitted_at_utc,status,redacted_result) VALUES (%s,%s,%s,%s,%s,%s,'SUBMITTED',%s)", (reservation["attempt_id"], proposal["proposal_id"], session["session_id"], slot_number, reservation["idempotency_key"], reservation["submitted_at_utc"], reservation["redacted_result"]))
+    receipt = {"session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "snapshot_id": proposal["snapshot_id"], "execution_attempt_id": reservation["attempt_id"], "slot_number": slot_number}
     return {"ok": True, "reservation": receipt, "postgres_audit": {**receipt, "record_sha256": _digest(receipt)}}
 
 

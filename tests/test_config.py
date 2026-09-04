@@ -37,7 +37,7 @@ def test_all_initial_configuration_loads_as_typed_models() -> None:
     assert configuration.mt5.demo_credentials_environment_variable == "FOREX_MT5_DEMO_CREDENTIALS"
     assert configuration.mt5.broker_tick_time_offset_seconds == 10800
     limits = configuration.runtime.demo_session_limits
-    assert limits.maximum_trades == 10
+    assert limits.maximum_trades is None
     assert limits.maximum_duration_minutes == 0
     assert limits.maximum_open_positions == 1
     assert limits.maximum_notional_per_trade_usd == 10000

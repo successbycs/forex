@@ -42,7 +42,7 @@ class ProjectConfig:
 class DemoSessionLimits:
     """Non-secret, fail-closed caps for one M20 Demo trading session."""
 
-    maximum_trades: int
+    maximum_trades: int | None
     maximum_duration_minutes: int
     maximum_open_positions: int
     maximum_notional_per_trade_usd: int

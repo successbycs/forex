@@ -151,7 +151,6 @@ def load_session_lease(path: Path, now: datetime) -> dict[str, Any]:
     if payload["maximum_duration_minutes"] != 0 and expires_at - starts_at > timedelta(minutes=60):
         raise SystemExit("M20 session lease exceeds 60 minutes")
     limits = (
-        ("maximum_trades", 1, 10),
         ("maximum_duration_minutes", 0, 60),
         ("maximum_open_positions", 1, 1),
         ("maximum_notional_per_trade_usd", 1, 10000),
@@ -162,6 +161,11 @@ def load_session_lease(path: Path, now: datetime) -> dict[str, Any]:
         value = payload[field]
         if isinstance(value, bool) or not isinstance(value, int) or not lower <= value <= upper:
             raise SystemExit(f"M20 session lease {field} is outside its fixed cap")
+    if payload["maximum_trades"] is not None and (
+            isinstance(payload["maximum_trades"], bool)
+            or not isinstance(payload["maximum_trades"], int)
+            or not 1 <= payload["maximum_trades"] <= 10):
+        raise SystemExit("M20 session lease maximum_trades is invalid")
     if payload["maximum_cumulative_notional_usd"] < payload["maximum_notional_per_trade_usd"]:
         raise SystemExit("M20 session lease cumulative notional cannot be less than one trade")
     if payload["audit_prerequisites"] != SESSION_AUDIT_REQUIREMENTS:

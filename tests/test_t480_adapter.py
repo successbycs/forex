@@ -191,7 +191,7 @@ def test_m20_listener_recovery_is_fixed_to_the_listener_task_only():
 
 def test_m20_demo_lease_activation_is_fixed_bounded_and_secret_free():
     command = t480_adapter.OPERATIONS["m20_listener_activate_demo_lease"].powershell_command
-    for required in ("GOMarketsMU-Demo", "EURUSD", "9999-12-31T23:59:59Z", "maximum_duration_minutes=0", "maximum_trades=10", "maximum_notional_per_trade_usd=10000", "maximum_cumulative_notional_usd=100000", "maximum_loss_per_trade_aud=100"):
+    for required in ("GOMarketsMU-Demo", "EURUSD", "9999-12-31T23:59:59Z", "maximum_duration_minutes=0", "maximum_trades=$null", "maximum_notional_per_trade_usd=10000", "maximum_cumulative_notional_usd=100000", "maximum_loss_per_trade_aud=100"):
         assert required in command
     assert "GOMarketsMU-Live" not in command
     assert "POSTGRES_DSN" not in command
@@ -557,7 +557,7 @@ def test_m20_session_lease_rejects_missing_audit_or_widened_cap(tmp_path, monkey
     assert probe.load_session_lease(path, now)["maximum_trades"] == 10
     lease["maximum_trades"] = 11
     path.write_text(json.dumps(lease), encoding="utf-8")
-    with pytest.raises(SystemExit, match="outside its fixed cap"):
+    with pytest.raises(SystemExit, match="maximum_trades is invalid"):
         probe.load_session_lease(path, now)
     lease["maximum_trades"] = 10
     lease["audit_prerequisites"] = {}
