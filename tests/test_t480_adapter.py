@@ -127,8 +127,13 @@ def test_m20_session_operation_is_fixed_demo_only_fresh_data_capture():
     command = t480_adapter.OPERATIONS["m20_demo_trading_session"].powershell_command or ""
     probe = (t480_adapter.ROOT / "t480" / "m20_demo_trading_session.py").read_text(encoding="utf-8")
     assert "m20_demo_session.local.json" in command
-    assert "m20_demo_trading_session.py" in command
-    assert "m20_postgres_audit_bridge.py" in command
+    assert "m20_demo_trading_session.payload" in command
+    assert "m20_postgres_audit_bridge.payload" in command
+    assert "C:\\ProgramData\\ForexListener" in command
+    assert "m20_demo_listener_status.local.json" in command
+    assert "m20_demo_listener_service.local.json" in command
+    assert "active ProgramData release revision does not match" in command
+    assert "Documents\\Code\\forex-m1-probe" not in command
     assert "Get-FileHash" in command
     assert "FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256" in command
     assert "FOREX_M20_CONFIGURATION_FINGERPRINT" in command
