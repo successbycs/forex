@@ -28,6 +28,7 @@ def test_catalog_and_adapter_operations_match():
     t480_adapter.validate_contract()
     catalog = json.loads(t480_adapter.CATALOG_PATH.read_text(encoding="utf-8"))
     assert {entry["id"] for entry in catalog["operations"]} == set(t480_adapter.OPERATIONS)
+    assert "m20_listener_runner_stage_48" in t480_adapter.OPERATIONS
 
 
 def test_adapter_emits_the_governed_project_fingerprint_for_evidence_binding():
@@ -151,6 +152,8 @@ def test_m20_listener_status_is_fixed_and_redacted():
     assert "FOREX_M20_POSTGRES_DSN" not in command
     assert "heartbeat_at_nzst" in command and "next_assessment_at_nzst" in command
     assert "heartbeat_age_seconds" in command
+    assert "$supervisorAlive" in command
+    assert "quote=$s.quote" in command
     assert "release_id=$s.release_id" in command
     assert "task_action=$taskAction" in command
     assert "$age -ge 30" in command
@@ -202,6 +205,14 @@ def test_m20_listener_install_is_hash_checked_and_fixed():
     assert "FOREX_M20_POSTGRES_DSN" not in command
 
 
+def test_m20_dependency_staging_appends_raw_decoded_bytes():
+    command = t480_adapter._m20_listener_dependency_stage_command(
+        "m20_demo_trading_session.py", "m20_demo_trading_session.payload", "M20 listener runner", 2,
+    )
+    assert "[IO.File]::Open" in command
+    assert "$stream.Write($bytes,0,$bytes.Length)" in command
+
+
 def test_m20_listener_prepare_verifies_all_payloads_before_activation():
     command = t480_adapter.OPERATIONS["m20_listener_prepare"].powershell_command
     assert "Get-FileHash" in command
@@ -214,12 +225,12 @@ def test_m20_listener_staging_is_split_and_hash_checked():
     final = t480_adapter.OPERATIONS["m20_listener_stage_12"].powershell_command
     assert len(first) < 4000 and len(final) < 4000
     assert "WriteAllBytes" in first
-    assert "Add-Content" in final and "Get-FileHash" in final
+    assert "[IO.File]::Open" in final and "Get-FileHash" in final
 
 
 def test_m20_listener_runner_and_bridge_staging_are_fixed_and_hash_checked():
     runner_first = t480_adapter.OPERATIONS["m20_listener_runner_stage_1"].powershell_command
-    runner_final = t480_adapter.OPERATIONS["m20_listener_runner_stage_40"].powershell_command
+    runner_final = t480_adapter.OPERATIONS["m20_listener_runner_stage_48"].powershell_command
     bridge_first = t480_adapter.OPERATIONS["m20_listener_bridge_stage_1"].powershell_command
     bridge_final = t480_adapter.OPERATIONS["m20_listener_bridge_stage_24"].powershell_command
     for first, final, filename in (
@@ -227,7 +238,7 @@ def test_m20_listener_runner_and_bridge_staging_are_fixed_and_hash_checked():
         (bridge_first, bridge_final, "m20_postgres_audit_bridge.payload"),
     ):
         assert "WriteAllBytes" in first
-        assert "Add-Content" in final
+        assert "[IO.File]::Open" in final
         assert "Get-FileHash" in final
         assert filename in first and filename in final
 
@@ -255,10 +266,11 @@ def test_m20_runner_builds_the_same_no_trade_shape_accepted_by_the_evidence_cont
     # The M1-only runner does not collect or retain M5 candles.
     raw_bars = {"M1": bars("M1", 1, (1.1000, 1.1001)), "M5": []}
     tick = {"observed_at_utc": stamp(observed), "freshness_seconds": 2, "bid": 1.1, "ask": 1.1002, "spread_points": 2.0}
-    snapshot, proposal = probe._assessment(session, tick, raw_bars, observed.replace(second=2), {"volume": 0.01, "tick_size": 0.00001, "tick_value_loss": 1.395, "point": 0.00001}, 0.25)
+    snapshot, proposal, selection, assessments = probe._assessment(session, tick, raw_bars, observed.replace(second=2), {"volume": 0.01, "tick_size": 0.00001, "tick_value_loss": 1.395, "point": 0.00001}, 0.25)
     digest = "sha256:" + "a" * 64
     payload = {
         "configuration_fingerprint": digest, "session": session, "decision_snapshot": snapshot, "proposal": proposal,
+        "strategy_selection": selection, "strategy_assessments": assessments,
         "execution": {"status": "NOT_SUBMITTED", "attempt_id": None},
         "reconciliation": {"session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "snapshot_id": snapshot["snapshot_id"], "execution_attempt_id": None, "status": "NO_TRADE_RECONCILED"},
         "postgres_audit": {"session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "snapshot_id": snapshot["snapshot_id"], "execution_attempt_id": None, "record_sha256": digest},
@@ -267,7 +279,7 @@ def test_m20_runner_builds_the_same_no_trade_shape_accepted_by_the_evidence_cont
     validate_payload(payload, digest)
 
 
-def test_m20_shadow_strategy_comparisons_are_closed_candle_only_and_cannot_execute(monkeypatch):
+def test_m20_strategy_comparisons_are_closed_candle_only_and_selectable(monkeypatch):
     probe = _m20_probe_module(monkeypatch)
     bars = [
         {"open": 1.10000 + index * .00001, "high": 1.10003 + index * .00001,
@@ -283,9 +295,59 @@ def test_m20_shadow_strategy_comparisons_are_closed_candle_only_and_cannot_execu
         "momentum_breakout", "compression_breakout", "trend_pullback",
         "range_reversion", "session_breakout",
     ]
-    assert assessments[0]["eligible_for_execution"] is True
-    assert all(item["eligible_for_execution"] is False for item in assessments[1:])
+    assert all(item["eligible_for_execution"] is True for item in assessments)
     assert all(item["signal"] in {"BUY", "SELL", "NO_TRADE"} for item in assessments)
+
+
+def test_m20_regime_precedence_selects_one_executable_owner(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    assessments = [
+        {"id": "momentum_breakout", "label": "Momentum breakout", "signal": "BUY", "eligible_for_execution": True, "reason": "Momentum."},
+        {"id": "compression_breakout", "label": "Compression breakout", "signal": "BUY", "eligible_for_execution": True, "reason": "Compression."},
+        {"id": "trend_pullback", "label": "Trend pullback", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "None."},
+        {"id": "range_reversion", "label": "Range reversion", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "None."},
+        {"id": "session_breakout", "label": "Session breakout", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "None."},
+    ]
+    selection = probe._market_selection(
+        tick={"freshness_seconds": 1, "spread_points": 8}, m1=[{}] * 12, assessments=assessments,
+        safety_gates={"fresh_quote": True, "completed_m1": True, "normal_spread": True,
+                      "no_existing_position": True, "demo_lease_active": True,
+                      "news_blackout_inactive": True, "abnormal_volatility_inactive": True},
+    )
+    assert selection["market_regime"] == "COMPRESSION_BREAKOUT"
+    assert selection["selected_strategy_id"] == "compression_breakout"
+    assert selection["selection_status"] == "SELECTED_EXECUTABLE"
+
+
+def test_m20_selected_strategy_without_a_valid_plan_is_not_execution_authority(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    bars = [
+        {"open": 1.1, "high": 1.1001, "low": 1.0999, "close": 1.1}
+        for _ in range(12)
+    ]
+    # A selected Range signal whose midpoint target equals entry is not an
+    # executable order, even though regime precedence selected the strategy.
+    assessments = [
+        {"id": "momentum_breakout", "label": "Momentum", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "—"},
+        {"id": "compression_breakout", "label": "Compression", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "—"},
+        {"id": "trend_pullback", "label": "Trend", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "—"},
+        {"id": "range_reversion", "label": "Range", "signal": "BUY", "eligible_for_execution": True, "reason": "—"},
+        {"id": "session_breakout", "label": "Session", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "—"},
+    ]
+    selection = probe._market_selection(tick={"freshness_seconds": 1, "spread_points": 8}, m1=bars, assessments=assessments,
+        safety_gates={"fresh_quote": True, "completed_m1": True, "normal_spread": True, "no_existing_position": True, "demo_lease_active": True, "news_blackout_inactive": True, "abnormal_volatility_inactive": True})
+    assert selection["selection_status"] == "SELECTED_EXECUTABLE"
+
+
+def test_m20_cost_gate_requires_projected_net_profit_above_the_fixed_floor(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    risk = {"volume": 0.01, "tick_size": 0.00001, "tick_value_loss": 1.395, "observed_spread": 0.00010}
+    rejected = probe._project_cost_coverage(action="BUY", entry=1.1, take_profit=1.10002, risk=risk)
+    accepted = probe._project_cost_coverage(action="BUY", entry=1.1, take_profit=1.10150, risk=risk)
+    assert rejected["cost_coverage_status"] == "NOT_FEASIBLE"
+    assert accepted["cost_coverage_status"] == "FEASIBLE"
+    assert accepted["minimum_net_profit_aud"] == 0.10
+    assert accepted["expected_net_profit_at_take_profit_aud"] >= accepted["minimum_net_profit_aud"]
 
 
 def test_m20_audit_bridge_is_fixed_and_fails_closed_without_local_deployment():
@@ -306,6 +368,29 @@ def test_m20_audit_bridge_is_fixed_and_fails_closed_without_local_deployment():
     assert "order_send" not in bridge
     assert "sys.argv[1] if len(sys.argv) == 2" in bridge
     assert "M20 audit bridge command is not fixed" in bridge
+    assert "trade_owner_strategy_id=selection.selected_strategy_id" in bridge
+
+
+def test_m20_monitor_refuses_an_open_position_without_a_known_strategy_owner(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    with pytest.raises(SystemExit, match="without a known selected strategy owner"):
+        probe._monitor_open_position(
+            proposal={"proposal_id": "p", "action": "BUY", "trade_owner_strategy_id": "unknown"},
+            attempt_id="a", position=type("Position", (), {"ticket": 1, "price_open": 1.1, "sl": 1.09, "tp": 1.11})(),
+            submitted_at=datetime(2026, 9, 3, tzinfo=timezone.utc), entry_spread=0.0001,
+            risk={"volume": 0.01, "tick_size": 0.00001, "tick_value_loss": 1.395, "point": 0.00001}, offset_seconds=0,
+        )
+
+
+def test_m20_owner_exit_contracts_are_deterministic_and_strategy_specific(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    assert probe._owner_exit_contract("momentum_breakout") == (600, "M1_TWO_OPPOSITE_CLOSED_CANDLES")
+    assert probe._owner_exit_contract("compression_breakout") == (480, "M1_TWO_OPPOSITE_CLOSED_CANDLES")
+    assert probe._owner_exit_contract("trend_pullback") == (600, "M1_TWO_OPPOSITE_CLOSED_CANDLES")
+    assert probe._owner_exit_contract("range_reversion") == (360, "M1_TWO_OPPOSITE_CLOSED_CANDLES")
+    assert probe._owner_exit_contract("session_breakout") == (600, "M1_TWO_OPPOSITE_CLOSED_CANDLES")
+    with pytest.raises(SystemExit, match="without a known selected strategy owner"):
+        probe._owner_exit_contract("unknown")
 
 
 def test_m20_reconciliation_requires_both_closed_event_and_outcome():
@@ -378,6 +463,73 @@ def test_m20_risk_stop_is_conservative_against_the_aud_loss_cap(monkeypatch):
             action="BUY", entry=entry, volume=volume, tick_size=tick_size,
             tick_value_loss=20_000, point=point, maximum_loss_aud=100,
         )
+
+
+def test_m20_selected_strategy_plan_keeps_cost_observation_out_of_risk_inputs(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    bars = [
+        {"open": 1.16000 + index * .00001, "high": 1.16004 + index * .00001,
+         "low": 1.15996 + index * .00001, "close": 1.16002 + index * .00001}
+        for index in range(12)
+    ]
+    session = {"maximum_loss_per_trade_aud": 100, "max_notional_per_trade_usd": 10_000}
+    action, entry, stop, take, notional, _ = probe._strategy_trade_plan(
+        strategy_id="range_reversion", signal="BUY", m1=bars,
+        tick={"ask": 1.16005, "bid": 1.15997}, session=session,
+        risk={"volume": .01, "tick_size": .00001, "tick_value_loss": 1.395,
+              "point": .00001, "observed_spread": .00008},
+    )
+    assert action == "BUY"
+    assert entry and stop and take and notional
+    assert take == round(((max(bar["high"] for bar in bars[-6:-1]) + min(bar["low"] for bar in bars[-6:-1])) / 2) / .00001) * .00001
+
+
+@pytest.mark.parametrize(
+    ("strategy_id", "expected_stop_index", "uses_range_midpoint"),
+    (
+        ("momentum_breakout", -6, False),
+        ("compression_breakout", -8, False),
+        ("trend_pullback", -5, False),
+        ("range_reversion", -6, True),
+        ("session_breakout", -6, False),
+    ),
+)
+def test_m20_each_selected_owner_has_a_fixed_buy_entry_stop_and_target_contract(
+    monkeypatch, strategy_id, expected_stop_index, uses_range_midpoint,
+):
+    """Every M20.11 owner must produce its own deterministic protected plan."""
+    probe = _m20_probe_module(monkeypatch)
+    bars = [
+        {
+            "open": 1.16000 + index * .00001,
+            "high": 1.16004 + index * .00001,
+            "low": 1.15996 + index * .00001,
+            "close": 1.16002 + index * .00001,
+        }
+        for index in range(12)
+    ]
+    session = {"maximum_loss_per_trade_aud": 100, "max_notional_per_trade_usd": 10_000}
+    risk = {"volume": .01, "tick_size": .00001, "tick_value_loss": 1.395,
+            "point": .00001, "observed_spread": .00008}
+    action, entry, stop, take, notional, _ = probe._strategy_trade_plan(
+        strategy_id=strategy_id, signal="BUY", m1=bars,
+        tick={"ask": 1.16005, "bid": 1.15997}, session=session, risk=risk,
+    )
+
+    assert action == "BUY"
+    assert entry == 1.16005  # BUY must use the executable ask, never candle close.
+    assert stop == round(bars[expected_stop_index]["low"] / risk["point"]) * risk["point"]
+    assert stop < entry < take
+    assert notional == pytest.approx(.01 * 100_000 * entry)
+    if uses_range_midpoint:
+        prior_five = bars[-6:-1]
+        expected_target = round(
+            ((max(bar["high"] for bar in prior_five) + min(bar["low"] for bar in prior_five)) / 2)
+            / risk["point"]
+        ) * risk["point"]
+        assert take == expected_target
+    else:
+        assert take == round((entry + 1.5 * (entry - stop)) / risk["point"]) * risk["point"]
 
 
 def test_m20_monitor_requires_two_new_opposite_closed_m1_candles(monkeypatch):

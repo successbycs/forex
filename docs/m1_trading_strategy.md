@@ -8,6 +8,10 @@ investment advice and makes no promise of a positive return.  Its purpose is
 to produce comparable, cost-aware observations that can be tested before a
 strategy is adopted or extended to M5 and other timeframes.
 
+For the consolidated M20 market-classification, strategy-selection, and
+ownership procedure, see
+[M20-market-regime-strategy-operating-procedure.md](milestones/M20-market-regime-strategy-operating-procedure.md).
+
 The execution boundary remains fixed:
 
 - no live account or `GOMarketsMU-Live` access;
@@ -169,32 +173,35 @@ one-position, stop-loss, take-profit, and post-cost validation rules.
 | Watching | Range reversion | Price rejects the top or bottom of a clear range. | Take profit near the range middle; stop outside the range. |
 | Watching | Session breakout | A small range breaks during a liquid session with a normal spread. | Exit if price returns inside the range or hits the planned target. |
 
-Only one strategy version may be active in a Demo session.  The strategy
-identifier and every parameter used must be part of each decision snapshot,
-so results cannot be mixed or reinterpreted later.
+Only one strategy may own an open position in a Demo session. The selected
+strategy identifier and every parameter used are part of each decision
+snapshot, so results cannot be mixed or reinterpreted later.
 
-### MVP shadow-assessment rules
+### M20 controlled-release strategy rules
 
-The listener now evaluates every row above on completed M1 candles and shows
-its `BUY`, `SELL`, or `NO_TRADE` conclusion in the terminal. These four rules
-are observation-only hypotheses: they never change the executable proposal.
+The listener evaluates every row below on completed M1 candles and shows its
+`BUY`, `SELL`, or `NO_TRADE` conclusion in the terminal. A displayed `BUY` is
+an observation, not automatically an order: in M20.11, regime precedence
+selects exactly one owner. The selected owner is execution-eligible only after
+all safety and cost gates pass; every other signal remains recorded context.
 
 | Strategy | What the listener checks | What happens today |
 | --- | --- | --- |
-| Momentum breakout | Two aligned M1 candles break outside the prior five-candle range and the move is larger than the spread. | **Active:** may place one Demo order. |
-| Compression breakout | The same breakout happens after a very tight prior range: no wider than `max(12 points, 3 × spread)`. | **Watching only:** records a signal, never places an order. |
-| Trend pullback | Three closes trend one way, a pullback occurs, then price resumes strongly. | **Watching only:** records a signal, never places an order. |
-| Range reversion | The latest candle rejects the top or bottom of the recent range and has a body larger than the spread. | **Watching only:** records a signal, never places an order. |
-| Session breakout | Momentum breakout conditions occur between 07:00–19:59 UTC with spread no more than 12 points. | **Watching only:** records a signal, never places an order. |
+| Momentum breakout | Two aligned M1 candles break outside the prior five-candle range and the move is larger than the spread. | May own one bounded Demo order when selected; stop opposite the prior range; 1.5R target. |
+| Compression breakout | The same breakout happens after a very tight prior range: no wider than `max(12 points, 3 × spread)`. | May own one bounded Demo order when selected; stop beyond compression range; 1.5R target. |
+| Trend pullback | Three closes trend one way, a pullback occurs, then price resumes strongly. | May own one bounded Demo order when selected; stop beyond pullback swing; 1.5R target. |
+| Range reversion | The latest candle rejects the top or bottom of the recent range and has a body larger than the spread. | May own one bounded Demo order when selected; stop beyond rejected edge; range-midpoint target. |
+| Session breakout | Momentum breakout conditions occur between 07:00–19:59 UTC with spread no more than 12 points. | May own one bounded Demo order when selected; stop inside prior session range; 1.5R target. |
 
 The displayed strategy comparison is a current operator view. The immutable
-M20 proposal and audit record remain bound to the active momentum-breakout
-decision until a later, separately governed strategy-promotion change.
+M20 proposal and audit record bind the selected strategy as the sole owner of
+entry, SL, TP, monitoring and exit for that lifecycle.
 
 ## Rules-engine investigation: choose the strategy that fits the situation
 
-This is a future M1 investigation, not a change to the current executor.
-Today, Momentum Breakout is the sole strategy allowed to submit a Demo order.
+This is the current M20.11 selection model. One regime-selected strategy is
+the sole execution-eligible owner. The other four remain context for that
+assessment; they cannot create or close an additional position.
 
 The intended next model is **strategy selection**, not five independent
 strategies all placing orders. The rules engine would first apply the shared
@@ -210,13 +217,11 @@ one eligible strategy to own the next trade.
 | Price strongly rejects the top or bottom of a clear range | Range reversion | The rejection and range-edge checks pass. | Record their view only. |
 | A valid breakout occurs during the liquid trading session | Session breakout | Session, spread, and breakout checks all pass. | Record their view only. |
 
-This design needs explicit testing before it can trade. The rules must define
-the priority order when more than one situation applies, a minimum confidence
-or quality threshold, a cooldown after an exit, and how a strategy is
-disqualified when spread or volatility is abnormal. The selected strategy must
-be persisted on the proposal and becomes the sole owner of the position: its
-own SL, TP, and exit rules apply. A SELL signal from another strategy must not
-close that position.
+The authoritative classification, selection-priority, and ownership tables are
+in [m1_multi_strategy_execution.md](m1_multi_strategy_execution.md). The selected
+strategy must be persisted on the proposal and becomes the sole owner of the
+position through `trade_owner_strategy_id`: its own SL, TP, and exit rules
+apply. A SELL signal from another strategy must not close that position.
 
 The outcome record should retain both the selected strategy and the four
 non-selected strategy assessments. That will allow later comparison of

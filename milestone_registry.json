@@ -2475,7 +2475,7 @@
         "Operate the fixed listener as a permanent T480 Scheduled Task with a redacted heartbeat and a read-only T16 dashboard showing its latest five-second assessment.",
         "Provide a separate read-only T16 terminal dashboard that shows the latest Demo BUY/SELL lifecycle, monitoring or sold state, and broker-reconciled realised P&L without an order-control surface.",
         "Publish compact, human-readable candle and spread metrics with each read-only assessment status so a NO_TRADE conclusion is inspectable.",
-        "Compare the five documented M1 strategies on the same closed-candle assessment and display each BUY, SELL, or NO_TRADE result, while allowing only momentum breakout to execute.",
+        "Compare the five documented M1 strategies on the same closed-candle assessment and display each BUY, SELL, or NO_TRADE result; deterministic regime precedence may select exactly one strategy to execute with its own fixed entry, SL, TP, and exit contract.",
         "Produce and persist an immutable BUY, SELL, or NO_TRADE assessment before any Demo execution, including rationale and hash-bound decision inputs.",
         "Execute only fixed, automated Demo-only EUR/USD M1 orders within an active continuous Demo lease (duration zero) capped at ten trades, one open position, USD 10,000 notional per trade, USD 100,000 cumulative notional, and AUD 100 maximum loss per trade.",
         "Persist proposal, execution attempt, position events, reconciliation, and outcome in PostgreSQL for backtesting and review.",
@@ -2519,7 +2519,7 @@
         },
         {
           "id": "M20-C3",
-          "description": "Current self-attested Demo proof matches the Git revision, configuration fingerprint, exact Demo server, session lease, persisted proposal, and execution or NO_TRADE result.",
+          "description": "Current self-attested Demo proof matches the Git revision, configuration fingerprint, exact Demo server, session lease, persisted proposal, execution result, and one broker-matched OPENED-to-CLOSED lifecycle with broker-derived AUD P&L. NO_TRADE assessments remain valid operational records but cannot alone satisfy final M20 proof.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
@@ -2574,7 +2574,7 @@
       "evidence_requirements": [
         "Raw fixed Demo-only operation output with exit status, capture timestamps, redaction declaration, and exact server identity.",
         "Git revision, dirty-worktree declaration, configuration fingerprint, session lease, decision snapshot, proposal, execution result, and SHA-256 artifact hashes.",
-        "A human-observable summary of the continuous cap-constrained Demo trading result containing FOREX_M20_DEMO_TRADING_PROOF_OK."
+        "A human-observable summary of the continuous cap-constrained Demo trading result containing FOREX_M20_DEMO_TRADING_PROOF_OK and a broker-matched OPENED-to-CLOSED lifecycle with broker-derived AUD P&L."
       ],
       "human_review_required": false,
       "triad_completion_recommendation_required": true,
@@ -2646,6 +2646,12 @@
           "title": "Read-only Demo trade lifecycle and P&L dashboard",
           "dependencies": ["M20.5", "M20.7", "M20.8"],
           "acceptance_criteria": ["M20-C2", "M20-C4", "M20-C5"]
+        },
+        {
+          "work_package_id": "M20.11",
+          "title": "Controlled five-strategy Demo execution trial",
+          "dependencies": ["M20.5", "M20.7", "M20.8", "M20.9", "M20.10"],
+          "acceptance_criteria": ["M20-C1", "M20-C2", "M20-C3", "M20-C4", "M20-C5"]
         }
       ]
     },

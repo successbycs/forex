@@ -183,7 +183,9 @@ def _m20_demo_trading_session_command() -> str:
     bridge_source = (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()
     bridge_digest = hashlib.sha256(bridge_source).hexdigest()
     fingerprint = project_configuration_fingerprint()
-    tick_offset_seconds = load_configuration(ROOT, environ={}).mt5.broker_tick_time_offset_seconds
+    configuration = load_configuration(ROOT, environ={})
+    tick_offset_seconds = configuration.mt5.broker_tick_time_offset_seconds
+    minimum_net_profit = configuration.runtime.demo_session_limits.minimum_net_profit_aud
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     return (
         "$ErrorActionPreference='Stop'; "
@@ -201,6 +203,7 @@ def _m20_demo_trading_session_command() -> str:
         "$env:FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "'; "
         "$env:FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "'; "
         "$env:FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(tick_offset_seconds) + "'; "
+        "$env:FOREX_M20_MINIMUM_NET_PROFIT_AUD='" + str(minimum_net_profit) + "'; "
         "$env:FOREX_M20_APPLICATION_REVISION='" + revision + "'; & $s.python_path $p $s.terminal_path $lease; exit $LASTEXITCODE"
     )
 
@@ -214,7 +217,7 @@ def _m20_listener_status_command() -> str:
         "$s=gc -Raw -LiteralPath $p|ConvertFrom-Json; "
         "$age=$null; $stale=$false; try { $age=[Math]::Round(((Get-Date).ToUniversalTime()-([datetime]::Parse([string]$s.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds,1); $stale=($age -ge 30) } catch { $stale=$true }; "
         "$recovery='NOT_REQUIRED'; $recoveryDetail=$null; if ($stale) { $marker=Join-Path $state 'm20_demo_listener_recovery.local.json'; $last=$null; if (Test-Path -LiteralPath $marker) { try { $last=([datetime]::Parse((gc -Raw -LiteralPath $marker|ConvertFrom-Json).restart_at_utc)).ToUniversalTime() } catch {} }; if (($null -eq $last) -or (((Get-Date).ToUniversalTime()-$last).TotalSeconds -ge 60)) { try { $task=Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop; if ($task.State -eq 'Running') { Stop-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop }; Start-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop; [pscustomobject]@{restart_at_utc=(Get-Date).ToUniversalTime().ToString('o')}|ConvertTo-Json -Compress|Set-Content -LiteralPath $marker -Encoding UTF8; $recovery='RESTART_REQUESTED' } catch { $recovery='RESTART_FAILED'; $recoveryDetail=$_.Exception.Message } } else { $recovery='COOLDOWN' } }; "
-        "$taskAction=$null; try { $taskAction=(Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop).Actions|Select-Object -First 1|ForEach-Object {$_.Execute+' '+$_.Arguments} } catch {}; $protection=$null; $job=Join-Path $state 'm20_demo_monitor_job.local.json'; if (($s.monitor.state -eq 'RUNNING') -and (Test-Path -LiteralPath $job)) { try { $j=gc -Raw -LiteralPath $job|ConvertFrom-Json; $protection=[ordered]@{ticket=$j.position.ticket;action=$j.proposal.action;entry_price=$j.position.price_open;stop_loss=$j.position.sl;take_profit=$j.position.tp;submitted_at_utc=$j.submitted_at_utc} } catch {} }; $state=if ($stale) { 'STALE' } else { $s.state }; [pscustomobject]@{running=(!$stale -and ($s.state -eq 'RUNNING'));state=$state;release_id=$s.release_id;task_action=$taskAction;heartbeat_at_utc=$s.heartbeat_at_utc;heartbeat_at_nzst=$s.heartbeat_at_nzst;heartbeat_age_seconds=$age;iteration=$s.process_iteration;assessment_total=$s.assessment_total;assessment_started_at_utc=$s.assessment_started_at_utc;assessment_completed_at_utc=$s.assessment_completed_at_utc;assessment_duration_ms=$s.assessment_duration_ms;next_assessment_at_utc=$s.next_assessment_at_utc;next_assessment_at_nzst=$s.next_assessment_at_nzst;detail=$s.detail;monitor=$s.monitor;open_position_protection=$protection;last_result=$s.last_result;recovery_action=$recovery;recovery_detail=$recoveryDetail}|ConvertTo-Json -Compress -Depth 8"
+        "$taskAction=$null; try { $taskAction=(Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop).Actions|Select-Object -First 1|ForEach-Object {$_.Execute+' '+$_.Arguments} } catch {}; $protection=$null; $job=Join-Path $state 'm20_demo_monitor_job.local.json'; if (($s.monitor.state -eq 'RUNNING') -and (Test-Path -LiteralPath $job)) { try { $j=gc -Raw -LiteralPath $job|ConvertFrom-Json; $protection=[ordered]@{ticket=$j.position.ticket;action=$j.proposal.action;entry_price=$j.position.price_open;stop_loss=$j.position.sl;take_profit=$j.position.tp;submitted_at_utc=$j.submitted_at_utc} } catch {} }; $state=if ($stale) { 'STALE' } else { $s.state }; $supervisorAlive=(!$stale -and ($s.state -notin @('STOPPED','STARTUP_FAILED'))); [pscustomobject]@{running=$supervisorAlive;state=$state;release_id=$s.release_id;task_action=$taskAction;heartbeat_at_utc=$s.heartbeat_at_utc;heartbeat_at_nzst=$s.heartbeat_at_nzst;heartbeat_age_seconds=$age;iteration=$s.process_iteration;assessment_total=$s.assessment_total;assessment_started_at_utc=$s.assessment_started_at_utc;assessment_completed_at_utc=$s.assessment_completed_at_utc;assessment_duration_ms=$s.assessment_duration_ms;next_assessment_at_utc=$s.next_assessment_at_utc;next_assessment_at_nzst=$s.next_assessment_at_nzst;detail=$s.detail;monitor=$s.monitor;quote=$s.quote;open_position_protection=$protection;last_result=$s.last_result;recovery_action=$recovery;recovery_detail=$recoveryDetail}|ConvertTo-Json -Compress -Depth 8"
     )
 
 
@@ -272,7 +275,9 @@ def _m20_listener_prepare_command() -> str:
     bridge_digest = hashlib.sha256((ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()).hexdigest()
     release_id = hashlib.sha256(service + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()).hexdigest()[:16]
     fingerprint = project_configuration_fingerprint()
-    tick_offset_seconds = load_configuration(ROOT, environ={}).mt5.broker_tick_time_offset_seconds
+    configuration = load_configuration(ROOT, environ={})
+    tick_offset_seconds = configuration.mt5.broker_tick_time_offset_seconds
+    minimum_net_profit = configuration.runtime.demo_session_limits.minimum_net_profit_aud
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     return (
         "$ErrorActionPreference='Stop'; "
@@ -282,7 +287,7 @@ def _m20_listener_prepare_command() -> str:
         "if ((Get-FileHash -LiteralPath $runner -Algorithm SHA256).Hash.ToLower() -ne '" + runner_digest + "') { throw 'M20 listener runner hash does not match fixed source' }; "
         "if ((Get-FileHash -LiteralPath $bridge -Algorithm SHA256).Hash.ToLower() -ne '" + bridge_digest + "') { throw 'M20 listener bridge hash does not match fixed source' }; "
         "if ((Get-FileHash -LiteralPath $service -Algorithm SHA256).Hash.ToLower() -ne '" + service_digest + "') { throw 'M20 listener service staging hash failed' }; "
-        "$c=[ordered]@{FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "';FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(tick_offset_seconds) + "';FOREX_M20_APPLICATION_REVISION='" + revision + "';python_path=$s.python_path;terminal_path=$s.terminal_path}; "
+        "$c=[ordered]@{FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "';FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(tick_offset_seconds) + "';FOREX_M20_MINIMUM_NET_PROFIT_AUD='" + str(minimum_net_profit) + "';FOREX_M20_APPLICATION_REVISION='" + revision + "';python_path=$s.python_path;terminal_path=$s.terminal_path}; "
         "if (!(Test-Path (Join-Path $state 'm20_demo_session.local.json'))) { Copy-Item (Join-Path $legacy 'm20_demo_session.local.json') (Join-Path $state 'm20_demo_session.local.json') -ErrorAction SilentlyContinue }; $tmp=Join-Path $state 'm20_demo_listener_service.local.json.tmp'; [IO.File]::WriteAllText($tmp,($c|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false))); Move-Item -LiteralPath $tmp -Destination (Join-Path $state 'm20_demo_listener_service.local.json') -Force; "
         "[pscustomobject]@{prepared=$true;release_id='" + release_id + "';service_sha256='sha256:" + service_digest + "'}|ConvertTo-Json -Compress"
     )
@@ -321,7 +326,7 @@ def _m20_listener_stage_command(index: int) -> str:
     if index == 1:
         write = "[IO.File]::WriteAllBytes($service,[Convert]::FromBase64String('" + chunk + "'));"
     else:
-        write = "Add-Content -LiteralPath $service -Encoding Byte -Value ([Convert]::FromBase64String('" + chunk + "'));"
+        write = "$bytes=[Convert]::FromBase64String('" + chunk + "'); $stream=[IO.File]::Open($service,[IO.FileMode]::Append,[IO.FileAccess]::Write,[IO.FileShare]::None); try {$stream.Write($bytes,0,$bytes.Length)} finally {$stream.Dispose()};"
     if index == len(chunks):
         write += " if ((Get-FileHash -LiteralPath $service -Algorithm SHA256).Hash.ToLower() -ne '" + hashlib.sha256(source).hexdigest() + "') { throw 'M20 listener staged source hash failed' };"
     return "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; New-Item -ItemType Directory -Force $root|Out-Null; $service=Join-Path $root 'm20_demo_listener_service.payload'; " + write + " [pscustomobject]@{stage=" + str(index) + ";ok=$true}|ConvertTo-Json -Compress"
@@ -332,7 +337,7 @@ def _m20_listener_dependency_stage_command(source_name: str, runtime_name: str, 
     source = (ROOT / "t480" / source_name).read_bytes()
     release_id = hashlib.sha256((ROOT / "t480" / "m20_demo_listener_service.py").read_bytes() + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()).hexdigest()[:16]
     encoded = base64.b64encode(source).decode("ascii")
-    parts = 40 if source_name == "m20_demo_trading_session.py" else 24
+    parts = 48 if source_name == "m20_demo_trading_session.py" else 24
     # The runner is deliberately split into small fixed direct-decode chunks:
     # this avoids a blocked in-process decompressor and bridge length limits.
     chunk_size = ((len(encoded) + (parts * 4) - 1) // (parts * 4)) * 4
@@ -343,7 +348,10 @@ def _m20_listener_dependency_stage_command(source_name: str, runtime_name: str, 
     if index == 1:
         write = "[IO.File]::WriteAllBytes($file,[Convert]::FromBase64String('" + chunk + "'));"
     else:
-        write = "Add-Content -LiteralPath $file -Encoding Byte -Value ([Convert]::FromBase64String('" + chunk + "'));"
+        # Add-Content's byte encoding has produced non-identical staged
+        # payloads on some Windows PowerShell hosts.  Append the decoded bytes
+        # through FileStream so the final SHA-256 verifies the exact source.
+        write = "$bytes=[Convert]::FromBase64String('" + chunk + "'); $stream=[IO.File]::Open($file,[IO.FileMode]::Append,[IO.FileAccess]::Write,[IO.FileShare]::None); try {$stream.Write($bytes,0,$bytes.Length)} finally {$stream.Dispose()};"
     if index == len(chunks):
         write += " if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -ne '" + hashlib.sha256(source).hexdigest() + "') { throw '" + marker + " staged source hash failed' };"
     return (
@@ -531,8 +539,8 @@ for _index in range(6, 13):
         powershell_command=_m20_listener_stage_command(_index),
     )
 
-for _index in range(1, 41):
-    _final = _index == 40
+for _index in range(1, 49):
+    _final = _index == 48
     OPERATIONS[f"m20_listener_runner_stage_{_index}"] = Operation(
         f"m20_listener_runner_stage_{_index}",
         ("Stage and verify" if _final else "Stage") + f" fixed M20 listener runner payload part {_index}.",

@@ -38,6 +38,7 @@ PY
 # parameters: its committed fixed operation owns the server, symbol, lease,
 # proposal-first rule, and bounded execution contract.
 python3 scripts/t480_adapter.py execute --operation m20_demo_trading_session >"$bundle/demo-trading-operation.json"
+python3 scripts/postgres_pgvector_adapter.py forex-m20-lifecycle-summary >"$bundle/lifecycle-summary.json"
 git rev-parse HEAD >"$bundle/revision.txt"
 python3 scripts/m20_demo_evidence_contract.py capture --root "$root" --bundle "$bundle"
 

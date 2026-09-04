@@ -45,10 +45,13 @@ def render(status: dict[str, Any]) -> str:
     monitor = status.get("monitor") or {}
     quote = status.get("quote") or {}
     strategies = result.get("strategy_assessments") or []
+    selection = result.get("strategy_selection") or {}
+    supervisor = "RUNNING" if status.get("running") else _value(status.get("state"))
+    listener_detail = "" if status.get("state") == "RUNNING" else f" — {_value(status.get('state'))}"
     lines = [
         "M20 Demo Listener — live assessment dashboard",
         "=" * 47,
-        f"Listener: {_value(status.get('state'))}",
+        f"Listener: {supervisor}{listener_detail}",
         f"Heartbeat: UTC {_value(status.get('heartbeat_at_utc'))} | NZST {_value(status.get('heartbeat_at_nzst'))}",
         f"Assessment: #{_value(status.get('iteration'))} in this service | #{_value(status.get('assessment_total'))} since persistent counter began",
         f"Assessment completed: {_value(status.get('assessment_completed_at_utc'))} ({_value(status.get('assessment_duration_ms'))} ms)",
@@ -60,6 +63,10 @@ def render(status: dict[str, Any]) -> str:
         f"Reason: {_value(proposal.get('rationale'))}",
         f"Reconciliation: {_value(reconciliation.get('status'))}",
         f"Monitor: {_value(monitor.get('state'))}   PID: {_value(monitor.get('pid'))}",
+        f"Regime: {_value(selection.get('market_regime'))}   Selected: {_value(selection.get('selected_strategy_id'))} [{_value(selection.get('selection_status'))}]",
+        f"Regime reason: {_value(selection.get('market_regime_reason'))}",
+        f"Selected plan: entry {_value(proposal.get('proposed_entry'))} | SL {_value(proposal.get('stop_loss'))} | TP {_value(proposal.get('take_profit'))}",
+        f"Cost gate: {_value(selection.get('cost_coverage_status'))} | estimated costs {_value(selection.get('estimated_round_trip_cost_aud'))} AUD | expected net at TP {_value(selection.get('expected_net_profit_at_take_profit_aud'))} AUD | minimum {_value(selection.get('minimum_net_profit_aud'))} AUD",
         "",
         "Candle checks",
         f"Last close: {_value(metrics.get('last_close'))}   Previous: {_value(metrics.get('previous_close'))}",
@@ -70,14 +77,26 @@ def render(status: dict[str, Any]) -> str:
         "",
     ]
     lines.extend([
-        "Strategy comparison — only Momentum Breakout may trade",
+        "Strategy comparison — regime precedence may select one executable owner",
         "Strategy               Signal       Mode      What this assessment means",
         "---------------------  -----------  --------  ----------------------------------------",
     ])
     for strategy in strategies:
         if not isinstance(strategy, dict):
             continue
-        eligibility = "ACTIVE" if strategy.get("eligible_for_execution") else "SHADOW"
+        strategy_id = strategy.get("id")
+        if (strategy_id == selection.get("selected_strategy_id")
+                and selection.get("selection_status") == "SELECTED_EXECUTABLE"
+                and proposal.get("action") in {"BUY", "SELL"}):
+            eligibility = "EXECUTABLE"
+        elif strategy_id == selection.get("selected_strategy_id"):
+            eligibility = "BLOCKED"
+        elif strategy.get("signal") in {"BUY", "SELL"}:
+            eligibility = "SIGNAL ONLY"
+        elif strategy.get("eligible_for_execution"):
+            eligibility = "NO SIGNAL"
+        else:
+            eligibility = "BLOCKED"
         label = _value(strategy.get("label"))[:21]
         signal = _value(strategy.get("signal"))[:11]
         reason = _value(strategy.get("reason"))

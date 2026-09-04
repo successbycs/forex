@@ -58,12 +58,14 @@ ASSETS = {
     "m20_open_position_schema": "sql/migrations/010_m20_open_position_state.sql",
     "m20_continuous_lease_schema": "sql/migrations/011_m20_continuous_demo_lease.sql",
     "m20_outcome_reconciliation_schema": "sql/migrations/012_m20_outcome_reconciliation_revision.sql",
+    "m20_regime_strategy_schema": "sql/migrations/013_m20_market_regime_strategy_ownership.sql",
+    "m20_projected_cost_schema": "sql/migrations/014_m20_projected_cost_components.sql",
     "import": "scripts/build_m2_postgres_import.py",
 }
 M2_SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
 M2_SNAPSHOT_ARTIFACT_SHA256 = "sha256:dc5384732d71091aa2279aaf6d92e8e1780c8021eacde948432ad7bc68fdabaa"
 READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour", "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-lineage-verify", "forex-m20-audit-verify", "forex-m20-rejection-summary", "forex-m20-lifecycle-summary"}
-MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema", "forex-m20-stage-cost-ledger-schema", "forex-m20-apply-cost-ledger-schema", "forex-m20-stage-open-position-schema", "forex-m20-apply-open-position-schema", "forex-m20-stage-continuous-lease-schema", "forex-m20-apply-continuous-lease-schema", "forex-m20-stage-outcome-reconciliation-schema", "forex-m20-apply-outcome-reconciliation-schema"}
+MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema", "forex-m20-stage-cost-ledger-schema", "forex-m20-apply-cost-ledger-schema", "forex-m20-stage-open-position-schema", "forex-m20-apply-open-position-schema", "forex-m20-stage-continuous-lease-schema", "forex-m20-apply-continuous-lease-schema", "forex-m20-stage-outcome-reconciliation-schema", "forex-m20-apply-outcome-reconciliation-schema", "forex-m20-stage-regime-strategy-schema", "forex-m20-apply-regime-strategy-schema", "forex-m20-stage-projected-cost-schema", "forex-m20-apply-projected-cost-schema"}
 
 
 def remote(body: str) -> dict:
@@ -605,29 +607,84 @@ printf 'FOREX_M20_OUTCOME_RECONCILIATION_SCHEMA_APPLIED sha256:{digest}\\n' '''
     return wrap("forex_m20_apply_outcome_reconciliation_schema", remote(body), digest)
 
 
+def stage_m20_regime_strategy_schema() -> dict:
+    """Stage M20's hash-bound append-only market-regime migration on T480."""
+    relative, digest = asset("m20_regime_strategy_schema")
+    source_windows = subprocess.run(["wslpath", "-w", str(ROOT / relative)], text=True, capture_output=True, check=True).stdout.strip()
+    staging_directory = r"C:\\Users\\chris\\Documents\\Code\\forex-m1-probe"
+    staging_windows = staging_directory + r"\013_m20_market_regime_strategy_ownership.sql"
+    quote = lambda value: "'" + value.replace("'", "''") + "'"
+    mkdir = subprocess.run(build_ssh_command(TARGET, "$ErrorActionPreference='Stop'; New-Item -ItemType Directory -Force -Path " + quote(staging_directory) + " | Out-Null", SETTINGS), text=True, capture_output=True, check=False)
+    if mkdir.returncode:
+        return wrap("forex_m20_stage_regime_strategy_schema", {"exit_code": mkdir.returncode, "stdout": mkdir.stdout, "stderr": mkdir.stderr, "ok": False}, digest)
+    command = "$ErrorActionPreference='Stop'; " + f"& scp.exe -B -o BatchMode=yes -o StrictHostKeyChecking=yes -- {quote(source_windows)} {quote(TARGET + ':' + staging_windows)}; " + "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+    transfer = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", base64.b64encode(command.encode("utf-16-le")).decode("ascii")], text=True, capture_output=True, check=False)
+    if transfer.returncode:
+        return wrap("forex_m20_stage_regime_strategy_schema", {"exit_code": transfer.returncode, "stdout": transfer.stdout, "stderr": transfer.stderr, "ok": False}, digest)
+    body = f'''source="/mnt/c/Users/chris/Documents/Code/forex-m1-probe/013_m20_market_regime_strategy_ownership.sql"
+file="{REMOTE_FOREX}/{relative}"
+test -f "$source" && [[ "$(sha256sum "$source" | head -c 64)" == "{digest}" ]]
+mkdir -p "$(dirname "$file")"
+install -m 0644 "$source" "$file"
+[[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+printf 'FOREX_M20_REGIME_STRATEGY_SCHEMA_STAGED sha256:{digest}\\n' '''
+    return wrap("forex_m20_stage_regime_strategy_schema", remote(body), digest)
+
+
+def apply_m20_regime_strategy_schema() -> dict:
+    """Apply only the staged hash-bound M20 regime/ownership schema."""
+    relative, digest = asset("m20_regime_strategy_schema")
+    body = f'''file="{REMOTE_FOREX}/{relative}"
+test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$file"
+printf 'FOREX_M20_REGIME_STRATEGY_SCHEMA_APPLIED sha256:{digest}\\n' '''
+    return wrap("forex_m20_apply_regime_strategy_schema", remote(body), digest)
+
+
+def stage_m20_projected_cost_schema() -> dict:
+    """Stage the hash-bound M20 projected-cost metadata migration on T480."""
+    relative, digest = asset("m20_projected_cost_schema")
+    source_windows = subprocess.run(["wslpath", "-w", str(ROOT / relative)], text=True, capture_output=True, check=True).stdout.strip()
+    staging_directory = r"C:\\Users\\chris\\Documents\\Code\\forex-m1-probe"
+    staging_windows = staging_directory + r"\014_m20_projected_cost_components.sql"
+    quote = lambda value: "'" + value.replace("'", "''") + "'"
+    mkdir = subprocess.run(build_ssh_command(TARGET, "$ErrorActionPreference='Stop'; New-Item -ItemType Directory -Force -Path " + quote(staging_directory) + " | Out-Null", SETTINGS), text=True, capture_output=True, check=False)
+    if mkdir.returncode:
+        return wrap("forex_m20_stage_projected_cost_schema", {"exit_code": mkdir.returncode, "stdout": mkdir.stdout, "stderr": mkdir.stderr, "ok": False}, digest)
+    command = "$ErrorActionPreference='Stop'; " + f"& scp.exe -B -o BatchMode=yes -o StrictHostKeyChecking=yes -- {quote(source_windows)} {quote(TARGET + ':' + staging_windows)}; " + "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+    transfer = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", base64.b64encode(command.encode("utf-16-le")).decode("ascii")], text=True, capture_output=True, check=False)
+    if transfer.returncode:
+        return wrap("forex_m20_stage_projected_cost_schema", {"exit_code": transfer.returncode, "stdout": transfer.stdout, "stderr": transfer.stderr, "ok": False}, digest)
+    body = f'''source="/mnt/c/Users/chris/Documents/Code/forex-m1-probe/014_m20_projected_cost_components.sql"
+file="{REMOTE_FOREX}/{relative}"
+test -f "$source" && [[ "$(sha256sum "$source" | head -c 64)" == "{digest}" ]]
+mkdir -p "$(dirname "$file")"
+install -m 0644 "$source" "$file"
+[[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+printf "FOREX_M20_PROJECTED_COST_SCHEMA_STAGED sha256:{digest}\\n" '''
+    return wrap("forex_m20_stage_projected_cost_schema", remote(body), digest)
+
+
+def apply_m20_projected_cost_schema() -> dict:
+    """Apply only the staged hash-bound M20 projected-cost metadata schema."""
+    relative, digest = asset("m20_projected_cost_schema")
+    body = f'''file="{REMOTE_FOREX}/{relative}"
+test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$file"
+printf "FOREX_M20_PROJECTED_COST_SCHEMA_APPLIED sha256:{digest}\\n" '''
+    return wrap("forex_m20_apply_projected_cost_schema", remote(body), digest)
+
+
 def m20_audit_verify() -> dict:
     """Read back the fixed M20 audit boundary without exposing table input."""
-    body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 'FOREX_M20_DEMO_AUDIT_VERIFY_OK',
- (SELECT count(*) FROM forex.demo_trade_session),
- (SELECT count(*) FROM forex.demo_trade_proposal),
- (SELECT count(*) FROM forex.demo_decision_snapshot),
- (SELECT count(*) FROM forex.demo_execution_attempt),
- (SELECT count(*) FROM forex.demo_position_event),
- (SELECT count(*) FROM forex.demo_trade_outcome),
- 'demo_only=' || NOT EXISTS (SELECT 1 FROM forex.demo_trade_session WHERE server <> 'GOMarketsMU-Demo' OR instrument <> 'EURUSD'),
- 'caps_ok=' || NOT EXISTS (SELECT 1 FROM forex.demo_trade_session WHERE max_trades > 10 OR max_notional_usd > 10000 OR max_cumulative_notional_usd > 100000 OR max_open_positions <> 1),
- 'proposal_first=' || NOT EXISTS (SELECT 1 FROM forex.demo_execution_attempt attempt LEFT JOIN forex.demo_trade_proposal proposal ON proposal.proposal_id=attempt.proposal_id LEFT JOIN forex.demo_decision_snapshot snapshot ON snapshot.proposal_id=proposal.proposal_id WHERE proposal.proposal_id IS NULL OR snapshot.proposal_id IS NULL OR proposal.decision_at_utc > attempt.submitted_at_utc),
- 'idempotency_ok=' || NOT EXISTS (SELECT idempotency_key FROM forex.demo_execution_attempt GROUP BY idempotency_key HAVING count(*) > 1),
- 'immutable_triggers=' || ((SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal AND tgname IN ('demo_trade_proposal_immutable','demo_decision_snapshot_immutable','demo_execution_attempt_immutable','demo_position_event_immutable','demo_trade_outcome_immutable','demo_outcome_reconciliation_revision_immutable')) = 6),
- 'invalidated_outcomes=' || (SELECT count(*) FROM forex.demo_outcome_reconciliation_revision WHERE disposition IN ('INVALIDATED','HISTORY_UNAVAILABLE')),
- 'false_pnl_excluded=' || NOT EXISTS (SELECT 1 FROM forex.demo_trade_ledger WHERE reconciliation_status = 'MATCHED' AND realized_pnl_account = 100000.18);" </dev/null'''
-    audit = remote(body)
+    audit = remote('''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 'FOREX_M20_DEMO_AUDIT_VERIFY_OK','demo_only='||NOT EXISTS(SELECT FROM forex.demo_trade_session WHERE server<>'GOMarketsMU-Demo' OR instrument<>'EURUSD'),'caps_ok='||NOT EXISTS(SELECT FROM forex.demo_trade_session WHERE max_trades>10 OR max_notional_usd>10000 OR max_cumulative_notional_usd>100000 OR max_open_positions<>1),'proposal_first='||NOT EXISTS(SELECT FROM forex.demo_execution_attempt a LEFT JOIN forex.demo_trade_proposal p ON p.proposal_id=a.proposal_id LEFT JOIN forex.demo_decision_snapshot s ON s.proposal_id=p.proposal_id WHERE p.proposal_id IS NULL OR s.proposal_id IS NULL OR p.decision_at_utc>a.submitted_at_utc),'idempotency_ok='||NOT EXISTS(SELECT FROM (SELECT idempotency_key FROM forex.demo_execution_attempt GROUP BY idempotency_key HAVING count(*)>1)x);" </dev/null''')
+    immutability = remote('''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 'immutable_triggers='||(SELECT count(*)=8 FROM pg_trigger WHERE NOT tgisinternal AND tgname IN ('demo_trade_proposal_immutable','demo_decision_snapshot_immutable','demo_execution_attempt_immutable','demo_position_event_immutable','demo_trade_outcome_immutable','demo_outcome_reconciliation_revision_immutable','demo_strategy_selection_immutable','demo_strategy_signal_immutable')),'selection_rows='||(SELECT count(*) FROM forex.demo_strategy_selection),'signal_rows='||(SELECT count(*) FROM forex.demo_strategy_signal),'legacy_proposals_without_selection='||(SELECT count(*) FROM forex.demo_trade_proposal p LEFT JOIN forex.demo_strategy_selection x ON x.proposal_id=p.proposal_id WHERE x.proposal_id IS NULL),'false_pnl_excluded='||NOT EXISTS(SELECT FROM forex.demo_trade_ledger WHERE reconciliation_status='MATCHED' AND realized_pnl_account=100000.18);" </dev/null''')
     cost = remote('''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 'cost_schema=' || (SELECT count(*)=6 FROM information_schema.columns WHERE table_schema='forex' AND table_name='demo_trade_outcome' AND column_name IN ('gross_price_pnl_account','commission_account','swap_account','estimated_spread_cost_account','slippage_cost_account','estimated_total_cost_account')) || '|cost_rows_complete=' || NOT EXISTS (SELECT 1 FROM forex.demo_trade_outcome WHERE gross_price_pnl_account IS NOT NULL AND (commission_account IS NULL OR swap_account IS NULL OR estimated_spread_cost_account IS NULL OR slippage_cost_account IS NULL OR estimated_total_cost_account IS NULL));" </dev/null''')
     combined = {
-        "exit_code": 0 if audit["ok"] and cost["ok"] else 1,
-        "stdout": audit["stdout"].rstrip() + ("|" if audit["stdout"].strip() and cost["stdout"].strip() else "") + cost["stdout"],
-        "stderr": audit["stderr"] + cost["stderr"],
-        "ok": audit["ok"] and cost["ok"],
+        "exit_code": 0 if audit["ok"] and immutability["ok"] and cost["ok"] else 1,
+        "stdout": "|".join(item["stdout"].strip() for item in (audit, immutability, cost) if item["stdout"].strip()) + "\n",
+        "stderr": audit["stderr"] + immutability["stderr"] + cost["stderr"],
+        "ok": audit["ok"] and immutability["ok"] and cost["ok"],
     }
     return wrap("forex_m20_audit_verify", combined)
 
@@ -640,8 +697,21 @@ def m20_rejection_summary() -> dict:
 
 def m20_lifecycle_summary() -> dict:
     """Read every fixed M20 attempt's terminal/open lifecycle without secrets."""
-    body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT COALESCE(json_agg(row_to_json(x) ORDER BY x.submitted_at_utc)::text,'[]') FROM (SELECT a.attempt_id,p.action,a.status,a.submitted_at_utc,p.proposed_entry,p.stop_loss,p.take_profit,COALESCE((SELECT e.payload->>'volume' FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type='OPENED' LIMIT 1),'') volume_lots,l.closed_at_utc,l.exit_price,l.realized_pnl_account,l.account_currency,l.close_reason,l.reconciliation_status,l.reconciliation_disposition,l.reconciliation_reason,COALESCE((SELECT json_agg(e.event_type ORDER BY e.observed_at_utc)::text FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id),'[]') events,COALESCE((SELECT e.payload FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type='REJECTED' ORDER BY e.observed_at_utc DESC LIMIT 1),'{}'::jsonb) rejection_context,CASE WHEN l.reconciliation_status IN ('MATCHED','REPAIRED') THEN 'CLOSED_MATCHED' WHEN l.reconciliation_status='RECONCILIATION_ERROR' THEN 'CLOSED_RECONCILIATION_ERROR' WHEN s.attempt_id IS NOT NULL THEN 'OPEN_MONITORING' WHEN EXISTS(SELECT FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type='REJECTED') THEN 'TERMINAL_REJECTED' WHEN EXISTS(SELECT FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type='FAILED') THEN 'TERMINAL_FAILED' ELSE 'PENDING' END lifecycle FROM forex.demo_execution_attempt a JOIN forex.demo_trade_proposal p ON p.proposal_id=a.proposal_id LEFT JOIN forex.demo_trade_ledger l ON l.proposal_id=a.proposal_id LEFT JOIN forex.demo_open_position_state s ON s.attempt_id=a.attempt_id) x;" </dev/null'''
-    return wrap("forex_m20_lifecycle_summary", remote(body))
+    lifecycle = remote('''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT COALESCE(json_agg(row_to_json(x) ORDER BY x.submitted_at_utc)::text,'[]') FROM (SELECT p.session_id,p.proposal_id,a.attempt_id,p.action,a.status,a.submitted_at_utc,p.proposed_entry,COALESCE((SELECT e.payload->>'actual_entry_price' FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type='OPENED' LIMIT 1),'') actual_entry_price,p.stop_loss,p.take_profit,COALESCE((SELECT e.payload->>'volume' FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type='OPENED' LIMIT 1),'') volume_lots,l.closed_at_utc,l.exit_price,l.realized_pnl_account,l.account_currency,l.close_reason,l.reconciliation_status,l.reconciliation_disposition,l.reconciliation_reason,l.strategy_rule_version,o.commission_account,o.swap_account,o.estimated_total_cost_account,COALESCE((SELECT json_agg(e.event_type ORDER BY e.observed_at_utc)::text FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id),'[]') events,COALESCE((SELECT e.payload FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type='REJECTED' ORDER BY e.observed_at_utc DESC LIMIT 1),'{}'::jsonb) rejection_context,CASE WHEN l.reconciliation_status IN ('MATCHED','REPAIRED') THEN 'CLOSED_MATCHED' WHEN l.reconciliation_status='RECONCILIATION_ERROR' THEN 'CLOSED_RECONCILIATION_ERROR' WHEN s.attempt_id IS NOT NULL THEN 'OPEN_MONITORING' WHEN EXISTS(SELECT FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type='REJECTED') THEN 'TERMINAL_REJECTED' WHEN EXISTS(SELECT FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type='FAILED') THEN 'TERMINAL_FAILED' ELSE 'PENDING' END lifecycle FROM forex.demo_execution_attempt a JOIN forex.demo_trade_proposal p ON p.proposal_id=a.proposal_id LEFT JOIN forex.demo_trade_ledger l ON l.proposal_id=a.proposal_id LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=a.proposal_id LEFT JOIN forex.demo_open_position_state s ON s.attempt_id=a.attempt_id) x;" </dev/null''')
+    selections = remote('''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT COALESCE(json_agg(row_to_json(x))::text,'[]') FROM (SELECT proposal_id,market_regime,selected_strategy_id,strategy_rule_version,trade_owner_id,trade_owner_strategy_id,estimated_round_trip_cost_aud,minimum_net_profit_aud,expected_net_profit_at_take_profit_aud,cost_coverage_status FROM forex.demo_strategy_selection)x;" </dev/null''')
+    costs = remote('''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT COALESCE(json_agg(row_to_json(x))::text,'[]') FROM (SELECT proposal_id,gross_price_pnl_account,estimated_spread_cost_account,slippage_cost_account FROM forex.demo_trade_outcome)x;" </dev/null''')
+    if not lifecycle["ok"] or not selections["ok"] or not costs["ok"]:
+        return wrap("forex_m20_lifecycle_summary", {"exit_code": 1, "stdout": "", "stderr": lifecycle["stderr"] + selections["stderr"] + costs["stderr"], "ok": False})
+    try:
+        rows = json.loads(lifecycle["stdout"])
+        selection_by_proposal = {item["proposal_id"]: item for item in json.loads(selections["stdout"])}
+        costs_by_proposal = {item["proposal_id"]: item for item in json.loads(costs["stdout"])}
+        for row in rows:
+            row.update(selection_by_proposal.get(row["proposal_id"], {}))
+            row.update(costs_by_proposal.get(row["proposal_id"], {}))
+    except (KeyError, TypeError, json.JSONDecodeError):
+        return wrap("forex_m20_lifecycle_summary", {"exit_code": 1, "stdout": "", "stderr": "M20 lifecycle summary returned invalid JSON", "ok": False})
+    return wrap("forex_m20_lifecycle_summary", {"exit_code": 0, "stdout": json.dumps(rows, separators=(",", ":")), "stderr": lifecycle["stderr"] + selections["stderr"] + costs["stderr"], "ok": True})
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -651,7 +721,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command in MUTATING and not args.approve:
         parser.error("this mutating operation requires --approve")
-    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-r1-apply-stage-schema": apply_m11_r1_stage_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data, "forex-m11-r1-verify-hour": verify_m11_r1_hour, "forex-m12-quality-probe": m12_quality_probe, "forex-m13-replay-probe": m13_replay_probe, "forex-m14-regime-probe": m14_regime_probe, "forex-m15-baseline-probe": m15_baseline_probe, "forex-m16-walk-forward-probe": m16_walk_forward_probe, "forex-m17-context-probe": m17_context_probe, "forex-m18-ollama-probe": m18_ollama_probe, "forex-m19-apply-schema": apply_m19_schema, "forex-m19-lineage-probe": m19_lineage_probe, "forex-m19-lineage-verify": m19_lineage_verify, "forex-m20-stage-schema": stage_m20_schema, "forex-m20-apply-schema": apply_m20_schema, "forex-m20-stage-ledger-schema": stage_m20_ledger_schema, "forex-m20-apply-ledger-schema": apply_m20_ledger_schema, "forex-m20-stage-cost-ledger-schema": stage_m20_cost_ledger_schema, "forex-m20-apply-cost-ledger-schema": apply_m20_cost_ledger_schema, "forex-m20-stage-open-position-schema": stage_m20_open_position_schema, "forex-m20-apply-open-position-schema": apply_m20_open_position_schema, "forex-m20-stage-continuous-lease-schema": stage_m20_continuous_lease_schema, "forex-m20-apply-continuous-lease-schema": apply_m20_continuous_lease_schema, "forex-m20-stage-outcome-reconciliation-schema": stage_m20_outcome_reconciliation_schema, "forex-m20-apply-outcome-reconciliation-schema": apply_m20_outcome_reconciliation_schema, "forex-m20-audit-verify": m20_audit_verify}
+    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-r1-apply-stage-schema": apply_m11_r1_stage_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data, "forex-m11-r1-verify-hour": verify_m11_r1_hour, "forex-m12-quality-probe": m12_quality_probe, "forex-m13-replay-probe": m13_replay_probe, "forex-m14-regime-probe": m14_regime_probe, "forex-m15-baseline-probe": m15_baseline_probe, "forex-m16-walk-forward-probe": m16_walk_forward_probe, "forex-m17-context-probe": m17_context_probe, "forex-m18-ollama-probe": m18_ollama_probe, "forex-m19-apply-schema": apply_m19_schema, "forex-m19-lineage-probe": m19_lineage_probe, "forex-m19-lineage-verify": m19_lineage_verify, "forex-m20-stage-schema": stage_m20_schema, "forex-m20-apply-schema": apply_m20_schema, "forex-m20-stage-ledger-schema": stage_m20_ledger_schema, "forex-m20-apply-ledger-schema": apply_m20_ledger_schema, "forex-m20-stage-cost-ledger-schema": stage_m20_cost_ledger_schema, "forex-m20-apply-cost-ledger-schema": apply_m20_cost_ledger_schema, "forex-m20-stage-open-position-schema": stage_m20_open_position_schema, "forex-m20-apply-open-position-schema": apply_m20_open_position_schema, "forex-m20-stage-continuous-lease-schema": stage_m20_continuous_lease_schema, "forex-m20-apply-continuous-lease-schema": apply_m20_continuous_lease_schema, "forex-m20-stage-outcome-reconciliation-schema": stage_m20_outcome_reconciliation_schema, "forex-m20-apply-outcome-reconciliation-schema": apply_m20_outcome_reconciliation_schema, "forex-m20-stage-regime-strategy-schema": stage_m20_regime_strategy_schema, "forex-m20-apply-regime-strategy-schema": apply_m20_regime_strategy_schema, "forex-m20-stage-projected-cost-schema": stage_m20_projected_cost_schema, "forex-m20-apply-projected-cost-schema": apply_m20_projected_cost_schema, "forex-m20-audit-verify": m20_audit_verify}
     actions["forex-m20-rejection-summary"] = m20_rejection_summary
     actions["forex-m20-lifecycle-summary"] = m20_lifecycle_summary
     payload = actions[args.command]()

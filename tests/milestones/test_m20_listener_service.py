@@ -22,7 +22,10 @@ def test_permanent_listener_is_a_bounded_m1_supervisor_with_status_and_stop():
     assert "--quote-identity" in source
     assert "m20_demo_assessment_gate.local.json" in source
     assert "last_assessed_tick_time_msc" in source
+    assert "last_quote: dict[str, Any] | None = None" in source
+    assert '"monitor": monitor_state, "quote": last_quote' in source
     assert "FOREX_M20_POSTGRES_DSN\"" not in source.split("required =", 1)[1].split("if not", 1)[0]
+    assert '"FOREX_M20_MINIMUM_NET_PROFIT_AUD"' in source
     assert "order_send" not in source
 
 

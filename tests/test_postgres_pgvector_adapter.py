@@ -4,12 +4,14 @@ from scripts import postgres_pgvector_adapter
 
 
 def test_adapter_exposes_only_fixed_forex_operations():
-    assert postgres_pgvector_adapter.READ_ONLY | postgres_pgvector_adapter.MUTATING == {
+    expected = {
         "preflight", "inspect", "vector-probe",
         "forex-m2-apply-schema", "forex-m2-import", "forex-m2-verify", "forex-m2-provenance-negative-control",
         "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour",
-        "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m19-lineage-verify", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema", "forex-m20-stage-cost-ledger-schema", "forex-m20-apply-cost-ledger-schema", "forex-m20-stage-open-position-schema", "forex-m20-apply-open-position-schema", "forex-m20-stage-continuous-lease-schema", "forex-m20-apply-continuous-lease-schema", "forex-m20-stage-outcome-reconciliation-schema", "forex-m20-apply-outcome-reconciliation-schema", "forex-m20-audit-verify", "forex-m20-rejection-summary", "forex-m20-lifecycle-summary",
+        "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m19-lineage-verify", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema", "forex-m20-stage-cost-ledger-schema", "forex-m20-apply-cost-ledger-schema", "forex-m20-stage-open-position-schema", "forex-m20-apply-open-position-schema", "forex-m20-stage-continuous-lease-schema", "forex-m20-apply-continuous-lease-schema", "forex-m20-stage-outcome-reconciliation-schema", "forex-m20-apply-outcome-reconciliation-schema", "forex-m20-stage-regime-strategy-schema", "forex-m20-apply-regime-strategy-schema", "forex-m20-audit-verify", "forex-m20-rejection-summary", "forex-m20-lifecycle-summary",
     }
+    expected.update({"forex-m20-stage-projected-cost-schema", "forex-m20-apply-projected-cost-schema"})
+    assert postgres_pgvector_adapter.READ_ONLY | postgres_pgvector_adapter.MUTATING == expected
 
 
 def test_schema_application_is_hash_bound_and_rerunnable():
@@ -29,7 +31,7 @@ def test_import_is_hash_bound():
 def test_m11_schema_application_is_hash_bound():
     with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=("sql/migrations/003_m11_gdelt_h1_aggregate.sql", "c" * 64)), mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
         assert postgres_pgvector_adapter.apply_m11_schema()["ok"]
-    query = remote.call_args.args[0]
+    query = "\n".join(call.args[0] for call in remote.call_args_list)
     assert "sha256sum" in query
     assert "FOREX_M11_GDELT_SCHEMA_APPLIED" in query
 
@@ -90,10 +92,10 @@ def test_m20_rejection_summary_is_read_only_and_returns_only_audited_fields():
 
 
 def test_m20_lifecycle_summary_is_fixed_read_only_and_marks_open_or_terminal_state():
-    with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+    with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True, "stdout": "[]", "stderr": ""}) as remote:
         assert postgres_pgvector_adapter.m20_lifecycle_summary()["ok"]
-    query = remote.call_args.args[0]
-    for required in ("demo_execution_attempt", "demo_position_event", "demo_trade_ledger", "demo_open_position_state", "CLOSED_MATCHED", "CLOSED_RECONCILIATION_ERROR", "TERMINAL_REJECTED", "PENDING"):
+    query = "\n".join(call.args[0] for call in remote.call_args_list)
+    for required in ("demo_execution_attempt", "demo_position_event", "demo_trade_ledger", "demo_open_position_state", "session_id", "actual_entry_price", "CLOSED_MATCHED", "CLOSED_RECONCILIATION_ERROR", "TERMINAL_REJECTED", "PENDING"):
         assert required in query
     assert "password" not in query.lower()
 

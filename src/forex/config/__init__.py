@@ -48,6 +48,7 @@ class DemoSessionLimits:
     maximum_notional_per_trade_usd: int
     maximum_cumulative_notional_usd: int
     maximum_loss_per_trade_aud: int
+    minimum_net_profit_aud: float
     require_persisted_proposal: bool
     require_idempotency_key: bool
 

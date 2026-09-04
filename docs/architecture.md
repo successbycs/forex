@@ -49,8 +49,8 @@ T16 / VS Code → read-only M20 terminal dashboard
        ▼
 T480 Scheduled Task: Forex-M20-Demo-Listener
   every 5 seconds → fresh EURUSD bid/ask/spread + completed M1 candles
-       ├─ five strategy assessments → Momentum Breakout alone may execute
-       ├─ eligible BUY / SELL → fixed capped Demo executor
+       ├─ five strategy assessments → safety then Compression → Trend → Range → Session → Momentum
+       ├─ one selected executable owner BUY / SELL → fixed capped Demo executor
        │                         ↘ asynchronous MT5 Demo position monitor
        └─ NO_TRADE → persisted proposal and reconciliation
        ▼
@@ -60,8 +60,11 @@ T480 WSL PostgreSQL bridge → audit events and P&L ledger
 The listener retains no raw tick stream. It assesses one completed-candle M1
 snapshot every five seconds and reports the prior five-candle range,
 last-two-candle direction, breakout checks, combined move and spread check.
-It compares five named strategies on the same snapshot; Momentum Breakout is
-the sole execution-eligible row and the other four are shadow assessments.
+It compares five named strategies on the same snapshot.  Deterministic regime
+precedence selects at most one of the five as the execution-eligible owner;
+the other four remain recorded confluence or counter-signal evidence.  A
+strategy row can therefore show a valid signal without receiving authority to
+place a second EURUSD order.
 Assessment must remain independent of position monitoring so an open trade
 does not stall later observations. The T16 dashboard is read-only.
 
@@ -228,10 +231,15 @@ research probabilities plus a model card. M16 tests it chronologically against
 no-change and deterministic baselines. It is not an autonomous strategy, does
 not retrain online, and cannot create, approve, or execute orders.
 
-M20 deliberately keeps the first assessment narrow: a versioned rule reads a
-fresh bid/ask/spread plus completed M1 candles and emits `BUY`,
+M20 deliberately keeps the first assessment narrow: its current versioned rule
+reads a fresh bid/ask/spread plus completed M1 candles and emits `BUY`,
 `SELL`, or `NO_TRADE`, with its rationale and input hashes persisted before an
-execution attempt. The MVP is not a claim of trading edge or profitability.
+execution attempt. The documented next rules-engine design classifies the
+market regime first, selects at most one strategy, and gives any accepted
+trade an immutable `trade_owner_strategy_id`. Only that owner’s SL, TP,
+monitoring, and exit rules may manage it; counter-signals are evidence, not
+cross-strategy liquidation instructions. The MVP is not a claim of trading
+edge or profitability.
 
 M20 may automate a Demo action only through a fixed, fail-closed executor. A
 Demo-only authority lease with duration `0` is continuous rather than

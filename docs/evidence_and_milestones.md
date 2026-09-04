@@ -97,11 +97,13 @@ For M20, first record that the fixed adapter observed the exact
 candles. Then persist the decision snapshot and a hash-bound `BUY`, `SELL`, or
 `NO_TRADE` proposal. Capture the configured continuous-Demo lease (duration
 `0`) and, if the outcome is eligible for execution, the fixed executor's
-attempt; otherwise retain
-the refusal or `NO_TRADE` record. Finally, capture the position lifecycle and
-PostgreSQL reconciliation. Each stage needs timestamps, hashes, and redaction
-declarations. A verifier may inspect these retained outputs but must not
-re-contact the broker, mutate the session, fill gaps, or regenerate evidence.
+attempt; otherwise retain the refusal or `NO_TRADE` record. A final M20 proof
+also requires a fresh accepted Demo order whose exact MT5 position history
+proves `OPENED` through `CLOSED`, including broker-derived exit, costs, and AUD
+P&L. A `NO_TRADE` record is valid operational evidence but cannot by itself
+close M20. Each stage needs timestamps, hashes, and redaction declarations. A
+verifier may inspect these retained outputs but must not re-contact the broker,
+mutate the session, fill gaps, or regenerate evidence.
 
 Any material change to the server allowlist, lease/caps, decision schema,
 adapter, order contract, PostgreSQL audit schema, or governed configuration

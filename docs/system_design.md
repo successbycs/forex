@@ -212,9 +212,10 @@ per trade, USD 100,000 cumulative, and AUD 100 theoretical loss per trade.
 PostgreSQL retains attempts, position events,
 and outcomes for reconciliation and backtesting. There is no `GOMarketsMU-Live`
 or generic MT5/order path. The listener evaluates five M1 strategies on every
-assessment; only Momentum Breakout is execution-eligible, while Compression
-Breakout, Trend Pullback, Range Reversion, and Session Breakout are displayed
-as non-executing shadow comparisons.
+assessment; deterministic regime precedence selects at most one of the five
+fixed M1 strategies as the execution owner. The other four remain recorded
+confluence or counter-signal evidence. Controlled-release eligibility is not
+evidence that an individual strategy is profitable or M20-proven.
 
 Success is not a high in-sample score. The model must improve a pre-declared
 out-of-sample comparison after costs and retain an abstaining `NO_TRADE`

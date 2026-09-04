@@ -71,9 +71,44 @@ def _proposal(payload: dict[str, Any]) -> dict[str, Any]:
 
 def _snapshot(payload: dict[str, Any], proposal: dict[str, Any]) -> dict[str, Any]:
     value = _object(payload, "decision_snapshot")
-    required = {"snapshot_id", "observed_at_utc", "captured_at_utc", "bid", "ask", "spread_points", "m1_closed_bars", "m5_closed_bars", "freshness_seconds", "payload_sha256"}
-    if set(value) != required or value["snapshot_id"] != proposal["snapshot_id"] or value["payload_sha256"] != proposal["decision_snapshot_sha256"] or not isinstance(value["m1_closed_bars"], list) or not isinstance(value["m5_closed_bars"], list):
+    required = {"snapshot_id", "observed_at_utc", "captured_at_utc", "bid", "ask", "spread_points", "m1_closed_bars", "m5_closed_bars", "freshness_seconds", "safety_gates", "market_context", "strategy_assessments", "payload_sha256"}
+    gates = value.get("safety_gates")
+    expected_gates = {"fresh_quote", "completed_m1", "normal_spread", "no_existing_position", "demo_lease_active", "news_blackout_inactive", "abnormal_volatility_inactive"}
+    if (set(value) != required or value["snapshot_id"] != proposal["snapshot_id"] or value["payload_sha256"] != proposal["decision_snapshot_sha256"] or not isinstance(value["m1_closed_bars"], list) or not isinstance(value["m5_closed_bars"], list)
+            or not isinstance(gates, dict) or set(gates) != expected_gates or any(flag is not True and flag is not False for flag in gates.values())):
         raise SystemExit("M20 bridge snapshot does not bind its proposal")
+    return value
+
+
+def _strategy_selection(payload: dict[str, Any], proposal: dict[str, Any]) -> dict[str, Any]:
+    value = _object(payload, "strategy_selection")
+    required = {"proposal_id", "market_regime", "market_regime_reason", "selected_strategy_id", "strategy_rule_version", "selection_status", "trade_owner_id", "trade_owner_strategy_id", "entry_spread_cost_aud", "expected_exit_spread_cost_aud", "commission_allowance_aud", "slippage_allowance_aud", "expected_swap_aud", "projected_gross_profit_at_take_profit_aud", "estimated_round_trip_cost_aud", "minimum_net_profit_aud", "expected_net_profit_at_take_profit_aud", "cost_coverage_status"}
+    regimes = {"UNSAFE_OR_UNTRADEABLE", "COMPRESSION_BREAKOUT", "TREND_PULLBACK", "RANGE_REVERSION", "LIQUID_SESSION_BREAKOUT", "MOMENTUM_BREAKOUT", "NO_CLEAR_REGIME"}
+    strategies = {"momentum_breakout", "compression_breakout", "trend_pullback", "range_reversion", "session_breakout"}
+    if (set(value) != required or value["proposal_id"] != proposal["proposal_id"] or value["trade_owner_id"] != proposal["proposal_id"]
+            or value["market_regime"] not in regimes or value["selection_status"] not in {"SELECTED_EXECUTABLE", "SELECTED_SHADOW", "NO_SELECTION"}
+            or value["cost_coverage_status"] not in {"FEASIBLE", "NOT_FEASIBLE", "NOT_APPLICABLE"}):
+        raise SystemExit("M20 bridge strategy selection is invalid")
+    selected = value["selected_strategy_id"]
+    if selected is not None and selected not in strategies:
+        raise SystemExit("M20 bridge strategy selection has an unknown strategy")
+    if value["selection_status"] == "SELECTED_EXECUTABLE" and (selected not in strategies or value["trade_owner_strategy_id"] != selected):
+        raise SystemExit("M20 bridge executable strategy selection is invalid")
+    if value["selection_status"] == "NO_SELECTION" and any(value[field] is not None for field in ("selected_strategy_id", "strategy_rule_version", "trade_owner_strategy_id")):
+        raise SystemExit("M20 bridge no-selection ownership is invalid")
+    return value
+
+
+def _strategy_assessments(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    value = payload.get("strategy_assessments")
+    required = {"id", "label", "signal", "eligible_for_execution", "reason"}
+    ids = ("momentum_breakout", "compression_breakout", "trend_pullback", "range_reversion", "session_breakout")
+    if not isinstance(value, list) or len(value) != len(ids) or [item.get("id") if isinstance(item, dict) else None for item in value] != list(ids):
+        raise SystemExit("M20 bridge requires exactly five ordered strategy assessments")
+    if any(set(item) != required or item["signal"] not in {"BUY", "SELL", "NO_TRADE"} for item in value):
+        raise SystemExit("M20 bridge strategy assessment is invalid")
+    if any(item["eligible_for_execution"] is not True for item in value):
+        raise SystemExit("M20 bridge strategy execution authority is invalid")
     return value
 
 
@@ -88,6 +123,8 @@ def persist_proposal(payload: dict[str, Any]) -> dict[str, Any]:
     """Persist immutable proposal and snapshot before any broker submission."""
     session, proposal = _session(payload), _proposal(payload)
     snapshot = _snapshot(payload, proposal)
+    selection = _strategy_selection(payload, proposal)
+    assessments = _strategy_assessments(payload)
     revision, fingerprint = _metadata(payload)
     with _connection() as conn, conn.cursor() as cursor:
         cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (session["session_id"],))
@@ -114,6 +151,17 @@ def persist_proposal(payload: dict[str, Any]) -> dict[str, Any]:
             "INSERT INTO forex.demo_decision_snapshot (snapshot_id,proposal_id,observed_at_utc,captured_at_utc,bid,ask,spread_points,m1_closed_bars,m5_closed_bars,freshness_seconds,payload_sha256) VALUES (%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s,%s)",
             (snapshot["snapshot_id"], proposal["proposal_id"], snapshot["observed_at_utc"], snapshot["captured_at_utc"], snapshot["bid"], snapshot["ask"], snapshot["spread_points"], json.dumps(snapshot["m1_closed_bars"]), json.dumps(snapshot["m5_closed_bars"]), snapshot["freshness_seconds"], snapshot["payload_sha256"]),
         )
+        cursor.execute(
+            """INSERT INTO forex.demo_strategy_selection
+               (proposal_id,market_regime,market_regime_reason,selected_strategy_id,strategy_rule_version,selection_status,trade_owner_id,trade_owner_strategy_id,entry_spread_cost_aud,expected_exit_spread_cost_aud,commission_allowance_aud,slippage_allowance_aud,expected_swap_aud,projected_gross_profit_at_take_profit_aud,estimated_round_trip_cost_aud,minimum_net_profit_aud,expected_net_profit_at_take_profit_aud,cost_coverage_status)
+               VALUES (%(proposal_id)s,%(market_regime)s,%(market_regime_reason)s,%(selected_strategy_id)s,%(strategy_rule_version)s,%(selection_status)s,%(trade_owner_id)s,%(trade_owner_strategy_id)s,%(entry_spread_cost_aud)s,%(expected_exit_spread_cost_aud)s,%(commission_allowance_aud)s,%(slippage_allowance_aud)s,%(expected_swap_aud)s,%(projected_gross_profit_at_take_profit_aud)s,%(estimated_round_trip_cost_aud)s,%(minimum_net_profit_aud)s,%(expected_net_profit_at_take_profit_aud)s,%(cost_coverage_status)s)""",
+            selection,
+        )
+        for assessment in assessments:
+            cursor.execute(
+                "INSERT INTO forex.demo_strategy_signal (proposal_id,strategy_id,signal,eligible_for_execution,reason,observed_at_utc) VALUES (%s,%s,%s,%s,%s,%s)",
+                (proposal["proposal_id"], assessment["id"], assessment["signal"], assessment["eligible_for_execution"], assessment["reason"], snapshot["observed_at_utc"]),
+            )
     receipt = {"session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "snapshot_id": snapshot["snapshot_id"]}
     return {"ok": True, "postgres_audit": {**receipt, "execution_attempt_id": None, "record_sha256": _digest({**receipt, "execution_attempt_id": None})}}
 
@@ -127,6 +175,8 @@ def reserve_execution(payload: dict[str, Any]) -> dict[str, Any]:
     """
     session, proposal = _session(payload), _proposal(payload)
     _snapshot(payload, proposal)
+    selection = _strategy_selection(payload, proposal)
+    _strategy_assessments(payload)
     if proposal["action"] not in {"BUY", "SELL"}:
         raise SystemExit("NO_TRADE proposals cannot reserve an execution slot")
     reservation = _object(payload, "reservation")
@@ -139,7 +189,7 @@ def reserve_execution(payload: dict[str, Any]) -> dict[str, Any]:
         row = cursor.fetchone()
         if row is None or row[0] != "ACTIVE" or row[1] is not True or tuple(row[2:]) != (session["max_trades"], session["max_notional_per_trade_usd"], session["max_cumulative_notional_usd"], 1):
             raise SystemExit("M20 session is inactive or differs from fixed limits")
-        cursor.execute("SELECT 1 FROM forex.demo_trade_proposal p JOIN forex.demo_decision_snapshot s ON s.proposal_id=p.proposal_id WHERE p.proposal_id=%s AND p.session_id=%s AND p.action IN ('BUY','SELL') AND p.expires_at_utc >= now() FOR UPDATE", (proposal["proposal_id"], session["session_id"]))
+        cursor.execute("SELECT 1 FROM forex.demo_trade_proposal p JOIN forex.demo_decision_snapshot s ON s.proposal_id=p.proposal_id JOIN forex.demo_strategy_selection selection ON selection.proposal_id=p.proposal_id WHERE p.proposal_id=%s AND p.session_id=%s AND p.action IN ('BUY','SELL') AND p.expires_at_utc >= now() AND selection.selection_status='SELECTED_EXECUTABLE' AND selection.selected_strategy_id IN ('momentum_breakout','compression_breakout','trend_pullback','range_reversion','session_breakout') AND selection.trade_owner_strategy_id=selection.selected_strategy_id AND selection.cost_coverage_status='FEASIBLE' FOR UPDATE", (proposal["proposal_id"], session["session_id"]))
         if cursor.fetchone() is None:
             raise SystemExit("M20 proposal is absent, unpersisted, expired, or non-actionable")
         cursor.execute("SELECT count(*) FROM forex.demo_execution_attempt WHERE session_id=%s", (session["session_id"],))
@@ -199,7 +249,7 @@ def record_open_position(payload: dict[str, Any]) -> dict[str, Any]:
             or not all(isinstance(state[field], (int, float)) and state[field] > 0 for field in ("entry_price", "stop_loss", "take_profit"))):
         raise SystemExit("M20 open position state is invalid")
     with _connection() as conn, conn.cursor() as cursor:
-        cursor.execute("SELECT proposal_id FROM forex.demo_execution_attempt WHERE attempt_id=%s FOR UPDATE", (state["attempt_id"],))
+        cursor.execute("SELECT attempt.proposal_id FROM forex.demo_execution_attempt attempt JOIN forex.demo_strategy_selection selection ON selection.proposal_id=attempt.proposal_id WHERE attempt.attempt_id=%s AND selection.trade_owner_id=attempt.proposal_id AND selection.trade_owner_strategy_id IN ('momentum_breakout','compression_breakout','trend_pullback','range_reversion','session_breakout') AND selection.trade_owner_strategy_id=selection.selected_strategy_id AND selection.selection_status='SELECTED_EXECUTABLE' FOR UPDATE", (state["attempt_id"],))
         attempt = cursor.fetchone()
         if attempt is None or attempt[0] != state["proposal_id"]:
             raise SystemExit("M20 open position state does not match its reserved attempt")
@@ -320,11 +370,12 @@ def load_open_positions(payload: dict[str, Any]) -> dict[str, Any]:
                       snapshot.ask-snapshot.bid,
                       COALESCE((SELECT event.payload->>'volume' FROM forex.demo_position_event event
                                 WHERE event.attempt_id=a.attempt_id AND event.event_type='OPENED'
-                                ORDER BY event.observed_at_utc DESC LIMIT 1),'')
+                                ORDER BY event.observed_at_utc DESC LIMIT 1),''),selection.trade_owner_strategy_id
                  FROM forex.demo_open_position_state state
                  JOIN forex.demo_trade_proposal p ON p.proposal_id=state.proposal_id
                  JOIN forex.demo_execution_attempt a ON a.attempt_id=state.attempt_id
                  JOIN forex.demo_decision_snapshot snapshot ON snapshot.proposal_id=p.proposal_id
+                 JOIN forex.demo_strategy_selection selection ON selection.proposal_id=p.proposal_id
                 ORDER BY state.opened_at_utc"""
         )
         rows = cursor.fetchall()
@@ -340,6 +391,7 @@ def load_open_positions(payload: dict[str, Any]) -> dict[str, Any]:
             "position_ticket": int(row[5]), "entry_price": float(row[6]),
             "stop_loss": float(row[7]), "take_profit": float(row[8]),
             "break_even_applied": bool(row[9]), "entry_spread": float(row[10]), "volume": volume,
+            "trade_owner_strategy_id": row[12],
         })
     return {"ok": True, "open_positions": positions}
 

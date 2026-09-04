@@ -33,6 +33,7 @@ REQUIRED_ARTIFACTS = {
     "governance.txt",
     "configuration.json",
     "demo-trading-operation.json",
+    "lifecycle-summary.json",
     "session-audit.json",
     "revision.txt",
     "summary.txt",
@@ -154,10 +155,35 @@ def validate_snapshot(payload: dict[str, Any], session: dict[str, Any]) -> dict[
     require(isinstance(ask, (int, float)) and ask >= bid, "snapshot ask is invalid")
     require(isinstance(spread, (int, float)) and spread >= 0, "snapshot spread is invalid")
     require(snapshot.get("freshness_seconds") == int((captured - observed).total_seconds()), "snapshot freshness_seconds is inconsistent")
+    gates = snapshot.get("safety_gates")
+    expected_gates = {"fresh_quote", "completed_m1", "normal_spread", "no_existing_position", "demo_lease_active", "news_blackout_inactive", "abnormal_volatility_inactive"}
+    require(isinstance(gates, dict) and set(gates) == expected_gates and all(value is True or value is False for value in gates.values()), "snapshot safety gates are invalid")
     validate_bars(snapshot.get("m1_closed_bars"), "M1", observed)
     require(snapshot.get("m5_closed_bars") == [], "M1-only listener must not retain M5 candles")
     sha256(snapshot.get("payload_sha256"), "decision_snapshot.payload_sha256")
     return snapshot
+
+
+def validate_strategy_selection(payload: dict[str, Any], snapshot: dict[str, Any], proposal: dict[str, Any]) -> None:
+    selection = object_field(payload, "strategy_selection")
+    signals = payload.get("strategy_assessments")
+    ids = ["momentum_breakout", "compression_breakout", "trend_pullback", "range_reversion", "session_breakout"]
+    require(selection.get("proposal_id") == proposal["proposal_id"], "strategy selection proposal mismatch")
+    require(selection.get("trade_owner_id") == proposal["proposal_id"], "strategy owner must be proposal-bound")
+    require(selection.get("market_regime") in {"UNSAFE_OR_UNTRADEABLE", "COMPRESSION_BREAKOUT", "TREND_PULLBACK", "RANGE_REVERSION", "LIQUID_SESSION_BREAKOUT", "MOMENTUM_BREAKOUT", "NO_CLEAR_REGIME"}, "market regime is invalid")
+    require(selection.get("selection_status") in {"SELECTED_EXECUTABLE", "SELECTED_SHADOW", "NO_SELECTION"}, "strategy selection status is invalid")
+    require(selection.get("cost_coverage_status") in {"FEASIBLE", "NOT_FEASIBLE", "NOT_APPLICABLE"}, "cost coverage status is invalid")
+    if selection["selection_status"] == "SELECTED_EXECUTABLE":
+        require(selection.get("selected_strategy_id") in ids, "executable strategy must be one of the fixed five")
+        require(selection.get("trade_owner_strategy_id") == selection.get("selected_strategy_id"), "executable strategy ownership must match selection")
+        require(proposal["action"] in {"BUY", "SELL"}, "executable strategy must have actionable proposal")
+        require(selection["cost_coverage_status"] == "FEASIBLE", "executable proposal must cover projected costs")
+    if proposal["action"] in {"BUY", "SELL"}:
+        require(selection["selection_status"] == "SELECTED_EXECUTABLE", "actionable proposal lacks fixed strategy authority")
+        require(all(snapshot["safety_gates"].values()), "actionable proposal has a failed safety gate")
+    require(isinstance(signals, list) and [item.get("id") if isinstance(item, dict) else None for item in signals] == ids, "exactly five ordered strategy signals are required")
+    require(all(item.get("eligible_for_execution") is True for item in signals), "all five fixed M20.11 strategies must be available for controlled selection")
+    require(all(item.get("signal") in {"BUY", "SELL", "NO_TRADE"} and isinstance(item.get("reason"), str) and item["reason"] for item in signals), "strategy signal is invalid")
 
 
 def validate_proposal(payload: dict[str, Any], session: dict[str, Any], snapshot: dict[str, Any]) -> dict[str, Any]:
@@ -232,12 +258,40 @@ def validate_execution_and_reconciliation(payload: dict[str, Any], session: dict
     string(outcome.get("close_reason"), "outcome.close_reason")
 
 
+def validate_broker_matched_lifecycle(wrapper: dict[str, Any], session: dict[str, Any]) -> dict[str, Any]:
+    """Require one fresh broker-matched opened-to-closed trade for this lease."""
+    require(wrapper.get("tool_id") == "forex_postgres_pgvector_t480", "lifecycle summary must use the PostgreSQL adapter")
+    require(wrapper.get("operation") == "forex_m20_lifecycle_summary", "lifecycle summary operation mismatch")
+    result = object_field(wrapper, "result")
+    require(result.get("ok") is True and result.get("exit_code") == 0, "lifecycle summary failed")
+    try:
+        rows = json.loads(string(result.get("stdout"), "lifecycle summary stdout"))
+    except json.JSONDecodeError as error:
+        raise VerificationError("lifecycle summary stdout is not JSON") from error
+    require(isinstance(rows, list), "lifecycle summary must be a list")
+    for row in rows:
+        if not isinstance(row, dict) or row.get("session_id") != session["session_id"]:
+            continue
+        try:
+            events = json.loads(row.get("events") or "[]")
+        except (TypeError, json.JSONDecodeError):
+            continue
+        if (row.get("lifecycle") == "CLOSED_MATCHED" and row.get("reconciliation_status") in {"MATCHED", "REPAIRED"}
+                and isinstance(events, list) and "OPENED" in events and "CLOSED" in events
+                and isinstance(row.get("actual_entry_price"), (int, float, str)) and float(row["actual_entry_price"]) > 0
+                and isinstance(row.get("exit_price"), (int, float)) and row["exit_price"] > 0
+                and isinstance(row.get("realized_pnl_account"), (int, float)) and row.get("account_currency") == "AUD"):
+            return row
+    raise VerificationError("no broker-matched OPENED to CLOSED Demo trade exists for the captured lease")
+
+
 def validate_payload(payload: dict[str, Any], expected_fingerprint: str | None = None) -> None:
     if expected_fingerprint is not None:
         require(payload.get("configuration_fingerprint") == expected_fingerprint, "operation fingerprint does not match manifest")
     session = validate_session(payload)
     snapshot = validate_snapshot(payload, session)
     proposal = validate_proposal(payload, session, snapshot)
+    validate_strategy_selection(payload, snapshot, proposal)
     validate_execution_and_reconciliation(payload, session, snapshot, proposal)
 
 
@@ -272,6 +326,7 @@ def capture(bundle: Path, root: Path) -> None:
     fingerprint = project_fingerprint(root)
     payload = parse_operation(wrapper, fingerprint)
     validate_payload(payload, fingerprint)
+    lifecycle = validate_broker_matched_lifecycle(read_json(bundle / "lifecycle-summary.json"), payload["session"])
     session_audit = {
         "schema_version": "forex.m20.demo-trading-evidence.v1",
         "operation_marker": payload["marker"],
@@ -285,6 +340,7 @@ def capture(bundle: Path, root: Path) -> None:
         "execution": payload["execution"],
         "reconciliation": payload["reconciliation"],
         "postgres_audit": payload["postgres_audit"],
+        "broker_matched_lifecycle": lifecycle,
     }
     (bundle / "session-audit.json").write_text(json.dumps(session_audit, indent=2) + "\n", encoding="utf-8")
     (bundle / "summary.txt").write_text("FOREX_M20_DEMO_TRADING_PROOF_OK\n", encoding="utf-8")
@@ -352,11 +408,13 @@ def verify(bundle: Path, root: Path) -> None:
     wrapper = read_json(bundle / "demo-trading-operation.json")
     payload = parse_operation(wrapper, fingerprint)
     validate_payload(payload, fingerprint)
+    lifecycle = validate_broker_matched_lifecycle(read_json(bundle / "lifecycle-summary.json"), payload["session"])
     audit = read_json(bundle / "session-audit.json")
     require(audit.get("schema_version") == "forex.m20.demo-trading-evidence.v1", "session audit schema mismatch")
     require(audit.get("configuration_fingerprint") == fingerprint, "session audit fingerprint mismatch")
     for field in ("server", "symbol", "session", "decision_snapshot", "proposal", "execution", "reconciliation", "postgres_audit"):
         require(audit.get(field) == payload.get(field), f"session audit {field} does not match operation")
+    require(audit.get("broker_matched_lifecycle") == lifecycle, "session audit broker-matched lifecycle mismatch")
     require((bundle / "revision.txt").read_text(encoding="utf-8").strip() == manifest["git_revision"], "revision artifact mismatch")
     require((bundle / "summary.txt").read_text(encoding="utf-8").strip() == "FOREX_M20_DEMO_TRADING_PROOF_OK", "proof marker is missing")
     print("FOREX_M20_DEMO_TRADING_EVIDENCE_VERIFIED")

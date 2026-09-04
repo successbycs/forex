@@ -19,12 +19,13 @@ def test_dashboard_renders_decision_and_candle_metrics():
             "server": "GOMarketsMU-Demo", "symbol": "EURUSD",
             "proposal": {"action": "NO_TRADE", "selected_timeframe": "M1", "rationale": "No breakout."},
             "execution": {"status": "NOT_SUBMITTED"}, "reconciliation": {"status": "NO_TRADE_RECONCILED"},
+            "strategy_selection": {"selected_strategy_id": "range_reversion", "selection_status": "SELECTED_EXECUTABLE"},
             "strategy_assessments": [
-                {"label": "Momentum breakout", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "No breakout."},
-                {"label": "Compression breakout", "signal": "BUY", "eligible_for_execution": False, "reason": "Shadow comparison."},
-                {"label": "Trend pullback", "signal": "NO_TRADE", "eligible_for_execution": False, "reason": "Shadow comparison."},
-                {"label": "Range reversion", "signal": "SELL", "eligible_for_execution": False, "reason": "Shadow comparison."},
-                {"label": "Session breakout", "signal": "NO_TRADE", "eligible_for_execution": False, "reason": "Shadow comparison."},
+                {"id": "momentum_breakout", "label": "Momentum breakout", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "No breakout."},
+                {"id": "compression_breakout", "label": "Compression breakout", "signal": "BUY", "eligible_for_execution": True, "reason": "Signal comparison."},
+                {"id": "trend_pullback", "label": "Trend pullback", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "No signal."},
+                {"id": "range_reversion", "label": "Range reversion", "signal": "SELL", "eligible_for_execution": True, "reason": "Signal comparison."},
+                {"id": "session_breakout", "label": "Session breakout", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "No signal."},
             ],
             "assessment_metrics": {"last_close": 1.16024, "previous_close": 1.16016, "prior_five_low": 1.16011, "prior_five_high": 1.16041, "two_candle_direction": "MIXED", "two_candle_aligned": False, "breakout_above_prior_high": False, "breakout_below_prior_low": False, "combined_move_points": 4, "spread_points": 8, "combined_move_exceeds_spread": False},
         },
@@ -35,6 +36,7 @@ def test_dashboard_renders_decision_and_candle_metrics():
     assert "NZST 03/09/26 21:33:00 NZST" in screen
     assert "Direction: MIXED" in screen
     assert "Combined move: 4 pts" in screen
-    assert "Strategy comparison — only Momentum Breakout may trade" in screen
-    assert "Momentum breakout      NO_TRADE     ACTIVE" in screen
-    assert "Compression breakout   BUY          SHADOW" in screen
+    assert "Strategy comparison — regime precedence may select one executable owner" in screen
+    assert "Momentum breakout      NO_TRADE     NO SIGNAL" in screen
+    assert "Compression breakout   BUY          SIGNAL ONLY" in screen
+    assert "Range reversion        SELL         BLOCKED" in screen

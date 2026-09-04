@@ -12,5 +12,7 @@ demo_session_limits:
   maximum_notional_per_trade_usd: 10000
   maximum_cumulative_notional_usd: 100000
   maximum_loss_per_trade_aud: 100
+  # A plan must project at least this net AUD result at TP after the fixed cost model.
+  minimum_net_profit_aud: 0.10
   require_persisted_proposal: true
   require_idempotency_key: true

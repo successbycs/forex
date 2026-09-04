@@ -89,8 +89,12 @@ It is restricted to
 
 The dashboard on T16 is read-only: `python3 scripts/m20_listener_dashboard.py`.
 It shows UTC/NZST heartbeat, cadence, candle metrics, decision rationale, and
-five strategy rows. Momentum Breakout is the only active execution strategy;
-the other four strategies are shadow-only comparisons.
+five strategy rows. All five are available to the M20.11 controlled Demo
+trial, but deterministic regime precedence can make **only one** row
+`EXECUTABLE` for an assessment. The other four are `SIGNAL ONLY`, `NO SIGNAL`,
+or `BLOCKED` context: their BUY/SELL/NO_TRADE observations cannot create a
+second Demo order. A non-selected signal is not a failed execution or a
+missed trade.
 
 The separate read-only trade ledger dashboard is
 `python3 scripts/m20_trade_ledger_dashboard.py`. It shows the last ten Demo
@@ -100,18 +104,20 @@ only a broker-reconciled realised profit or loss. A missing P&L is shown as
 
 ### M20 SL, profit target, and exit rule
 
-For each eligible M1 momentum-breakout trade, the executor sets broker-side
-SL and TP at order submission. The stop begins at the recent five-candle
-technical invalidation level, but is moved closer to entry whenever needed to
-keep the planned loss at or below A$100 using MT5's tick value, tick size,
-minimum lot, and allowed price increment. The initial target is 1.5R, where
-R is the actual entry-to-stop distance. The system refuses a trade if the
-nearest credible target offers less than 1.25R.
+For every selected strategy, the executor sets broker-side SL and TP at
+submission. The common A$100 loss cap may tighten the strategy's technical
+stop. Momentum and Session use the opposite side of the preceding range;
+Compression uses the compression boundary; Trend Pullback uses the pullback
+swing; Range Reversion uses the rejected range edge. The default target is
+1.5R, except Range Reversion targets the range midpoint. A trade is refused if
+its selected target cannot clear the conservative cost gate.
 
 After +1R, the monitor requests a broker-side breakeven stop. MT5 closes at
-SL or TP when reached; otherwise the monitor exits after two opposite
-completed M1 candles or ten completed M1 candles. PostgreSQL records the
-broker-confirmed exit and realised AUD P&L only after reconciliation.
+SL or TP when reached; otherwise the owning strategy exits after two opposite
+completed M1 candles or its fixed owner time stop: Range Reversion six
+minutes, Compression Breakout eight minutes, and the other three strategies
+ten minutes. PostgreSQL records the broker-confirmed exit and realised AUD
+P&L only after reconciliation.
 
 Every proposal, broker attempt, position event, cost component, and closed
 P&L outcome is persisted in PostgreSQL. A Demo order is not evidence of a
@@ -123,16 +129,23 @@ an immutable outcome record.
 1. **Read the market.** The listener reads a fresh Demo EURUSD quote and only
    completed M1 candles. A quote can be a new MT5 update even when its displayed
    bid and ask are unchanged; the MT5 tick time prevents reuse of a cached quote.
-2. **Assess before any order.** Momentum Breakout is the sole executable rule.
-   It requires at least six completed M1 candles, two latest candles aligned in
-   one direction, a close beyond the prior five-candle high (BUY) or low (SELL),
-   and a combined move greater than the current spread. The other four strategy
-   signals are recorded as shadow comparisons only.
+2. **Classify and select before any order.** The listener applies the safety
+   gates, categorises the closed-candle market, and selects at most one of the
+   five fixed strategy contracts. In M20.11, deterministic regime precedence
+   makes exactly one selected fixed rule executable only after its complete
+   entry, target, cost, lease, and one-position gates pass. All unselected
+   rules remain context and cannot submit an order.
+
+   The fixed hierarchy is: `UNSAFE_OR_UNTRADEABLE` → Compression Breakout →
+   Trend Pullback → Range Reversion → Session Breakout → Momentum Breakout →
+   `NO_CLEAR_REGIME`. A selected strategy with an invalid plan is displayed as
+   `BLOCKED`, not executable.
 3. **Open one protected trade when eligible.** A qualifying BUY or SELL uses
-   the current executable price with broker-side stop loss and take profit. The
-   stop is based on candle invalidation but capped to the A$100 planned-loss
-   limit; the initial target is 1.5R. A trade may also exit after two opposite
-   completed M1 candles or ten minutes.
+   the selected owner's current executable price, broker-side stop loss and
+   take profit. The stop is based on that owner's candle invalidation rule and
+   capped to the A$100 planned-loss limit; the target follows its owned contract.
+   A trade may also exit after two opposite completed M1 candles or its
+   owner-specific fixed time stop.
 4. **Record the lifecycle.** PostgreSQL receives the assessment, proposal,
    reservation, broker response, opening event, stop/target changes, close,
    costs, exit price, and realised AUD P&L. Rejections are terminal non-trades;

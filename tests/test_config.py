@@ -105,6 +105,8 @@ def test_unsafe_runtime_and_mt5_changes_are_rejected(
         {"maximum_notional_per_trade_usd": 10001},
         {"maximum_cumulative_notional_usd": 100001},
         {"maximum_loss_per_trade_aud": 101},
+        {"minimum_net_profit_aud": 0.09},
+        {"minimum_net_profit_aud": 5.01},
         {"require_persisted_proposal": False},
         {"require_idempotency_key": False},
     ],

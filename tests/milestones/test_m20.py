@@ -60,10 +60,31 @@ def operation_payload(now: datetime) -> dict:
             "ask": 1.1002,
             "spread_points": 2,
             "freshness_seconds": 2,
+            "safety_gates": {
+                "fresh_quote": True, "completed_m1": True, "normal_spread": True,
+                "no_existing_position": True, "demo_lease_active": True,
+                "news_blackout_inactive": True, "abnormal_volatility_inactive": True,
+            },
             "m1_closed_bars": bars("M1", 1),
             "m5_closed_bars": [],
             "payload_sha256": digest,
         },
+        "strategy_selection": {
+            "proposal_id": "proposal-1", "trade_owner_id": "proposal-1",
+            "trade_owner_strategy_id": None, "market_regime": "NO_CLEAR_REGIME",
+            "market_regime_reason": "No fixed M1 strategy produced an eligible market signal.",
+            "selected_strategy_id": None, "strategy_rule_version": None,
+            "selection_status": "NO_SELECTION", "estimated_round_trip_cost_aud": None,
+            "minimum_net_profit_aud": None, "expected_net_profit_at_take_profit_aud": None,
+            "cost_coverage_status": "NOT_APPLICABLE",
+        },
+        "strategy_assessments": [
+            {"id": "momentum_breakout", "label": "Momentum breakout", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "No closed-candle breakout."},
+            {"id": "compression_breakout", "label": "Compression breakout", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "No compression signal."},
+            {"id": "trend_pullback", "label": "Trend pullback", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "No pullback signal."},
+            {"id": "range_reversion", "label": "Range reversion", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "No range rejection."},
+            {"id": "session_breakout", "label": "Session breakout", "signal": "NO_TRADE", "eligible_for_execution": True, "reason": "No session breakout."},
+        ],
         "proposal": {
             "proposal_id": "proposal-1",
             "session_id": "demo-session-1",
@@ -120,6 +141,17 @@ def fixture(tmp_path: Path) -> tuple[Path, Path]:
         "result": {"ok": True, "exit_code": 0, "stdout": json.dumps(payload)},
     }
     write(bundle / "demo-trading-operation.json", wrapper)
+    lifecycle = {
+        "session_id": "demo-session-1", "proposal_id": "closed-proposal-1", "attempt_id": "closed-attempt-1",
+        "action": "BUY", "submitted_at_utc": now.isoformat().replace("+00:00", "Z"),
+        "actual_entry_price": "1.1001", "exit_price": 1.1003, "realized_pnl_account": 0.12,
+        "account_currency": "AUD", "reconciliation_status": "MATCHED", "lifecycle": "CLOSED_MATCHED",
+        "events": json.dumps(["OPENED", "CLOSED"]),
+    }
+    write(bundle / "lifecycle-summary.json", {
+        "tool_id": "forex_postgres_pgvector_t480", "operation": "forex_m20_lifecycle_summary",
+        "result": {"ok": True, "exit_code": 0, "stdout": json.dumps([lifecycle])},
+    })
     (bundle / "tests.txt").write_text("4 passed\n", encoding="utf-8")
     (bundle / "governance.txt").write_text("milestone governance valid\n", encoding="utf-8")
     write(bundle / "configuration.json", {
@@ -139,6 +171,7 @@ def fixture(tmp_path: Path) -> tuple[Path, Path]:
         "captured_at_utc": payload["captured_at_utc"],
         "configuration_fingerprint": FINGERPRINT,
         **{key: payload[key] for key in ("session", "decision_snapshot", "proposal", "execution", "reconciliation", "postgres_audit")},
+        "broker_matched_lifecycle": lifecycle,
     })
     artifacts = [
         {"path": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
@@ -183,11 +216,23 @@ def update_artifact_digest(bundle: Path, name: str) -> None:
     write(manifest_path, manifest)
 
 
-def test_m20_demo_evidence_verifier_accepts_a_bound_no_trade_session(tmp_path: Path):
+def test_m20_demo_evidence_verifier_accepts_a_bound_assessment_with_a_matched_trade_lifecycle(tmp_path: Path):
     root, bundle = fixture(tmp_path)
     result = verify(root, bundle)
     assert result.returncode == 0, result.stderr
     assert "FOREX_M20_DEMO_TRADING_EVIDENCE_VERIFIED" in result.stdout
+
+
+def test_m20_demo_evidence_verifier_rejects_a_capture_without_a_matched_trade_lifecycle(tmp_path: Path):
+    root, bundle = fixture(tmp_path)
+    write(bundle / "lifecycle-summary.json", {
+        "tool_id": "forex_postgres_pgvector_t480", "operation": "forex_m20_lifecycle_summary",
+        "result": {"ok": True, "exit_code": 0, "stdout": "[]"},
+    })
+    update_artifact_digest(bundle, "lifecycle-summary.json")
+    result = verify(root, bundle)
+    assert result.returncode != 0
+    assert "no broker-matched OPENED to CLOSED Demo trade" in result.stderr
 
 
 def test_m20_demo_evidence_verifier_rejects_tampering_even_with_python_optimization(tmp_path: Path):

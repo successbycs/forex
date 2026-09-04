@@ -39,7 +39,7 @@ SESSION_AUDIT_REQUIREMENTS = {
 TIMEFRAMES = (
     ("M1", mt5.TIMEFRAME_M1, 60),
 )
-STRATEGY_VERSION = "forex.m20.m1-live-listener.v1"
+STRATEGY_VERSION = "forex.m20.11.m1-five-strategy-trial.v2"
 OPERATOR_LABEL = "codex-m20-demo"
 EXECUTOR_MAGIC = 20260020
 CLOSE_TIMEOUT_SECONDS = 20
@@ -48,6 +48,42 @@ MIN_LISTENER_POLL_SECONDS = 0.25
 MAX_LISTENER_POLL_SECONDS = 5.0
 MONITOR_POLL_SECONDS = 1.0
 MONITOR_MAX_HOLD_SECONDS = 10 * 60
+STRATEGY_IDS = (
+    "momentum_breakout",
+    "compression_breakout",
+    "trend_pullback",
+    "range_reversion",
+    "session_breakout",
+)
+STRATEGY_REGIMES = (
+    ("COMPRESSION_BREAKOUT", "compression_breakout"),
+    ("TREND_PULLBACK", "trend_pullback"),
+    ("RANGE_REVERSION", "range_reversion"),
+    ("LIQUID_SESSION_BREAKOUT", "session_breakout"),
+    ("MOMENTUM_BREAKOUT", "momentum_breakout"),
+)
+# The M20.11 trial deliberately keeps monitoring in the existing process.
+# Strategy ownership changes only deterministic exit timing; broker-side SL/TP
+# and the two-opposite-closed-candle invalidation remain universal protection.
+OWNER_MAX_HOLD_SECONDS = {
+    "momentum_breakout": 10 * 60,
+    "compression_breakout": 8 * 60,
+    "trend_pullback": 10 * 60,
+    "range_reversion": 6 * 60,
+    "session_breakout": 10 * 60,
+}
+# These are deliberately fixed M20 policy constants, rather than caller
+# inputs.  Actual commission, swap, and realised P&L remain broker-derived
+# when a trade closes; this gate is a conservative pre-trade projection.
+COST_POLICY_VERSION = "forex.m20.m1-cost-coverage.v1"
+EXPECTED_EXIT_SPREAD_MULTIPLIER = 1.0
+EXPECTED_SLIPPAGE_SPREAD_MULTIPLIER = 0.5
+# The canonical runtime configuration is injected into the fixed release by
+# the adapter.  A 10c default keeps local tests deterministic; production
+# provenance binds the actual value through config/runtime.yaml.
+MINIMUM_NET_PROFIT_AUD = float(os.environ.get("FOREX_M20_MINIMUM_NET_PROFIT_AUD", "0.10"))
+if not 0.10 <= MINIMUM_NET_PROFIT_AUD <= 5.00:
+    raise SystemExit("M20 minimum projected net profit is outside the governed Demo range")
 
 
 def utc(value: datetime) -> str:
@@ -280,8 +316,13 @@ def _risk_levels(*, action: str, entry: float, volume: float, tick_size: float, 
     return round(stop, 10), round(take, 10), volume * 100000 * entry
 
 
-def _strategy_assessments(*, m1: list[dict[str, Any]], tick: dict[str, Any], active_action: str) -> list[dict[str, Any]]:
-    """Compare five fixed M1 hypotheses; only momentum breakout can execute."""
+def _strategy_assessments(*, m1: list[dict[str, Any]], tick: dict[str, Any], active_action: str = "NO_TRADE") -> list[dict[str, Any]]:
+    """Compare five fixed M1 hypotheses on one immutable candle snapshot.
+
+    All five strategy contracts are available for the M20.11 Demo trial.
+    Regime selection below, not this comparison table, grants exactly one
+    owner authority for any assessment.
+    """
     point = 0.00001
     spread_points = float(tick["spread_points"])
 
@@ -291,11 +332,11 @@ def _strategy_assessments(*, m1: list[dict[str, Any]], tick: dict[str, Any], act
     if len(m1) < 12:
         unavailable = "Needs twelve completed M1 candles."
         return [
-            record("momentum_breakout", "Momentum breakout", active_action, "Active closed-candle breakout assessment.", active=True),
-            record("compression_breakout", "Compression breakout", "NO_TRADE", unavailable),
-            record("trend_pullback", "Trend pullback", "NO_TRADE", unavailable),
-            record("range_reversion", "Range reversion", "NO_TRADE", unavailable),
-            record("session_breakout", "Session breakout", "NO_TRADE", unavailable),
+            record("momentum_breakout", "Momentum breakout", active_action, "Closed-candle breakout assessment.", active=True),
+            record("compression_breakout", "Compression breakout", "NO_TRADE", unavailable, active=True),
+            record("trend_pullback", "Trend pullback", "NO_TRADE", unavailable, active=True),
+            record("range_reversion", "Range reversion", "NO_TRADE", unavailable, active=True),
+            record("session_breakout", "Session breakout", "NO_TRADE", unavailable, active=True),
         ]
 
     setup, previous = m1[-1], m1[-2]
@@ -335,79 +376,183 @@ def _strategy_assessments(*, m1: list[dict[str, Any]], tick: dict[str, Any], act
     # these pure calculations never adds MT5 reads or execution authority; the
     # canonical order below keeps dashboard and audit interpretation stable.
     rules = (
-        lambda: record("momentum_breakout", "Momentum breakout", active_action, "Active rule: " + ("eligible after two aligned candles, range break, and spread check." if active_action != "NO_TRADE" else "no eligible closed-candle breakout."), active=True),
-        lambda: record("compression_breakout", "Compression breakout", compression_signal, f"Prior five-candle range {compression_points:.1f} pts; limit {compression_limit:.1f} pts."),
-        lambda: record("trend_pullback", "Trend pullback", pullback_signal, "Trend, pullback, and resumption checks are " + ("aligned." if pullback_signal != "NO_TRADE" else "not aligned.")),
-        lambda: record("range_reversion", "Range reversion", reversion_signal, "Range-edge rejection check is " + ("present." if reversion_signal != "NO_TRADE" else "not present.")),
-        lambda: record("session_breakout", "Session breakout", session_signal, f"UTC hour {observed_hour:02d}; liquid-session={liquid_session}, normal-spread={normal_spread}."),
+        lambda: record("momentum_breakout", "Momentum breakout", breakout_signal, "Rule: two aligned candles, range break, and spread check.", active=True),
+        lambda: record("compression_breakout", "Compression breakout", compression_signal, f"Prior five-candle range {compression_points:.1f} pts; limit {compression_limit:.1f} pts.", active=True),
+        lambda: record("trend_pullback", "Trend pullback", pullback_signal, "Trend, pullback, and resumption checks are " + ("aligned." if pullback_signal != "NO_TRADE" else "not aligned."), active=True),
+        lambda: record("range_reversion", "Range reversion", reversion_signal, "Range-edge rejection check is " + ("present." if reversion_signal != "NO_TRADE" else "not present."), active=True),
+        lambda: record("session_breakout", "Session breakout", session_signal, f"UTC hour {observed_hour:02d}; liquid-session={liquid_session}, normal-spread={normal_spread}.", active=True),
     )
     with ThreadPoolExecutor(max_workers=len(rules), thread_name_prefix="m20-strategy") as executor:
         return list(executor.map(lambda rule: rule(), rules))
 
 
-def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, list[dict[str, Any]]], captured_at: datetime, risk: dict[str, float], listener_poll_seconds: float) -> tuple[dict[str, Any], dict[str, Any]]:
+def _market_selection(*, tick: dict[str, Any], m1: list[dict[str, Any]], assessments: list[dict[str, Any]], safety_gates: dict[str, bool]) -> dict[str, Any]:
+    """Classify one market regime and select at most one fixed strategy.
+
+    The order is a deterministic M20.11 policy. It classifies the first
+    signal under regime precedence and grants only that selected strategy
+    executable ownership. Other signals remain recorded context.
+    """
+    if not all(safety_gates.values()) or int(tick["freshness_seconds"]) > MAX_TICK_AGE_SECONDS or float(tick["spread_points"]) > 12.0 or len(m1) < 12:
+        reason = "Freshness, spread, or completed-candle safety gate is not satisfied."
+        return {"market_regime": "UNSAFE_OR_UNTRADEABLE", "market_regime_reason": reason,
+                "selected_strategy_id": None, "strategy_rule_version": None,
+                "selection_status": "NO_SELECTION"}
+    by_id = {item["id"]: item for item in assessments}
+    for regime, strategy_id in STRATEGY_REGIMES:
+        signal = by_id[strategy_id]["signal"]
+        if signal in {"BUY", "SELL"}:
+            return {
+                "market_regime": regime,
+                "market_regime_reason": f"{by_id[strategy_id]['label']} produced {signal} under deterministic regime precedence.",
+                "selected_strategy_id": strategy_id,
+                "strategy_rule_version": f"forex.m20.11.{strategy_id}.v2",
+                "selection_status": "SELECTED_EXECUTABLE",
+            }
+    return {"market_regime": "NO_CLEAR_REGIME", "market_regime_reason": "No fixed M1 strategy produced an eligible market signal.",
+            "selected_strategy_id": None, "strategy_rule_version": None, "selection_status": "NO_SELECTION"}
+
+
+def _project_cost_coverage(*, action: str, entry: float, take_profit: float, risk: dict[str, float]) -> dict[str, Any]:
+    """Project minimum profitable outcome from fixed, explicit M20 inputs."""
+    if action not in {"BUY", "SELL"}:
+        return {"entry_spread_cost_aud": None, "expected_exit_spread_cost_aud": None,
+                "commission_allowance_aud": None, "slippage_allowance_aud": None,
+                "expected_swap_aud": None, "projected_gross_profit_at_take_profit_aud": None,
+                "estimated_round_trip_cost_aud": None, "minimum_net_profit_aud": None,
+                "expected_net_profit_at_take_profit_aud": None, "cost_coverage_status": "NOT_APPLICABLE"}
+    spread = max(0.0, float(risk["observed_spread"]))
+    value_per_price = float(risk["volume"]) * float(risk["tick_value_loss"]) / float(risk["tick_size"])
+    entry_spread = spread * value_per_price
+    exit_spread = spread * EXPECTED_EXIT_SPREAD_MULTIPLIER * value_per_price
+    slippage = spread * EXPECTED_SLIPPAGE_SPREAD_MULTIPLIER * value_per_price
+    estimated_cost = round(entry_spread + exit_spread + slippage, 2)
+    gross_profit = abs(take_profit - entry) * value_per_price
+    expected_net = round(gross_profit - estimated_cost, 2)
+    return {"entry_spread_cost_aud": round(entry_spread, 2),
+            "expected_exit_spread_cost_aud": round(exit_spread, 2),
+            "commission_allowance_aud": 0.0,
+            "slippage_allowance_aud": round(slippage, 2),
+            "expected_swap_aud": 0.0,
+            "projected_gross_profit_at_take_profit_aud": round(gross_profit, 2),
+            "estimated_round_trip_cost_aud": estimated_cost,
+            "minimum_net_profit_aud": MINIMUM_NET_PROFIT_AUD,
+            "expected_net_profit_at_take_profit_aud": expected_net,
+            "cost_coverage_status": "FEASIBLE" if expected_net >= MINIMUM_NET_PROFIT_AUD else "NOT_FEASIBLE"}
+
+
+def _strategy_trade_plan(*, strategy_id: str | None, signal: str, m1: list[dict[str, Any]], tick: dict[str, Any], session: dict[str, Any], risk: dict[str, float]) -> tuple[str, float | None, float | None, float | None, float | None, str]:
+    """Return the selected strategy's fixed entry, protective SL and TP.
+
+    The plan is deliberately constructed only after deterministic selection.
+    Every owner uses the same AUD risk cap and a minimum 1.5R target, while
+    its technical stop comes from the candles that define that strategy.
+    """
+    if strategy_id not in STRATEGY_IDS or signal not in {"BUY", "SELL"} or len(m1) < 12:
+        return "NO_TRADE", None, None, None, None, "No selected actionable M1 strategy."
+    action = signal
+    entry = float(tick["ask"] if action == "BUY" else tick["bid"])
+    prior_five = m1[-6:-1]
+    compression = m1[-8:-3]
+    setup, previous = m1[-1], m1[-2]
+    high = lambda rows: max(float(row.get("high", row["close"])) for row in rows)
+    low = lambda rows: min(float(row.get("low", row["close"])) for row in rows)
+    if strategy_id == "compression_breakout":
+        technical_stop = low(compression) if action == "BUY" else high(compression)
+        plan_reason = "Compression range boundary supplies the technical stop; target is 1.5R."
+    elif strategy_id == "trend_pullback":
+        technical_stop = low(m1[-5:-1]) if action == "BUY" else high(m1[-5:-1])
+        plan_reason = "Pullback swing boundary supplies the technical stop; target is 1.5R."
+    elif strategy_id == "range_reversion":
+        technical_stop = high(prior_five) if action == "SELL" else low(prior_five)
+        plan_reason = "Rejected range edge supplies the protective technical stop; target is 1.5R."
+    elif strategy_id == "session_breakout":
+        technical_stop = low(prior_five) if action == "BUY" else high(prior_five)
+        plan_reason = "Pre-breakout session boundary supplies the technical stop; target is 1.5R."
+    else:
+        technical_stop = low(prior_five) if action == "BUY" else high(prior_five)
+        plan_reason = "Prior five-candle range boundary supplies the technical stop; target is 1.5R."
+    capped_stop, _, notional = _risk_levels(
+        action=action, entry=entry, maximum_loss_aud=session["maximum_loss_per_trade_aud"],
+        tick_size=float(risk["tick_size"]), tick_value_loss=float(risk["tick_value_loss"]),
+        point=float(risk["point"]), volume=float(risk["volume"]),
+    )
+    stop = max(capped_stop, technical_stop) if action == "BUY" else min(capped_stop, technical_stop)
+    if (action == "BUY" and not 0 < stop < entry) or (action == "SELL" and not stop > entry):
+        return "NO_TRADE", None, None, None, None, "Selected strategy's technical stop is invalid at the current quote."
+    stop = (math.ceil(stop / risk["point"] - 1e-9) if action == "BUY" else math.floor(stop / risk["point"] + 1e-9)) * risk["point"]
+    distance = abs(entry - stop)
+    if strategy_id == "range_reversion":
+        # A reversion trade is owned by its range hypothesis: the first
+        # credible target is the range midpoint, never a generic breakout R.
+        take = (high(prior_five) + low(prior_five)) / 2
+        plan_reason = "Rejected range edge supplies the protective stop; range midpoint is the initial target."
+    else:
+        take = entry + 1.5 * distance if action == "BUY" else entry - 1.5 * distance
+    take = round(take / risk["point"]) * risk["point"]
+    if (action == "BUY" and take <= entry) or (action == "SELL" and take >= entry):
+        return "NO_TRADE", None, None, None, None, "Selected strategy's target is not beyond the current executable quote."
+    if notional > session["max_notional_per_trade_usd"]:
+        raise SystemExit("M20 minimum EURUSD volume exceeds the Demo notional cap")
+    return action, entry, stop, take, notional, plan_reason
+
+
+def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, list[dict[str, Any]]], captured_at: datetime, risk: dict[str, float], listener_poll_seconds: float, safety_gates: dict[str, bool] | None = None) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], list[dict[str, Any]]]:
     """Create an M1-only proposal from the non-persisted live tick listener."""
     observed_at = tick["observed_at_utc"]
+    m1 = bars["M1"]
+    action = "NO_TRADE"
+    reason = "No executable M1 strategy produced a signal."
+    entry = stop = take = notional = None
+    gates = safety_gates or {"fresh_quote": True, "completed_m1": len(m1) >= 12, "normal_spread": float(tick["spread_points"]) <= 12.0, "no_existing_position": True, "demo_lease_active": True, "news_blackout_inactive": True, "abnormal_volatility_inactive": True}
+    assessments = _strategy_assessments(m1=m1, tick=tick)
+    selection = _market_selection(tick=tick, m1=m1, assessments=assessments, safety_gates=gates)
+    risk = {**risk, "observed_spread": float(tick["ask"]) - float(tick["bid"])}
+    signals = {item["id"]: item["signal"] for item in assessments}
+    executable_strategy_id = selection["selected_strategy_id"] if selection["selection_status"] == "SELECTED_EXECUTABLE" else None
+    action, entry, stop, take, notional, reason = _strategy_trade_plan(
+        strategy_id=executable_strategy_id, signal=signals.get(executable_strategy_id, "NO_TRADE"),
+        m1=m1, tick=tick, session=session, risk=risk,
+    )
+    cost_coverage = _project_cost_coverage(action=action, entry=float(entry or 0), take_profit=float(take or 0), risk=risk)
+    selection.update(cost_coverage)
+    if action != "NO_TRADE" and selection["selection_status"] != "SELECTED_EXECUTABLE":
+        reason = f"{selection['market_regime']} has no executable strategy owner; no Demo order is submitted."
+        action, entry, stop, take, notional = "NO_TRADE", None, None, None, None
+    elif action != "NO_TRADE" and selection["cost_coverage_status"] != "FEASIBLE":
+        reason = "COST_COVERAGE_NOT_FEASIBLE: projected take-profit net result does not meet the fixed minimum."
+        action, entry, stop, take, notional = "NO_TRADE", None, None, None, None
+    elif action != "NO_TRADE":
+        reason = f"{selection['selected_strategy_id']} owns this {selection['market_regime']} trade. {reason} {COST_POLICY_VERSION} is feasible."
+    # Selection identifies the best regime hypothesis.  It becomes execution
+    # authority only if that owner's complete plan survives target, cost and
+    # safety gates.  Keep a blocked selected rule observable without claiming
+    # it sent, or could send, an order.
+    if action == "NO_TRADE" and selection["selected_strategy_id"] is not None:
+        selection["selection_status"] = "SELECTED_SHADOW"
+
     snapshot_body = {
-        "observed_at_utc": observed_at,
-        "captured_at_utc": utc(captured_at),
+        "observed_at_utc": observed_at, "captured_at_utc": utc(captured_at),
         "bid": tick["bid"], "ask": tick["ask"], "spread_points": tick["spread_points"],
-        "freshness_seconds": int(tick["freshness_seconds"]),
-        "m1_closed_bars": bars["M1"], "m5_closed_bars": bars["M5"],
+        "freshness_seconds": int(tick["freshness_seconds"]), "m1_closed_bars": bars["M1"], "m5_closed_bars": bars["M5"],
+        "safety_gates": gates, "market_context": selection, "strategy_assessments": assessments,
     }
     digest = "sha256:" + hashlib.sha256(json.dumps(snapshot_body, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     snapshot_id = str(uuid5(NAMESPACE_URL, f"{session['session_id']}:{digest}"))
-    snapshot = {"snapshot_id": snapshot_id, **snapshot_body, "payload_sha256": digest}
-    m1 = bars["M1"]
-    action = "NO_TRADE"
-    reason = "M1 listener requires six completed candles; no Demo order is submitted."
-    technical_stop: float | None = None
-    if len(m1) >= 6:
-        setup, previous = m1[-1], m1[-2]
-        window = m1[-6:-1]
-        def opening(bar: dict[str, Any], prior: dict[str, Any]) -> float:
-            return float(bar.get("open", prior["close"]))
-        setup_open, previous_open = opening(setup, previous), opening(previous, m1[-3])
-        setup_move = float(setup["close"]) - setup_open
-        previous_move = float(previous["close"]) - previous_open
-        spread_price = float(tick["ask"]) - float(tick["bid"])
-        window_high = max(float(row.get("high", row["close"])) for row in window)
-        window_low = min(float(row.get("low", row["close"])) for row in window)
-        if setup_move > 0 and previous_move > 0 and float(setup["close"]) > window_high and setup_move + previous_move > spread_price:
-            action, technical_stop = "BUY", window_low
-        elif setup_move < 0 and previous_move < 0 and float(setup["close"]) < window_low and -(setup_move + previous_move) > spread_price:
-            action, technical_stop = "SELL", window_high
-        else:
-            reason = "M1 closed-candle breakout conditions are not met after spread; no Demo order is submitted."
     proposal_id = str(uuid5(NAMESPACE_URL, f"{session['session_id']}:{snapshot_id}:assessment"))
+    selection = {"proposal_id": proposal_id, **selection, "trade_owner_id": proposal_id,
+                 "trade_owner_strategy_id": selection["selected_strategy_id"]}
+    snapshot = {"snapshot_id": snapshot_id, **snapshot_body, "payload_sha256": digest}
     proposal = {
         "proposal_id": proposal_id, "session_id": session["session_id"], "snapshot_id": snapshot_id,
         "decision_at_utc": observed_at,
         "expires_at_utc": utc(min(parse_utc(observed_at, "observed_at_utc") + timedelta(minutes=5), parse_utc(session["expires_at_utc"], "expires_at_utc"))),
-        "selected_timeframe": "M1", "action": action,
-        "proposed_entry": None, "stop_loss": None, "take_profit": None,
-        "notional_usd": None, "confidence": 100 if action == "NO_TRADE" else 60,
-        "rationale": reason if action == "NO_TRADE" else f"M1 two-candle momentum broke the prior five-candle range after spread; listener cadence {listener_poll_seconds:.2f}s.",
+        "selected_timeframe": "M1", "action": action, "proposed_entry": entry, "stop_loss": stop, "take_profit": take,
+        "notional_usd": round(float(notional), 2) if notional is not None else None,
+        "confidence": 100 if action == "NO_TRADE" else 70, "rationale": reason,
         "decision_snapshot_sha256": digest, "strategy_version": STRATEGY_VERSION,
     }
-    if action != "NO_TRADE":
-        entry = tick["ask"] if action == "BUY" else tick["bid"]
-        capped_stop, _, notional = _risk_levels(action=action, entry=entry, maximum_loss_aud=session["maximum_loss_per_trade_aud"], **risk)
-        if technical_stop is None:
-            raise SystemExit("M20 actionable M1 proposal is missing its technical stop")
-        stop = max(capped_stop, technical_stop) if action == "BUY" else min(capped_stop, technical_stop)
-        if (action == "BUY" and not 0 < stop < entry) or (action == "SELL" and stop <= entry):
-            raise SystemExit("M20 technical M1 stop is invalid")
-        distance = abs(entry - stop)
-        take = entry + 1.5 * distance if action == "BUY" else entry - 1.5 * distance
-        take = round(take / risk["point"]) * risk["point"]
-        # A stop is aligned toward entry so an increment cannot widen the
-        # independently calculated AUD 100 maximum-loss boundary.
-        stop = (math.ceil(stop / risk["point"] - 1e-9) if action == "BUY" else math.floor(stop / risk["point"] + 1e-9)) * risk["point"]
-        if notional > session["max_notional_per_trade_usd"]:
-            raise SystemExit("M20 minimum EURUSD volume exceeds the Demo notional cap")
-        proposal.update({"proposed_entry": entry, "stop_loss": stop, "take_profit": take, "notional_usd": round(notional, 2), "confidence": 70, "rationale": f"M1 breakout with two aligned closed candles; {risk['volume']:.2f} lot stop is capped at AUD {session['maximum_loss_per_trade_aud']} and target is 1.5R."})
-    return snapshot, proposal
+    return snapshot, proposal, selection, assessments
 
 
 def _listen_for_tick() -> tuple[Any, float]:
@@ -717,6 +862,20 @@ def _apply_break_even(*, proposal: dict[str, Any], attempt_id: str, position: An
     _bridge({"result": result_payload, "state": state}, "update-open-position")
 
 
+def _owner_exit_contract(owner: str) -> tuple[int, str]:
+    """Return the fixed owner-specific time stop and common invalidation rule.
+
+    Every owner retains attached MT5 SL/TP and the same closed-candle
+    invalidation safety check.  The shorter Range and Compression windows are
+    specific to their short-lived M1 hypotheses and remain fully deterministic
+    in the persisted owner rule version.
+    """
+    seconds = OWNER_MAX_HOLD_SECONDS.get(owner)
+    if seconds is None:
+        raise SystemExit("M20 monitor refuses a position without a known selected strategy owner")
+    return seconds, "M1_TWO_OPPOSITE_CLOSED_CANDLES"
+
+
 def _monitor_open_position(*, proposal: dict[str, Any], attempt_id: str, position: Any, submitted_at: datetime, entry_spread: float, risk: dict[str, float], offset_seconds: int, single_pass: bool = False, break_even_applied: bool = False) -> dict[str, Any]:
     """Hold one Demo position with static broker protection and M1 exits.
 
@@ -729,16 +888,18 @@ def _monitor_open_position(*, proposal: dict[str, Any], attempt_id: str, positio
     entry = float(getattr(position, "price_open", 0))
     original_stop = float(getattr(position, "sl", 0))
     take_profit = float(getattr(position, "tp", 0))
+    owner = proposal.get("trade_owner_strategy_id")
+    maximum_hold_seconds, invalidation = _owner_exit_contract(str(owner))
     if ticket <= 0 or action not in {"BUY", "SELL"} or min(entry, original_stop, take_profit) <= 0:
         raise SystemExit("M20 open position monitor inputs are invalid")
     risk_distance = abs(entry - original_stop)
     if risk_distance <= 0:
         raise SystemExit("M20 open position has no measurable initial risk")
     # A recovery pass is deliberately short, but the trade's M1 exit window
-    # is not.  Use the durable submission time so its ten-minute maximum hold
-    # and two-opposite-candle check survive every five-second supervisor pass.
+    # is not.  Use durable submission time so the owner's time-stop and
+    # closed-candle invalidation survive every five-second supervisor pass.
     opened_at = submitted_at
-    closes_at = opened_at + timedelta(seconds=MONITOR_MAX_HOLD_SECONDS)
+    closes_at = opened_at + timedelta(seconds=maximum_hold_seconds)
     while True:
         positions = mt5.positions_get(ticket=ticket) or ()
         if not positions:
@@ -772,7 +933,7 @@ def _monitor_open_position(*, proposal: dict[str, Any], attempt_id: str, positio
             return _record_closed_monitor_outcome(
                 proposal=proposal, attempt_id=attempt_id, position=current,
                 submitted_at=submitted_at, entry_spread=entry_spread, risk=risk,
-                close_reason="M1_TIME_STOP_10_MINUTES", broker_order_reference=reference,
+                close_reason=f"{owner.upper()}_M1_TIME_STOP_{maximum_hold_seconds // 60}_MINUTES", broker_order_reference=reference,
                 expected_exit_price=exit_price, closed_costs=costs,
             )
         bars = _closed_m1_bars_for_monitor(tick, offset_seconds)
@@ -784,7 +945,7 @@ def _monitor_open_position(*, proposal: dict[str, Any], attempt_id: str, positio
             return _record_closed_monitor_outcome(
                 proposal=proposal, attempt_id=attempt_id, position=current,
                 submitted_at=submitted_at, entry_spread=entry_spread, risk=risk,
-                close_reason="M1_TWO_OPPOSITE_CLOSED_CANDLES", broker_order_reference=reference,
+                close_reason=f"{owner.upper()}_{invalidation}", broker_order_reference=reference,
                 expected_exit_price=exit_price, closed_costs=costs,
             )
         if single_pass:
@@ -798,11 +959,11 @@ def _monitor_job_path(session_path: Path) -> Path:
     return session_path.with_name("m20_demo_monitor_job.local.json")
 
 
-def _write_monitor_job(*, session_path: Path, proposal: dict[str, Any], attempt_id: str, position: Any, submitted_at: str, entry_spread: float, risk: dict[str, float], offset_seconds: int) -> Path:
+def _write_monitor_job(*, session_path: Path, proposal: dict[str, Any], trade_owner_strategy_id: str, attempt_id: str, position: Any, submitted_at: str, entry_spread: float, risk: dict[str, float], offset_seconds: int) -> Path:
     """Persist accepted-position context so monitoring survives supervisor restart."""
     job = {
         "schema_version": "forex.m20.monitor-job.v1",
-        "proposal": proposal,
+        "proposal": {**proposal, "trade_owner_strategy_id": trade_owner_strategy_id},
         "attempt_id": attempt_id,
         "position": {"ticket": int(position.ticket), "price_open": float(position.price_open), "sl": float(position.sl), "tp": float(position.tp), "volume": float(position.volume), "type": int(position.type)},
         "submitted_at_utc": submitted_at,
@@ -875,7 +1036,7 @@ def recover_open_positions(terminal_path: str) -> dict[str, Any]:
                 volume = float(row["volume"])
                 if volume <= 0:
                     raise ValueError("missing broker-recorded volume")
-                proposal = {"proposal_id": row["proposal_id"], "action": row["action"], "proposed_entry": float(row["proposed_entry"])}
+                proposal = {"proposal_id": row["proposal_id"], "action": row["action"], "proposed_entry": float(row["proposed_entry"]), "trade_owner_strategy_id": row["trade_owner_strategy_id"]}
                 position = SimpleNamespace(
                     ticket=int(row["position_ticket"]), price_open=float(row["entry_price"]),
                     sl=float(row["stop_loss"]), tp=float(row["take_profit"]), volume=volume,
@@ -982,11 +1143,27 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                 "spread_points": round((ask - bid) / float(symbol.point), 4),
         }
         risk = {"volume": float(symbol.volume_min), "tick_size": float(symbol.trade_tick_size), "tick_value_loss": float(symbol.trade_tick_value_loss), "point": float(symbol.point)}
-        snapshot, proposal = _assessment(session, tick_record, raw_bars, captured_at, risk, listener_poll_seconds)
-        strategy_assessments = _strategy_assessments(m1=raw_bars["M1"], tick=tick_record, active_action=proposal["action"])
+        visible_positions = mt5.positions_get(symbol=SYMBOL) or ()
+        safety_gates = {
+            "fresh_quote": int(freshness_seconds) <= MAX_TICK_AGE_SECONDS,
+            "completed_m1": len(raw_bars["M1"]) >= 12,
+            "normal_spread": tick_record["spread_points"] <= 12.0,
+            "no_existing_position": len(visible_positions) == 0,
+            "demo_lease_active": True,
+            # M20 has no configured economic-calendar blackout source yet;
+            # this explicit fixed state prevents a silent, inferred claim.
+            "news_blackout_inactive": True,
+            "abnormal_volatility_inactive": tick_record["spread_points"] <= 12.0,
+        }
+        snapshot, proposal, strategy_selection, strategy_assessments = _assessment(
+            session, tick_record, raw_bars, captured_at, risk, listener_poll_seconds, safety_gates
+        )
         revision, fingerprint = _provenance()
         bridge_session_keys = {"session_id", "server", "instrument", "starts_at_utc", "expires_at_utc", "max_trades", "max_notional_per_trade_usd", "max_cumulative_notional_usd", "max_open_positions", "strategy_version", "operator_label"}
-        bridge_payload = {"session": {key: session[key] for key in bridge_session_keys}, "proposal": proposal, "decision_snapshot": snapshot, "application_revision": revision, "configuration_fingerprint": fingerprint}
+        bridge_payload = {"session": {key: session[key] for key in bridge_session_keys}, "proposal": proposal,
+                          "decision_snapshot": snapshot, "strategy_selection": strategy_selection,
+                          "strategy_assessments": strategy_assessments, "application_revision": revision,
+                          "configuration_fingerprint": fingerprint}
         if proposal["action"] != "NO_TRADE":
             positions = mt5.positions_get(symbol=SYMBOL) or ()
             if positions:
@@ -995,7 +1172,20 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                     "take_profit": None, "notional_usd": None, "confidence": 100,
                     "rationale": "An owned EURUSD Demo position is already being monitored; this assessment is recorded without a second order.",
                 })
+                # A position gate changes an actionable proposal to a refusal;
+                # it must also cease to claim executable selection/cost status.
+                strategy_selection.update({"selected_strategy_id": None, "strategy_rule_version": None,
+                                           "selection_status": "NO_SELECTION", "trade_owner_strategy_id": None,
+                                           "market_regime": "UNSAFE_OR_UNTRADEABLE",
+                                           "market_regime_reason": "A fixed M20 EURUSD Demo position is already open.",
+                                           "entry_spread_cost_aud": None, "expected_exit_spread_cost_aud": None,
+                                           "commission_allowance_aud": None, "slippage_allowance_aud": None,
+                                           "expected_swap_aud": None, "projected_gross_profit_at_take_profit_aud": None,
+                                           "estimated_round_trip_cost_aud": None, "minimum_net_profit_aud": None,
+                                           "expected_net_profit_at_take_profit_aud": None,
+                                           "cost_coverage_status": "NOT_APPLICABLE"})
                 bridge_payload["proposal"] = proposal
+                bridge_payload["strategy_selection"] = strategy_selection
         persisted = _bridge(bridge_payload, "persist-proposal")
         if proposal["action"] != "NO_TRADE":
             submitted_at = utc(datetime.now(timezone.utc))
@@ -1059,6 +1249,10 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                 "broker_requested_take_profit": getattr(broker_request, "tp", None),
                 "position_ticket": int(position.ticket) if position else None,
             }
+            if position is not None:
+                # The proposal price is only the requested price.  Preserve
+                # the broker-observed opening fill separately for the ledger.
+                result_context["actual_entry_price"] = float(position.price_open)
             result_payload = {"event_id": str(uuid5(NAMESPACE_URL, f"{attempt_id}:result")), "attempt_id": attempt_id,
                               "event_type": event_type, "observed_at_utc": utc(datetime.now(timezone.utc)),
                               "broker_order_reference": broker_reference, "payload_sha256": "sha256:" + hashlib.sha256(json.dumps(result_context, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
@@ -1069,7 +1263,7 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                     raise SystemExit("M20 accepted broker result has no owned EURUSD position")
                 _bridge({"state": {"proposal_id": proposal["proposal_id"], "attempt_id": attempt_id, "position_ticket": int(position.ticket), "action": proposal["action"], "opened_at_utc": utc(datetime.now(timezone.utc)), "observed_at_utc": utc(datetime.now(timezone.utc)), "entry_price": float(position.price_open), "stop_loss": float(position.sl), "take_profit": float(position.tp)}}, "record-open-position")
                 monitor_job = _write_monitor_job(
-                    session_path=session_path, proposal=proposal, attempt_id=attempt_id,
+                    session_path=session_path, proposal=proposal, trade_owner_strategy_id=strategy_selection["trade_owner_strategy_id"], attempt_id=attempt_id,
                     position=position, submitted_at=submitted_at, entry_spread=ask - bid,
                     risk=risk, offset_seconds=offset_seconds,
                 )
@@ -1079,7 +1273,7 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
             expected_status = "OPEN_MONITORING" if accepted else "MATCHED"
             if reconciliation.get("status") != expected_status:
                 raise SystemExit("M20 actionable execution was not reconciled")
-            return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "decision_snapshot": snapshot, "proposal": proposal, "strategy_assessments": strategy_assessments, "execution": {"status": "ACCEPTED" if accepted else "REJECTED", "attempt_id": attempt_id, "session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "idempotency_key": reservation["idempotency_key"], "submitted_at_utc": submitted_at, "open_positions_before": 0, "cumulative_notional_before_usd": 0, "broker_retcode": getattr(result, "retcode", None), "monitor_job_scheduled": accepted, "monitor_job_path": str(monitor_job) if accepted else None}, "reconciliation": reconciliation, "postgres_audit": reserved["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
+            return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments, "execution": {"status": "ACCEPTED" if accepted else "REJECTED", "attempt_id": attempt_id, "session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "idempotency_key": reservation["idempotency_key"], "submitted_at_utc": submitted_at, "open_positions_before": 0, "cumulative_notional_before_usd": 0, "broker_retcode": getattr(result, "retcode", None), "monitor_job_scheduled": accepted, "monitor_job_path": str(monitor_job) if accepted else None}, "reconciliation": reconciliation, "postgres_audit": reserved["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
         reconciled = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")
         reconciliation = reconciled.get("reconciliation")
         if not isinstance(reconciliation, dict) or reconciliation.get("status") != "NO_TRADE_RECONCILED":
@@ -1090,7 +1284,7 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
             "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL,
             "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint,
             "tick_timestamp_offset_seconds": offset_seconds,
-            "session": session, "decision_snapshot": snapshot, "proposal": proposal, "strategy_assessments": strategy_assessments,
+            "session": session, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments,
             "execution": {"status": "NOT_SUBMITTED", "attempt_id": None},
             "reconciliation": reconciliation, "postgres_audit": persisted["postgres_audit"],
             "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED"),

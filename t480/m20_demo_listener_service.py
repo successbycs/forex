@@ -121,6 +121,7 @@ def _load_environment() -> None:
     required = {
         "FOREX_M20_DEMO_TRADING_SESSION_SHA256", "FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256",
         "FOREX_M20_CONFIGURATION_FINGERPRINT", "FOREX_M20_TICK_TIME_OFFSET_SECONDS",
+        "FOREX_M20_MINIMUM_NET_PROFIT_AUD",
         "FOREX_M20_APPLICATION_REVISION", "python_path", "terminal_path",
     }
     if not isinstance(values, dict) or set(values) != required:
@@ -260,6 +261,7 @@ def run() -> None:
     last_result: dict[str, Any] = {}
     next_assessment_at = 0.0
     last_assessed_tick_time_msc = _last_assessed_tick_time_msc()
+    last_quote: dict[str, Any] | None = None
     monitor_state: dict[str, Any] = {"state": "IDLE"}
     monitor_retry_at = 0.0
     last_assessment_completed_at_utc: str | None = None
@@ -278,7 +280,7 @@ def run() -> None:
                            "last_result": last_result, "next_assessment_at_utc": None,
                            "assessment_completed_at_utc": last_assessment_completed_at_utc,
                            "assessment_duration_ms": last_assessment_duration_ms,
-                           "monitor": monitor_state,
+                           "monitor": monitor_state, "quote": last_quote,
                            "detail": "Service is alive; no tick capture or Demo order is permitted without an active Demo lease."})
             time.sleep(POLL_SECONDS)
             continue
@@ -306,6 +308,7 @@ def run() -> None:
                            "detail": "Waiting for a readable fresh Demo EURUSD quote; no assessment or order is submitted."})
             time.sleep(POLL_SECONDS)
             continue
+        last_quote = quote
         if int(quote["tick_time_msc"]) <= last_assessed_tick_time_msc:
             monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
             _write_status({"state": "WAITING_FOR_FRESH_MT5_QUOTE", "iteration": iteration,
@@ -339,7 +342,7 @@ def run() -> None:
         try:
             output = json.loads(completed.stdout)
             proposal = output.get("proposal", {})
-            last_result = {key: output.get(key) for key in ("marker", "server", "symbol", "captured_at_utc", "proposal", "strategy_assessments", "execution", "reconciliation")}
+            last_result = {key: output.get(key) for key in ("marker", "server", "symbol", "captured_at_utc", "proposal", "strategy_selection", "strategy_assessments", "execution", "reconciliation")}
             last_result["assessment_metrics"] = _assessment_metrics(output.get("decision_snapshot", {}), proposal)
         except json.JSONDecodeError:
             last_result = {"error": completed.stderr.strip() or completed.stdout.strip(), "exit_code": completed.returncode}
