@@ -2494,11 +2494,17 @@
       ],
       "expected_artifacts": [
         "docs/milestones/M20-demo-trading-mvp.md",
+        "docs/milestones/M20.12-multi-timeframe-context-trial.md",
+        "docs/milestones/M20.13-cost-aware-protected-exit-analysis.md",
+        "docs/milestones/M20.14-agentic-macro-event-shadow-trial.md",
+        "sql/migrations/015_m20_multi_timeframe_context.sql",
         "docs/milestones/M20-mvp-retrospective.md",
         "docs/m1_trading_strategy.md",
         "scripts/m20_listener_dashboard.py",
         "scripts/m20_trade_ledger_dashboard.py",
         "t480/m20_demo_listener_service.py",
+        "t480/m20_demo_trading_session.py",
+        "t480/m20_postgres_audit_bridge.py",
         "scripts/postgres_pgvector_adapter.py",
         "tests/milestones/test_m20_demo_trading.py",
         "tests/milestones/test_m20_listener_service.py",
@@ -2652,6 +2658,24 @@
           "title": "Controlled five-strategy Demo execution trial",
           "dependencies": ["M20.5", "M20.7", "M20.8", "M20.9", "M20.10"],
           "acceptance_criteria": ["M20-C1", "M20-C2", "M20-C3", "M20-C4", "M20-C5"]
+        },
+        {
+          "work_package_id": "M20.12",
+          "title": "Read-only M5/H1 context trial for M1 Demo execution",
+          "dependencies": ["M20.11"],
+          "acceptance_criteria": ["M20-C1", "M20-C2", "M20-C4", "M20-C5"]
+        },
+        {
+          "work_package_id": "M20.13",
+          "title": "Cost-aware protected-exit analysis (planned; no rule change)",
+          "dependencies": ["M20.11"],
+          "acceptance_criteria": ["M20-C2", "M20-C4", "M20-C5"]
+        },
+        {
+          "work_package_id": "M20.14",
+          "title": "Agentic macro/event shadow analysis (planned; no execution influence)",
+          "dependencies": ["M20.13"],
+          "acceptance_criteria": ["M20-C2", "M20-C4", "M20-C5"]
         }
       ]
     },

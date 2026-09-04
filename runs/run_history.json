@@ -8702,6 +8702,229 @@
         ],
         "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
       }
+    },
+    {
+      "event_id": "E000591",
+      "timestamp": "2026-09-04T03:02:50Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:6453451e702fe7ea0453bf388c60c149d5280bc035abb30c56bae976182de53f",
+        "current": "sha256:b99ad4cca79f4f2243081ca875c9cd6508ce17ff5ade0e8f351e7125ecbd68f6",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
+    },
+    {
+      "event_id": "E000592",
+      "timestamp": "2026-09-04T03:09:45Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:b99ad4cca79f4f2243081ca875c9cd6508ce17ff5ade0e8f351e7125ecbd68f6",
+        "current": "sha256:4314505546f5f727b4d870e2cd4bd896a4fda4610d142af9dba556141b92ee96",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
+    },
+    {
+      "event_id": "E000593",
+      "timestamp": "2026-09-04T03:19:18Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:4314505546f5f727b4d870e2cd4bd896a4fda4610d142af9dba556141b92ee96",
+        "current": "sha256:3b3a6b4fb7673f7c5ec7aad3df2c110342bf9954d8a58a79640f7fa57e84682e",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
+    },
+    {
+      "event_id": "E000594",
+      "timestamp": "2026-09-04T03:20:03Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:3b3a6b4fb7673f7c5ec7aad3df2c110342bf9954d8a58a79640f7fa57e84682e",
+        "current": "sha256:0589af2801c60b13d23c41d74109778539d42eefa979ddc7751364a8597a5c04",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
+    },
+    {
+      "event_id": "E000595",
+      "timestamp": "2026-09-04T03:25:36Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:0589af2801c60b13d23c41d74109778539d42eefa979ddc7751364a8597a5c04",
+        "current": "sha256:e3d22e9c26e4dfe74d08a21560d22a4a01b1b4e411572938f301e27db1c20fc9",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
+    },
+    {
+      "event_id": "E000596",
+      "timestamp": "2026-09-04T03:56:32Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:e3d22e9c26e4dfe74d08a21560d22a4a01b1b4e411572938f301e27db1c20fc9",
+        "current": "sha256:d100145fc7c73b3db69d81d51f5909d998b5b9a3baf92418e026cdbf252b175f",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
+    },
+    {
+      "event_id": "E000597",
+      "timestamp": "2026-09-04T04:23:23Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260904T042322Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260904T042322Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260904T042322Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260904T042322Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
     }
   ]
 }

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Read-only M20.11 strategy-trial scoreboard. It has no MT5 order surface.
+set -euo pipefail
+exec python3 "$(dirname "$0")/scripts/m20_strategy_trial_dashboard.py"

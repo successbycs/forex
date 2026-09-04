@@ -12,7 +12,7 @@ import hashlib
 import json
 import os
 import sys
-from datetime import timezone
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -119,12 +119,70 @@ def _metadata(payload: dict[str, Any]) -> tuple[str, str]:
     return revision, fingerprint
 
 
+def _parse_utc(value: Any, label: str) -> datetime:
+    if not isinstance(value, str):
+        raise SystemExit(f"M20.12 context {label} is not UTC text")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise SystemExit(f"M20.12 context {label} is not UTC text") from error
+    if parsed.tzinfo is None or parsed.utcoffset() != timezone.utc.utcoffset(parsed):
+        raise SystemExit(f"M20.12 context {label} is not UTC")
+    return parsed
+
+
+def _multi_timeframe_context(payload: dict[str, Any], proposal: dict[str, Any]) -> dict[str, Any]:
+    """Validate the fixed observational M5/H1 context; it grants no authority."""
+    value = _object(payload, "multi_timeframe_context")
+    required = {"context_id", "proposal_id", "selected_m1_action", "overall_alignment", "context_disposition", "reason", "rule_version", "retrieved_at_utc", "source_inputs_sha256", "contexts"}
+    rows_required = {"timeframe", "closed_at_utc", "data_age_seconds", "integrity_status", "market_state", "volatility_state", "liquidity_state", "alignment", "reason", "source_inputs"}
+    alignments = {"ALIGNED", "NEUTRAL", "OPPOSED", "UNAVAILABLE", "NOT_APPLICABLE"}
+    if (set(value) != required or value["proposal_id"] != proposal["proposal_id"]
+            or value["selected_m1_action"] != proposal["action"]
+            or value["overall_alignment"] not in alignments
+            or value["context_disposition"] not in {"OBSERVE_ONLY", "NEUTRAL", "HARD_CONFLICT"}
+            or not isinstance(value["context_id"], str) or not value["context_id"]
+            or not isinstance(value["reason"], str) or not value["reason"]
+            or not isinstance(value["rule_version"], str) or not value["rule_version"]
+            or not isinstance(value["source_inputs_sha256"], str) or len(value["source_inputs_sha256"]) != 71
+            or not value["source_inputs_sha256"].startswith("sha256:")
+            or any(character not in "0123456789abcdef" for character in value["source_inputs_sha256"][7:])
+            or not isinstance(value["contexts"], list) or [row.get("timeframe") if isinstance(row, dict) else None for row in value["contexts"]] != ["M5", "H1"]):
+        raise SystemExit("M20.12 multi-timeframe context is invalid")
+    _parse_utc(value["retrieved_at_utc"], "retrieved_at_utc")
+    if value["context_disposition"] == "HARD_CONFLICT" and value["overall_alignment"] != "OPPOSED":
+        raise SystemExit("M20.12 hard conflict must be opposed context")
+    for row in value["contexts"]:
+        if (set(row) != rows_required or row["integrity_status"] not in {"VALID", "STALE", "UNAVAILABLE", "INVALID"}
+                or row["market_state"] not in {"BULLISH", "BEARISH", "RANGE", "MIXED", "UNKNOWN"}
+                or row["volatility_state"] not in {"LOW", "NORMAL", "HIGH", "UNKNOWN"}
+                or row["liquidity_state"] not in {"LIQUID", "THIN", "UNKNOWN"}
+                or row["alignment"] not in alignments or not isinstance(row["reason"], str) or not row["reason"]
+                or not isinstance(row["source_inputs"], dict)
+                or not {"selected_m1_owner", "pre_context_m1_candidate", "final_m1_action"}.issubset(row["source_inputs"])):
+            raise SystemExit("M20.12 context row is invalid")
+        if row["source_inputs"]["final_m1_action"] != proposal["action"]:
+            raise SystemExit("M20.12 context cannot alter the M1 proposal action")
+        unavailable = row["integrity_status"] in {"UNAVAILABLE", "INVALID"}
+        if unavailable and (row["closed_at_utc"] is not None or row["data_age_seconds"] is not None
+                            or row["market_state"] != "UNKNOWN" or row["volatility_state"] != "UNKNOWN"
+                            or row["liquidity_state"] != "UNKNOWN" or row["alignment"] != "UNAVAILABLE"):
+            raise SystemExit("M20.12 unavailable context must remain visibly neutral")
+        if not unavailable:
+            closed_at = _parse_utc(row["closed_at_utc"], f"{row['timeframe']} closed_at_utc")
+            if (not isinstance(row["data_age_seconds"], int) or row["data_age_seconds"] < 0
+                    or closed_at > _parse_utc(value["retrieved_at_utc"], "retrieved_at_utc")):
+                raise SystemExit("M20.12 closed context data is invalid")
+    return value
+
+
 def persist_proposal(payload: dict[str, Any]) -> dict[str, Any]:
     """Persist immutable proposal and snapshot before any broker submission."""
     session, proposal = _session(payload), _proposal(payload)
     snapshot = _snapshot(payload, proposal)
     selection = _strategy_selection(payload, proposal)
     assessments = _strategy_assessments(payload)
+    context = _multi_timeframe_context(payload, proposal)
     revision, fingerprint = _metadata(payload)
     with _connection() as conn, conn.cursor() as cursor:
         cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (session["session_id"],))
@@ -162,7 +220,16 @@ def persist_proposal(payload: dict[str, Any]) -> dict[str, Any]:
                 "INSERT INTO forex.demo_strategy_signal (proposal_id,strategy_id,signal,eligible_for_execution,reason,observed_at_utc) VALUES (%s,%s,%s,%s,%s,%s)",
                 (proposal["proposal_id"], assessment["id"], assessment["signal"], assessment["eligible_for_execution"], assessment["reason"], snapshot["observed_at_utc"]),
             )
-    receipt = {"session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "snapshot_id": snapshot["snapshot_id"]}
+        cursor.execute(
+            "INSERT INTO forex.demo_multi_timeframe_context (context_id,proposal_id,selected_m1_action,overall_alignment,context_disposition,reason,rule_version,retrieved_at_utc,source_inputs_sha256) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            tuple(context[key] for key in ("context_id", "proposal_id", "selected_m1_action", "overall_alignment", "context_disposition", "reason", "rule_version", "retrieved_at_utc", "source_inputs_sha256")),
+        )
+        for row in context["contexts"]:
+            cursor.execute(
+                "INSERT INTO forex.demo_multi_timeframe_context_bar (context_id,timeframe,closed_at_utc,data_age_seconds,integrity_status,market_state,volatility_state,liquidity_state,alignment,reason,source_inputs) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb)",
+                (context["context_id"], row["timeframe"], row["closed_at_utc"], row["data_age_seconds"], row["integrity_status"], row["market_state"], row["volatility_state"], row["liquidity_state"], row["alignment"], row["reason"], json.dumps(row["source_inputs"])),
+            )
+    receipt = {"session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "snapshot_id": snapshot["snapshot_id"], "multi_timeframe_context_id": context["context_id"]}
     return {"ok": True, "postgres_audit": {**receipt, "execution_attempt_id": None, "record_sha256": _digest({**receipt, "execution_attempt_id": None})}}
 
 
@@ -365,7 +432,7 @@ def load_open_positions(payload: dict[str, Any]) -> dict[str, Any]:
         raise SystemExit("M20 open-position recovery accepts no arguments")
     with _connection() as conn, conn.cursor() as cursor:
         cursor.execute(
-            """SELECT state.proposal_id,p.action,p.proposed_entry,a.attempt_id,a.submitted_at_utc,
+            """SELECT state.proposal_id,p.action,p.proposed_entry,p.stop_loss,a.attempt_id,a.submitted_at_utc,
                       state.position_ticket,state.entry_price,state.stop_loss,state.take_profit,state.break_even_applied,
                       snapshot.ask-snapshot.bid,
                       COALESCE((SELECT event.payload->>'volume' FROM forex.demo_position_event event
@@ -382,16 +449,20 @@ def load_open_positions(payload: dict[str, Any]) -> dict[str, Any]:
     positions = []
     for row in rows:
         try:
-            volume = float(row[11])
+            # Column 11 is the decision snapshot's entry spread.  The
+            # broker-recorded OPENED-event volume follows it at column 12.
+            # Treating the spread as lots makes restart recovery refuse a
+            # perfectly valid open position as having no measurable volume.
+            volume = float(row[12])
         except (TypeError, ValueError):
             volume = 0.0
         positions.append({
             "proposal_id": row[0], "action": row[1], "proposed_entry": float(row[2]),
-            "attempt_id": row[3], "submitted_at_utc": row[4].astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
-            "position_ticket": int(row[5]), "entry_price": float(row[6]),
-            "stop_loss": float(row[7]), "take_profit": float(row[8]),
-            "break_even_applied": bool(row[9]), "entry_spread": float(row[10]), "volume": volume,
-            "trade_owner_strategy_id": row[12],
+            "initial_stop_loss": float(row[3]), "attempt_id": row[4], "submitted_at_utc": row[5].astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "position_ticket": int(row[6]), "entry_price": float(row[7]),
+            "stop_loss": float(row[8]), "take_profit": float(row[9]),
+            "break_even_applied": bool(row[10]), "entry_spread": float(row[11]), "volume": volume,
+            "trade_owner_strategy_id": row[13],
         })
     return {"ok": True, "open_positions": positions}
 

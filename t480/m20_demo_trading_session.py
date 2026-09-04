@@ -12,6 +12,8 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 import hashlib
+import importlib.machinery
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -38,8 +40,14 @@ SESSION_AUDIT_REQUIREMENTS = {
 }
 TIMEFRAMES = (
     ("M1", mt5.TIMEFRAME_M1, 60),
+    # M5/H1 are collected only for the staged M20.12 shadow experiment.
+    # Neither is passed to selection, trade planning, order submission, or
+    # monitoring; M1 remains the sole execution timeframe.
+    ("M5", mt5.TIMEFRAME_M5, 5 * 60),
+    ("H1", mt5.TIMEFRAME_H1, 60 * 60),
 )
 STRATEGY_VERSION = "forex.m20.11.m1-five-strategy-trial.v2"
+SHADOW_CONTEXT_RULE_VERSION = "forex.m20.12.m5-h1-shadow-context.v1"
 OPERATOR_LABEL = "codex-m20-demo"
 EXECUTOR_MAGIC = 20260020
 CLOSE_TIMEOUT_SECONDS = 20
@@ -204,6 +212,100 @@ def _bar_rows(rates: Any, *, timeframe_name: str, seconds: int, cutoff: int, tim
         raise SystemExit(f"expected exactly {CLOSED_BAR_COUNT} closed EURUSD {timeframe_name} candles")
     raw = json.dumps(rows, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return rows, hashlib.sha256(raw).hexdigest()
+
+
+def _shadow_context_rows(*, timeframe_name: str, timeframe: Any, seconds: int, observed_at: datetime, timestamp_offset_seconds: int) -> tuple[list[dict[str, Any]], str | None]:
+    """Read fixed native closed context candles without blocking M1 execution.
+
+    M20.12 records absence or invalidity as visible `UNAVAILABLE` context. It
+    never turns a higher-timeframe read problem into a M1 order refusal.
+    """
+    try:
+        rates = mt5.copy_rates_from_pos(SYMBOL, timeframe, 1, CLOSED_BAR_COUNT + 8)
+        rows, digest = _bar_rows(
+            rates, timeframe_name=timeframe_name, seconds=seconds,
+            cutoff=int(observed_at.timestamp()) // seconds * seconds,
+            timestamp_offset_seconds=timestamp_offset_seconds,
+        )
+        return [{"timeframe": timeframe_name, **row} for row in rows], digest
+    except (SystemExit, TypeError, ValueError, KeyError):
+        return [], None
+
+
+def _shadow_context(*, proposal: dict[str, Any], selection: dict[str, Any], assessments: list[dict[str, Any]], bars: dict[str, list[dict[str, Any]]], observed_at: str, spread_points: float, pre_context_owner: str | None = None, pre_context_candidate: str | None = None) -> dict[str, Any]:
+    """Classify fixed closed M5/H1 candles as non-authoritative context."""
+    observed = parse_utc(observed_at, "observed_at_utc")
+    signals = {str(item.get("id")): str(item.get("signal")) for item in assessments}
+    owner = pre_context_owner if pre_context_owner is not None else selection.get("selected_strategy_id")
+    candidate = pre_context_candidate if pre_context_candidate is not None else (signals.get(str(owner), "NO_TRADE") if owner else "NO_TRADE")
+
+    def one(timeframe: str, seconds: int) -> dict[str, Any]:
+        rows = bars.get(timeframe, [])
+        if len(rows) < 5:
+            return {
+                "timeframe": timeframe, "closed_at_utc": None, "data_age_seconds": None,
+                "integrity_status": "UNAVAILABLE", "market_state": "UNKNOWN",
+                "volatility_state": "UNKNOWN", "liquidity_state": "UNKNOWN",
+                "alignment": "UNAVAILABLE", "reason": f"No usable closed {timeframe} context candle was returned.",
+                "source_inputs": {"selected_m1_owner": owner, "pre_context_m1_candidate": candidate,
+                                  "final_m1_action": proposal["action"], "rows_returned": len(rows)},
+            }
+        latest = rows[-1]
+        closed_at = parse_utc(latest["closed_at_utc"], "closed_at_utc")
+        age = max(0, round((observed - closed_at).total_seconds()))
+        recent = rows[-5:]
+        start, end = float(recent[0]["close"]), float(recent[-1]["close"])
+        ranges = [max(0.0, float(row["high"]) - float(row["low"])) / 0.00001 for row in recent]
+        average_range = sum(ranges) / len(ranges)
+        trend_points = (end - start) / 0.00001
+        threshold = max(2.0, average_range * 0.25)
+        market_state = "BULLISH" if trend_points > threshold else "BEARISH" if trend_points < -threshold else "RANGE"
+        volatility = "HIGH" if average_range > 30 else "LOW" if average_range < 8 else "NORMAL"
+        liquidity = "THIN" if spread_points > 12 or min(int(row["volume"]) for row in recent) <= 0 else "LIQUID"
+        if candidate == "BUY" and market_state == "BULLISH":
+            alignment = "ALIGNED"
+        elif candidate == "SELL" and market_state == "BEARISH":
+            alignment = "ALIGNED"
+        elif candidate in {"BUY", "SELL"} and market_state in {"BULLISH", "BEARISH"}:
+            alignment = "OPPOSED"
+        else:
+            alignment = "NEUTRAL"
+        return {
+            "timeframe": timeframe, "closed_at_utc": latest["closed_at_utc"], "data_age_seconds": age,
+            "integrity_status": "VALID", "market_state": market_state,
+            "volatility_state": volatility, "liquidity_state": liquidity, "alignment": alignment,
+            "reason": f"Five-candle close change {trend_points:.1f} pts; average range {average_range:.1f} pts; M1 candidate {candidate}.",
+            "source_inputs": {"selected_m1_owner": owner, "pre_context_m1_candidate": candidate,
+                              "final_m1_action": proposal["action"], "latest_close": end,
+                              "five_candle_start_close": start, "trend_points": round(trend_points, 3),
+                              "average_range_points": round(average_range, 3),
+                              "observed_spread_points": round(spread_points, 3),
+                              "native_period_seconds": seconds},
+        }
+
+    contexts = [one("M5", 5 * 60), one("H1", 60 * 60)]
+    alignments = {item["alignment"] for item in contexts}
+    if "OPPOSED" in alignments:
+        overall, disposition = "OPPOSED", "HARD_CONFLICT"
+        reason = "At least one available higher timeframe opposes the selected M1 candidate; recorded only."
+    elif candidate in {"BUY", "SELL"} and alignments == {"ALIGNED"}:
+        overall, disposition = "ALIGNED", "OBSERVE_ONLY"
+        reason = "Both available higher timeframes align with the selected M1 candidate; recorded only."
+    elif "UNAVAILABLE" in alignments:
+        overall, disposition = "NEUTRAL", "NEUTRAL"
+        reason = "One or more higher-timeframe inputs are unavailable; M1 authority is unchanged."
+    else:
+        overall, disposition = "NEUTRAL", "OBSERVE_ONLY"
+        reason = "Available higher-timeframe context is mixed, ranging, or has no selected M1 candidate."
+    source_inputs = {"m1_candidate_action": candidate, "selected_m1_strategy": owner, "final_proposal_action": proposal["action"], "m1_strategy_version": proposal["strategy_version"], "contexts": [item["source_inputs"] for item in contexts]}
+    source_inputs_sha256 = "sha256:" + hashlib.sha256(json.dumps(source_inputs, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    context_id = str(uuid5(NAMESPACE_URL, f"{proposal['proposal_id']}:{source_inputs_sha256}"))
+    return {
+        "context_id": context_id, "proposal_id": proposal["proposal_id"], "selected_m1_action": proposal["action"],
+        "overall_alignment": overall, "context_disposition": disposition, "reason": reason,
+        "rule_version": SHADOW_CONTEXT_RULE_VERSION, "retrieved_at_utc": observed_at,
+        "source_inputs_sha256": source_inputs_sha256, "contexts": contexts,
+    }
 
 
 def _bridge(payload: dict[str, Any], command: str) -> dict[str, Any]:
@@ -785,6 +887,60 @@ def _two_opposite_completed_m1_candles(*, bars: list[dict[str, Any]], action: st
     )
 
 
+def _notify_reconciled_sale(*, proposal: dict[str, Any], position: Any, outcome: dict[str, Any], costs: dict[str, float]) -> None:
+    """Best-effort human notification after the immutable close is reconciled.
+
+    Notification is deliberately outside the execution and reconciliation
+    boundary: a missing webhook, unavailable Discord, or malformed account
+    snapshot cannot reverse, delay, or invalidate an already broker-matched
+    Demo outcome.
+    """
+    try:
+        # Endpoint protection can lock newly-created .py files under
+        # ProgramData.  The hash-checked release therefore stages this fixed
+        # source as a non-executable payload, then loads it explicitly.
+        adapter_path = Path(__file__).with_name("m20_discord_trade_notification.payload")
+        loader = importlib.machinery.SourceFileLoader("m20_discord_trade_notification", str(adapter_path))
+        spec = importlib.util.spec_from_loader("m20_discord_trade_notification", loader)
+        if spec is None or spec.loader is None:
+            raise ImportError("M20 Discord sale-notification payload is unavailable")
+        adapter = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(adapter)
+        notify_sale = adapter.notify_sale
+
+        account = mt5.account_info()
+        ticket = int(getattr(position, "ticket", 0))
+        liquidity = {
+            "currency": str(getattr(account, "currency", "")),
+            "balance": float(getattr(account, "balance", 0)),
+            "equity": float(getattr(account, "equity", 0)),
+            "free_margin": float(getattr(account, "margin_free", 0)),
+            "margin": float(getattr(account, "margin", 0)),
+            "floating_pnl": float(getattr(account, "profit", 0)),
+        }
+        notification = notify_sale({
+            "server": SERVER, "symbol": SYMBOL, "proposal_id": proposal["proposal_id"],
+            "position_ticket": ticket, "side": proposal["action"],
+            "strategy": str(proposal.get("trade_owner_strategy_id", "unknown")),
+            "opened_at_utc": str(proposal.get("decision_at_utc", "unknown")),
+            "closed_at_utc": outcome["closed_at_utc"],
+            "entry_price": float(getattr(position, "price_open", 0)),
+            "exit_price": float(outcome["exit_price"]),
+            "lots": float(getattr(position, "volume", 0)),
+            "close_reason": outcome["close_reason"],
+            "gross_pnl_aud": costs["gross_price_pnl_account"],
+            "commission_aud": costs["commission_account"],
+            "swap_aud": costs["swap_account"],
+            "estimated_cost_aud": costs["estimated_total_cost_account"],
+            "realized_pnl_aud": costs["realized_pnl_account"],
+            "liquidity": liquidity,
+        })
+        if not notification.get("ok"):
+            print(f"M20 Discord sale notification failed after reconciliation: {notification.get('detail', 'unknown failure')}", file=sys.stderr)
+    except (ImportError, AttributeError, TypeError, ValueError, OSError) as error:
+        print(f"M20 Discord sale notification unavailable after reconciliation: {error}", file=sys.stderr)
+
+
 def _record_closed_monitor_outcome(*, proposal: dict[str, Any], attempt_id: str, position: Any, submitted_at: datetime, entry_spread: float, risk: dict[str, float], close_reason: str, broker_order_reference: str, expected_exit_price: float | None, closed_costs: dict[str, float] | None = None) -> dict[str, Any]:
     """Write the final lifecycle event and immutable AUD outcome once."""
     if closed_costs is None:
@@ -823,6 +979,9 @@ def _record_closed_monitor_outcome(*, proposal: dict[str, Any], attempt_id: str,
     reconciliation = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")["reconciliation"]
     if reconciliation.get("status") != "MATCHED":
         raise SystemExit("M20 closed monitored position was not reconciled")
+    # This comes last: PostgreSQL remains the source of truth even if Discord
+    # is intentionally disabled or temporarily unavailable.
+    _notify_reconciled_sale(proposal=proposal, position=position, outcome=outcome, costs=costs)
     return reconciliation
 
 
@@ -886,13 +1045,18 @@ def _monitor_open_position(*, proposal: dict[str, Any], attempt_id: str, positio
     ticket = int(getattr(position, "ticket", 0))
     action = proposal["action"]
     entry = float(getattr(position, "price_open", 0))
-    original_stop = float(getattr(position, "sl", 0))
+    current_stop = float(getattr(position, "sl", 0))
     take_profit = float(getattr(position, "tp", 0))
     owner = proposal.get("trade_owner_strategy_id")
     maximum_hold_seconds, invalidation = _owner_exit_contract(str(owner))
-    if ticket <= 0 or action not in {"BUY", "SELL"} or min(entry, original_stop, take_profit) <= 0:
+    # The durable open-state stop is intentionally updated to entry after the
+    # +1R break-even protection fires.  Recovery must retain the immutable
+    # proposal stop as the *initial* risk reference; otherwise it would see a
+    # zero-distance stop and abandon the owner's time/candle exits.
+    initial_stop = float(proposal.get("initial_stop_loss", proposal.get("stop_loss", current_stop)) or 0)
+    if ticket <= 0 or action not in {"BUY", "SELL"} or min(entry, current_stop, initial_stop, take_profit) <= 0:
         raise SystemExit("M20 open position monitor inputs are invalid")
-    risk_distance = abs(entry - original_stop)
+    risk_distance = abs(entry - initial_stop)
     if risk_distance <= 0:
         raise SystemExit("M20 open position has no measurable initial risk")
     # A recovery pass is deliberately short, but the trade's M1 exit window
@@ -1036,7 +1200,7 @@ def recover_open_positions(terminal_path: str) -> dict[str, Any]:
                 volume = float(row["volume"])
                 if volume <= 0:
                     raise ValueError("missing broker-recorded volume")
-                proposal = {"proposal_id": row["proposal_id"], "action": row["action"], "proposed_entry": float(row["proposed_entry"]), "trade_owner_strategy_id": row["trade_owner_strategy_id"]}
+                proposal = {"proposal_id": row["proposal_id"], "action": row["action"], "proposed_entry": float(row["proposed_entry"]), "initial_stop_loss": float(row["initial_stop_loss"]), "trade_owner_strategy_id": row["trade_owner_strategy_id"]}
                 position = SimpleNamespace(
                     ticket=int(row["position_ticket"]), price_open=float(row["entry_price"]),
                     sl=float(row["stop_loss"]), tp=float(row["take_profit"]), volume=volume,
@@ -1121,19 +1285,17 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
             raise SystemExit("EURUSD tick bid/ask is invalid")
         raw_bars: dict[str, list[dict[str, Any]]] = {}
         for name, timeframe, seconds in TIMEFRAMES:
-            rates = mt5.copy_rates_from_pos(SYMBOL, timeframe, 1, CLOSED_BAR_COUNT + 8)
-            boundary = int(observed_at.timestamp()) // seconds * seconds
-            rows, digest = _bar_rows(
-                rates,
-                timeframe_name=name,
-                seconds=seconds,
-                cutoff=boundary,
-                timestamp_offset_seconds=offset_seconds,
-            )
-            raw_bars[name] = [{"timeframe": name, **row} for row in rows]
-        # The audit schema retains this legacy field but M20's M1-only
-        # listener deliberately does not collect, use, or retain M5 data.
-        raw_bars["M5"] = []
+            if name == "M1":
+                rates = mt5.copy_rates_from_pos(SYMBOL, timeframe, 1, CLOSED_BAR_COUNT + 8)
+                boundary = int(observed_at.timestamp()) // seconds * seconds
+                rows, _ = _bar_rows(rates, timeframe_name=name, seconds=seconds,
+                                    cutoff=boundary, timestamp_offset_seconds=offset_seconds)
+                raw_bars[name] = [{"timeframe": name, **row} for row in rows]
+            else:
+                raw_bars[name], _ = _shadow_context_rows(
+                    timeframe_name=name, timeframe=timeframe, seconds=seconds,
+                    observed_at=observed_at, timestamp_offset_seconds=offset_seconds,
+                )
         session = _session(lease)
         tick_record = {
                 "observed_at_utc": utc(observed_at),
@@ -1158,6 +1320,8 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         snapshot, proposal, strategy_selection, strategy_assessments = _assessment(
             session, tick_record, raw_bars, captured_at, risk, listener_poll_seconds, safety_gates
         )
+        pre_context_owner = strategy_selection.get("selected_strategy_id")
+        pre_context_candidate = next((item["signal"] for item in strategy_assessments if item["id"] == pre_context_owner), "NO_TRADE")
         revision, fingerprint = _provenance()
         bridge_session_keys = {"session_id", "server", "instrument", "starts_at_utc", "expires_at_utc", "max_trades", "max_notional_per_trade_usd", "max_cumulative_notional_usd", "max_open_positions", "strategy_version", "operator_label"}
         bridge_payload = {"session": {key: session[key] for key in bridge_session_keys}, "proposal": proposal,
@@ -1186,6 +1350,14 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                                            "cost_coverage_status": "NOT_APPLICABLE"})
                 bridge_payload["proposal"] = proposal
                 bridge_payload["strategy_selection"] = strategy_selection
+        multi_timeframe_context = _shadow_context(
+            proposal=proposal, selection=strategy_selection, assessments=strategy_assessments,
+            bars=raw_bars, observed_at=tick_record["observed_at_utc"],
+            spread_points=float(tick_record["spread_points"]),
+            pre_context_owner=str(pre_context_owner) if pre_context_owner else None,
+            pre_context_candidate=str(pre_context_candidate),
+        )
+        bridge_payload["multi_timeframe_context"] = multi_timeframe_context
         persisted = _bridge(bridge_payload, "persist-proposal")
         if proposal["action"] != "NO_TRADE":
             submitted_at = utc(datetime.now(timezone.utc))
@@ -1273,7 +1445,7 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
             expected_status = "OPEN_MONITORING" if accepted else "MATCHED"
             if reconciliation.get("status") != expected_status:
                 raise SystemExit("M20 actionable execution was not reconciled")
-            return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments, "execution": {"status": "ACCEPTED" if accepted else "REJECTED", "attempt_id": attempt_id, "session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "idempotency_key": reservation["idempotency_key"], "submitted_at_utc": submitted_at, "open_positions_before": 0, "cumulative_notional_before_usd": 0, "broker_retcode": getattr(result, "retcode", None), "monitor_job_scheduled": accepted, "monitor_job_path": str(monitor_job) if accepted else None}, "reconciliation": reconciliation, "postgres_audit": reserved["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
+            return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments, "multi_timeframe_context": multi_timeframe_context, "execution": {"status": "ACCEPTED" if accepted else "REJECTED", "attempt_id": attempt_id, "session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "idempotency_key": reservation["idempotency_key"], "submitted_at_utc": submitted_at, "open_positions_before": 0, "cumulative_notional_before_usd": 0, "broker_retcode": getattr(result, "retcode", None), "monitor_job_scheduled": accepted, "monitor_job_path": str(monitor_job) if accepted else None}, "reconciliation": reconciliation, "postgres_audit": reserved["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
         reconciled = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")
         reconciliation = reconciled.get("reconciliation")
         if not isinstance(reconciliation, dict) or reconciliation.get("status") != "NO_TRADE_RECONCILED":
@@ -1284,7 +1456,7 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
             "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL,
             "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint,
             "tick_timestamp_offset_seconds": offset_seconds,
-            "session": session, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments,
+            "session": session, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments, "multi_timeframe_context": multi_timeframe_context,
             "execution": {"status": "NOT_SUBMITTED", "attempt_id": None},
             "reconciliation": reconciliation, "postgres_audit": persisted["postgres_audit"],
             "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED"),

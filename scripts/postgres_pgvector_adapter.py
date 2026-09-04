@@ -60,12 +60,14 @@ ASSETS = {
     "m20_outcome_reconciliation_schema": "sql/migrations/012_m20_outcome_reconciliation_revision.sql",
     "m20_regime_strategy_schema": "sql/migrations/013_m20_market_regime_strategy_ownership.sql",
     "m20_projected_cost_schema": "sql/migrations/014_m20_projected_cost_components.sql",
+    "m20_multi_timeframe_context_schema": "sql/migrations/015_m20_multi_timeframe_context.sql",
+    "m20_strategy_trial_query": "sql/m20_strategy_trial_summary.sql",
     "import": "scripts/build_m2_postgres_import.py",
 }
 M2_SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
 M2_SNAPSHOT_ARTIFACT_SHA256 = "sha256:dc5384732d71091aa2279aaf6d92e8e1780c8021eacde948432ad7bc68fdabaa"
-READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour", "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-lineage-verify", "forex-m20-audit-verify", "forex-m20-rejection-summary", "forex-m20-lifecycle-summary"}
-MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema", "forex-m20-stage-cost-ledger-schema", "forex-m20-apply-cost-ledger-schema", "forex-m20-stage-open-position-schema", "forex-m20-apply-open-position-schema", "forex-m20-stage-continuous-lease-schema", "forex-m20-apply-continuous-lease-schema", "forex-m20-stage-outcome-reconciliation-schema", "forex-m20-apply-outcome-reconciliation-schema", "forex-m20-stage-regime-strategy-schema", "forex-m20-apply-regime-strategy-schema", "forex-m20-stage-projected-cost-schema", "forex-m20-apply-projected-cost-schema"}
+READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour", "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-lineage-verify", "forex-m20-audit-verify", "forex-m20-rejection-summary", "forex-m20-lifecycle-summary", "forex-m20-strategy-trial-summary", "forex-m20-mtf-context-verify", "forex-m20-mtf-context-summary"}
+MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema", "forex-m20-stage-cost-ledger-schema", "forex-m20-apply-cost-ledger-schema", "forex-m20-stage-open-position-schema", "forex-m20-apply-open-position-schema", "forex-m20-stage-continuous-lease-schema", "forex-m20-apply-continuous-lease-schema", "forex-m20-stage-outcome-reconciliation-schema", "forex-m20-apply-outcome-reconciliation-schema", "forex-m20-stage-regime-strategy-schema", "forex-m20-apply-regime-strategy-schema", "forex-m20-stage-projected-cost-schema", "forex-m20-apply-projected-cost-schema", "forex-m20-stage-mtf-context-schema", "forex-m20-apply-mtf-context-schema", "forex-m20-stage-strategy-trial-query"}
 
 
 def remote(body: str) -> dict:
@@ -675,6 +677,52 @@ printf "FOREX_M20_PROJECTED_COST_SCHEMA_APPLIED sha256:{digest}\\n" '''
     return wrap("forex_m20_apply_projected_cost_schema", remote(body), digest)
 
 
+def stage_m20_multi_timeframe_context_schema() -> dict:
+    """Stage, but do not apply, the M20.12 observational M5/H1 schema."""
+    relative, digest = asset("m20_multi_timeframe_context_schema")
+    source_windows = subprocess.run(["wslpath", "-w", str(ROOT / relative)], text=True, capture_output=True, check=True).stdout.strip()
+    staging_directory = r"C:\\Users\\chris\\Documents\\Code\\forex-m1-probe"
+    staging_windows = staging_directory + r"\015_m20_multi_timeframe_context.sql"
+    quote = lambda value: "'" + value.replace("'", "''") + "'"
+    mkdir = subprocess.run(build_ssh_command(TARGET, "$ErrorActionPreference='Stop'; New-Item -ItemType Directory -Force -Path " + quote(staging_directory) + " | Out-Null", SETTINGS), text=True, capture_output=True, check=False)
+    if mkdir.returncode:
+        return wrap("forex_m20_stage_mtf_context_schema", {"exit_code": mkdir.returncode, "stdout": mkdir.stdout, "stderr": mkdir.stderr, "ok": False}, digest)
+    command = "$ErrorActionPreference='Stop'; " + f"& scp.exe -B -o BatchMode=yes -o StrictHostKeyChecking=yes -- {quote(source_windows)} {quote(TARGET + ':' + staging_windows)}; " + "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+    transfer = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", base64.b64encode(command.encode("utf-16-le")).decode("ascii")], text=True, capture_output=True, check=False)
+    if transfer.returncode:
+        return wrap("forex_m20_stage_mtf_context_schema", {"exit_code": transfer.returncode, "stdout": transfer.stdout, "stderr": transfer.stderr, "ok": False}, digest)
+    body = f'''source="/mnt/c/Users/chris/Documents/Code/forex-m1-probe/015_m20_multi_timeframe_context.sql"
+file="{REMOTE_FOREX}/{relative}"
+test -f "$source" && [[ "$(sha256sum "$source" | head -c 64)" == "{digest}" ]]
+mkdir -p "$(dirname "$file")"
+install -m 0644 "$source" "$file"
+[[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+printf 'FOREX_M20_MTF_CONTEXT_SCHEMA_STAGED sha256:{digest}\\n' '''
+    return wrap("forex_m20_stage_mtf_context_schema", remote(body), digest)
+
+
+def apply_m20_multi_timeframe_context_schema() -> dict:
+    """Apply only a previously staged, hash-bound M20.12 context schema."""
+    relative, digest = asset("m20_multi_timeframe_context_schema")
+    body = f'''file="{REMOTE_FOREX}/{relative}"
+test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$file"
+printf 'FOREX_M20_MTF_CONTEXT_SCHEMA_APPLIED sha256:{digest}\\n' '''
+    return wrap("forex_m20_apply_mtf_context_schema", remote(body), digest)
+
+
+def m20_multi_timeframe_context_verify() -> dict:
+    """Read-only M20.12 schema/audit verification; unavailable until explicitly applied."""
+    body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 'FOREX_M20_MTF_CONTEXT_VERIFY_OK','exact_m5_h1='||NOT EXISTS(SELECT 1 FROM forex.demo_multi_timeframe_context c WHERE (SELECT count(*) FROM forex.demo_multi_timeframe_context_bar b WHERE b.context_id=c.context_id)<>2),'m1_only='||NOT EXISTS(SELECT 1 FROM forex.demo_multi_timeframe_context c JOIN forex.demo_trade_proposal p ON p.proposal_id=c.proposal_id WHERE c.selected_m1_action<>p.action),'immutable='||(SELECT count(*)=2 FROM pg_trigger WHERE NOT tgisinternal AND tgname IN ('demo_multi_timeframe_context_immutable','demo_multi_timeframe_context_bar_immutable')),'contexts='||(SELECT count(*) FROM forex.demo_multi_timeframe_context);" </dev/null'''
+    return wrap("forex_m20_mtf_context_verify", remote(body))
+
+
+def m20_multi_timeframe_context_summary() -> dict:
+    """Return read-only context and linked broker outcome fields for later comparison."""
+    body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT COALESCE(json_agg(row_to_json(x) ORDER BY x.decision_at_utc)::text,'[]') FROM (SELECT p.proposal_id,p.decision_at_utc,p.action,c.rule_version,c.overall_alignment,c.context_disposition,c.reason AS context_reason,COALESCE(json_agg(json_build_object('timeframe',b.timeframe,'closed_at_utc',b.closed_at_utc,'data_age_seconds',b.data_age_seconds,'integrity_status',b.integrity_status,'market_state',b.market_state,'volatility_state',b.volatility_state,'liquidity_state',b.liquidity_state,'alignment',b.alignment,'reason',b.reason) ORDER BY b.timeframe) FILTER (WHERE b.timeframe IS NOT NULL),'[]'::json) AS contexts,l.realized_pnl_account,l.account_currency,o.gross_price_pnl_account,o.commission_account,o.swap_account,o.estimated_total_cost_account,l.close_reason,l.reconciliation_status,CASE WHEN l.closed_at_utc IS NULL THEN NULL ELSE round(extract(epoch FROM l.closed_at_utc-p.decision_at_utc))::integer END AS holding_seconds,'NOT_RETAINED_IN_M20_12' AS mae_mfe_status FROM forex.demo_trade_proposal p JOIN forex.demo_multi_timeframe_context c ON c.proposal_id=p.proposal_id LEFT JOIN forex.demo_multi_timeframe_context_bar b ON b.context_id=c.context_id LEFT JOIN forex.demo_trade_ledger l ON l.proposal_id=p.proposal_id LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=p.proposal_id GROUP BY p.proposal_id,p.decision_at_utc,p.action,c.rule_version,c.overall_alignment,c.context_disposition,c.reason,l.realized_pnl_account,l.account_currency,o.gross_price_pnl_account,o.commission_account,o.swap_account,o.estimated_total_cost_account,l.close_reason,l.reconciliation_status,l.closed_at_utc)x;" </dev/null'''
+    return wrap("forex_m20_mtf_context_summary", remote(body))
+
+
 def m20_audit_verify() -> dict:
     """Read back the fixed M20 audit boundary without exposing table input."""
     audit = remote('''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 'FOREX_M20_DEMO_AUDIT_VERIFY_OK','demo_only='||NOT EXISTS(SELECT FROM forex.demo_trade_session WHERE server<>'GOMarketsMU-Demo' OR instrument<>'EURUSD'),'caps_ok='||NOT EXISTS(SELECT FROM forex.demo_trade_session WHERE max_trades>10 OR max_notional_usd>10000 OR max_cumulative_notional_usd>100000 OR max_open_positions<>1),'proposal_first='||NOT EXISTS(SELECT FROM forex.demo_execution_attempt a LEFT JOIN forex.demo_trade_proposal p ON p.proposal_id=a.proposal_id LEFT JOIN forex.demo_decision_snapshot s ON s.proposal_id=p.proposal_id WHERE p.proposal_id IS NULL OR s.proposal_id IS NULL OR p.decision_at_utc>a.submitted_at_utc),'idempotency_ok='||NOT EXISTS(SELECT FROM (SELECT idempotency_key FROM forex.demo_execution_attempt GROUP BY idempotency_key HAVING count(*)>1)x);" </dev/null''')
@@ -714,6 +762,93 @@ def m20_lifecycle_summary() -> dict:
     return wrap("forex_m20_lifecycle_summary", {"exit_code": 0, "stdout": json.dumps(rows, separators=(",", ":")), "stderr": lifecycle["stderr"] + selections["stderr"] + costs["stderr"], "ok": True})
 
 
+def stage_m20_strategy_trial_query() -> dict:
+    """Stage the fixed read-only scoreboard query on the T480 without touching data."""
+    relative, digest = asset("m20_strategy_trial_query")
+    source_windows = subprocess.run(["wslpath", "-w", str(ROOT / relative)], text=True, capture_output=True, check=True).stdout.strip()
+    staging_directory = r"C:\Users\chris\Documents\Code\forex-m1-probe"
+    staging_windows = staging_directory + r"\m20_strategy_trial_summary.sql"
+    quote = lambda value: "'" + value.replace("'", "''") + "'"
+    mkdir = subprocess.run(build_ssh_command(TARGET, "$ErrorActionPreference='Stop'; New-Item -ItemType Directory -Force -Path " + quote(staging_directory) + " | Out-Null", SETTINGS), text=True, capture_output=True, check=False)
+    if mkdir.returncode:
+        return wrap("forex_m20_stage_strategy_trial_query", {"exit_code": mkdir.returncode, "stdout": mkdir.stdout, "stderr": mkdir.stderr, "ok": False}, digest)
+    command = "$ErrorActionPreference='Stop'; & scp.exe -B -o BatchMode=yes -o StrictHostKeyChecking=yes -- " + quote(source_windows) + " " + quote(TARGET + ':' + staging_windows) + "; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+    encoded = base64.b64encode(command.encode("utf-16-le")).decode("ascii")
+    transfer = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded], text=True, capture_output=True, check=False)
+    if transfer.returncode:
+        return wrap("forex_m20_stage_strategy_trial_query", {"exit_code": transfer.returncode, "stdout": transfer.stdout, "stderr": transfer.stderr, "ok": False}, digest)
+    body = f'''source="/mnt/c/Users/chris/Documents/Code/forex-m1-probe/m20_strategy_trial_summary.sql"
+file="{REMOTE_FOREX}/{relative}"
+test -f "$source" && [[ "$(sha256sum "$source" | head -c 64)" == "{digest}" ]]
+mkdir -p "$(dirname "$file")"
+install -m 0644 "$source" "$file"
+[[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+printf 'FOREX_M20_STRATEGY_TRIAL_QUERY_STAGED sha256:{digest}\\n' '''
+    return wrap("forex_m20_stage_strategy_trial_query", remote(body), digest)
+
+
+def m20_strategy_trial_summary() -> dict:
+    """Return a fixed, read-only M20.11 summary for every strategy owner."""
+    relative, digest = asset("m20_strategy_trial_query")
+    # Aggregate each append-only source once. The former five-way joined query
+    # multiplied rows as assessments accumulated and could exceed the terminal
+    # dashboard's bounded read timeout.
+    query = """
+    WITH trial_proposals AS (
+      SELECT proposal_id FROM forex.demo_trade_proposal
+      WHERE strategy_version='forex.m20.11.m1-five-strategy-trial.v2'
+    ), signal_stats AS (
+      SELECT g.strategy_id, count(*) FILTER (WHERE g.signal IN ('BUY','SELL')) AS signal_count
+      FROM forex.demo_strategy_signal g JOIN trial_proposals p USING (proposal_id)
+      GROUP BY g.strategy_id
+    ), selection_stats AS (
+      SELECT s.selected_strategy_id AS strategy_id,
+             count(*) FILTER (WHERE s.selection_status='SELECTED_EXECUTABLE') AS selected_count
+      FROM forex.demo_strategy_selection s JOIN trial_proposals p USING (proposal_id)
+      WHERE s.selected_strategy_id IS NOT NULL GROUP BY s.selected_strategy_id
+    ), attempt_events AS (
+      SELECT e.attempt_id, bool_or(e.event_type='OPENED') AS opened, bool_or(e.event_type='REJECTED') AS rejected
+      FROM forex.demo_position_event e GROUP BY e.attempt_id
+    ), attempt_stats AS (
+      SELECT s.selected_strategy_id AS strategy_id, count(DISTINCT a.attempt_id) AS attempt_count,
+             count(DISTINCT a.attempt_id) FILTER (WHERE ev.opened) AS opened_count,
+             count(DISTINCT a.attempt_id) FILTER (WHERE ev.rejected) AS rejected_count
+      FROM forex.demo_strategy_selection s JOIN trial_proposals p USING (proposal_id)
+      LEFT JOIN forex.demo_execution_attempt a USING (proposal_id)
+      LEFT JOIN attempt_events ev USING (attempt_id)
+      WHERE s.selected_strategy_id IS NOT NULL GROUP BY s.selected_strategy_id
+    ), outcome_stats AS (
+      SELECT l.trade_owner_strategy_id AS strategy_id,
+             count(*) FILTER (WHERE l.reconciliation_status IN ('MATCHED','REPAIRED') AND l.realized_pnl_account IS NOT NULL) AS verified_closed_count,
+             count(*) FILTER (WHERE l.realized_pnl_account > 0) AS win_count,
+             count(*) FILTER (WHERE l.realized_pnl_account < 0) AS loss_count,
+             COALESCE(sum(l.realized_pnl_account) FILTER (WHERE l.reconciliation_status IN ('MATCHED','REPAIRED')),0) AS net_realized_pnl_aud
+      FROM forex.demo_trade_ledger l JOIN trial_proposals p USING (proposal_id)
+      WHERE l.trade_owner_strategy_id IS NOT NULL GROUP BY l.trade_owner_strategy_id
+    ), strategy_ids AS (
+      SELECT strategy_id FROM signal_stats UNION SELECT strategy_id FROM selection_stats
+      UNION SELECT strategy_id FROM attempt_stats UNION SELECT strategy_id FROM outcome_stats
+    )
+    SELECT COALESCE(json_agg(row_to_json(x) ORDER BY x.strategy_id)::text,'[]')
+    FROM (SELECT ids.strategy_id, COALESCE(si.signal_count,0) signal_count,
+      COALESCE(se.selected_count,0) selected_count, COALESCE(at.attempt_count,0) attempt_count,
+      COALESCE(at.opened_count,0) opened_count, COALESCE(at.rejected_count,0) rejected_count,
+      COALESCE(ou.verified_closed_count,0) verified_closed_count, COALESCE(ou.win_count,0) win_count,
+      COALESCE(ou.loss_count,0) loss_count, COALESCE(ou.net_realized_pnl_aud,0) net_realized_pnl_aud
+      FROM strategy_ids ids LEFT JOIN signal_stats si USING(strategy_id)
+      LEFT JOIN selection_stats se USING(strategy_id) LEFT JOIN attempt_stats at USING(strategy_id)
+      LEFT JOIN outcome_stats ou USING(strategy_id)) x;
+    """
+    body = f'''file="{REMOTE_FOREX}/{relative}"
+test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At < "$file"'''
+    return wrap("forex_m20_strategy_trial_summary", remote(body), digest)
+
+
+# Backward-compatible action alias retained for the fixed command catalog.
+m11_r1_verify_hour = verify_m11_data
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Fixed Forex M2 PostgreSQL adapter.")
     parser.add_argument("command", choices=sorted(READ_ONLY | MUTATING))
@@ -721,9 +856,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command in MUTATING and not args.approve:
         parser.error("this mutating operation requires --approve")
-    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-r1-apply-stage-schema": apply_m11_r1_stage_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data, "forex-m11-r1-verify-hour": verify_m11_r1_hour, "forex-m12-quality-probe": m12_quality_probe, "forex-m13-replay-probe": m13_replay_probe, "forex-m14-regime-probe": m14_regime_probe, "forex-m15-baseline-probe": m15_baseline_probe, "forex-m16-walk-forward-probe": m16_walk_forward_probe, "forex-m17-context-probe": m17_context_probe, "forex-m18-ollama-probe": m18_ollama_probe, "forex-m19-apply-schema": apply_m19_schema, "forex-m19-lineage-probe": m19_lineage_probe, "forex-m19-lineage-verify": m19_lineage_verify, "forex-m20-stage-schema": stage_m20_schema, "forex-m20-apply-schema": apply_m20_schema, "forex-m20-stage-ledger-schema": stage_m20_ledger_schema, "forex-m20-apply-ledger-schema": apply_m20_ledger_schema, "forex-m20-stage-cost-ledger-schema": stage_m20_cost_ledger_schema, "forex-m20-apply-cost-ledger-schema": apply_m20_cost_ledger_schema, "forex-m20-stage-open-position-schema": stage_m20_open_position_schema, "forex-m20-apply-open-position-schema": apply_m20_open_position_schema, "forex-m20-stage-continuous-lease-schema": stage_m20_continuous_lease_schema, "forex-m20-apply-continuous-lease-schema": apply_m20_continuous_lease_schema, "forex-m20-stage-outcome-reconciliation-schema": stage_m20_outcome_reconciliation_schema, "forex-m20-apply-outcome-reconciliation-schema": apply_m20_outcome_reconciliation_schema, "forex-m20-stage-regime-strategy-schema": stage_m20_regime_strategy_schema, "forex-m20-apply-regime-strategy-schema": apply_m20_regime_strategy_schema, "forex-m20-stage-projected-cost-schema": stage_m20_projected_cost_schema, "forex-m20-apply-projected-cost-schema": apply_m20_projected_cost_schema, "forex-m20-audit-verify": m20_audit_verify}
+    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-r1-apply-stage-schema": apply_m11_r1_stage_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data, "forex-m11-r1-verify-hour": m11_r1_verify_hour, "forex-m12-quality-probe": m12_quality_probe, "forex-m13-replay-probe": m13_replay_probe, "forex-m14-regime-probe": m14_regime_probe, "forex-m15-baseline-probe": m15_baseline_probe, "forex-m16-walk-forward-probe": m16_walk_forward_probe, "forex-m17-context-probe": m17_context_probe, "forex-m18-ollama-probe": m18_ollama_probe, "forex-m19-apply-schema": apply_m19_schema, "forex-m19-lineage-probe": m19_lineage_probe, "forex-m19-lineage-verify": m19_lineage_verify, "forex-m20-stage-schema": stage_m20_schema, "forex-m20-apply-schema": apply_m20_schema, "forex-m20-stage-ledger-schema": stage_m20_ledger_schema, "forex-m20-apply-ledger-schema": apply_m20_ledger_schema, "forex-m20-stage-cost-ledger-schema": stage_m20_cost_ledger_schema, "forex-m20-apply-cost-ledger-schema": apply_m20_cost_ledger_schema, "forex-m20-stage-open-position-schema": stage_m20_open_position_schema, "forex-m20-apply-open-position-schema": apply_m20_open_position_schema, "forex-m20-stage-continuous-lease-schema": stage_m20_continuous_lease_schema, "forex-m20-apply-continuous-lease-schema": apply_m20_continuous_lease_schema, "forex-m20-stage-outcome-reconciliation-schema": stage_m20_outcome_reconciliation_schema, "forex-m20-apply-outcome-reconciliation-schema": apply_m20_outcome_reconciliation_schema, "forex-m20-stage-regime-strategy-schema": stage_m20_regime_strategy_schema, "forex-m20-apply-regime-strategy-schema": apply_m20_regime_strategy_schema, "forex-m20-stage-projected-cost-schema": stage_m20_projected_cost_schema, "forex-m20-apply-projected-cost-schema": apply_m20_projected_cost_schema, "forex-m20-stage-mtf-context-schema": stage_m20_multi_timeframe_context_schema, "forex-m20-apply-mtf-context-schema": apply_m20_multi_timeframe_context_schema, "forex-m20-stage-strategy-trial-query": stage_m20_strategy_trial_query, "forex-m20-audit-verify": m20_audit_verify, "forex-m20-mtf-context-verify": m20_multi_timeframe_context_verify, "forex-m20-mtf-context-summary": m20_multi_timeframe_context_summary}
     actions["forex-m20-rejection-summary"] = m20_rejection_summary
     actions["forex-m20-lifecycle-summary"] = m20_lifecycle_summary
+    actions["forex-m20-strategy-trial-summary"] = m20_strategy_trial_summary
     payload = actions[args.command]()
     print(json.dumps(payload, indent=2))
     return 0 if payload["ok"] else 1

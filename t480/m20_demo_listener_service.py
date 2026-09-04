@@ -124,7 +124,8 @@ def _load_environment() -> None:
         "FOREX_M20_MINIMUM_NET_PROFIT_AUD",
         "FOREX_M20_APPLICATION_REVISION", "python_path", "terminal_path",
     }
-    if not isinstance(values, dict) or set(values) != required:
+    optional = {"FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED", "FOREX_M20_DISCORD_WEBHOOK_URL"}
+    if not isinstance(values, dict) or not required <= set(values) or not set(values) <= required | optional:
         raise SystemExit("M20 listener service local configuration fields are invalid")
     os.environ.update({key: str(value) for key, value in values.items() if key.startswith("FOREX_M20_")})
     if not os.environ.get("FOREX_M20_POSTGRES_DSN"):
@@ -342,7 +343,7 @@ def run() -> None:
         try:
             output = json.loads(completed.stdout)
             proposal = output.get("proposal", {})
-            last_result = {key: output.get(key) for key in ("marker", "server", "symbol", "captured_at_utc", "proposal", "strategy_selection", "strategy_assessments", "execution", "reconciliation")}
+            last_result = {key: output.get(key) for key in ("marker", "server", "symbol", "captured_at_utc", "proposal", "strategy_selection", "strategy_assessments", "multi_timeframe_context", "execution", "reconciliation")}
             last_result["assessment_metrics"] = _assessment_metrics(output.get("decision_snapshot", {}), proposal)
         except json.JSONDecodeError:
             last_result = {"error": completed.stderr.strip() or completed.stdout.strip(), "exit_code": completed.returncode}

@@ -100,6 +100,20 @@ M20.11 uses deterministic regime precedence to classify one executable owner.
 Unselected signals remain context only, which prevents correlated EURUSD
 exposure while collecting strategy-owned Demo evidence.
 
+### Planned M20.12 multi-timeframe context
+
+M20.12 is planned as an M5/H1 **shadow-context** experiment.  It does not
+give M5 or H1 an entry, amendment, or exit right and does not change an
+owner's existing M1 holding time.  Every M1 proposal will later retain its
+fixed closed M5/H1 context, native candle-close times, alignment,
+`OBSERVE_ONLY`/`NEUTRAL`/`HARD_CONFLICT` disposition, and rule version.  The
+initial disposition is measurement only; it cannot secretly filter a trade.
+
+H4/D1 structure and W1 mapping are deferred.  They require separately agreed,
+deterministic definitions before entering the fast path.  The detailed scope,
+research limitations, independent review, and operator feedback requests are
+in [M20.12-multi-timeframe-context-trial.md](milestones/M20.12-multi-timeframe-context-trial.md).
+
 ## Signal and exit rules
 
 | Situation | M20 MVP action | Why |
@@ -113,6 +127,32 @@ exposure while collecting strategy-owned Demo evidence.
 
 There is no `SELL_ALL` rule in M20. A single counter-signal must never turn
 into an undiscriminating liquidation command.
+
+### Net-return and protected-exit rule
+
+For every proposed M1 trade, the selected owner must set the directionally
+correct broker-side protective prices before submission and record why they
+fit the current completed-candle structure.  A `BUY` has a stop loss below
+entry and a take profit above entry.  A `SELL` is the reverse: it opens by
+selling at its entry price, then closes by buying; therefore its take profit
+is **below** entry and its stop loss is **above** entry.
+
+The strategy must reject the trade unless its projected take-profit outcome
+clears the configured minimum net-profit floor *after* the estimated
+round-trip costs: entry/exit spread, commission, expected swap where relevant,
+and the declared slippage allowance. This prevents a visually positive gross
+move from being accepted when it is too small to produce a useful net result.
+
+| Before an order is submitted | Required record | Decision rule |
+| --- | --- | --- |
+| Entry and exit direction | Entry, SL, TP, side, owner strategy and rule version | Reject malformed direction: BUY requires `SL < entry < TP`; SELL requires `TP < entry < SL`. |
+| Structural protection | Recent swing/range/volatility rationale for SL and TP | The owner strategy, not an unrelated counter-signal, owns later amendment or exit. |
+| Cost-aware profitability | Projected gross at TP, estimated costs, projected net at TP, and configured minimum net | Submit only when projected net at TP is at least the minimum; otherwise record `NO_TRADE`. |
+| Actual result | Filled entry, close, gross P&L, fees/costs, net P&L, and exit reason | Reconcile against the original projection to improve the next rule version. |
+
+This is a Demo measurement rule, not a promise of profit: a valid target can
+still miss, a stop can still be reached, and realised fills/costs can differ
+from the estimate.
 
 ## Future options after M20 proof
 

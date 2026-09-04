@@ -14,10 +14,19 @@ from scripts import t480_adapter
 
 
 def _m20_probe_module(monkeypatch):
-    fake_mt5 = types.SimpleNamespace(TIMEFRAME_M1=1)
+    fake_mt5 = types.SimpleNamespace(TIMEFRAME_M1=1, TIMEFRAME_M5=5, TIMEFRAME_H1=60)
     monkeypatch.setitem(sys.modules, "MetaTrader5", fake_mt5)
     path = t480_adapter.ROOT / "t480" / "m20_demo_trading_session.py"
     spec = importlib.util.spec_from_file_location("m20_demo_trading_session_test", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _m20_audit_bridge_module():
+    path = t480_adapter.ROOT / "t480" / "m20_postgres_audit_bridge.py"
+    spec = importlib.util.spec_from_file_location("m20_postgres_audit_bridge_test", path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -129,7 +138,9 @@ def test_m20_session_operation_is_fixed_demo_only_fresh_data_capture():
     assert "GOMarketsMU-Live" not in probe
     assert "symbol_info_tick" in probe
     assert "TIMEFRAME_M1" in probe
-    assert "TIMEFRAME_M5" not in probe
+    assert "TIMEFRAME_M5" in probe and "TIMEFRAME_H1" in probe
+    assert "SHADOW_CONTEXT_RULE_VERSION" in probe
+    assert "Neither is passed to selection, trade planning, order submission, or" in probe
     assert "copy_rates_from_pos" in probe
     assert "MAX_TICK_AGE_SECONDS = 30" in probe
     assert "tick_time_offset_seconds" in probe
@@ -205,6 +216,15 @@ def test_m20_listener_install_is_hash_checked_and_fixed():
     assert "FOREX_M20_POSTGRES_DSN" not in command
 
 
+def test_m20_listener_release_includes_the_fixed_t480_discord_adapter_without_exposing_its_webhook():
+    prepare = t480_adapter.OPERATIONS["m20_listener_prepare"].powershell_command or ""
+    stage = t480_adapter.OPERATIONS["m20_listener_discord_stage_4"].powershell_command or ""
+    assert "m20_discord_trade_notification.payload" in prepare
+    assert "M20 Discord adapter staged source hash failed" in stage
+    assert "FOREX_M20_DISCORD_WEBHOOK_URL" in prepare
+    assert "discord.com/api/webhooks" not in prepare
+
+
 def test_m20_dependency_staging_appends_raw_decoded_bytes():
     command = t480_adapter._m20_listener_dependency_stage_command(
         "m20_demo_trading_session.py", "m20_demo_trading_session.payload", "M20 listener runner", 2,
@@ -231,16 +251,23 @@ def test_m20_listener_staging_is_split_and_hash_checked():
 def test_m20_listener_runner_and_bridge_staging_are_fixed_and_hash_checked():
     runner_first = t480_adapter.OPERATIONS["m20_listener_runner_stage_1"].powershell_command
     runner_final = t480_adapter.OPERATIONS["m20_listener_runner_stage_48"].powershell_command
+    runner_verify = t480_adapter.OPERATIONS["m20_listener_runner_verify"].powershell_command
     bridge_first = t480_adapter.OPERATIONS["m20_listener_bridge_stage_1"].powershell_command
     bridge_final = t480_adapter.OPERATIONS["m20_listener_bridge_stage_24"].powershell_command
+    bridge_verify = t480_adapter.OPERATIONS["m20_listener_bridge_verify"].powershell_command
     for first, final, filename in (
         (runner_first, runner_final, "m20_demo_trading_session.payload"),
         (bridge_first, bridge_final, "m20_postgres_audit_bridge.payload"),
     ):
-        assert "WriteAllBytes" in first
-        assert "[IO.File]::Open" in final
-        assert "Get-FileHash" in final
-        assert filename in first and filename in final
+        if filename == "m20_demo_trading_session.payload":
+            assert "WriteAllText" in first
+            assert "WriteAllText" in final
+            assert "ReadAllText" in runner_verify and "Get-FileHash" in runner_verify
+        else:
+            assert "WriteAllText" in first and "WriteAllText" in final
+            assert "ReadAllText" in bridge_verify and "Get-FileHash" in bridge_verify
+        staged_name = filename.removesuffix(".payload")
+        assert staged_name in first and staged_name in final
 
 
 def test_m20_runner_builds_the_same_no_trade_shape_accepted_by_the_evidence_contract(monkeypatch):
@@ -297,6 +324,44 @@ def test_m20_strategy_comparisons_are_closed_candle_only_and_selectable(monkeypa
     ]
     assert all(item["eligible_for_execution"] is True for item in assessments)
     assert all(item["signal"] in {"BUY", "SELL", "NO_TRADE"} for item in assessments)
+
+
+def test_m20_shadow_context_is_observational_and_retains_pre_context_candidate(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+
+    def bars(timeframe, closes):
+        return [
+            {"timeframe": timeframe, "closed_at_utc": f"2026-09-04T00:0{index}:00Z", "open": close - .00001,
+             "high": close + .00002, "low": close - .00002, "close": close, "volume": 10}
+            for index, close in enumerate(closes)
+        ]
+
+    proposal = {"proposal_id": "proposal-1", "action": "BUY", "strategy_version": "m1-version"}
+    context = probe._shadow_context(
+        proposal=proposal, selection={"selected_strategy_id": "momentum_breakout"},
+        assessments=[{"id": "momentum_breakout", "signal": "BUY"}],
+        bars={"M5": bars("M5", [1.1, 1.1001, 1.1002, 1.1003, 1.1004]),
+              "H1": bars("H1", [1.1004, 1.1003, 1.1002, 1.1001, 1.1])},
+        observed_at="2026-09-04T00:10:00Z", spread_points=8.0,
+    )
+    assert context["selected_m1_action"] == "BUY"
+    assert context["overall_alignment"] == "OPPOSED"
+    assert context["context_disposition"] == "HARD_CONFLICT"
+    assert all(row["source_inputs"]["pre_context_m1_candidate"] == "BUY" for row in context["contexts"])
+    assert all(row["source_inputs"]["final_m1_action"] == "BUY" for row in context["contexts"])
+    assert "order_send" not in probe._shadow_context.__code__.co_names
+
+
+def test_m20_unavailable_shadow_context_is_visible_and_non_blocking(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    proposal = {"proposal_id": "proposal-2", "action": "NO_TRADE", "strategy_version": "m1-version"}
+    context = probe._shadow_context(
+        proposal=proposal, selection={"selected_strategy_id": None}, assessments=[],
+        bars={"M5": [], "H1": []}, observed_at="2026-09-04T00:10:00Z", spread_points=8.0,
+    )
+    assert context["overall_alignment"] == "NEUTRAL"
+    assert context["context_disposition"] == "NEUTRAL"
+    assert [row["alignment"] for row in context["contexts"]] == ["UNAVAILABLE", "UNAVAILABLE"]
 
 
 def test_m20_regime_precedence_selects_one_executable_owner(monkeypatch):
@@ -380,6 +445,53 @@ def test_m20_monitor_refuses_an_open_position_without_a_known_strategy_owner(mon
             submitted_at=datetime(2026, 9, 3, tzinfo=timezone.utc), entry_spread=0.0001,
             risk={"volume": 0.01, "tick_size": 0.00001, "tick_value_loss": 1.395, "point": 0.00001}, offset_seconds=0,
         )
+
+
+def test_m20_recovery_keeps_the_immutable_initial_stop_after_break_even():
+    runner = (t480_adapter.ROOT / "t480" / "m20_demo_trading_session.py").read_text(encoding="utf-8")
+    bridge = (t480_adapter.ROOT / "t480" / "m20_postgres_audit_bridge.py").read_text(encoding="utf-8")
+    assert 'proposal.get("initial_stop_loss", proposal.get("stop_loss", current_stop))' in runner
+    assert '"initial_stop_loss": float(row["initial_stop_loss"])' in runner
+    assert "p.proposed_entry,p.stop_loss,a.attempt_id" in bridge
+    assert '"initial_stop_loss": float(row[3])' in bridge
+
+
+def test_m20_open_position_recovery_reads_broker_volume_not_quote_spread(monkeypatch):
+    bridge = _m20_audit_bridge_module()
+    opened_at = datetime(2026, 9, 4, 2, 0, tzinfo=timezone.utc)
+    row = (
+        "proposal", "BUY", 1.16305, 1.16283, "attempt", opened_at,
+        41559226, 1.16305, 1.16305, 1.16340, True,
+        0.00008, "0.01", "compression_breakout",
+    )
+
+    class Cursor:
+        def execute(self, *_args):
+            pass
+
+        def fetchall(self):
+            return [row]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    class Connection:
+        def cursor(self):
+            return Cursor()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(bridge, "_connection", lambda: Connection())
+    recovered = bridge.load_open_positions({})["open_positions"]
+    assert recovered[0]["entry_spread"] == 0.00008
+    assert recovered[0]["volume"] == 0.01
 
 
 def test_m20_owner_exit_contracts_are_deterministic_and_strategy_specific(monkeypatch):

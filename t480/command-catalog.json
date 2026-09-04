@@ -531,6 +531,36 @@
       "id": "m20_listener_bridge_stage_24",
       "purpose": "Stage and verify final fixed M20 listener PostgreSQL bridge payload part twenty-four.",
       "approval_required": false
+    },
+    {
+      "id": "m20_listener_discord_stage_1",
+      "purpose": "Stage fixed M20 Discord sale-notification adapter part one.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_discord_stage_2",
+      "purpose": "Stage fixed M20 Discord sale-notification adapter part two.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_discord_stage_3",
+      "purpose": "Stage fixed M20 Discord sale-notification adapter part three.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_discord_stage_4",
+      "purpose": "Assemble and verify the fixed M20 Discord sale-notification adapter.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_verify",
+      "purpose": "Verify the fully staged fixed M20 listener runner payload hash.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_verify",
+      "purpose": "Assemble and verify the fully staged fixed M20 listener PostgreSQL bridge payload.",
+      "approval_required": false
     }
   ]
 }

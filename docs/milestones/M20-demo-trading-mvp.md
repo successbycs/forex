@@ -120,6 +120,34 @@ use `--show-rejections` to inspect them without confusing them with trades.
   broker-reconciled results during an operator-owned, initially three-to-four-day
   observation window. Its MVP scope and exclusions are
   recorded in [M20.11-five-strategy-demo-trial.md](M20.11-five-strategy-demo-trial.md).
+- **M20.12 — Multi-timeframe context trial for M1 Demo execution:** is
+  implemented locally and staged, but is not deployed to T480. M1 remains the
+  sole execution and ownership timeframe; M5/H1 records are read-only and
+  cannot alter entry, exit, or holding time in v1. H4/D1/W1 are deferred from
+  the fast path. Its research basis, independent trader-domain review, Demo to
+  Live roadmap, and operator feedback questions are in
+  [M20.12-multi-timeframe-context-trial.md](M20.12-multi-timeframe-context-trial.md).
 
 All M20 packages remain Demo-only. They do not claim M20 completion or
 authorize Live trading.
+
+### Post-sale Discord notification adapter (staged)
+
+The staged `t480/m20_discord_trade_notification.py` adapter sends a single
+human-readable Discord webhook message only after the fixed M20 runner has
+recorded a broker-matched `CLOSED` outcome and its PostgreSQL reconciliation
+returns `MATCHED`. It includes side, lots, entry and exit prices, strategy,
+close reason, realised AUD P&L, commission, swap, estimated costs, and the
+post-close account liquidity snapshot (balance, equity, free/used margin, and
+floating P&L). It is deliberately best-effort: a Discord failure cannot block
+execution, monitoring, ledger persistence, or reconciliation.
+
+The webhook URL is an ignored T480-local secret in
+`m20_demo_listener_service.local.json` and must be an approved
+`https://discord.com/api/webhooks/...` URL. Set
+`FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED` to `true` and provide
+`FOREX_M20_DISCORD_WEBHOOK_URL` only in that T480-local file. Notifications
+are disabled by default; enabling and deploying the adapter are separate
+operator actions.
+No Discord message is evidence of trade completion—the immutable PostgreSQL
+outcome and broker reconciliation remain authoritative.

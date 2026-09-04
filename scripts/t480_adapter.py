@@ -257,7 +257,8 @@ def _m20_listener_repair_permissions_command() -> str:
     service = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
     runner = (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()
     bridge = (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()
-    release_id = hashlib.sha256(service + runner + bridge).hexdigest()[:16]
+    discord = (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()
+    release_id = hashlib.sha256(service + runner + bridge + discord).hexdigest()[:16]
     return (
         "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; "
         "New-Item -ItemType Directory -Force $base|Out-Null; icacls $base /grant ($env:USERNAME+':(OI)(CI)M') /T | Out-Null; "
@@ -273,7 +274,9 @@ def _m20_listener_prepare_command() -> str:
     service_digest = hashlib.sha256(service).hexdigest()
     runner_digest = hashlib.sha256((ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()).hexdigest()
     bridge_digest = hashlib.sha256((ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()).hexdigest()
-    release_id = hashlib.sha256(service + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()).hexdigest()[:16]
+    discord = (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()
+    discord_digest = hashlib.sha256(discord).hexdigest()
+    release_id = hashlib.sha256(service + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes() + discord).hexdigest()[:16]
     fingerprint = project_configuration_fingerprint()
     configuration = load_configuration(ROOT, environ={})
     tick_offset_seconds = configuration.mt5.broker_tick_time_offset_seconds
@@ -283,11 +286,12 @@ def _m20_listener_prepare_command() -> str:
         "$ErrorActionPreference='Stop'; "
         "$base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; $state=Join-Path $base 'state'; $legacy=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe'; New-Item -ItemType Directory -Force $state|Out-Null; "
         "$s=gc -Raw (Join-Path $legacy 'mt5.local.json')|ConvertFrom-Json; "
-        "$runner=Join-Path $root 'm20_demo_trading_session.payload'; $bridge=Join-Path $root 'm20_postgres_audit_bridge.payload'; $service=Join-Path $root 'm20_demo_listener_service.payload'; $task='Forex-M20-Demo-Listener'; "
+        "$runner=Join-Path $root 'm20_demo_trading_session.payload'; $bridge=Join-Path $root 'm20_postgres_audit_bridge.payload'; $discord=Join-Path $root 'm20_discord_trade_notification.payload'; $service=Join-Path $root 'm20_demo_listener_service.payload'; $task='Forex-M20-Demo-Listener'; "
         "if ((Get-FileHash -LiteralPath $runner -Algorithm SHA256).Hash.ToLower() -ne '" + runner_digest + "') { throw 'M20 listener runner hash does not match fixed source' }; "
         "if ((Get-FileHash -LiteralPath $bridge -Algorithm SHA256).Hash.ToLower() -ne '" + bridge_digest + "') { throw 'M20 listener bridge hash does not match fixed source' }; "
+        "if ((Get-FileHash -LiteralPath $discord -Algorithm SHA256).Hash.ToLower() -ne '" + discord_digest + "') { throw 'M20 Discord adapter hash does not match fixed source' }; "
         "if ((Get-FileHash -LiteralPath $service -Algorithm SHA256).Hash.ToLower() -ne '" + service_digest + "') { throw 'M20 listener service staging hash failed' }; "
-        "$c=[ordered]@{FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "';FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(tick_offset_seconds) + "';FOREX_M20_MINIMUM_NET_PROFIT_AUD='" + str(minimum_net_profit) + "';FOREX_M20_APPLICATION_REVISION='" + revision + "';python_path=$s.python_path;terminal_path=$s.terminal_path}; "
+        "$discordConfigKey='FOREX_M20_DISCORD_WEBHOOK_URL'; $c=[ordered]@{FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "';FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(tick_offset_seconds) + "';FOREX_M20_MINIMUM_NET_PROFIT_AUD='" + str(minimum_net_profit) + "';FOREX_M20_APPLICATION_REVISION='" + revision + "';python_path=$s.python_path;terminal_path=$s.terminal_path}; "
         "if (!(Test-Path (Join-Path $state 'm20_demo_session.local.json'))) { Copy-Item (Join-Path $legacy 'm20_demo_session.local.json') (Join-Path $state 'm20_demo_session.local.json') -ErrorAction SilentlyContinue }; $tmp=Join-Path $state 'm20_demo_listener_service.local.json.tmp'; [IO.File]::WriteAllText($tmp,($c|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false))); Move-Item -LiteralPath $tmp -Destination (Join-Path $state 'm20_demo_listener_service.local.json') -Force; "
         "[pscustomobject]@{prepared=$true;release_id='" + release_id + "';service_sha256='sha256:" + service_digest + "'}|ConvertTo-Json -Compress"
     )
@@ -298,7 +302,8 @@ def _m20_listener_install_command() -> str:
     service = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
     runner = (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()
     bridge = (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()
-    release_id = hashlib.sha256(service + runner + bridge).hexdigest()[:16]
+    discord = (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()
+    release_id = hashlib.sha256(service + runner + bridge + discord).hexdigest()[:16]
     service_digest = hashlib.sha256(service).hexdigest()
     return (
         "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; $state=Join-Path $base 'state'; $service=Join-Path $root 'm20_demo_listener_service.payload'; $task='Forex-M20-Demo-Listener'; "
@@ -313,7 +318,7 @@ def _m20_listener_install_command() -> str:
 def _m20_listener_stage_command(index: int) -> str:
     """Transfer a bounded immutable source segment through the fixed adapter."""
     source = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
-    release_id = hashlib.sha256(source + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()).hexdigest()[:16]
+    release_id = hashlib.sha256(source + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes() + (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()).hexdigest()[:16]
     # Raw Base64 decoding is accepted by the T480 endpoint; in-process gzip
     # expansion is not.  Twelve bounded fixed fragments stay below its command
     # cap and match the catalogued release protocol.
@@ -332,12 +337,12 @@ def _m20_listener_stage_command(index: int) -> str:
     return "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; New-Item -ItemType Directory -Force $root|Out-Null; $service=Join-Path $root 'm20_demo_listener_service.payload'; " + write + " [pscustomobject]@{stage=" + str(index) + ";ok=$true}|ConvertTo-Json -Compress"
 
 
-def _m20_listener_dependency_stage_command(source_name: str, runtime_name: str, marker: str, index: int) -> str:
+def _m20_listener_dependency_stage_command(source_name: str, runtime_name: str, marker: str, index: int, *, parts: int | None = None, verify_final: bool = True) -> str:
     """Stage a fixed hash-bound M20 listener dependency in bounded source chunks."""
     source = (ROOT / "t480" / source_name).read_bytes()
-    release_id = hashlib.sha256((ROOT / "t480" / "m20_demo_listener_service.py").read_bytes() + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()).hexdigest()[:16]
+    release_id = hashlib.sha256((ROOT / "t480" / "m20_demo_listener_service.py").read_bytes() + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes() + (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()).hexdigest()[:16]
     encoded = base64.b64encode(source).decode("ascii")
-    parts = 48 if source_name == "m20_demo_trading_session.py" else 24
+    parts = parts if parts is not None else (48 if source_name == "m20_demo_trading_session.py" else 24)
     # The runner is deliberately split into small fixed direct-decode chunks:
     # this avoids a blocked in-process decompressor and bridge length limits.
     chunk_size = ((len(encoded) + (parts * 4) - 1) // (parts * 4)) * 4
@@ -352,8 +357,12 @@ def _m20_listener_dependency_stage_command(source_name: str, runtime_name: str, 
         # payloads on some Windows PowerShell hosts.  Append the decoded bytes
         # through FileStream so the final SHA-256 verifies the exact source.
         write = "$bytes=[Convert]::FromBase64String('" + chunk + "'); $stream=[IO.File]::Open($file,[IO.FileMode]::Append,[IO.FileAccess]::Write,[IO.FileShare]::None); try {$stream.Write($bytes,0,$bytes.Length)} finally {$stream.Dispose()};"
-    if index == len(chunks):
+    if index == len(chunks) and verify_final:
         write += " if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -ne '" + hashlib.sha256(source).hexdigest() + "') { throw '" + marker + " staged source hash failed' };"
+    elif index == len(chunks):
+        # The constrained endpoint runs the actual hash comparison in the
+        # dedicated verification operation immediately after this final write.
+        write += " Get-Command Get-FileHash|Out-Null;"
     return (
         "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; New-Item -ItemType Directory -Force $root|Out-Null; "
         "$file=Join-Path $root '" + runtime_name + "'; " + write
@@ -539,23 +548,126 @@ for _index in range(6, 13):
         powershell_command=_m20_listener_stage_command(_index),
     )
 
+def _m20_listener_runner_stage_command(index: int) -> str:
+    """Stage runner fragments independently, then assemble and hash-check them.
+
+    The T480 endpoint intermittently corrupts a long sequence of append writes;
+    independent Base64 fragments avoid that while retaining exact-source proof.
+    """
+    source = (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()
+    release_id = hashlib.sha256(
+        (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes() + source
+        + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()
+        + (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()
+    ).hexdigest()[:16]
+    encoded = base64.b64encode(source).decode("ascii")
+    parts = 48
+    chunk_size = ((len(encoded) + (parts * 4) - 1) // (parts * 4)) * 4
+    chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
+    prefix = "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; New-Item -ItemType Directory -Force $root|Out-Null; $payload=Join-Path $root 'm20_demo_trading_session.payload'; "
+    if index <= parts:
+        return prefix + "[IO.File]::WriteAllText((Join-Path $root 'm20_demo_trading_session.part" + f"{index:02d}" + "'),'" + chunks[index - 1] + "',(New-Object Text.UTF8Encoding($false))); [pscustomobject]@{stage=" + str(index) + ";ok=$true}|ConvertTo-Json -Compress"
+    raise ValueError("M20 listener runner stage index is invalid")
+
+
 for _index in range(1, 49):
     _final = _index == 48
     OPERATIONS[f"m20_listener_runner_stage_{_index}"] = Operation(
         f"m20_listener_runner_stage_{_index}",
         ("Stage and verify" if _final else "Stage") + f" fixed M20 listener runner payload part {_index}.",
-        powershell_command=_m20_listener_dependency_stage_command(
-            "m20_demo_trading_session.py", "m20_demo_trading_session.payload", "M20 listener runner", _index
-        ),
+        powershell_command=_m20_listener_runner_stage_command(_index),
     )
+_runner_source_digest = hashlib.sha256((ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()).hexdigest()
+_runner_release_id = hashlib.sha256(
+    (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
+    + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()
+    + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()
+    + (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()
+).hexdigest()[:16]
+OPERATIONS["m20_listener_runner_verify"] = Operation(
+    "m20_listener_runner_verify",
+    "Verify the fully staged fixed M20 listener runner payload hash.",
+    powershell_command=(
+        "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; "
+        "$root=Join-Path $base 'releases\\" + _runner_release_id + "'; "
+        "$file=Join-Path $root 'm20_demo_trading_session.payload'; "
+        "$fragments=@(Get-ChildItem -LiteralPath $root|Where-Object {$_.Name -match '^m20_demo_trading_session\\.part\\d{2}$'}|Sort-Object Name|ForEach-Object {$_.FullName}); "
+        "if ($fragments.Count -ne 48) { throw ('M20 listener runner fragments are incomplete: '+$fragments.Count) }; "
+        "$encoded=(($fragments|ForEach-Object {[IO.File]::ReadAllText($_)}) -join ''); "
+        "[IO.File]::WriteAllBytes($file,[Convert]::FromBase64String($encoded)); "
+        "if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -ne '" + _runner_source_digest + "') { throw 'M20 listener runner staged source hash failed' }; "
+        "$fragments|ForEach-Object { Remove-Item -LiteralPath $_ -Force }; "
+        "[pscustomobject]@{verified=$true}|ConvertTo-Json -Compress"
+    ),
+)
+
+
+def _m20_listener_bridge_stage_command(index: int) -> str:
+    """Stage bridge fragments independently for the constrained T480 endpoint."""
+    source = (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()
+    release_id = _runner_release_id
+    encoded = base64.b64encode(source).decode("ascii")
+    parts = 24
+    chunk_size = ((len(encoded) + (parts * 4) - 1) // (parts * 4)) * 4
+    chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
+    if index not in range(1, parts + 1):
+        raise ValueError("M20 listener bridge stage index is invalid")
+    prefix = "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; New-Item -ItemType Directory -Force $root|Out-Null; "
+    return prefix + "[IO.File]::WriteAllText((Join-Path $root 'm20_postgres_audit_bridge.part" + f"{index:02d}" + "'),'" + chunks[index - 1] + "',(New-Object Text.UTF8Encoding($false))); [pscustomobject]@{stage=" + str(index) + ";ok=$true}|ConvertTo-Json -Compress"
+
+
+_bridge_source_digest = hashlib.sha256((ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()).hexdigest()
+OPERATIONS["m20_listener_bridge_verify"] = Operation(
+    "m20_listener_bridge_verify",
+    "Assemble and verify the fully staged fixed M20 listener PostgreSQL bridge payload.",
+    powershell_command=(
+        "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + _runner_release_id + "'; "
+        "$file=Join-Path $root 'm20_postgres_audit_bridge.payload'; "
+        "$fragments=@(Get-ChildItem -LiteralPath $root|Where-Object {$_.Name -match '^m20_postgres_audit_bridge\\.part\\d{2}$'}|Sort-Object Name|ForEach-Object {$_.FullName}); "
+        "if ($fragments.Count -ne 24) { throw ('M20 listener bridge fragments are incomplete: '+$fragments.Count) }; "
+        "$encoded=(($fragments|ForEach-Object {[IO.File]::ReadAllText($_)}) -join ''); [IO.File]::WriteAllBytes($file,[Convert]::FromBase64String($encoded)); "
+        "if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -ne '" + _bridge_source_digest + "') { throw 'M20 listener bridge staged source hash failed' }; "
+        "$fragments|ForEach-Object { Remove-Item -LiteralPath $_ -Force }; [pscustomobject]@{verified=$true}|ConvertTo-Json -Compress"
+    ),
+)
 for _index in range(1, 25):
     _final = _index == 24
     OPERATIONS[f"m20_listener_bridge_stage_{_index}"] = Operation(
         f"m20_listener_bridge_stage_{_index}",
         ("Stage and verify" if _final else "Stage") + f" fixed M20 listener PostgreSQL bridge payload part {_index}.",
-        powershell_command=_m20_listener_dependency_stage_command(
-            "m20_postgres_audit_bridge.py", "m20_postgres_audit_bridge.payload", "M20 listener bridge", _index
-        ),
+        powershell_command=_m20_listener_bridge_stage_command(_index),
+    )
+
+def _m20_listener_discord_stage_command(index: int) -> str:
+    """Stage Discord fragments separately, then atomically assemble one payload.
+
+    This avoids both the T480 endpoint command-length limit and endpoint
+    protection briefly locking a file while another command appends to it.
+    """
+    source = (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()
+    release_id = hashlib.sha256((ROOT / "t480" / "m20_demo_listener_service.py").read_bytes() + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes() + source).hexdigest()[:16]
+    encoded = base64.b64encode(source).decode("ascii")
+    parts = 4
+    chunk_size = ((len(encoded) + (parts * 4) - 1) // (parts * 4)) * 4
+    chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
+    if index not in range(1, parts + 1):
+        raise ValueError("M20 Discord adapter stage index is invalid")
+    prefix = "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; New-Item -ItemType Directory -Force $root|Out-Null; $payload=Join-Path $root 'm20_discord_trade_notification.payload'; "
+    if index < parts:
+        part = "m20_discord_trade_notification.part" + str(index)
+        return prefix + "[IO.File]::WriteAllText((Join-Path $root '" + part + "'),'" + chunks[index - 1] + "',(New-Object Text.UTF8Encoding($false))); [pscustomobject]@{stage=" + str(index) + ";ok=$true}|ConvertTo-Json -Compress"
+    fragment_names = ",".join("(Join-Path $root 'm20_discord_trade_notification.part" + str(number) + "')" for number in range(1, parts))
+    final_chunk = chunks[-1]
+    digest = hashlib.sha256(source).hexdigest()
+    return prefix + "$fragments=@(" + fragment_names + "); if ($fragments | Where-Object { !(Test-Path -LiteralPath $_) }) { throw 'M20 Discord adapter fragments are incomplete' }; $encoded=(($fragments|ForEach-Object {[IO.File]::ReadAllText($_)}) -join '')+'" + final_chunk + "'; [IO.File]::WriteAllBytes($payload,[Convert]::FromBase64String($encoded)); if ((Get-FileHash -LiteralPath $payload -Algorithm SHA256).Hash.ToLower() -ne '" + digest + "') { throw 'M20 Discord adapter staged source hash failed' }; $fragments|ForEach-Object { Remove-Item -LiteralPath $_ -Force }; [pscustomobject]@{stage=" + str(index) + ";ok=$true}|ConvertTo-Json -Compress"
+
+
+for _index in range(1, 5):
+    _final = _index == 4
+    OPERATIONS[f"m20_listener_discord_stage_{_index}"] = Operation(
+        f"m20_listener_discord_stage_{_index}",
+        ("Stage and verify" if _final else "Stage") + f" fixed M20 Discord sale-notification adapter part {_index}.",
+        powershell_command=_m20_listener_discord_stage_command(_index),
     )
 
 

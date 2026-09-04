@@ -36,6 +36,57 @@ def _value(value: Any, fallback: str = "—") -> str:
     return fallback if value is None else str(value)
 
 
+def _context_by_timeframe(context: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Index the fixed M20.12 records without inferring a missing timeframe."""
+    records = context.get("contexts") or []
+    return {
+        str(record.get("timeframe")): record
+        for record in records
+        if isinstance(record, dict) and str(record.get("timeframe")) in {"M5", "H1"}
+    }
+
+
+def _context_line(timeframe: str, record: dict[str, Any] | None) -> str:
+    """Render one context row; it is deliberately descriptive, never directive."""
+    if record is None:
+        return f"{timeframe}: NOT RECORDED | close UTC — | age —"
+    status = _value(record.get("integrity_status"), "UNAVAILABLE")
+    state = _value(record.get("market_state"), "UNKNOWN")
+    alignment = _value(record.get("alignment"), "UNAVAILABLE")
+    close = _value(record.get("closed_at_utc"))
+    age = record.get("data_age_seconds")
+    age_display = "—" if age is None else f"{age}s"
+    volatility = _value(record.get("volatility_state"), "UNKNOWN")
+    liquidity = _value(record.get("liquidity_state"), "UNKNOWN")
+    return (f"{timeframe}: {status} | {state} | {alignment} | close UTC {close} | age {age_display}"
+            f" | vol {volatility} | liquidity {liquidity}")
+
+
+def _shadow_context_lines(context: Any) -> list[str]:
+    """Return the M20.12 read-only panel from the persisted runner payload."""
+    lines = [
+        "Shadow context only — does not change this trade.",
+        "M5/H1 context is recorded after the M1 decision and has no entry, exit, or ownership authority.",
+    ]
+    if not isinstance(context, dict):
+        lines.extend([
+            "Context: NOT RECORDED in this assessment (staged-only listener output or unavailable record).",
+            "M5: NOT RECORDED | close UTC — | age —",
+            "H1: NOT RECORDED | close UTC — | age —",
+        ])
+        return lines
+    lines.append(
+        f"Context: alignment {_value(context.get('overall_alignment'), 'UNAVAILABLE')}"
+        f" | disposition {_value(context.get('context_disposition'), 'OBSERVE_ONLY')}"
+        f" | rule {_value(context.get('rule_version'))}"
+    )
+    by_timeframe = _context_by_timeframe(context)
+    lines.extend([_context_line("M5", by_timeframe.get("M5")), _context_line("H1", by_timeframe.get("H1"))])
+    if context.get("reason") is not None:
+        lines.append(f"Context reason: {_value(context.get('reason'))}")
+    return lines
+
+
 def render(status: dict[str, Any]) -> str:
     result = status.get("last_result") or {}
     proposal = result.get("proposal") or {}
@@ -46,6 +97,7 @@ def render(status: dict[str, Any]) -> str:
     quote = status.get("quote") or {}
     strategies = result.get("strategy_assessments") or []
     selection = result.get("strategy_selection") or {}
+    shadow_context = result.get("multi_timeframe_context")
     supervisor = "RUNNING" if status.get("running") else _value(status.get("state"))
     listener_detail = "" if status.get("state") == "RUNNING" else f" — {_value(status.get('state'))}"
     lines = [
@@ -59,11 +111,11 @@ def render(status: dict[str, Any]) -> str:
         f"Quote gate: MT5 tick {_value(quote.get('tick_time_msc'))} | bid/ask {_value(quote.get('bid'))}/{_value(quote.get('ask'))}",
         f"Market: {_value(result.get('server'))}  {_value(result.get('symbol'))} / {_value(proposal.get('selected_timeframe'))}",
         "",
-        f"Decision: {_value(proposal.get('action'))}   Order: {_value(execution.get('status'))}",
+        f"M1 decision: {_value(proposal.get('action'))}   Order: {_value(execution.get('status'))}",
         f"Reason: {_value(proposal.get('rationale'))}",
         f"Reconciliation: {_value(reconciliation.get('status'))}",
         f"Monitor: {_value(monitor.get('state'))}   PID: {_value(monitor.get('pid'))}",
-        f"Regime: {_value(selection.get('market_regime'))}   Selected: {_value(selection.get('selected_strategy_id'))} [{_value(selection.get('selection_status'))}]",
+        f"M1 strategy owner: {_value(selection.get('selected_strategy_id'))} [{_value(selection.get('selection_status'))}]   Regime: {_value(selection.get('market_regime'))}",
         f"Regime reason: {_value(selection.get('market_regime_reason'))}",
         f"Selected plan: entry {_value(proposal.get('proposed_entry'))} | SL {_value(proposal.get('stop_loss'))} | TP {_value(proposal.get('take_profit'))}",
         f"Cost gate: {_value(selection.get('cost_coverage_status'))} | estimated costs {_value(selection.get('estimated_round_trip_cost_aud'))} AUD | expected net at TP {_value(selection.get('expected_net_profit_at_take_profit_aud'))} AUD | minimum {_value(selection.get('minimum_net_profit_aud'))} AUD",
@@ -76,6 +128,7 @@ def render(status: dict[str, Any]) -> str:
         f"Combined move: {_value(metrics.get('combined_move_points'))} pts   Spread: {_value(metrics.get('spread_points'))} pts   Exceeds spread: {_value(metrics.get('combined_move_exceeds_spread'))}",
         "",
     ]
+    lines.extend(["M5/H1 shadow context", "-------------------", *_shadow_context_lines(shadow_context), ""])
     lines.extend([
         "Strategy comparison — regime precedence may select one executable owner",
         "Strategy               Signal       Mode      What this assessment means",

@@ -10,7 +10,12 @@ def test_adapter_exposes_only_fixed_forex_operations():
         "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour",
         "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m19-lineage-verify", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema", "forex-m20-stage-cost-ledger-schema", "forex-m20-apply-cost-ledger-schema", "forex-m20-stage-open-position-schema", "forex-m20-apply-open-position-schema", "forex-m20-stage-continuous-lease-schema", "forex-m20-apply-continuous-lease-schema", "forex-m20-stage-outcome-reconciliation-schema", "forex-m20-apply-outcome-reconciliation-schema", "forex-m20-stage-regime-strategy-schema", "forex-m20-apply-regime-strategy-schema", "forex-m20-audit-verify", "forex-m20-rejection-summary", "forex-m20-lifecycle-summary",
     }
-    expected.update({"forex-m20-stage-projected-cost-schema", "forex-m20-apply-projected-cost-schema"})
+    expected.update({
+        "forex-m20-stage-projected-cost-schema", "forex-m20-apply-projected-cost-schema",
+            "forex-m20-strategy-trial-summary", "forex-m20-stage-mtf-context-schema",
+            "forex-m20-apply-mtf-context-schema", "forex-m20-mtf-context-verify",
+            "forex-m20-mtf-context-summary", "forex-m20-stage-strategy-trial-query",
+    })
     assert postgres_pgvector_adapter.READ_ONLY | postgres_pgvector_adapter.MUTATING == expected
 
 
@@ -98,6 +103,19 @@ def test_m20_lifecycle_summary_is_fixed_read_only_and_marks_open_or_terminal_sta
     for required in ("demo_execution_attempt", "demo_position_event", "demo_trade_ledger", "demo_open_position_state", "session_id", "actual_entry_price", "CLOSED_MATCHED", "CLOSED_RECONCILIATION_ERROR", "TERMINAL_REJECTED", "PENDING"):
         assert required in query
     assert "password" not in query.lower()
+
+
+def test_m20_strategy_trial_summary_is_fixed_read_only_and_covers_all_five_owners():
+    with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True, "stdout": "[]", "stderr": ""}) as remote:
+        assert postgres_pgvector_adapter.m20_strategy_trial_summary()["ok"]
+    query = remote.call_args.args[0]
+    source = (postgres_pgvector_adapter.ROOT / "sql/m20_strategy_trial_summary.sql").read_text()
+    for required in ("signal_count", "selected_count", "attempt_count", "verified_closed_count", "net_realized_pnl_aud"):
+        assert required in source
+    assert "demo_strategy_signal" in source and "demo_strategy_selection" in source
+    assert "forex.m20.11.m1-five-strategy-trial.v2" in source
+    assert "m20_strategy_trial_summary.sql" in query
+    assert "INSERT" not in query and "password" not in query.lower()
 
 
 def test_m20_outcome_reconciliation_schema_staging_and_application_are_hash_bound():
