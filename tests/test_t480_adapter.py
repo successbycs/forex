@@ -127,8 +127,9 @@ def test_m20_unresolved_history_probe_is_fixed_demo_only_and_cannot_trade():
     command = t480_adapter.OPERATIONS["m20_unresolved_history_probe"].powershell_command or ""
     assert "history_deals_get" in command
     assert "GOMarketsMU-Demo" in command
-    assert "2026,9,3,9" in command and "2026,9,3,12,30" in command
+    assert "2026,9,3,12" in command and "2026,9,3,15,30" in command
     assert "position_identifier" in command and "commission" in command and "fee" in command
+    assert "broker_timestamp_offset_seconds" in command and "x.time-10800" in command
     assert "order_send" not in command
     assert len(command) < 2500
 
