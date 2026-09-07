@@ -308,19 +308,26 @@ def _m20_listener_refusal_drill_command() -> str:
 
 
 def _m20_listener_resume_risk_policy_command() -> str:
-    """Record a fixed manual-review resume request without exposing database input."""
+    """Resume through the same T480 WSL database path as the trading runner."""
     bridge = (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()
     digest = hashlib.sha256(bridge).hexdigest()
     return (
         "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $state=Join-Path $base 'state'; "
         "$status=gc -Raw (Join-Path $state 'm20_demo_listener_status.local.json')|ConvertFrom-Json; $release=[string]$status.release_id; "
         "if ($release -notmatch '^[0-9a-f]{16}$') { throw 'M20 active ProgramData release id is absent or invalid' }; "
-        "$root=Join-Path $base ('releases\\'+$release); $c=gc -Raw (Join-Path $state 'm20_demo_listener_service.local.json')|ConvertFrom-Json; "
-        "if ([string]::IsNullOrWhiteSpace($c.python_path) -or !(Test-Path -LiteralPath $c.python_path)) { throw 'M20 ProgramData release configured Python interpreter is absent' }; "
+        "$root=Join-Path $base ('releases\\'+$release); "
         "$bridge=Join-Path $root 'm20_postgres_audit_bridge.payload'; "
         "if (!(Test-Path -LiteralPath $bridge)) { throw 'M20 fixed ProgramData PostgreSQL audit bridge is absent' }; "
         "if ((Get-FileHash -LiteralPath $bridge -Algorithm SHA256).Hash.ToLower() -ne '" + digest + "') { throw 'M20 fixed PostgreSQL audit bridge hash does not match the committed source' }; "
-        "'{}' | & $c.python_path $bridge resume-risk-policy; exit $LASTEXITCODE"
+        # PostgreSQL is loopback-bound inside Ubuntu, not Windows. Forward the
+        # existing machine-local DSN by environment name, never in command text
+        # or stdout, and invoke only the verified ProgramData bridge payload.
+        "if ([string]::IsNullOrWhiteSpace($env:FOREX_M20_POSTGRES_DSN)) { throw 'M20 PostgreSQL bridge WSL prerequisites are absent' }; "
+        "$wslBridge='/mnt/c/ProgramData/ForexListener/releases/'+$release+'/m20_postgres_audit_bridge.payload'; "
+        "$previousWslEnv=$env:WSLENV; try { "
+        "$env:WSLENV=(@($previousWslEnv -split ':' | Where-Object { $_ -and $_ -notmatch '^FOREX_M20_POSTGRES_DSN(/.*)?$' }) + 'FOREX_M20_POSTGRES_DSN') -join ':'; "
+        "'{}' | & wsl.exe -d Ubuntu -- python3 $wslBridge resume-risk-policy; $bridgeExit=$LASTEXITCODE "
+        "} finally { $env:WSLENV=$previousWslEnv }; exit $bridgeExit"
     )
 
 

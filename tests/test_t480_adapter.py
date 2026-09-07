@@ -551,7 +551,12 @@ def test_fixed_operator_resume_action_has_no_database_or_order_input_surface():
     assert "resume-risk-policy" in command
     assert "Get-FileHash" in command
     assert "order_send" not in command
-    assert "FOREX_M20_POSTGRES_DSN" not in command
+    assert "wsl.exe -d Ubuntu -- python3 $wslBridge resume-risk-policy" in command
+    assert "/mnt/c/ProgramData/ForexListener/releases/" in command
+    assert "& $c.python_path $bridge" not in command
+    assert "finally { $env:WSLENV=$previousWslEnv }" in command
+    assert "'FOREX_M20_POSTGRES_DSN') -join ':'" in command
+    assert "postgresql://" not in command
 
 
 def test_m20_monitor_refuses_an_open_position_without_a_known_strategy_owner(monkeypatch):

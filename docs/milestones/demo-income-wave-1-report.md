@@ -312,3 +312,60 @@ proof for the existing revision.
 Wave 1 remains **IN PROGRESS**. No M20 closeout, production access, strategy
 expansion, new lease, risk-policy resume, commit, or deployment was performed
 by this checkpoint.
+
+## 2026-09-07 authorised deployment and W1.4 refusal drill
+
+The operator authorised the reviewed changes, confirmed that no external cash
+flow occurred around the AUD -0.29 close, and approved an AUD 0.01 temporary
+planned-loss limit solely for the refusal drill. Commits `71eb182` and
+`83f302f` deployed release `29072a8900d6831b` with configuration fingerprint
+`sha256:8a4f7d278e3b536b31f7f6c272ce032719877af7075c62cdd60ab0c1ae3a55e6`.
+The release hash gate initially rejected a duplicated staged service segment;
+no deployment occurred until a clean restage passed prepare, configure, and
+install. The new listener then reported a fresh `RUNNING` heartbeat, an IDLE
+empty durable-position recovery, and no protected position.
+
+For the drill, the listener was stopped before the temporary five-minute
+Demo-only lease was installed. The fixed no-order calculation used live
+GOMarketsMU-Demo EURUSD metadata: minimum volume 0.01 and a minimum-increment
+loss of AUD 0.013893. That exceeds the approved AUD 0.01 cap, so it returned
+`FOREX_M20_DEMO_RISK_REFUSAL_DRILL_OK` with
+`M20 minimum EURUSD price increment exceeds the AUD loss cap` and
+`order_submitted=false`. The standard continuous Demo lease was restored
+immediately with the approved AUD 100 maximum loss, then the listener was
+restarted and verified healthy.
+
+The authorised `resume-risk-policy` request could not be recorded because its
+local PostgreSQL connection at `127.0.0.1:5432` closed unexpectedly. The
+persistent risk state therefore remains fail-closed; no entry is authorised
+until that database path is healthy, the fixed resume request succeeds, and a
+subsequent account check verifies the expected balance remains aligned. This
+deployment and drill do not close Wave 1: fresh retained evidence, independent
+verification, the required protected-position restart/recovery proof, and the
+contract-required review recommendation remain outstanding.
+
+A subsequent T480 PostgreSQL health probe reported the container healthy and
+accepting local connections, but one immediate retry of the fixed resume
+request produced the same connection-closed error. Treat the database path as
+unavailable to the listener until its application connection succeeds; do not
+retry it in a tight loop.
+
+### Connection-path correction
+
+The follow-up investigation identified an application adapter defect, not a
+PostgreSQL outage. The trading runner's `_bridge()` invokes the verified bridge
+inside T480 Ubuntu, where PostgreSQL is loopback-bound. The fixed resume action
+instead invoked that bridge with Windows Python. The same `127.0.0.1` DSN then
+addressed Windows rather than Ubuntu. At 03:01 UTC the listener's recovery and
+independent PostgreSQL summaries were successful; the durable entry block was
+still `EXTERNAL_CASH_FLOW`, with expected balance AUD 100,995.22 and no resume
+record. The earlier statement that the listener's database path was unavailable
+was therefore incorrect.
+
+The resume adapter now invokes the same fixed Ubuntu bridge, retaining its
+source hash check. It forwards the existing local DSN through `WSLENV` by name
+and restores the previous environment afterward. No database endpoint, SQL,
+account, or order parameter is exposed. Adapter regression tests and governance
+validation pass. The existing operator confirmation of no external cash flow
+authorises the recorded resume; its real-world result and subsequent balance
+check must still be captured before claiming the blockage resolved.
