@@ -1022,3 +1022,13 @@ def test_m20_listener_open_alert_is_redacted_and_local_settings_survive_redeploy
     assert "FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED" in configure
     assert "$previous" in configure
     assert "discord.com/api/webhooks" not in configure
+
+
+def test_m20_discord_enable_operation_reads_only_approved_local_secret_sources():
+    command = t480_adapter.OPERATIONS["m20_listener_enable_discord_from_existing_secret"].powershell_command or ""
+    assert "GetEnvironmentVariable('FOREX_M20_DISCORD_WEBHOOK_URL','User')" in command
+    assert "GetEnvironmentVariable('FOREX_M20_DISCORD_WEBHOOK_URL','Machine')" in command
+    assert "No approved T480-local Discord webhook is configured" in command
+    assert "ConvertTo-Json" in command
+    assert "WriteAllText" in command
+    assert "discord\\.com/api/webhooks" in command

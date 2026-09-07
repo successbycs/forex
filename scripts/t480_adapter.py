@@ -378,6 +378,13 @@ def _m20_listener_prepare_command() -> str:
     )
 
 
+def _m20_listener_enable_discord_from_existing_secret_command() -> str:
+    """Enable the alert only from an approved T480-local secret source."""
+    return (
+        "$ErrorActionPreference='Stop';$state='C:\\ProgramData\\ForexListener\\state';$active=Join-Path $state 'm20_demo_listener_service.local.json';if(!(Test-Path -LiteralPath $active)){throw 'M20 listener configuration is absent'};$c=gc -Raw -LiteralPath $active|ConvertFrom-Json;$candidate=[string]$c.FOREX_M20_DISCORD_WEBHOOK_URL;if([string]::IsNullOrWhiteSpace($candidate)){$candidate=[Environment]::GetEnvironmentVariable('FOREX_M20_DISCORD_WEBHOOK_URL','User')};if([string]::IsNullOrWhiteSpace($candidate)){$candidate=[Environment]::GetEnvironmentVariable('FOREX_M20_DISCORD_WEBHOOK_URL','Machine')};if([string]::IsNullOrWhiteSpace($candidate)){$mt5=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json';if(Test-Path -LiteralPath $mt5){try{$candidate=[string]((gc -Raw -LiteralPath $mt5|ConvertFrom-Json).FOREX_M20_DISCORD_WEBHOOK_URL)}catch{}}};if($candidate -notmatch '^https://discord\\.com/api/webhooks/'){[pscustomobject]@{configured=$false;detail='No approved T480-local Discord webhook is configured.'}|ConvertTo-Json -Compress;exit 0};$c|Add-Member -NotePropertyName FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED -NotePropertyValue 'true' -Force;$c|Add-Member -NotePropertyName FOREX_M20_DISCORD_WEBHOOK_URL -NotePropertyValue $candidate -Force;$tmp=$active+'.tmp';[IO.File]::WriteAllText($tmp,($c|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false)));Move-Item $tmp $active -Force;[pscustomobject]@{configured=$true;detail='Discord open alerts enabled from an approved T480-local secret source.'}|ConvertTo-Json -Compress"
+    )
+
+
 def _m20_listener_configure_command() -> str:
     """Write only the governed non-secret configuration after payload verification."""
     service = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
@@ -654,6 +661,11 @@ OPERATIONS: dict[str, Operation] = {
         "Verify every fixed staged M20 release payload and atomically record its binding.",
         powershell_command=_m20_listener_prepare_command(),
         timeout_seconds=60,
+    ),
+    "m20_listener_enable_discord_from_existing_secret": Operation(
+        "m20_listener_enable_discord_from_existing_secret",
+        "Enable M20 Discord open alerts from an approved existing T480-local secret without returning it.",
+        powershell_command=_m20_listener_enable_discord_from_existing_secret_command(),
     ),
     "m20_listener_configure": Operation(
         "m20_listener_configure",

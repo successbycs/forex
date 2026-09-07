@@ -133,6 +133,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_enable_discord_from_existing_secret",
+      "purpose": "Enable M20 Discord open alerts from an approved existing T480-local secret without returning it.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_configure",
       "purpose": "Write the governed non-secret M20 listener configuration after release verification.",
       "approval_required": false
