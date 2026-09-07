@@ -1031,4 +1031,4 @@ def test_m20_discord_enable_operation_reads_only_approved_local_secret_sources()
     assert "No approved T480-local Discord webhook is configured" in command
     assert "ConvertTo-Json" in command
     assert "WriteAllText" in command
-    assert "discord\\.com/api/webhooks" in command
+    assert "discordapp" in command

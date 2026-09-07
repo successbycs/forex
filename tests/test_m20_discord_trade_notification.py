@@ -79,3 +79,10 @@ def test_open_notification_refuses_live_or_unprotected_payloads():
         assert "stop_loss" in str(error)
     else:
         raise AssertionError("unprotected open notification payload was accepted")
+
+
+def test_accepts_the_legacy_discordapp_webhook_endpoint(monkeypatch):
+    legacy = "https://discordapp.com/api/webhooks/123/token"
+    monkeypatch.setenv("FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED", "true")
+    monkeypatch.setenv("FOREX_M20_DISCORD_WEBHOOK_URL", legacy)
+    assert discord._webhook_url() == legacy

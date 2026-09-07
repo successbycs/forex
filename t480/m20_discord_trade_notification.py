@@ -27,6 +27,7 @@ OPEN_REQUIRED = {
     "opened_at_utc", "entry_price", "stop_loss", "take_profit", "lots",
 }
 LIQUIDITY_REQUIRED = {"currency", "balance", "equity", "free_margin", "margin", "floating_pnl"}
+APPROVED_WEBHOOK_PREFIXES = ("https://discord.com/api/webhooks/", "https://discordapp.com/api/webhooks/")
 
 
 def _number(value: Any, name: str) -> float:
@@ -105,7 +106,7 @@ def _webhook_url() -> str:
     if os.environ.get("FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED", "false").lower() != "true":
         return ""
     url = os.environ.get("FOREX_M20_DISCORD_WEBHOOK_URL", "")
-    if not url.startswith("https://discord.com/api/webhooks/"):
+    if not url.startswith(APPROVED_WEBHOOK_PREFIXES):
         raise ValueError("M20 Discord webhook is absent or not an approved Discord webhook URL")
     return url
 
