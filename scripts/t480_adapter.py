@@ -253,7 +253,7 @@ def _m20_listener_status_command() -> str:
         "$s=gc -Raw -LiteralPath $p|ConvertFrom-Json; $notifications=$false; $config=Join-Path $state 'm20_demo_listener_service.local.json'; if(Test-Path -LiteralPath $config){try{$c=gc -Raw -LiteralPath $config|ConvertFrom-Json;$notifications=(([string]$c.FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED).ToLower() -eq 'true' -and -not [string]::IsNullOrWhiteSpace([string]$c.FOREX_M20_DISCORD_WEBHOOK_URL))}catch{}}; "
         "$age=$null; $stale=$false; try { $age=[Math]::Round(((Get-Date).ToUniversalTime()-([datetime]::Parse([string]$s.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds,1); $stale=($age -ge 30) } catch { $stale=$true }; "
         "$recovery=if ($stale) { 'EXPLICIT_RECOVERY_REQUIRED' } else { 'NOT_REQUIRED' }; $recoveryDetail=$null; "
-        "$taskAction=$null; try { $taskAction=(Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop).Actions|Select-Object -First 1|ForEach-Object {$_.Execute+' '+$_.Arguments} } catch {}; $protection=$null;$protectionObservation='NO_DURABLE_PROTECTION_RECORD';$job=Join-Path $state 'm20_demo_monitor_job.local.json';if(Test-Path -LiteralPath $job){try{$j=gc -Raw -LiteralPath $job|ConvertFrom-Json;$protection=[ordered]@{ticket=$j.position.ticket;action=$j.proposal.action;entry_price=$j.position.price_open;stop_loss=$j.position.sl;take_profit=$j.position.tp;submitted_at_utc=$j.submitted_at_utc};$protectionObservation=if($s.monitor.state -eq 'RUNNING'){'OBSERVED_ACTIVE'}else{'LAST_KNOWN_UNVERIFIED'}}catch{$protectionObservation='DURABLE_PROTECTION_STATE_UNREADABLE'}};$state=if ($stale) { 'STALE' } else { $s.state }; $supervisorAlive=(!$stale -and ($s.state -notin @('STOPPED','STARTUP_FAILED'))); [pscustomobject]@{running=$supervisorAlive;state=$state;release_id=$s.release_id;task_action=$taskAction;heartbeat_at_utc=$s.heartbeat_at_utc;heartbeat_at_nzst=$s.heartbeat_at_nzst;heartbeat_age_seconds=$age;iteration=$s.process_iteration;assessment_total=$s.assessment_total;assessment_started_at_utc=$s.assessment_started_at_utc;assessment_completed_at_utc=$s.assessment_completed_at_utc;assessment_duration_ms=$s.assessment_duration_ms;next_assessment_at_utc=$s.next_assessment_at_utc;next_assessment_at_nzst=$s.next_assessment_at_nzst;detail=$s.detail;monitor=$s.monitor;quote=$s.quote;discord_open_alert_configured=$notifications;open_position_protection=$protection;protection_observation=$protectionObservation;last_result=$s.last_result;recovery_action=$recovery;recovery_detail=$recoveryDetail}|ConvertTo-Json -Compress -Depth 8"
+        "$taskAction=$null; try { $taskAction=(Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop).Actions|Select-Object -First 1|ForEach-Object {$_.Execute+' '+$_.Arguments} } catch {}; $hold=Join-Path $state 'm20_demo_maintenance_hold.local.json';$holdObservation=if(Test-Path -LiteralPath $hold){try{$h=gc -Raw -LiteralPath $hold|ConvertFrom-Json;if($h.schema_version -eq 'forex.m20.maintenance-hold.v1' -and $h.enabled -eq $true -and -not [string]::IsNullOrWhiteSpace([string]$h.reason)){[ordered]@{active=$true;reason=[string]$h.reason}}else{[ordered]@{active=$true;reason='MAINTENANCE_HOLD_UNREADABLE'}}}catch{[ordered]@{active=$true;reason='MAINTENANCE_HOLD_UNREADABLE'}}}else{[ordered]@{active=$false;reason='NONE'}}; $protection=$null;$protectionObservation='NO_DURABLE_PROTECTION_RECORD';$job=Join-Path $state 'm20_demo_monitor_job.local.json';if(Test-Path -LiteralPath $job){try{$j=gc -Raw -LiteralPath $job|ConvertFrom-Json;$protection=[ordered]@{ticket=$j.position.ticket;action=$j.proposal.action;entry_price=$j.position.price_open;stop_loss=$j.position.sl;take_profit=$j.position.tp;submitted_at_utc=$j.submitted_at_utc};$protectionObservation=if($s.monitor.state -eq 'RUNNING'){'OBSERVED_ACTIVE'}else{'LAST_KNOWN_UNVERIFIED'}}catch{$protectionObservation='DURABLE_PROTECTION_STATE_UNREADABLE'}};$state=if ($stale) { 'STALE' } else { $s.state }; $supervisorAlive=(!$stale -and ($s.state -notin @('STOPPED','STARTUP_FAILED'))); [pscustomobject]@{running=$supervisorAlive;state=$state;release_id=$s.release_id;task_action=$taskAction;heartbeat_at_utc=$s.heartbeat_at_utc;heartbeat_at_nzst=$s.heartbeat_at_nzst;heartbeat_age_seconds=$age;iteration=$s.process_iteration;assessment_total=$s.assessment_total;assessment_started_at_utc=$s.assessment_started_at_utc;assessment_completed_at_utc=$s.assessment_completed_at_utc;assessment_duration_ms=$s.assessment_duration_ms;next_assessment_at_utc=$s.next_assessment_at_utc;next_assessment_at_nzst=$s.next_assessment_at_nzst;detail=$s.detail;monitor=$s.monitor;quote=$s.quote;maintenance_hold=$holdObservation;discord_open_alert_configured=$notifications;open_position_protection=$protection;protection_observation=$protectionObservation;last_result=$s.last_result;recovery_action=$recovery;recovery_detail=$recoveryDetail}|ConvertTo-Json -Compress -Depth 8"
     )
 
 
@@ -339,6 +339,25 @@ def _m20_listener_stop_command() -> str:
         "if ($task.State -eq 'Running') { Stop-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop }; "
         "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like '*\\ProgramData\\ForexListener\\releases\\*m20_demo_listener_service.payload*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop }; "
         "[pscustomobject]@{stopped=$true;task='Forex-M20-Demo-Listener'}|ConvertTo-Json -Compress"
+    )
+
+
+def _m20_listener_enable_maintenance_hold_command() -> str:
+    """Write the sole fixed maintenance hold used for coordinated recovery."""
+    return (
+        "$ErrorActionPreference='Stop'; $state='C:\\ProgramData\\ForexListener\\state'; New-Item -ItemType Directory -Force $state|Out-Null; "
+        "$hold=[ordered]@{schema_version='forex.m20.maintenance-hold.v1';enabled=$true;reason='W1R_COORDINATED_MAINTENANCE';created_at_utc=(Get-Date).ToUniversalTime().ToString('o')}; "
+        "$tmp=Join-Path $state 'm20_demo_maintenance_hold.local.json.tmp'; [IO.File]::WriteAllText($tmp,($hold|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false))); Move-Item -LiteralPath $tmp -Destination (Join-Path $state 'm20_demo_maintenance_hold.local.json') -Force; "
+        "[pscustomobject]@{maintenance_hold=$true;reason=$hold.reason}|ConvertTo-Json -Compress"
+    )
+
+
+def _m20_listener_disable_maintenance_hold_command() -> str:
+    """Remove only the fixed maintenance hold after an independently verified release."""
+    return (
+        "$ErrorActionPreference='Stop'; $p='C:\\ProgramData\\ForexListener\\state\\m20_demo_maintenance_hold.local.json'; "
+        "Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue; "
+        "[pscustomobject]@{maintenance_hold=$false;reason='NONE'}|ConvertTo-Json -Compress"
     )
 
 
@@ -654,6 +673,16 @@ OPERATIONS: dict[str, Operation] = {
         "m20_listener_stop",
         "Stop only the fixed permanent M20 Demo listener Scheduled Task for deployment.",
         powershell_command=_m20_listener_stop_command(),
+    ),
+    "m20_listener_enable_maintenance_hold": Operation(
+        "m20_listener_enable_maintenance_hold",
+        "Enable the fixed W1.R maintenance hold: monitor positions but block all assessments and Demo entries.",
+        powershell_command=_m20_listener_enable_maintenance_hold_command(),
+    ),
+    "m20_listener_disable_maintenance_hold": Operation(
+        "m20_listener_disable_maintenance_hold",
+        "Remove only the fixed W1.R maintenance hold after verified maintenance.",
+        powershell_command=_m20_listener_disable_maintenance_hold_command(),
     ),
     "m20_listener_repair_permissions": Operation("m20_listener_repair_permissions", "Repair current-user Modify access only for the fixed Forex listener deployment directory.", powershell_command=_m20_listener_repair_permissions_command()),
     "m20_listener_prepare": Operation(

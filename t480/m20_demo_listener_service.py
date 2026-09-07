@@ -32,6 +32,10 @@ LEASE_PATH = STATE_ROOT / "m20_demo_session.local.json"
 CONFIG_PATH = STATE_ROOT / "m20_demo_listener_service.local.json"
 ASSESSMENT_TOTAL_PATH = STATE_ROOT / "m20_demo_assessment_total.local.json"
 ASSESSMENT_GATE_PATH = STATE_ROOT / "m20_demo_assessment_gate.local.json"
+# This mutable record is set only by fixed adapter actions during coordinated
+# maintenance. A malformed record fails closed: monitoring remains available
+# for an existing position but entry processing stays disabled.
+MAINTENANCE_HOLD_PATH = STATE_ROOT / "m20_demo_maintenance_hold.local.json"
 # Windows endpoint protection can block newly-created executable script
 # extensions under ProgramData.  Python executes this immutable hash-checked
 # payload explicitly, so the deployment artifact intentionally has no .py
@@ -110,6 +114,22 @@ def _active_lease() -> bool:
         return bool(lease.get("enabled")) and start <= now <= end
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
         return False
+
+
+def _maintenance_hold() -> dict[str, str | bool]:
+    """Return a redacted, fail-closed maintenance hold observation."""
+    if not MAINTENANCE_HOLD_PATH.exists():
+        return {"active": False, "reason": "NONE"}
+    try:
+        hold = json.loads(MAINTENANCE_HOLD_PATH.read_text(encoding="utf-8-sig"))
+        if hold.get("schema_version") != "forex.m20.maintenance-hold.v1" or hold.get("enabled") is not True:
+            raise ValueError("invalid maintenance hold")
+        reason = hold.get("reason")
+        if not isinstance(reason, str) or not reason:
+            raise ValueError("maintenance hold reason is absent")
+        return {"active": True, "reason": reason}
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return {"active": True, "reason": "MAINTENANCE_HOLD_UNREADABLE"}
 
 
 def _load_environment() -> None:
@@ -302,6 +322,18 @@ def run() -> None:
                    "detail": "Supervisor started; broker-backed open-position recovery is pending."})
     while not STOP_PATH.exists():
         now = time.monotonic()
+        maintenance_hold = _maintenance_hold()
+        if maintenance_hold["active"]:
+            monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
+            _write_status({"state": "MAINTENANCE_HOLD", "iteration": iteration,
+                           "last_result": last_result, "next_assessment_at_utc": None,
+                           "assessment_completed_at_utc": last_assessment_completed_at_utc,
+                           "assessment_duration_ms": last_assessment_duration_ms,
+                           "monitor": monitor_state, "quote": last_quote,
+                           "maintenance_hold": maintenance_hold,
+                           "detail": "Coordinated maintenance hold is active; open-position monitoring continues but no assessment or Demo order is permitted."})
+            time.sleep(POLL_SECONDS)
+            continue
         if not _active_lease():
             monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
             _write_status({"state": "WAITING_FOR_ACTIVE_DEMO_LEASE", "iteration": iteration,

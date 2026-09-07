@@ -123,6 +123,16 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_enable_maintenance_hold",
+      "purpose": "Enable the fixed W1.R maintenance hold so monitoring continues while all Demo assessments and entries are blocked.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_disable_maintenance_hold",
+      "purpose": "Remove only the fixed W1.R maintenance hold after verified maintenance.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_repair_permissions",
       "purpose": "Repair current-user Modify access only for the fixed Forex listener deployment directory.",
       "approval_required": false

@@ -249,6 +249,15 @@ def test_m20_listener_stop_is_fixed_to_the_listener_task_only():
     assert "order_send" not in command
 
 
+def test_m20_listener_maintenance_hold_actions_are_fixed_and_have_no_order_surface():
+    enable = t480_adapter.OPERATIONS["m20_listener_enable_maintenance_hold"].powershell_command or ""
+    disable = t480_adapter.OPERATIONS["m20_listener_disable_maintenance_hold"].powershell_command or ""
+    assert "m20_demo_maintenance_hold.local.json" in enable + disable
+    assert "W1R_COORDINATED_MAINTENANCE" in enable
+    assert "order_send" not in enable + disable
+    assert "GOMarketsMU-Live" not in enable + disable
+
+
 def test_m20_listener_install_is_hash_checked_and_fixed():
     command = t480_adapter.OPERATIONS["m20_listener_install"].powershell_command
     assert "Forex-M20-Demo-Listener" in command

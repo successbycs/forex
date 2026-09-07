@@ -1,4 +1,5 @@
 import importlib.util
+import json
 from pathlib import Path
 
 
@@ -89,6 +90,51 @@ def test_listener_never_sleeps_a_negative_interval_after_monitoring():
     assert round(module._idle_wait_seconds(100.4, 100.0), 6) == 0.4
     assert module._idle_wait_seconds(100.0, 100.0) == 0.0
     assert module._idle_wait_seconds(100.0, 100.1) == 0.0
+
+
+def test_maintenance_hold_is_fixed_and_fails_closed_when_unreadable(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "MAINTENANCE_HOLD_PATH", tmp_path / "hold.json")
+    assert module._maintenance_hold() == {"active": False, "reason": "NONE"}
+    module.MAINTENANCE_HOLD_PATH.write_text("not-json", encoding="utf-8")
+    assert module._maintenance_hold() == {"active": True, "reason": "MAINTENANCE_HOLD_UNREADABLE"}
+    module.MAINTENANCE_HOLD_PATH.write_text(json.dumps({
+        "schema_version": "forex.m20.maintenance-hold.v1",
+        "enabled": True,
+        "reason": "W1R_COORDINATED_MAINTENANCE",
+    }), encoding="utf-8")
+    assert module._maintenance_hold() == {"active": True, "reason": "W1R_COORDINATED_MAINTENANCE"}
+
+
+def test_listener_blocks_assessment_but_keeps_monitoring_during_maintenance(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "STOP_PATH", tmp_path / "listener.stop")
+    monkeypatch.setattr(module, "STATUS_PATH", tmp_path / "listener-status.json")
+    monkeypatch.setattr(module, "ASSESSMENT_TOTAL_PATH", tmp_path / "assessment-total.json")
+    monkeypatch.setattr(module, "MAINTENANCE_HOLD_PATH", tmp_path / "hold.json")
+    module.MAINTENANCE_HOLD_PATH.write_text(json.dumps({
+        "schema_version": "forex.m20.maintenance-hold.v1", "enabled": True, "reason": "test",
+    }), encoding="utf-8")
+    monkeypatch.setattr(module, "POLL_SECONDS", 0)
+    monkeypatch.setattr(module, "_load_environment", lambda: {"python_path": "python", "terminal_path": "terminal"})
+    calls = []
+    def monitor(values, previous, retry_at):
+        calls.append("monitor")
+        module.STOP_PATH.write_text("stop", encoding="utf-8")
+        return {"state": "IDLE"}, 0.0
+    monkeypatch.setattr(module, "_monitor_update", monitor)
+    monkeypatch.setattr(module, "_quote_identity", lambda values: calls.append("quote"))
+    statuses = []
+    monkeypatch.setattr(module, "_write_status", lambda payload: statuses.append(payload))
+    module.run()
+    assert calls == ["monitor"]
+    assert any(status["state"] == "MAINTENANCE_HOLD" for status in statuses)
 
 
 def test_listener_reconciles_durable_positions_before_its_first_assessment(tmp_path, monkeypatch):
