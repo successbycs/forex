@@ -87,7 +87,7 @@ W1.2 and W1.3 remain in progress: MT5 API error handling, partial-fill state,
 and broker deal-history reconciliation require further implementation and
 Demo evidence. Option B values and pause authority are now approved. Migrations 016 through 021 have been staged and applied successfully to the fixed Demo PostgreSQL surface; the read-only audit verifier passes. The risk state has no baseline yet because this release is not deployed. The remaining decision is whether USD 100,000 cumulative notional should remain during the development phase.
 
-## 2026-09-07 deployment hold
+## 2026-09-07 deployment correction
 
 The previously deployed listener release `402ea373eafcc9f2` did not include the
 Wave 1 risk guard and its risk-policy state was uninitialised. It was idle with
@@ -97,7 +97,14 @@ auto-restarts a stale listener; the pending release removes that side effect.
 The pending release makes listener status read-only; recovery remains a separate
 fixed operator operation so an inspection cannot restart execution.
 
-A new Demo release and its evidence are intentionally on hold until this
-worktree is represented by an explicitly authorised commit. The deployment
-protocol binds its configured application revision to `git HEAD`; deploying
-uncommitted source would make the hash-bound release claim the wrong revision.
+The T480 endpoint rejects commands above roughly 2.5 KB. The deployment
+protocol now uses fifteen service fragments, sixty-four runner fragments, and
+thirty-two audit-bridge fragments. It verifies all four staged payload hashes
+in a short fixed operation, records that release, and only then writes the
+non-secret configuration containing the governed risk policy. This preserves
+the configuration-to-release binding while fitting the endpoint limit.
+
+The deployment source must be committed before staging because its configured
+application revision is bound to `git HEAD`. The next steps are to commit this
+correction, stage the release, verify its active heartbeat and risk baseline on
+Demo, and collect independent lifecycle evidence.

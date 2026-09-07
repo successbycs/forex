@@ -14,7 +14,6 @@ import argparse
 import base64
 from dataclasses import asdict
 import gzip
-import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -293,7 +292,7 @@ def _m20_listener_repair_permissions_command() -> str:
 
 
 def _m20_listener_prepare_command() -> str:
-    """Verify a staged release and atomically write its local service config."""
+    """Verify every staged payload and atomically record its release binding."""
     service = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
     service_digest = hashlib.sha256(service).hexdigest()
     runner_digest = hashlib.sha256((ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()).hexdigest()
@@ -302,23 +301,33 @@ def _m20_listener_prepare_command() -> str:
     discord_digest = hashlib.sha256(discord).hexdigest()
     release_id = hashlib.sha256(service + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes() + discord).hexdigest()[:16]
     fingerprint = project_configuration_fingerprint()
-    configuration = load_configuration(ROOT, environ={})
-    tick_offset_seconds = configuration.mt5.broker_tick_time_offset_seconds
-    minimum_net_profit = configuration.runtime.demo_session_limits.minimum_net_profit_aud
-    risk_policy = json.dumps(asdict(configuration.runtime.persistent_risk_policy), separators=(",", ":"))
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     return (
         "$ErrorActionPreference='Stop'; "
-        "$base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; $state=Join-Path $base 'state'; $legacy=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe'; New-Item -ItemType Directory -Force $state|Out-Null; "
-        "$s=gc -Raw (Join-Path $legacy 'mt5.local.json')|ConvertFrom-Json; "
-        "$runner=Join-Path $root 'm20_demo_trading_session.payload'; $bridge=Join-Path $root 'm20_postgres_audit_bridge.payload'; $discord=Join-Path $root 'm20_discord_trade_notification.payload'; $service=Join-Path $root 'm20_demo_listener_service.payload'; $task='Forex-M20-Demo-Listener'; "
-        "if ((Get-FileHash -LiteralPath $runner -Algorithm SHA256).Hash.ToLower() -ne '" + runner_digest + "') { throw 'M20 listener runner hash does not match fixed source' }; "
-        "if ((Get-FileHash -LiteralPath $bridge -Algorithm SHA256).Hash.ToLower() -ne '" + bridge_digest + "') { throw 'M20 listener bridge hash does not match fixed source' }; "
-        "if ((Get-FileHash -LiteralPath $discord -Algorithm SHA256).Hash.ToLower() -ne '" + discord_digest + "') { throw 'M20 Discord adapter hash does not match fixed source' }; "
-        "if ((Get-FileHash -LiteralPath $service -Algorithm SHA256).Hash.ToLower() -ne '" + service_digest + "') { throw 'M20 listener service staging hash failed' }; "
-        "$discordConfigKey='FOREX_M20_DISCORD_WEBHOOK_URL'; $c=[ordered]@{FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "';FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(tick_offset_seconds) + "';FOREX_M20_MINIMUM_NET_PROFIT_AUD='" + str(minimum_net_profit) + "';FOREX_M20_PERSISTENT_RISK_POLICY='" + risk_policy.replace("'", "''") + "';FOREX_M20_APPLICATION_REVISION='" + revision + "';python_path=$s.python_path;terminal_path=$s.terminal_path}; "
-        "if (!(Test-Path (Join-Path $state 'm20_demo_session.local.json'))) { Copy-Item (Join-Path $legacy 'm20_demo_session.local.json') (Join-Path $state 'm20_demo_session.local.json') -ErrorAction SilentlyContinue }; $tmp=Join-Path $state 'm20_demo_listener_service.local.json.tmp'; [IO.File]::WriteAllText($tmp,($c|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false))); Move-Item -LiteralPath $tmp -Destination (Join-Path $state 'm20_demo_listener_service.local.json') -Force; "
-        "[pscustomobject]@{prepared=$true;release_id='" + release_id + "';service_sha256='sha256:" + service_digest + "'}|ConvertTo-Json -Compress"
+        "$b='C:\\ProgramData\\ForexListener';$r=Join-Path $b 'releases\\" + release_id + "';$s=Join-Path $b state;ni -it d -fo $s|out-null;"
+        "$e=@{'m20_demo_listener_service.payload'='" + service_digest + "';'m20_demo_trading_session.payload'='" + runner_digest + "';'m20_postgres_audit_bridge.payload'='" + bridge_digest + "';'m20_discord_trade_notification.payload'='" + discord_digest + "'};"
+        "$e.GetEnumerator()|%{$p=Join-Path $r $_.Key;if(!(Test-Path -LiteralPath $p)-or (Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLower() -ne $_.Value){throw ('M20 staged payload hash failed: '+$_.Key)}};"
+        "$m=[ordered]@{release_id='" + release_id + "';service_sha256='sha256:" + service_digest + "';configuration_fingerprint='" + fingerprint + "';application_revision='" + revision + "'};$t=Join-Path $s 'm20_demo_listener_prepared.local.json.tmp';[IO.File]::WriteAllText($t,($m|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false)));Move-Item $t (Join-Path $s 'm20_demo_listener_prepared.local.json') -Force;"
+        "[pscustomobject]@{prepared=$true;release_id=$m.release_id;service_sha256=$m.service_sha256}|ConvertTo-Json -Compress"
+    )
+
+
+def _m20_listener_configure_command() -> str:
+    """Write only the governed non-secret configuration after payload verification."""
+    service = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
+    runner_digest = hashlib.sha256((ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()).hexdigest()
+    bridge_digest = hashlib.sha256((ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()).hexdigest()
+    discord = (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()
+    release_id = hashlib.sha256(service + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes() + discord).hexdigest()[:16]
+    fingerprint = project_configuration_fingerprint()
+    configuration = load_configuration(ROOT, environ={})
+    risk_policy = json.dumps(asdict(configuration.runtime.persistent_risk_policy), separators=(",", ":"))
+    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    return (
+        "$ErrorActionPreference='Stop';$b='C:\\ProgramData\\ForexListener';$s=Join-Path $b state;$l=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe';"
+        "$m=gc -Raw (Join-Path $s 'm20_demo_listener_prepared.local.json')|ConvertFrom-Json;if($m.release_id -ne '" + release_id + "'-or $m.configuration_fingerprint -ne '" + fingerprint + "'-or $m.application_revision -ne '" + revision + "'){throw 'M20 verified release binding is absent or stale'};"
+        "$x=gc -Raw (Join-Path $l 'mt5.local.json')|ConvertFrom-Json;$c=[ordered]@{FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "';FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(configuration.mt5.broker_tick_time_offset_seconds) + "';FOREX_M20_MINIMUM_NET_PROFIT_AUD='" + str(configuration.runtime.demo_session_limits.minimum_net_profit_aud) + "';FOREX_M20_PERSISTENT_RISK_POLICY='" + risk_policy.replace("'", "''") + "';FOREX_M20_APPLICATION_REVISION='" + revision + "';python_path=$x.python_path;terminal_path=$x.terminal_path};"
+        "if(!(Test-Path (Join-Path $s 'm20_demo_session.local.json'))){Copy-Item (Join-Path $l 'm20_demo_session.local.json') (Join-Path $s 'm20_demo_session.local.json') -ea SilentlyContinue};$t=Join-Path $s 'm20_demo_listener_service.local.json.tmp';[IO.File]::WriteAllText($t,($c|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false)));Move-Item $t (Join-Path $s 'm20_demo_listener_service.local.json') -Force;[pscustomobject]@{configured=$true;release_id=$m.release_id}|ConvertTo-Json -Compress"
     )
 
 
@@ -345,10 +354,10 @@ def _m20_listener_stage_command(index: int) -> str:
     source = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
     release_id = hashlib.sha256(source + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes() + (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()).hexdigest()[:16]
     # Raw Base64 decoding is accepted by the T480 endpoint; in-process gzip
-    # expansion is not.  Twelve bounded fixed fragments stay below its command
+    # expansion is not.  Fifteen bounded fixed fragments stay below its command
     # cap and match the catalogued release protocol.
     encoded = base64.b64encode(source).decode("ascii")
-    chunk_size = ((len(encoded) + (12 * 4) - 1) // (12 * 4)) * 4
+    chunk_size = ((len(encoded) + (15 * 4) - 1) // (15 * 4)) * 4
     chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
     if index not in range(1, len(chunks) + 1):
         raise ValueError("M20 listener stage index is invalid")
@@ -554,8 +563,14 @@ OPERATIONS: dict[str, Operation] = {
     "m20_listener_repair_permissions": Operation("m20_listener_repair_permissions", "Repair current-user Modify access only for the fixed Forex listener deployment directory.", powershell_command=_m20_listener_repair_permissions_command()),
     "m20_listener_prepare": Operation(
         "m20_listener_prepare",
-        "Verify the fixed staged M20 release and atomically prepare its non-secret service configuration.",
+        "Verify every fixed staged M20 release payload and atomically record its binding.",
         powershell_command=_m20_listener_prepare_command(),
+        timeout_seconds=60,
+    ),
+    "m20_listener_configure": Operation(
+        "m20_listener_configure",
+        "Write the governed non-secret M20 listener configuration after release verification.",
+        powershell_command=_m20_listener_configure_command(),
         timeout_seconds=60,
     ),
     "m20_listener_install": Operation(
@@ -571,10 +586,10 @@ OPERATIONS: dict[str, Operation] = {
     "m20_listener_stage_5": Operation("m20_listener_stage_5", "Stage fixed M20 listener payload part five.", powershell_command=_m20_listener_stage_command(5)),
 }
 
-for _index in range(6, 13):
+for _index in range(6, 16):
     OPERATIONS[f"m20_listener_stage_{_index}"] = Operation(
         f"m20_listener_stage_{_index}",
-        ("Stage and verify" if _index == 12 else "Stage") + f" fixed M20 listener payload part {_index}.",
+        ("Stage and verify" if _index == 15 else "Stage") + f" fixed M20 listener payload part {_index}.",
         powershell_command=_m20_listener_stage_command(_index),
     )
 
@@ -591,7 +606,7 @@ def _m20_listener_runner_stage_command(index: int) -> str:
         + (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()
     ).hexdigest()[:16]
     encoded = base64.b64encode(source).decode("ascii")
-    parts = 48
+    parts = 64
     chunk_size = ((len(encoded) + (parts * 4) - 1) // (parts * 4)) * 4
     chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
     prefix = "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; New-Item -ItemType Directory -Force $root|Out-Null; $payload=Join-Path $root 'm20_demo_trading_session.payload'; "
@@ -600,8 +615,8 @@ def _m20_listener_runner_stage_command(index: int) -> str:
     raise ValueError("M20 listener runner stage index is invalid")
 
 
-for _index in range(1, 49):
-    _final = _index == 48
+for _index in range(1, 65):
+    _final = _index == 64
     OPERATIONS[f"m20_listener_runner_stage_{_index}"] = Operation(
         f"m20_listener_runner_stage_{_index}",
         ("Stage and verify" if _final else "Stage") + f" fixed M20 listener runner payload part {_index}.",
@@ -622,7 +637,7 @@ OPERATIONS["m20_listener_runner_verify"] = Operation(
         "$root=Join-Path $base 'releases\\" + _runner_release_id + "'; "
         "$file=Join-Path $root 'm20_demo_trading_session.payload'; "
         "$fragments=@(Get-ChildItem -LiteralPath $root|Where-Object {$_.Name -match '^m20_demo_trading_session\\.part\\d{2}$'}|Sort-Object Name|ForEach-Object {$_.FullName}); "
-        "if ($fragments.Count -ne 48) { throw ('M20 listener runner fragments are incomplete: '+$fragments.Count) }; "
+        "if ($fragments.Count -ne 64) { throw ('M20 listener runner fragments are incomplete: '+$fragments.Count) }; "
         "$encoded=(($fragments|ForEach-Object {[IO.File]::ReadAllText($_)}) -join ''); "
         "[IO.File]::WriteAllBytes($file,[Convert]::FromBase64String($encoded)); "
         "if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -ne '" + _runner_source_digest + "') { throw 'M20 listener runner staged source hash failed' }; "
@@ -637,7 +652,7 @@ def _m20_listener_bridge_stage_command(index: int) -> str:
     source = (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()
     release_id = _runner_release_id
     encoded = base64.b64encode(source).decode("ascii")
-    parts = 24
+    parts = 32
     chunk_size = ((len(encoded) + (parts * 4) - 1) // (parts * 4)) * 4
     chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
     if index not in range(1, parts + 1):
@@ -660,8 +675,8 @@ OPERATIONS["m20_listener_bridge_verify"] = Operation(
         "$fragments|ForEach-Object { Remove-Item -LiteralPath $_ -Force }; [pscustomobject]@{verified=$true}|ConvertTo-Json -Compress"
     ),
 )
-for _index in range(1, 25):
-    _final = _index == 24
+for _index in range(1, 33):
+    _final = _index == 32
     OPERATIONS[f"m20_listener_bridge_stage_{_index}"] = Operation(
         f"m20_listener_bridge_stage_{_index}",
         ("Stage and verify" if _final else "Stage") + f" fixed M20 listener PostgreSQL bridge payload part {_index}.",

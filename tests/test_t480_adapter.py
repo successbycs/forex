@@ -37,7 +37,7 @@ def test_catalog_and_adapter_operations_match():
     t480_adapter.validate_contract()
     catalog = json.loads(t480_adapter.CATALOG_PATH.read_text(encoding="utf-8"))
     assert {entry["id"] for entry in catalog["operations"]} == set(t480_adapter.OPERATIONS)
-    assert "m20_listener_runner_stage_48" in t480_adapter.OPERATIONS
+    assert "m20_listener_runner_stage_64" in t480_adapter.OPERATIONS
 
 
 def test_adapter_emits_the_governed_project_fingerprint_for_evidence_binding():
@@ -225,11 +225,12 @@ def test_m20_listener_install_is_hash_checked_and_fixed():
 
 def test_m20_listener_release_includes_the_fixed_t480_discord_adapter_without_exposing_its_webhook():
     prepare = t480_adapter.OPERATIONS["m20_listener_prepare"].powershell_command or ""
+    configure = t480_adapter.OPERATIONS["m20_listener_configure"].powershell_command or ""
     stage = t480_adapter.OPERATIONS["m20_listener_discord_stage_4"].powershell_command or ""
     assert "m20_discord_trade_notification.payload" in prepare
     assert "M20 Discord adapter staged source hash failed" in stage
-    assert "FOREX_M20_DISCORD_WEBHOOK_URL" in prepare
-    assert "discord.com/api/webhooks" not in prepare
+    assert "FOREX_M20_PERSISTENT_RISK_POLICY" in configure
+    assert "discord.com/api/webhooks" not in configure
 
 
 def test_m20_dependency_staging_appends_raw_decoded_bytes():
@@ -242,14 +243,16 @@ def test_m20_dependency_staging_appends_raw_decoded_bytes():
 
 def test_m20_listener_prepare_verifies_all_payloads_before_activation():
     command = t480_adapter.OPERATIONS["m20_listener_prepare"].powershell_command
+    configure = t480_adapter.OPERATIONS["m20_listener_configure"].powershell_command
     assert "Get-FileHash" in command
-    assert "m20_demo_listener_service.local.json" in command
+    assert "m20_demo_listener_prepared.local.json" in command
+    assert "m20_demo_listener_service.local.json" in configure
     assert "Register-ScheduledTask" not in command
 
 
 def test_m20_listener_staging_is_split_and_hash_checked():
     first = t480_adapter.OPERATIONS["m20_listener_stage_1"].powershell_command
-    final = t480_adapter.OPERATIONS["m20_listener_stage_12"].powershell_command
+    final = t480_adapter.OPERATIONS["m20_listener_stage_15"].powershell_command
     assert len(first) < 4000 and len(final) < 4000
     assert "WriteAllBytes" in first
     assert "[IO.File]::Open" in final and "Get-FileHash" in final
@@ -257,10 +260,10 @@ def test_m20_listener_staging_is_split_and_hash_checked():
 
 def test_m20_listener_runner_and_bridge_staging_are_fixed_and_hash_checked():
     runner_first = t480_adapter.OPERATIONS["m20_listener_runner_stage_1"].powershell_command
-    runner_final = t480_adapter.OPERATIONS["m20_listener_runner_stage_48"].powershell_command
+    runner_final = t480_adapter.OPERATIONS["m20_listener_runner_stage_64"].powershell_command
     runner_verify = t480_adapter.OPERATIONS["m20_listener_runner_verify"].powershell_command
     bridge_first = t480_adapter.OPERATIONS["m20_listener_bridge_stage_1"].powershell_command
-    bridge_final = t480_adapter.OPERATIONS["m20_listener_bridge_stage_24"].powershell_command
+    bridge_final = t480_adapter.OPERATIONS["m20_listener_bridge_stage_32"].powershell_command
     bridge_verify = t480_adapter.OPERATIONS["m20_listener_bridge_verify"].powershell_command
     for first, final, filename in (
         (runner_first, runner_final, "m20_demo_trading_session.payload"),

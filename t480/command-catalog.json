@@ -113,6 +113,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_configure",
+      "purpose": "Write the governed non-secret M20 listener configuration after release verification.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_install",
       "purpose": "Install or update the fixed hash-checked permanent M20 Demo listener Scheduled Task and start it immediately.",
       "approval_required": false
@@ -175,6 +180,21 @@
     {
       "id": "m20_listener_stage_12",
       "purpose": "Stage and verify final fixed payload segment for the permanent M20 Demo listener.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_13",
+      "purpose": "Stage and verify fixed M20 listener payload part 13.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_14",
+      "purpose": "Stage and verify fixed M20 listener payload part 14.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_15",
+      "purpose": "Stage and verify fixed M20 listener payload part 15.",
       "approval_required": false
     },
     {
@@ -565,6 +585,126 @@
     {
       "id": "m20_listener_bridge_verify",
       "purpose": "Assemble and verify the fully staged fixed M20 listener PostgreSQL bridge payload.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_49",
+      "purpose": "Stage fixed M20 listener runner payload part 49.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_50",
+      "purpose": "Stage fixed M20 listener runner payload part 50.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_51",
+      "purpose": "Stage fixed M20 listener runner payload part 51.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_52",
+      "purpose": "Stage fixed M20 listener runner payload part 52.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_53",
+      "purpose": "Stage fixed M20 listener runner payload part 53.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_54",
+      "purpose": "Stage fixed M20 listener runner payload part 54.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_55",
+      "purpose": "Stage fixed M20 listener runner payload part 55.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_56",
+      "purpose": "Stage fixed M20 listener runner payload part 56.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_57",
+      "purpose": "Stage fixed M20 listener runner payload part 57.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_58",
+      "purpose": "Stage fixed M20 listener runner payload part 58.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_59",
+      "purpose": "Stage fixed M20 listener runner payload part 59.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_60",
+      "purpose": "Stage fixed M20 listener runner payload part 60.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_61",
+      "purpose": "Stage fixed M20 listener runner payload part 61.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_62",
+      "purpose": "Stage fixed M20 listener runner payload part 62.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_63",
+      "purpose": "Stage fixed M20 listener runner payload part 63.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_64",
+      "purpose": "Stage and verify fixed M20 listener runner payload part 64.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_25",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 25.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_26",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 26.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_27",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 27.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_28",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 28.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_29",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 29.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_30",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 30.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_31",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 31.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_32",
+      "purpose": "Stage and verify fixed M20 listener PostgreSQL bridge payload part 32.",
       "approval_required": false
     }
   ]
