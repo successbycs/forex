@@ -68,6 +68,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_reconcile_retained_history",
+      "purpose": "Append only the exact broker-verified historical GOMarketsMU-Demo EURUSD lifecycle reconciliation for the four retained unresolved attempts; it cannot submit or modify an order.",
+      "approval_required": false
+    },
+    {
       "id": "m3_mt5_history_depth_probe",
       "purpose": "Measure fixed closed EURUSD H1 history depth from GOMarketsMU-Demo without persisting or trading.",
       "approval_required": false

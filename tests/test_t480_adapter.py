@@ -921,3 +921,50 @@ def test_shared_dependency_allows_unrelated_owner_changes_but_rejects_locked_fil
     drifted = inspect_dependency(config)
     assert drifted["ok"] is False
     assert f"locked dependency hash mismatch: {paths[1]}" in drifted["errors"]
+
+
+def test_fixed_retained_history_reconciliation_has_no_order_or_generic_history_surface():
+    command = t480_adapter.OPERATIONS["m20_reconcile_retained_history"].powershell_command or ""
+    runner = (t480_adapter.ROOT / "t480" / "m20_demo_trading_session.py").read_text(encoding="utf-8")
+    bridge = (t480_adapter.ROOT / "t480" / "m20_postgres_audit_bridge.py").read_text(encoding="utf-8")
+    assert "--reconcile-retained-history" in command
+    assert "Get-FileHash" in command and "GOMarketsMU-Live" not in command
+    assert "order_send" not in command and "order_send" not in runner[runner.index("def reconcile_historical_retained_positions"):runner.index("def _closed_m1_bars_for_monitor")]
+    assert "_HISTORICAL_RECOVERY" in runner and "history_deals_get(position=position_id)" in runner
+    assert "_HISTORICAL_RECOVERIES" in bridge
+    recovery = bridge[bridge.index("def record_historical_reconciliation"):bridge.index("def load_open_positions")]
+    assert "UPDATE forex.demo_risk_policy_state" not in recovery
+    assert "estimated_spread_cost_account,slippage_cost_account,estimated_total_cost_account,realized_pnl_account" in recovery
+    assert "NULL,NULL,NULL" in recovery
+
+
+def test_retained_history_reconciliation_validates_all_four_exact_broker_positions(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    offset = 10_800
+    by_position = {}
+    for index, (_attempt, _proposal, action, position_id, opened, closed, net) in enumerate(probe._HISTORICAL_RECOVERY, start=1):
+        def deal(time_text, entry, deal_type, ticket, order, price, profit):
+            time_value = int(datetime.fromisoformat(time_text.replace("Z", "+00:00")).timestamp()) + offset
+            return types.SimpleNamespace(ticket=ticket, order=order, position_id=position_id, time=time_value,
+                entry=entry, type=deal_type, volume=0.01, price=price, profit=profit, commission=0.0, fee=0.0, swap=0.0, reason=0, symbol="EURUSD")
+        opening_type, closing_type = (1, 0) if action == "SELL" else (0, 1)
+        by_position[position_id] = [deal(opened, 0, opening_type, 100 + index * 2, 200 + index * 2, 1.1, 0.0), deal(closed, 1, closing_type, 101 + index * 2, 201 + index * 2, 1.2, net)]
+    fake_mt5 = types.SimpleNamespace(
+        DEAL_ENTRY_IN=0, DEAL_ENTRY_OUT=1, DEAL_TYPE_BUY=0, DEAL_TYPE_SELL=1,
+        initialize=lambda **_kwargs: True, account_info=lambda: types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD"),
+        history_deals_get=lambda *, position: by_position[position], shutdown=lambda: None, last_error=lambda: "none",
+    )
+    monkeypatch.setattr(probe, "mt5", fake_mt5)
+    monkeypatch.setattr(probe, "tick_time_offset_seconds", lambda: offset)
+    captured = {}
+    def bridge(payload, command):
+        captured["payload"], captured["command"] = payload, command
+        return {"ok": True, "risk_policy_state_changed": False}
+    monkeypatch.setattr(probe, "_bridge", bridge)
+    result = probe.reconcile_historical_retained_positions("terminal")
+    assert result["marker"] == "FOREX_M20_HISTORICAL_RECONCILIATION_OPERATION_OK"
+    assert captured["command"] == "record-historical-reconciliation"
+    rows = captured["payload"]["recoveries"]
+    assert [row["position_identifier"] for row in rows] == [41488649, 41495536, 41499398, 41499981]
+    assert [row["realized_pnl_account"] for row in rows] == [0.18, 0.01, -0.56, -0.21]
+    assert all(row["fee_account"] == 0.0 and len(row["broker_deals"]) == 2 for row in rows)

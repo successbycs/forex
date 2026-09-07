@@ -452,6 +452,90 @@ def record_closed_outcome(payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "recorded_event_id": result["event_id"], "proposal_id": outcome["proposal_id"]}
 
 
+
+# This recovery is deliberately not a generic audit-repair API.  It can append
+# only the four exact, retained broker-history mappings captured before the
+# listener was released with durable open-position state.  Each source event
+# remains immutable and risk accounting starts after this historic interval.
+_HISTORICAL_RECOVERIES = {
+    "feffc714-c88f-5d34-bdca-705040a28565": ("3f40a116-bc15-5897-9062-c743b9ee5199", "SELL", 41488649, "2026-09-03T09:18:05Z", "2026-09-03T09:28:07Z", 0.18),
+    "e0dac54c-6b56-5a84-9022-126c3c21e00b": ("ee9f449b-dca7-549b-81de-5efcdabcb579", "BUY", 41495536, "2026-09-03T11:18:08Z", "2026-09-03T11:21:00Z", 0.01),
+    "15dffa0b-0446-500c-af09-ddce686e11f9": ("b3259891-acb5-54d8-a183-86b076dcbec1", "BUY", 41499398, "2026-09-03T12:04:03Z", "2026-09-03T12:13:02Z", -0.56),
+    "c66d1af4-3d00-56a8-83e2-881f1eec416b": ("a802ff2c-2c91-57aa-a364-030a4faeb8a7", "SELL", 41499981, "2026-09-03T12:13:07Z", "2026-09-03T12:15:01Z", -0.21),
+}
+
+
+def record_historical_reconciliation(payload: dict[str, Any]) -> dict[str, Any]:
+    """Append only validated retained MT5 history for four legacy attempts.
+
+    It cannot close a current position and deliberately leaves the conservative
+    risk policy state untouched: its baseline was initialized after these
+    historic broker closes, so applying their P&L now would mimic cash flow.
+    """
+    recoveries = payload.get("recoveries")
+    if not isinstance(recoveries, list) or len(recoveries) != len(_HISTORICAL_RECOVERIES):
+        raise SystemExit("M20 historical reconciliation must contain the exact retained attempt set")
+    observed_ids = [item.get("attempt_id") if isinstance(item, dict) else None for item in recoveries]
+    if set(observed_ids) != set(_HISTORICAL_RECOVERIES) or len(set(observed_ids)) != len(observed_ids):
+        raise SystemExit("M20 historical reconciliation attempt set is not fixed")
+    required = {"attempt_id", "proposal_id", "action", "position_identifier", "closed_at_utc", "exit_price", "gross_price_pnl_account", "commission_account", "fee_account", "swap_account", "realized_pnl_account", "account_currency", "broker_order_reference", "broker_deals", "broker_deals_sha256"}
+    normalized: list[dict[str, Any]] = []
+    for item in recoveries:
+        if not isinstance(item, dict) or set(item) != required:
+            raise SystemExit("M20 historical reconciliation row is invalid")
+        expected = _HISTORICAL_RECOVERIES[item["attempt_id"]]
+        proposal_id, action, position_id, opened_at, closed_at, expected_net = expected
+        if (item["proposal_id"], item["action"], item["position_identifier"]) != (proposal_id, action, position_id):
+            raise SystemExit("M20 historical reconciliation mapping differs from retained broker attribution")
+        if (item["account_currency"] != "AUD" or not isinstance(item["broker_order_reference"], str)
+                or not isinstance(item["broker_deals"], list) or len(item["broker_deals"]) != 2
+                or item["broker_deals_sha256"] != _digest(item["broker_deals"])
+                or not isinstance(item["exit_price"], (int, float)) or item["exit_price"] <= 0
+                or not all(isinstance(item[field], (int, float)) for field in ("gross_price_pnl_account", "commission_account", "fee_account", "swap_account", "realized_pnl_account"))):
+            raise SystemExit("M20 historical reconciliation broker result is invalid")
+        deals = item["broker_deals"]
+        opening, closing = deals
+        expected_open_type, expected_close_type = (1, 0) if action == "SELL" else (0, 1)
+        expected_deal_fields = {"ticket", "order", "position_identifier", "broker_time_utc", "time_utc", "entry", "type", "volume", "price", "profit", "commission", "swap", "fee", "reason", "symbol"}
+        if (any(not isinstance(deal, dict) or set(deal) != expected_deal_fields for deal in deals)
+                or opening["position_identifier"] != position_id or closing["position_identifier"] != position_id
+                or opening["symbol"] != "EURUSD" or closing["symbol"] != "EURUSD"
+                or opening["time_utc"] != opened_at or closing["time_utc"] != closed_at or item["closed_at_utc"] != closed_at
+                or opening["entry"] != 0 or closing["entry"] != 1
+                or opening["type"] != expected_open_type or closing["type"] != expected_close_type
+                or not all(isinstance(deal[field], (int, float)) and deal[field] > 0 for deal in deals for field in ("ticket", "order", "volume", "price"))
+                or not all(abs(float(deal["volume"]) - 0.01) <= 1e-9 for deal in deals)
+                or any(float(deal[field]) != 0.0 for deal in deals for field in ("commission", "fee", "swap"))):
+            raise SystemExit("M20 historical reconciliation deal set differs from retained broker attribution")
+        if (round(item["gross_price_pnl_account"] + item["commission_account"] + item["fee_account"] + item["swap_account"], 2) != round(item["realized_pnl_account"], 2)
+                or round(item["realized_pnl_account"], 2) != expected_net):
+            raise SystemExit("M20 historical reconciliation net P&L does not reconcile")
+        normalized.append(item)
+    with _connection() as conn, conn.cursor() as cursor:
+        for item in normalized:
+            cursor.execute(
+                "SELECT p.action, EXISTS(SELECT 1 FROM forex.demo_trade_outcome o WHERE o.proposal_id=a.proposal_id), EXISTS(SELECT 1 FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type='CLOSED'), EXISTS(SELECT 1 FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type='OPENED'), EXISTS(SELECT 1 FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type='FAILED') FROM forex.demo_execution_attempt a JOIN forex.demo_trade_proposal p ON p.proposal_id=a.proposal_id WHERE a.attempt_id=%s AND a.proposal_id=%s FOR UPDATE",
+                (item["attempt_id"], item["proposal_id"]),
+            )
+            state = cursor.fetchone()
+            if state is None or state != (item["action"], False, False, True, True):
+                raise SystemExit("M20 historical reconciliation source lifecycle is not the fixed legacy state")
+            event_payload = {
+                "schema_version": "forex.m20.historical-reconciliation.v1",
+                "reason": "RETAINED_BROKER_HISTORY_EXACT_POSITION_MATCH",
+                "position_identifier": item["position_identifier"],
+                "closed_volume": 0.01,
+                "broker_deals": item["broker_deals"],
+                "broker_deals_sha256": item["broker_deals_sha256"],
+            }
+            event_id = str(uuid5(NAMESPACE_URL, f"{item['attempt_id']}:historical-retained-close:v1"))
+            cursor.execute("INSERT INTO forex.demo_position_event (event_id,attempt_id,event_type,observed_at_utc,payload_sha256,payload) VALUES (%s,%s,'CLOSED',now(),%s,%s::jsonb)", (event_id, item["attempt_id"], _digest(event_payload), json.dumps({"broker_order_reference": item["broker_order_reference"], **event_payload})))
+            cursor.execute("INSERT INTO forex.demo_trade_outcome (proposal_id,closed_at_utc,exit_price,gross_price_pnl_account,commission_account,fee_account,swap_account,estimated_spread_cost_account,slippage_cost_account,estimated_total_cost_account,realized_pnl_account,account_currency,close_reason,reconciliation_status) VALUES (%s,%s,%s,%s,%s,%s,%s,NULL,NULL,NULL,%s,'AUD','RETAINED_BROKER_HISTORY_EXACT_POSITION_MATCH','MATCHED')", (item["proposal_id"], item["closed_at_utc"], item["exit_price"], item["gross_price_pnl_account"], item["commission_account"], item["fee_account"], item["swap_account"], item["realized_pnl_account"]))
+            revision_id = "historical-retained-broker-reconciliation:" + item["attempt_id"]
+            original = {"legacy_attempt_without_outcome": True, "legacy_events": ["OPENED", "FAILED"]}
+            cursor.execute("INSERT INTO forex.demo_outcome_reconciliation_revision (revision_id,proposal_id,disposition,observed_at_utc,reason_code,original_outcome,broker_position_id,broker_deals,broker_deals_sha256,repaired_closed_at_utc,repaired_exit_price,repaired_gross_price_pnl_account,repaired_commission_account,repaired_swap_account,repaired_realized_pnl_account,repaired_account_currency) VALUES (%s,%s,'REPAIRED',now(),'RETAINED_BROKER_HISTORY_EXACT_POSITION_MATCH',%s::jsonb,%s,%s::jsonb,%s,%s,%s,%s,%s,%s,%s,'AUD')", (revision_id, item["proposal_id"], json.dumps(original), item["position_identifier"], json.dumps(item["broker_deals"]), item["broker_deals_sha256"], item["closed_at_utc"], item["exit_price"], item["gross_price_pnl_account"], item["commission_account"], item["swap_account"], item["realized_pnl_account"]))
+    return {"ok": True, "marker": "FOREX_M20_HISTORICAL_RECONCILIATION_APPENDED", "attempt_ids": observed_ids, "risk_policy_state_changed": False}
+
 def load_open_positions(payload: dict[str, Any]) -> dict[str, Any]:
     """Return only durable M20 monitor context; this is a fixed read surface."""
     if payload:
@@ -521,7 +605,7 @@ def reconcile(payload: dict[str, Any]) -> dict[str, Any]:
 
 def main() -> int:
     command = sys.argv[1] if len(sys.argv) == 2 else ""
-    actions = {"persist-proposal": persist_proposal, "reserve-execution": reserve_execution, "enforce-risk-policy": enforce_risk_policy, "resume-risk-policy": resume_risk_policy, "record-result": record_result, "record-open-position": record_open_position, "update-open-position": update_open_position, "record-closed-outcome": record_closed_outcome, "load-open-positions": load_open_positions, "reconcile": reconcile}
+    actions = {"persist-proposal": persist_proposal, "reserve-execution": reserve_execution, "enforce-risk-policy": enforce_risk_policy, "resume-risk-policy": resume_risk_policy, "record-result": record_result, "record-open-position": record_open_position, "update-open-position": update_open_position, "record-closed-outcome": record_closed_outcome, "record-historical-reconciliation": record_historical_reconciliation, "load-open-positions": load_open_positions, "reconcile": reconcile}
     if command not in actions:
         raise SystemExit("M20 audit bridge command is not fixed")
     print(json.dumps(actions[command](_payload()), separators=(",", ":")))

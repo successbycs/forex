@@ -179,3 +179,32 @@ reconciliation action that validates these deal sets, appends provenance and a
 reconciliation revision, and never modifies the existing `OPENED` or `FAILED`
 events. Until it is independently verified, the global one-position gate must
 remain closed.
+
+## 2026-09-07 fixed retained-history reconciliation prepared
+
+A local, hash-bound reconciliation path is prepared for the four attributed
+legacy attempts. It has no caller-supplied account, symbol, position, deal, or
+SQL input. It re-reads each exact Demo broker position identifier, requires two
+EURUSD market deals with the recorded UTC timestamps, directions, 0.01-lot
+volumes, and AUD net P&L, then asks the audit bridge to append the following
+new records:
+
+- one immutable `CLOSED` event carrying the complete broker deal set and its
+  SHA-256 digest;
+- one fee-complete `MATCHED` AUD outcome, with unavailable historical
+  spread/slippage estimates kept `NULL`; and
+- one immutable `REPAIRED` reconciliation revision whose source records the
+  absence of a legacy outcome.
+
+The existing `OPENED` and `FAILED` events are not modified. The action cannot
+submit or modify an order, and it does not change the persistent risk-policy
+state: the policy baseline was initialized after these historical closes, so
+adding their P&L to `expected_balance` would create a false cash-flow signal.
+
+The reconciliation is not yet deployed or executed. It changes the governed
+T480 command catalog, so it needs a new revision, configuration-fingerprint
+refresh, hash-checked release deployment, and an explicit operator decision
+before the append-only remote database write. Local validation covers all four
+broker deal mappings and the broader Wave 1 focused test suite; the current
+milestone validator correctly reports configuration-fingerprint drift until
+that governed configuration is formally adopted.

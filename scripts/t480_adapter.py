@@ -228,6 +228,22 @@ def _m20_demo_trading_session_command() -> str:
     )
 
 
+
+def _m20_reconcile_retained_history_command() -> str:
+    """Run only the fixed append-only reconciliation of four retained Demo positions."""
+    runner_digest = hashlib.sha256((ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()).hexdigest()
+    bridge_digest = hashlib.sha256((ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()).hexdigest()
+    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    fingerprint = project_configuration_fingerprint()
+    return (
+        "$ErrorActionPreference='Stop'; $b='C:\\ProgramData\\ForexListener';$s=Join-Path $b state;$h=gc -Raw (Join-Path $s 'm20_demo_listener_status.local.json')|ConvertFrom-Json;$r=[string]$h.release_id;"
+        "if($r -notmatch '^[0-9a-f]{16}$'){throw 'M20 active release id is absent or invalid'};$root=Join-Path $b ('releases\\'+$r);$c=gc -Raw (Join-Path $s 'm20_demo_listener_service.local.json')|ConvertFrom-Json;"
+        "if($c.FOREX_M20_APPLICATION_REVISION -ne '" + revision + "' -or $c.FOREX_M20_CONFIGURATION_FINGERPRINT -ne '" + fingerprint + "'){throw 'M20 active release binding differs from the fixed reconciliation'};"
+        "$p=Join-Path $root 'm20_demo_trading_session.payload';$q=Join-Path $root 'm20_postgres_audit_bridge.payload';if(!(Test-Path -LiteralPath $p)-or !(Test-Path -LiteralPath $q)){throw 'M20 release payload is absent'};"
+        "if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne '" + runner_digest + "' -or (Get-FileHash $q -Algorithm SHA256).Hash.ToLower() -ne '" + bridge_digest + "'){throw 'M20 fixed reconciliation payload hash differs'};"
+        "$env:FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';$env:FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';$env:FOREX_M20_CONFIGURATION_FINGERPRINT=$c.FOREX_M20_CONFIGURATION_FINGERPRINT;$env:FOREX_M20_APPLICATION_REVISION=$c.FOREX_M20_APPLICATION_REVISION;$env:FOREX_M20_TICK_TIME_OFFSET_SECONDS=$c.FOREX_M20_TICK_TIME_OFFSET_SECONDS;& $c.python_path $p $c.terminal_path _ --reconcile-retained-history;exit $LASTEXITCODE"
+    )
+
 def _m20_listener_status_command() -> str:
     """Return a redacted heartbeat only; recovery is an explicit fixed operation."""
     return (
@@ -536,6 +552,12 @@ OPERATIONS: dict[str, Operation] = {
         "Read only the fixed GOMarketsMU-Demo EURUSD broker-deal window for unresolved M20 attempts.",
         powershell_command=_m20_unresolved_history_probe_command(),
         timeout_seconds=60,
+    ),
+    "m20_reconcile_retained_history": Operation(
+        "m20_reconcile_retained_history",
+        "Append only the four fixed, broker-verified historical GOMarketsMU-Demo EURUSD lifecycle reconciliations.",
+        powershell_command=_m20_reconcile_retained_history_command(),
+        timeout_seconds=90,
     ),
     "m3_mt5_history_depth_probe": Operation(
         "m3_mt5_history_depth_probe",

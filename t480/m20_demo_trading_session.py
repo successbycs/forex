@@ -927,6 +927,89 @@ def _close_accepted_position(*, position: Any, submitted_at: datetime, proposed_
     return str(getattr(close_result, "order", "")), exit_price, costs
 
 
+
+# Exact legacy broker positions, captured by the fixed read-only attribution
+# probe.  This is intentionally finite: it is a one-time recovery path, not a
+# general historical order/deal interface.
+_HISTORICAL_RECOVERY = (
+    ("feffc714-c88f-5d34-bdca-705040a28565", "3f40a116-bc15-5897-9062-c743b9ee5199", "SELL", 41488649, "2026-09-03T09:18:05Z", "2026-09-03T09:28:07Z", 0.18),
+    ("e0dac54c-6b56-5a84-9022-126c3c21e00b", "ee9f449b-dca7-549b-81de-5efcdabcb579", "BUY", 41495536, "2026-09-03T11:18:08Z", "2026-09-03T11:21:00Z", 0.01),
+    ("15dffa0b-0446-500c-af09-ddce686e11f9", "b3259891-acb5-54d8-a183-86b076dcbec1", "BUY", 41499398, "2026-09-03T12:04:03Z", "2026-09-03T12:13:02Z", -0.56),
+    ("c66d1af4-3d00-56a8-83e2-881f1eec416b", "a802ff2c-2c91-57aa-a364-030a4faeb8a7", "SELL", 41499981, "2026-09-03T12:13:07Z", "2026-09-03T12:15:01Z", -0.21),
+)
+
+
+def _historical_deal_row(deal: Any, offset_seconds: int) -> dict[str, Any]:
+    """Return the complete non-secret, broker-derived deal facts we preserve."""
+    broker_time = datetime.fromtimestamp(int(getattr(deal, "time", 0)), timezone.utc)
+    return {
+        "ticket": int(getattr(deal, "ticket", 0)), "order": int(getattr(deal, "order", 0)),
+        "position_identifier": int(getattr(deal, "position_id", 0)),
+        "broker_time_utc": utc(broker_time), "time_utc": utc(broker_time - timedelta(seconds=offset_seconds)),
+        "entry": int(getattr(deal, "entry", -1)), "type": int(getattr(deal, "type", -1)),
+        "volume": float(getattr(deal, "volume", 0)), "price": float(getattr(deal, "price", 0)),
+        "profit": float(getattr(deal, "profit", 0)), "commission": float(getattr(deal, "commission", 0)),
+        "swap": float(getattr(deal, "swap", 0)), "fee": float(getattr(deal, "fee", 0)),
+        "reason": int(getattr(deal, "reason", -1)), "symbol": str(getattr(deal, "symbol", "")),
+    }
+
+
+def reconcile_historical_retained_positions(terminal_path: str) -> dict[str, Any]:
+    """Validate and append only four known closed Demo positions.
+
+    No order, position modification, lease write, or risk-policy adjustment is
+    possible on this path.  It exists solely to turn independently retained
+    broker history into complete append-only lifecycle evidence.
+    """
+    offset_seconds = tick_time_offset_seconds()
+    if not mt5.initialize(path=terminal_path):
+        raise SystemExit(f"M20 retained-history reconciliation could not initialize MT5: {mt5.last_error()}")
+    try:
+        account = mt5.account_info()
+        if not account or account.server != SERVER or getattr(account, "currency", "") != "AUD":
+            raise SystemExit("M20 retained-history reconciliation requires the configured AUD GOMarketsMU-Demo account")
+        entry_in, entry_out = int(getattr(mt5, "DEAL_ENTRY_IN", 0)), int(getattr(mt5, "DEAL_ENTRY_OUT", 1))
+        buy, sell = int(getattr(mt5, "DEAL_TYPE_BUY", 0)), int(getattr(mt5, "DEAL_TYPE_SELL", 1))
+        rows: list[dict[str, Any]] = []
+        for attempt_id, proposal_id, action, position_id, expected_open, expected_close, expected_net in _HISTORICAL_RECOVERY:
+            deals = mt5.history_deals_get(position=position_id)
+            if deals is None:
+                raise SystemExit(f"M20 retained-history reconciliation deal query failed for {position_id}: {mt5.last_error()}")
+            normalized = sorted((_historical_deal_row(deal, offset_seconds) for deal in deals if int(getattr(deal, "position_id", 0)) == position_id), key=lambda item: (item["time_utc"], item["ticket"]))
+            if len(normalized) != 2:
+                raise SystemExit(f"M20 retained-history reconciliation requires exactly two broker deals for {position_id}")
+            opening, closing = normalized
+            expected_open_type, expected_close_type = (sell, buy) if action == "SELL" else (buy, sell)
+            if (opening["symbol"] != SYMBOL or closing["symbol"] != SYMBOL
+                    or opening["entry"] != entry_in or closing["entry"] != entry_out
+                    or opening["type"] != expected_open_type or closing["type"] != expected_close_type
+                    or opening["time_utc"] != expected_open or closing["time_utc"] != expected_close
+                    or not math.isclose(opening["volume"], 0.01, abs_tol=1e-9)
+                    or not math.isclose(closing["volume"], 0.01, abs_tol=1e-9)):
+                raise SystemExit(f"M20 retained-history reconciliation broker attribution changed for {position_id}")
+            gross = round(sum(item["profit"] for item in normalized), 2)
+            commission = round(sum(item["commission"] for item in normalized), 2)
+            fee = round(sum(item["fee"] for item in normalized), 2)
+            swap = round(sum(item["swap"] for item in normalized), 2)
+            net = round(gross + commission + fee + swap, 2)
+            if net != expected_net:
+                raise SystemExit(f"M20 retained-history reconciliation broker net P&L changed for {position_id}")
+            rows.append({
+                "attempt_id": attempt_id, "proposal_id": proposal_id, "action": action,
+                "position_identifier": position_id, "closed_at_utc": closing["time_utc"],
+                "exit_price": closing["price"], "gross_price_pnl_account": gross,
+                "commission_account": commission, "fee_account": fee, "swap_account": swap,
+                "realized_pnl_account": net, "account_currency": "AUD",
+                "broker_order_reference": str(closing["order"]), "broker_deals": normalized,
+                "broker_deals_sha256": "sha256:" + hashlib.sha256(json.dumps(normalized, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+            })
+        result = _bridge({"recoveries": rows}, "record-historical-reconciliation")
+        if result.get("risk_policy_state_changed") is not False:
+            raise SystemExit("M20 retained-history reconciliation unexpectedly changed risk state")
+        return {"marker": "FOREX_M20_HISTORICAL_RECONCILIATION_OPERATION_OK", "server": account.server, "symbol": SYMBOL, "reconciliation": result}
+    finally:
+        mt5.shutdown()
+
 def _closed_m1_bars_for_monitor(tick: Any, offset_seconds: int) -> list[dict[str, Any]]:
     """Load only completed M1 candles for a position exit decision."""
     observed_at = datetime.fromtimestamp(int(tick.time), timezone.utc) - timedelta(seconds=offset_seconds)
@@ -1574,5 +1657,7 @@ if __name__ == "__main__":
         print(json.dumps(recover_open_positions(sys.argv[1]), separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--quote-identity":
         print(json.dumps(quote_identity(sys.argv[1]), separators=(",", ":")))
+    elif len(sys.argv) == 4 and sys.argv[3] == "--reconcile-retained-history":
+        print(json.dumps(reconcile_historical_retained_positions(sys.argv[1]), separators=(",", ":")))
     else:
         raise SystemExit("expected fixed terminal path and fixed M20 session lease path")
