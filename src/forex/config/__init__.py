@@ -54,12 +54,28 @@ class DemoSessionLimits:
 
 
 @dataclass(frozen=True)
+class PersistentRiskPolicy:
+    policy_version: str
+    reporting_currency: str
+    maximum_risk_per_trade_percent: float
+    maximum_risk_per_trade_aud: float
+    daily_loss_limit_percent: float
+    weekly_loss_limit_percent: float
+    peak_equity_drawdown_limit_percent: float
+    loss_budget_timezone: str
+    daily_pause_reset: str
+    manual_resume_reasons: tuple[str, ...]
+    require_known_external_cashflow: bool
+
+
+@dataclass(frozen=True)
 class RuntimeConfig:
     environment: str
     runtime_mode: str
     agent_authority_mode: str
     live_trading_enabled: bool
     maximum_concurrent_positions: int
+    persistent_risk_policy: PersistentRiskPolicy
     demo_session_limits: DemoSessionLimits
 
 
@@ -227,7 +243,7 @@ def load_configuration(root: Path, environ: Mapping[str, str] | None = None) -> 
         project=ProjectConfig(**{key: value for key, value in values["project"].items() if key != "schema_version"}),
         runtime=RuntimeConfig(
             **{
-                key: DemoSessionLimits(**value) if key == "demo_session_limits" else value
+                key: (DemoSessionLimits(**value) if key == "demo_session_limits" else PersistentRiskPolicy(**{field: tuple(item) if field == "manual_resume_reasons" else item for field, item in value.items()}) if key == "persistent_risk_policy" else value)
                 for key, value in values["runtime"].items()
                 if key != "schema_version"
             }

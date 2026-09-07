@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+from dataclasses import asdict
 import gzip
 import gzip
 import hashlib
@@ -186,6 +187,7 @@ def _m20_demo_trading_session_command() -> str:
     configuration = load_configuration(ROOT, environ={})
     tick_offset_seconds = configuration.mt5.broker_tick_time_offset_seconds
     minimum_net_profit = configuration.runtime.demo_session_limits.minimum_net_profit_aud
+    risk_policy = json.dumps(asdict(configuration.runtime.persistent_risk_policy), separators=(",", ":"))
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     return (
         "$ErrorActionPreference='Stop'; "
@@ -208,19 +210,20 @@ def _m20_demo_trading_session_command() -> str:
         "$env:FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "'; "
         "$env:FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(tick_offset_seconds) + "'; "
         "$env:FOREX_M20_MINIMUM_NET_PROFIT_AUD='" + str(minimum_net_profit) + "'; "
+        "$env:FOREX_M20_PERSISTENT_RISK_POLICY='" + risk_policy.replace("'", "''") + "'; "
         "$env:FOREX_M20_APPLICATION_REVISION='" + revision + "'; & $c.python_path $p $c.terminal_path $lease; exit $LASTEXITCODE"
     )
 
 
 def _m20_listener_status_command() -> str:
-    """Return a redacted heartbeat and recover the fixed supervisor if stale."""
+    """Return a redacted heartbeat only; recovery is an explicit fixed operation."""
     return (
         "$ErrorActionPreference='Stop'; "
         "$state='C:\\ProgramData\\ForexListener\\state'; $p=Join-Path $state 'm20_demo_listener_status.local.json'; "
         "if (!(Test-Path -LiteralPath $p)) { [pscustomobject]@{running=$false;state='NOT_STARTED';detail='No listener heartbeat exists.'}|ConvertTo-Json -Compress; exit 0 }; "
         "$s=gc -Raw -LiteralPath $p|ConvertFrom-Json; "
         "$age=$null; $stale=$false; try { $age=[Math]::Round(((Get-Date).ToUniversalTime()-([datetime]::Parse([string]$s.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds,1); $stale=($age -ge 30) } catch { $stale=$true }; "
-        "$recovery='NOT_REQUIRED'; $recoveryDetail=$null; if ($stale) { $marker=Join-Path $state 'm20_demo_listener_recovery.local.json'; $last=$null; if (Test-Path -LiteralPath $marker) { try { $last=([datetime]::Parse((gc -Raw -LiteralPath $marker|ConvertFrom-Json).restart_at_utc)).ToUniversalTime() } catch {} }; if (($null -eq $last) -or (((Get-Date).ToUniversalTime()-$last).TotalSeconds -ge 60)) { try { $task=Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop; if ($task.State -eq 'Running') { Stop-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop }; Start-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop; [pscustomobject]@{restart_at_utc=(Get-Date).ToUniversalTime().ToString('o')}|ConvertTo-Json -Compress|Set-Content -LiteralPath $marker -Encoding UTF8; $recovery='RESTART_REQUESTED' } catch { $recovery='RESTART_FAILED'; $recoveryDetail=$_.Exception.Message } } else { $recovery='COOLDOWN' } }; "
+        "$recovery=if ($stale) { 'EXPLICIT_RECOVERY_REQUIRED' } else { 'NOT_REQUIRED' }; $recoveryDetail=$null; "
         "$taskAction=$null; try { $taskAction=(Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop).Actions|Select-Object -First 1|ForEach-Object {$_.Execute+' '+$_.Arguments} } catch {}; $protection=$null; $job=Join-Path $state 'm20_demo_monitor_job.local.json'; if (($s.monitor.state -eq 'RUNNING') -and (Test-Path -LiteralPath $job)) { try { $j=gc -Raw -LiteralPath $job|ConvertFrom-Json; $protection=[ordered]@{ticket=$j.position.ticket;action=$j.proposal.action;entry_price=$j.position.price_open;stop_loss=$j.position.sl;take_profit=$j.position.tp;submitted_at_utc=$j.submitted_at_utc} } catch {} }; $state=if ($stale) { 'STALE' } else { $s.state }; $supervisorAlive=(!$stale -and ($s.state -notin @('STOPPED','STARTUP_FAILED'))); [pscustomobject]@{running=$supervisorAlive;state=$state;release_id=$s.release_id;task_action=$taskAction;heartbeat_at_utc=$s.heartbeat_at_utc;heartbeat_at_nzst=$s.heartbeat_at_nzst;heartbeat_age_seconds=$age;iteration=$s.process_iteration;assessment_total=$s.assessment_total;assessment_started_at_utc=$s.assessment_started_at_utc;assessment_completed_at_utc=$s.assessment_completed_at_utc;assessment_duration_ms=$s.assessment_duration_ms;next_assessment_at_utc=$s.next_assessment_at_utc;next_assessment_at_nzst=$s.next_assessment_at_nzst;detail=$s.detail;monitor=$s.monitor;quote=$s.quote;open_position_protection=$protection;last_result=$s.last_result;recovery_action=$recovery;recovery_detail=$recoveryDetail}|ConvertTo-Json -Compress -Depth 8"
     )
 
@@ -243,6 +246,23 @@ def _m20_listener_activate_demo_lease_command() -> str:
         "$now=(Get-Date).ToUniversalTime(); $lease=[ordered]@{schema_version='forex.m20.demo-session-lease.v1';session_id=([guid]::NewGuid().ToString());enabled=$true;server='GOMarketsMU-Demo';symbol='EURUSD';starts_at_utc=$now.ToString('o');expires_at_utc='9999-12-31T23:59:59Z';maximum_trades=$null;maximum_duration_minutes=0;maximum_open_positions=1;maximum_notional_per_trade_usd=10000;maximum_cumulative_notional_usd=100000;maximum_loss_per_trade_aud=100;audit_prerequisites=[ordered]@{postgres_audit_schema='READY';proposal_persistence='READY';idempotency_store='READY'}}; "
         "$tmp=Join-Path $state 'm20_demo_session.local.json.tmp'; [IO.File]::WriteAllText($tmp,($lease|ConvertTo-Json -Compress -Depth 4),(New-Object Text.UTF8Encoding($false))); Move-Item -LiteralPath $tmp -Destination (Join-Path $state 'm20_demo_session.local.json') -Force; "
         "[pscustomobject]@{activated=$true;server=$lease.server;symbol=$lease.symbol;session_id=$lease.session_id;starts_at_utc=$lease.starts_at_utc;expires_at_utc=$lease.expires_at_utc;maximum_trades=$lease.maximum_trades;maximum_notional_per_trade_usd=$lease.maximum_notional_per_trade_usd;maximum_cumulative_notional_usd=$lease.maximum_cumulative_notional_usd;maximum_loss_per_trade_aud=$lease.maximum_loss_per_trade_aud}|ConvertTo-Json -Compress"
+    )
+
+
+def _m20_listener_resume_risk_policy_command() -> str:
+    """Record a fixed manual-review resume request without exposing database input."""
+    bridge = (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()
+    digest = hashlib.sha256(bridge).hexdigest()
+    return (
+        "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $state=Join-Path $base 'state'; "
+        "$status=gc -Raw (Join-Path $state 'm20_demo_listener_status.local.json')|ConvertFrom-Json; $release=[string]$status.release_id; "
+        "if ($release -notmatch '^[0-9a-f]{16}$') { throw 'M20 active ProgramData release id is absent or invalid' }; "
+        "$root=Join-Path $base ('releases\\'+$release); $c=gc -Raw (Join-Path $state 'm20_demo_listener_service.local.json')|ConvertFrom-Json; "
+        "if ([string]::IsNullOrWhiteSpace($c.python_path) -or !(Test-Path -LiteralPath $c.python_path)) { throw 'M20 ProgramData release configured Python interpreter is absent' }; "
+        "$bridge=Join-Path $root 'm20_postgres_audit_bridge.payload'; "
+        "if (!(Test-Path -LiteralPath $bridge)) { throw 'M20 fixed ProgramData PostgreSQL audit bridge is absent' }; "
+        "if ((Get-FileHash -LiteralPath $bridge -Algorithm SHA256).Hash.ToLower() -ne '" + digest + "') { throw 'M20 fixed PostgreSQL audit bridge hash does not match the committed source' }; "
+        "'{}' | & $c.python_path $bridge resume-risk-policy; exit $LASTEXITCODE"
     )
 
 
@@ -285,6 +305,7 @@ def _m20_listener_prepare_command() -> str:
     configuration = load_configuration(ROOT, environ={})
     tick_offset_seconds = configuration.mt5.broker_tick_time_offset_seconds
     minimum_net_profit = configuration.runtime.demo_session_limits.minimum_net_profit_aud
+    risk_policy = json.dumps(asdict(configuration.runtime.persistent_risk_policy), separators=(",", ":"))
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     return (
         "$ErrorActionPreference='Stop'; "
@@ -295,7 +316,7 @@ def _m20_listener_prepare_command() -> str:
         "if ((Get-FileHash -LiteralPath $bridge -Algorithm SHA256).Hash.ToLower() -ne '" + bridge_digest + "') { throw 'M20 listener bridge hash does not match fixed source' }; "
         "if ((Get-FileHash -LiteralPath $discord -Algorithm SHA256).Hash.ToLower() -ne '" + discord_digest + "') { throw 'M20 Discord adapter hash does not match fixed source' }; "
         "if ((Get-FileHash -LiteralPath $service -Algorithm SHA256).Hash.ToLower() -ne '" + service_digest + "') { throw 'M20 listener service staging hash failed' }; "
-        "$discordConfigKey='FOREX_M20_DISCORD_WEBHOOK_URL'; $c=[ordered]@{FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "';FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(tick_offset_seconds) + "';FOREX_M20_MINIMUM_NET_PROFIT_AUD='" + str(minimum_net_profit) + "';FOREX_M20_APPLICATION_REVISION='" + revision + "';python_path=$s.python_path;terminal_path=$s.terminal_path}; "
+        "$discordConfigKey='FOREX_M20_DISCORD_WEBHOOK_URL'; $c=[ordered]@{FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "';FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(tick_offset_seconds) + "';FOREX_M20_MINIMUM_NET_PROFIT_AUD='" + str(minimum_net_profit) + "';FOREX_M20_PERSISTENT_RISK_POLICY='" + risk_policy.replace("'", "''") + "';FOREX_M20_APPLICATION_REVISION='" + revision + "';python_path=$s.python_path;terminal_path=$s.terminal_path}; "
         "if (!(Test-Path (Join-Path $state 'm20_demo_session.local.json'))) { Copy-Item (Join-Path $legacy 'm20_demo_session.local.json') (Join-Path $state 'm20_demo_session.local.json') -ErrorAction SilentlyContinue }; $tmp=Join-Path $state 'm20_demo_listener_service.local.json.tmp'; [IO.File]::WriteAllText($tmp,($c|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false))); Move-Item -LiteralPath $tmp -Destination (Join-Path $state 'm20_demo_listener_service.local.json') -Force; "
         "[pscustomobject]@{prepared=$true;release_id='" + release_id + "';service_sha256='sha256:" + service_digest + "'}|ConvertTo-Json -Compress"
     )
@@ -519,6 +540,11 @@ OPERATIONS: dict[str, Operation] = {
         "m20_listener_activate_demo_lease",
         "Create a new continuous GOMarketsMU-Demo EURUSD M1 lease with the governed M20 caps.",
         powershell_command=_m20_listener_activate_demo_lease_command(),
+    ),
+    "m20_listener_resume_risk_policy": Operation(
+        "m20_listener_resume_risk_policy",
+        "Record a fixed operator resume request for a current Option B manual-review pause; it cannot override a still-breached limit.",
+        powershell_command=_m20_listener_resume_risk_policy_command(),
     ),
     "m20_listener_stop": Operation(
         "m20_listener_stop",

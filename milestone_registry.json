@@ -423,7 +423,7 @@
       "acceptance_criteria": [
         {
           "id": "M1-C1",
-        "description": "The capability works on the declared surface: installed Windows MT5 terminal on GOMarketsMU-Demo exporting exactly 720 closed EUR/USD H1 bars.",
+          "description": "The capability works on the declared surface: installed Windows MT5 terminal on GOMarketsMU-Demo exporting exactly 720 closed EUR/USD H1 bars.",
           "kind": "CAPABILITY"
         },
         {
@@ -458,27 +458,27 @@
             "-m",
             "pytest",
             "-q",
-          "tests/test_t480_adapter.py"
+            "tests/test_t480_adapter.py"
           ]
         }
       ],
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-      "surface": "installed Windows MT5 terminal on GOMarketsMU-Demo exporting exactly 720 closed EUR/USD H1 bars",
+        "surface": "installed Windows MT5 terminal on GOMarketsMU-Demo exporting exactly 720 closed EUR/USD H1 bars",
         "capture_command": [
-        "python3",
-        "scripts/t480_adapter.py",
-        "execute",
-        "--operation",
-        "m1_mt5_demo_probe"
+          "python3",
+          "scripts/t480_adapter.py",
+          "execute",
+          "--operation",
+          "m1_mt5_demo_probe"
         ],
         "verifier_command": [
-        "python3",
-        "scripts/t480_adapter.py",
-        "verify",
-        "--operation",
-        "m1_mt5_demo_probe"
+          "python3",
+          "scripts/t480_adapter.py",
+          "verify",
+          "--operation",
+          "m1_mt5_demo_probe"
         ],
         "freshness_hours": 168,
         "success_markers": [
@@ -1446,7 +1446,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-      "surface": "free official USD/EUR release-calendar adapter and time-precision-labelled event records",
+        "surface": "free official USD/EUR release-calendar adapter and time-precision-labelled event records",
         "capture_command": [
           "bash",
           "scripts/capture_m10_evidence.sh"
@@ -1931,7 +1931,7 @@
       "to_state": "Daily hypothesis and explainable ML baseline proven",
       "scope": [
         "Generate explainable, non-executing daily EUR/USD hypotheses with confidence, conflicting signals, provenance, and invalidation conditions.",
-        "Train one small, explainable offline classifier on point-in-time-valid historical features to rank BUY, SELL, or NO_TRADE for the pre-declared intraday session; version its features, target, parameters, and 0–100 advisory score.",
+        "Train one small, explainable offline classifier on point-in-time-valid historical features to rank BUY, SELL, or NO_TRADE for the pre-declared intraday session; version its features, target, parameters, and 0\u2013100 advisory score.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -1951,7 +1951,7 @@
       "acceptance_criteria": [
         {
           "id": "M15-C1",
-          "description": "The capability works on the declared surface: deterministic daily market-hypothesis and ledger workflow plus one reproducible, explainable offline ML baseline that emits BUY, SELL, or NO_TRADE with a 0–100 advisory score.",
+          "description": "The capability works on the declared surface: deterministic daily market-hypothesis and ledger workflow plus one reproducible, explainable offline ML baseline that emits BUY, SELL, or NO_TRADE with a 0\u2013100 advisory score.",
           "kind": "CAPABILITY"
         },
         {
@@ -2103,7 +2103,7 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-      "surface": "reproducible historical walk-forward evaluation environment under retrospective H1 bar-close availability assumption",
+        "surface": "reproducible historical walk-forward evaluation environment under retrospective H1 bar-close availability assumption",
         "capture_command": [
           "bash",
           "scripts/capture_m16_evidence.sh"
@@ -2477,7 +2477,7 @@
         "Publish compact, human-readable candle and spread metrics with each read-only assessment status so a NO_TRADE conclusion is inspectable.",
         "Compare the five documented M1 strategies on the same closed-candle assessment and display each BUY, SELL, or NO_TRADE result; deterministic regime precedence may select exactly one strategy to execute with its own fixed entry, SL, TP, and exit contract.",
         "Produce and persist an immutable BUY, SELL, or NO_TRADE assessment before any Demo execution, including rationale and hash-bound decision inputs.",
-        "Execute only fixed, automated Demo-only EUR/USD M1 orders within an active continuous Demo lease (duration zero) capped at ten trades, one open position, USD 10,000 notional per trade, USD 100,000 cumulative notional, and AUD 100 maximum loss per trade.",
+        "Execute only fixed, automated Demo-only EUR/USD M1 orders within an active continuous Demo lease (duration zero) with no development-phase total trade-count ceiling, one open position, USD 10,000 notional per trade, USD 100,000 cumulative notional, and AUD 100 maximum loss per trade.",
         "Persist proposal, execution attempt, position events, reconciliation, and outcome in PostgreSQL for backtesting and review.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
@@ -2498,6 +2498,11 @@
         "docs/milestones/M20.13-cost-aware-protected-exit-analysis.md",
         "docs/milestones/M20.14-agentic-macro-event-shadow-trial.md",
         "sql/migrations/015_m20_multi_timeframe_context.sql",
+        "sql/migrations/017_m20_unresolved_execution_state.sql",
+        "sql/migrations/018_m20_broker_fee_ledger.sql",
+        "sql/migrations/019_m20_persistent_risk_policy.sql",
+        "sql/migrations/020_m20_risk_resume_audit.sql",
+        "sql/migrations/021_m20_fee_complete_reconciliation_ledger.sql",
         "docs/milestones/M20-mvp-retrospective.md",
         "docs/m1_trading_strategy.md",
         "scripts/m20_listener_dashboard.py",
@@ -2562,20 +2567,20 @@
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-      "surface": "continuous cap-constrained automated GOMarketsMU-Demo EUR/USD M1 trading session",
-      "capture_command": [
-        "bash",
-        "scripts/capture_m20_demo_evidence.sh"
-      ],
-      "verifier_command": [
-        "bash",
-        "scripts/verify_m20_demo_evidence.sh",
+        "surface": "continuous cap-constrained automated GOMarketsMU-Demo EUR/USD M1 trading session",
+        "capture_command": [
+          "bash",
+          "scripts/capture_m20_demo_evidence.sh"
+        ],
+        "verifier_command": [
+          "bash",
+          "scripts/verify_m20_demo_evidence.sh",
           "{bundle}"
         ],
         "freshness_hours": 168,
-      "success_markers": [
-        "FOREX_M20_DEMO_TRADING_PROOF_OK"
-      ]
+        "success_markers": [
+          "FOREX_M20_DEMO_TRADING_PROOF_OK"
+        ]
       },
       "evidence_requirements": [
         "Raw fixed Demo-only operation output with exit status, capture timestamps, redaction declaration, and exact server identity.",
@@ -2597,85 +2602,177 @@
           "work_package_id": "M20.1",
           "title": "Demo-only fixed adapter and server checks",
           "dependencies": [],
-          "acceptance_criteria": ["M20-C1", "M20-C4"]
+          "acceptance_criteria": [
+            "M20-C1",
+            "M20-C4"
+          ]
         },
         {
           "work_package_id": "M20.2",
           "title": "Adaptive M1 live-listener decision snapshot persistence",
-          "dependencies": ["M20.1"],
-          "acceptance_criteria": ["M20-C1", "M20-C3", "M20-C5"]
+          "dependencies": [
+            "M20.1"
+          ],
+          "acceptance_criteria": [
+            "M20-C1",
+            "M20-C3",
+            "M20-C5"
+          ]
         },
         {
           "work_package_id": "M20.3",
           "title": "Versioned assessment and proposal audit",
-          "dependencies": ["M20.2"],
-          "acceptance_criteria": ["M20-C1", "M20-C3", "M20-C5"]
+          "dependencies": [
+            "M20.2"
+          ],
+          "acceptance_criteria": [
+            "M20-C1",
+            "M20-C3",
+            "M20-C5"
+          ]
         },
         {
           "work_package_id": "M20.4",
           "title": "Continuous cap-constrained Demo executor",
-          "dependencies": ["M20.3"],
-          "acceptance_criteria": ["M20-C1", "M20-C4", "M20-C5"]
+          "dependencies": [
+            "M20.3"
+          ],
+          "acceptance_criteria": [
+            "M20-C1",
+            "M20-C4",
+            "M20-C5"
+          ]
         },
         {
           "work_package_id": "M20.5",
           "title": "Reconciliation, evidence, and independent technical review",
-          "dependencies": ["M20.4"],
-          "acceptance_criteria": ["M20-C2", "M20-C3", "M20-C4", "M20-C5"]
+          "dependencies": [
+            "M20.4"
+          ],
+          "acceptance_criteria": [
+            "M20-C2",
+            "M20-C3",
+            "M20-C4",
+            "M20-C5"
+          ]
         },
         {
           "work_package_id": "M20.6",
           "title": "Remediate runner-to-audit and evidence-contract alignment",
           "dependencies": [],
-          "acceptance_criteria": ["M20-C1", "M20-C2", "M20-C4", "M20-C5"]
+          "acceptance_criteria": [
+            "M20-C1",
+            "M20-C2",
+            "M20-C4",
+            "M20-C5"
+          ]
         },
         {
           "work_package_id": "M20.7",
           "title": "Permanent M1 listener and operator observability",
-          "dependencies": ["M20.2", "M20.6"],
-          "acceptance_criteria": ["M20-C1", "M20-C2", "M20-C4"]
+          "dependencies": [
+            "M20.2",
+            "M20.6"
+          ],
+          "acceptance_criteria": [
+            "M20-C1",
+            "M20-C2",
+            "M20-C4"
+          ]
         },
         {
           "work_package_id": "M20.8",
           "title": "MT5 rejection diagnostics and execution-path remediation",
-          "dependencies": ["M20.4", "M20.7"],
-          "acceptance_criteria": ["M20-C2", "M20-C4", "M20-C5"]
+          "dependencies": [
+            "M20.4",
+            "M20.7"
+          ],
+          "acceptance_criteria": [
+            "M20-C2",
+            "M20-C4",
+            "M20-C5"
+          ]
         },
         {
           "work_package_id": "M20.9",
           "title": "Atomic T480 listener deployment remediation",
-          "dependencies": ["M20.7"],
-          "acceptance_criteria": ["M20-C1", "M20-C2", "M20-C4"]
+          "dependencies": [
+            "M20.7"
+          ],
+          "acceptance_criteria": [
+            "M20-C1",
+            "M20-C2",
+            "M20-C4"
+          ]
         },
         {
           "work_package_id": "M20.10",
           "title": "Read-only Demo trade lifecycle and P&L dashboard",
-          "dependencies": ["M20.5", "M20.7", "M20.8"],
-          "acceptance_criteria": ["M20-C2", "M20-C4", "M20-C5"]
+          "dependencies": [
+            "M20.5",
+            "M20.7",
+            "M20.8"
+          ],
+          "acceptance_criteria": [
+            "M20-C2",
+            "M20-C4",
+            "M20-C5"
+          ]
         },
         {
           "work_package_id": "M20.11",
           "title": "Controlled five-strategy Demo execution trial",
-          "dependencies": ["M20.5", "M20.7", "M20.8", "M20.9", "M20.10"],
-          "acceptance_criteria": ["M20-C1", "M20-C2", "M20-C3", "M20-C4", "M20-C5"]
+          "dependencies": [
+            "M20.5",
+            "M20.7",
+            "M20.8",
+            "M20.9",
+            "M20.10"
+          ],
+          "acceptance_criteria": [
+            "M20-C1",
+            "M20-C2",
+            "M20-C3",
+            "M20-C4",
+            "M20-C5"
+          ]
         },
         {
           "work_package_id": "M20.12",
           "title": "Read-only M5/H1 context trial for M1 Demo execution",
-          "dependencies": ["M20.11"],
-          "acceptance_criteria": ["M20-C1", "M20-C2", "M20-C4", "M20-C5"]
+          "dependencies": [
+            "M20.11"
+          ],
+          "acceptance_criteria": [
+            "M20-C1",
+            "M20-C2",
+            "M20-C4",
+            "M20-C5"
+          ]
         },
         {
           "work_package_id": "M20.13",
           "title": "Cost-aware protected-exit analysis (planned; no rule change)",
-          "dependencies": ["M20.11"],
-          "acceptance_criteria": ["M20-C2", "M20-C4", "M20-C5"]
+          "dependencies": [
+            "M20.11"
+          ],
+          "acceptance_criteria": [
+            "M20-C2",
+            "M20-C4",
+            "M20-C5"
+          ]
         },
         {
           "work_package_id": "M20.14",
           "title": "Agentic macro/event shadow analysis (planned; no execution influence)",
-          "dependencies": ["M20.13"],
-          "acceptance_criteria": ["M20-C2", "M20-C4", "M20-C5"]
+          "dependencies": [
+            "M20.13"
+          ],
+          "acceptance_criteria": [
+            "M20-C2",
+            "M20-C4",
+            "M20-C5"
+          ]
         }
       ]
     },
@@ -3019,7 +3116,7 @@
       "to_state": "Simulated intent orchestration proven",
       "scope": [
         "Produce auditable simulated intents and NO_TRADE outcomes without execution authority.",
-        "For each eligible intraday session, record direction, 0–100 ML advisory score, score calibration status, reasons, decision-data timestamp, entry window, mandatory exit cutoff, invalidating conditions, and risk flags.",
+        "For each eligible intraday session, record direction, 0\u2013100 ML advisory score, score calibration status, reasons, decision-data timestamp, entry window, mandatory exit cutoff, invalidating conditions, and risk flags.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [

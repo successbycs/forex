@@ -175,7 +175,9 @@ def test_m20_listener_status_is_fixed_and_redacted():
     assert "$age -ge 30" in command
     assert "state=if ($stale) { 'STALE' }" in command
     assert "Forex-M20-Demo-Listener" in command
-    assert "RESTART_REQUESTED" in command and "COOLDOWN" in command
+    assert "EXPLICIT_RECOVERY_REQUIRED" in command
+    assert "Start-ScheduledTask" not in command
+    assert "Stop-ScheduledTask" not in command
     assert "assessment_total=$s.assessment_total" in command
     assert "$s.monitor.state -eq 'RUNNING'" in command
 
@@ -441,6 +443,83 @@ def test_m20_audit_bridge_is_fixed_and_fails_closed_without_local_deployment():
     assert "trade_owner_strategy_id=selection.selected_strategy_id" in bridge
 
 
+def _option_b_policy() -> dict:
+    return {
+        "policy_version": "forex.m20.conservative-risk.v1", "reporting_currency": "AUD",
+        "maximum_risk_per_trade_percent": .10, "maximum_risk_per_trade_aud": 100.0,
+        "daily_loss_limit_percent": .50, "weekly_loss_limit_percent": 1.0,
+        "peak_equity_drawdown_limit_percent": 2.0, "loss_budget_timezone": "Pacific/Auckland",
+        "daily_pause_reset": "NEXT_AUCKLAND_DAY",
+        "manual_resume_reasons": ["WEEKLY_LOSS", "PEAK_DRAWDOWN", "EXTERNAL_CASH_FLOW", "UNKNOWN_ACCOUNT_STATE"],
+        "require_known_external_cashflow": True,
+    }
+
+
+class _RiskCursor:
+    def __init__(self, rows):
+        self.rows = list(rows)
+        self.calls = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def execute(self, query, params=None):
+        self.calls.append((query, params))
+
+    def fetchone(self):
+        return self.rows.pop(0) if self.rows else None
+
+
+class _RiskConnection:
+    def __init__(self, cursor):
+        self._cursor = cursor
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def cursor(self):
+        return self._cursor
+
+
+def test_option_b_risk_guard_pauses_at_daily_loss_and_sets_the_next_auckland_reset(monkeypatch):
+    bridge = _m20_audit_bridge_module()
+    cursor = _RiskCursor([(100000.0, 100000.0, 100000.0, "2026-09-07", 100000.0, "2026-09-07", None, None, False)])
+    monkeypatch.setattr(bridge, "_connection", lambda: _RiskConnection(cursor))
+    result = bridge.enforce_risk_policy({"policy": _option_b_policy(), "account": {"balance": 100000.0, "equity": 99400.0, "auckland_date": "2026-09-07", "auckland_week_start": "2026-09-07"}})
+    assert result["risk"]["entry_allowed"] is False
+    assert result["risk"]["pause_reason"] == "DAILY_LOSS"
+    assert cursor.calls[-1][1][6:9] == ("DAILY_LOSS", "2026-09-08", False)
+
+
+def test_option_b_external_cashflow_only_clears_after_a_recorded_review(monkeypatch):
+    bridge = _m20_audit_bridge_module()
+    resume_cursor = _RiskCursor([("EXTERNAL_CASH_FLOW",)])
+    monkeypatch.setattr(bridge, "_connection", lambda: _RiskConnection(resume_cursor))
+    assert bridge.resume_risk_policy({})["risk_resume"]["previous_pause_reason"] == "EXTERNAL_CASH_FLOW"
+    assert resume_cursor.calls[-1][1] == (True,)
+
+    cursor = _RiskCursor([(100000.0, 100000.0, 100000.0, "2026-09-07", 100000.0, "2026-09-07", None, None, True)])
+    monkeypatch.setattr(bridge, "_connection", lambda: _RiskConnection(cursor))
+    result = bridge.enforce_risk_policy({"policy": _option_b_policy(), "account": {"balance": 101000.0, "equity": 101000.0, "auckland_date": "2026-09-07", "auckland_week_start": "2026-09-07"}})
+    assert result["risk"]["entry_allowed"] is True
+    assert cursor.calls[-1][1][0:3] == (101000.0, 101000.0, 101000.0)
+    assert cursor.calls[-1][1][8] is False
+
+
+def test_fixed_operator_resume_action_has_no_database_or_order_input_surface():
+    command = t480_adapter.OPERATIONS["m20_listener_resume_risk_policy"].powershell_command or ""
+    assert "resume-risk-policy" in command
+    assert "Get-FileHash" in command
+    assert "order_send" not in command
+    assert "FOREX_M20_POSTGRES_DSN" not in command
+
+
 def test_m20_monitor_refuses_an_open_position_without_a_known_strategy_owner(monkeypatch):
     probe = _m20_probe_module(monkeypatch)
     with pytest.raises(SystemExit, match="without a known selected strategy owner"):
@@ -467,7 +546,7 @@ def test_m20_open_position_recovery_reads_broker_volume_not_quote_spread(monkeyp
     row = (
         "proposal", "BUY", 1.16305, 1.16283, "attempt", opened_at,
         41559226, 1.16305, 1.16305, 1.16340, True,
-        0.00008, "0.01", "compression_breakout",
+            0.00008, "0.01", "41559226", "compression_breakout",
     )
 
     class Cursor:
@@ -539,7 +618,7 @@ def test_m20_session_lease_rejects_missing_audit_or_widened_cap(tmp_path, monkey
         "symbol": "EURUSD",
         "starts_at_utc": "2026-09-03T00:00:00Z",
         "expires_at_utc": "2026-09-03T01:00:00Z",
-        "maximum_trades": 10,
+        "maximum_trades": None,
         "maximum_duration_minutes": 60,
         "maximum_open_positions": 1,
         "maximum_notional_per_trade_usd": 100,
@@ -554,16 +633,115 @@ def test_m20_session_lease_rejects_missing_audit_or_widened_cap(tmp_path, monkey
     path = tmp_path / "m20_demo_session.local.json"
     path.write_text(json.dumps(lease), encoding="utf-8")
     now = datetime(2026, 9, 3, 0, 30, tzinfo=timezone.utc)
-    assert probe.load_session_lease(path, now)["maximum_trades"] == 10
-    lease["maximum_trades"] = 11
+    assert probe.load_session_lease(path, now)["maximum_trades"] is None
+    lease["maximum_trades"] = 1
     path.write_text(json.dumps(lease), encoding="utf-8")
     with pytest.raises(SystemExit, match="maximum_trades is invalid"):
         probe.load_session_lease(path, now)
-    lease["maximum_trades"] = 10
+    lease["maximum_trades"] = None
     lease["audit_prerequisites"] = {}
     path.write_text(json.dumps(lease), encoding="utf-8")
     with pytest.raises(SystemExit, match="audit prerequisites are absent"):
         probe.load_session_lease(path, now)
+
+
+def test_m20_position_query_error_is_not_treated_as_no_position(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    probe.mt5.positions_get = lambda **_: None
+    probe.mt5.last_error = lambda: (-10004, "terminal unavailable")
+    with pytest.raises(SystemExit, match="position query failed"):
+        probe._positions_or_fail(context="test", ticket=12)
+
+
+def test_m20_partial_order_result_is_not_classified_as_rejected(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    probe.mt5.TRADE_RETCODE_DONE = 10009
+    probe.mt5.TRADE_RETCODE_DONE_PARTIAL = 10010
+    assert probe._execution_result_state(types.SimpleNamespace(retcode=10009)) == (True, False)
+    assert probe._execution_result_state(types.SimpleNamespace(retcode=10010)) == (False, True)
+    assert probe._execution_result_state(types.SimpleNamespace(retcode=10006)) == (False, False)
+
+
+def test_m20_close_reconciliation_requires_broker_matched_entry_and_exit_deals(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    calls = []
+    deals = (
+        types.SimpleNamespace(ticket=1, position_id=99, entry=0, type=0, volume=.01, price=1.1000, profit=0.0, commission=-.10, fee=-.02, swap=0.0, time_msc=1),
+        types.SimpleNamespace(ticket=2, position_id=99, entry=1, type=1, volume=.01, price=1.1010, profit=10.0, commission=-.10, fee=-.03, swap=-.05, time_msc=2),
+        types.SimpleNamespace(ticket=3, position_id=0, entry=0, type=2, volume=0.0, price=0.0, profit=999.0, commission=0.0, fee=0.0, swap=0.0, time_msc=3),
+    )
+    probe.mt5.POSITION_TYPE_BUY = 0
+    probe.mt5.history_deals_get = lambda *, position: calls.append(position) or deals
+    probe.mt5.symbol_info_tick = lambda _: None
+    position = types.SimpleNamespace(ticket=22, identifier=99, type=0, price_open=1.1000)
+    exit_price, costs = probe._closed_position_costs(
+        position=position, submitted_at=datetime(2026, 9, 3, tzinfo=timezone.utc),
+        proposed_entry=1.1000, entry_spread=.0001,
+        risk={"tick_size": .00001, "tick_value_loss": 1.0}, expected_exit_price=1.1010,
+    )
+    assert calls == [99]
+    assert exit_price == pytest.approx(1.1010)
+    assert costs["gross_price_pnl_account"] == 10.0
+    assert costs["commission_account"] == -.2
+    assert costs["fee_account"] == -.05
+    assert costs["swap_account"] == -.05
+    assert costs["realized_pnl_account"] == 9.70
+    assert costs["estimated_total_cost_account"] == costs["estimated_spread_cost_account"]
+
+    probe.mt5.history_deals_get = lambda *, position: deals[:1]
+    with pytest.raises(SystemExit, match="opening or closing"):
+        probe._closed_position_costs(
+            position=position, submitted_at=datetime(2026, 9, 3, tzinfo=timezone.utc),
+            proposed_entry=1.1000, entry_spread=.0001,
+            risk={"tick_size": .00001, "tick_value_loss": 1.0}, expected_exit_price=None,
+        )
+
+
+def test_m20_broker_reported_but_unobserved_fill_is_audited_as_unknown_and_blocks_retry(monkeypatch):
+    bridge = _m20_audit_bridge_module()
+    context = {
+        "schema_version": "forex.m20.mt5-result-context.v1", "retcode": 10009,
+        "broker_comment": "done", "symbol": "EURUSD", "action": "BUY", "volume": .01,
+        "requested_price": 1.1, "stop_loss": 1.099, "take_profit": 1.101,
+        "deviation_points": 20, "filling_mode": 1, "time_mode": 0, "magic": 20260020,
+        "observed_bid": 1.1, "observed_ask": 1.1001, "spread_points": 10.0,
+        "tick_freshness_seconds": 0, "symbol_point": .00001, "trade_tick_size": .00001,
+        "stops_level_points": 0, "freeze_level_points": 0, "volume_min": .01,
+        "volume_max": 100.0, "volume_step": .01, "visible_positions_count": 0,
+        "lease_max_trades": None, "max_open_positions": 1, "max_notional_per_trade_usd": 10000,
+        "max_cumulative_notional_usd": 100000, "reservation_slot_number": None,
+        "broker_order_reference": "123", "broker_requested_price": 1.1,
+        "broker_requested_volume": .01, "broker_requested_stop_loss": 1.099,
+        "broker_requested_take_profit": 1.101, "position_ticket": None,
+        "position_identifier": None, "fill_status": "UNKNOWN", "broker_filled_volume": None,
+        "position_observation_error": "M20 accepted-order position query failed: terminal unavailable",
+    }
+    payload = {"result": {
+        "event_id": "attempt:result", "attempt_id": "attempt", "event_type": "UNKNOWN",
+        "observed_at_utc": "2026-09-03T00:00:00Z", "broker_order_reference": "123",
+        "payload_sha256": bridge._digest(context), "payload": context,
+    }}
+    calls = []
+
+    class Cursor:
+        def execute(self, *args):
+            calls.append(args)
+        def fetchone(self):
+            return (1,)
+        def __enter__(self):
+            return self
+        def __exit__(self, *_):
+            return False
+    class Connection:
+        def cursor(self):
+            return Cursor()
+        def __enter__(self):
+            return self
+        def __exit__(self, *_):
+            return False
+    monkeypatch.setattr(bridge, "_connection", lambda: Connection())
+    assert bridge.record_result(payload)["ok"] is True
+    assert any(len(args) > 1 and "UNKNOWN" in args[1] for args in calls)
 
 
 def test_m20_risk_stop_is_conservative_against_the_aud_loss_cap(monkeypatch):

@@ -37,6 +37,14 @@ def test_all_initial_configuration_loads_as_typed_models() -> None:
     assert configuration.mt5.demo_credentials_environment_variable == "FOREX_MT5_DEMO_CREDENTIALS"
     assert configuration.mt5.broker_tick_time_offset_seconds == 10800
     limits = configuration.runtime.demo_session_limits
+    policy = configuration.runtime.persistent_risk_policy
+    assert policy.policy_version == "forex.m20.conservative-risk.v1"
+    assert policy.maximum_risk_per_trade_percent == .10
+    assert policy.maximum_risk_per_trade_aud == 100.0
+    assert policy.daily_loss_limit_percent == .50
+    assert policy.weekly_loss_limit_percent == 1.0
+    assert policy.peak_equity_drawdown_limit_percent == 2.0
+    assert policy.loss_budget_timezone == "Pacific/Auckland"
     assert limits.maximum_trades is None
     assert limits.maximum_duration_minutes == 0
     assert limits.maximum_open_positions == 1
@@ -99,7 +107,7 @@ def test_unsafe_runtime_and_mt5_changes_are_rejected(
 @pytest.mark.parametrize(
     ("change"),
     [
-        {"maximum_trades": 11},
+        {"maximum_trades": 1},
         {"maximum_duration_minutes": 61},
         {"maximum_open_positions": 2},
         {"maximum_notional_per_trade_usd": 10001},

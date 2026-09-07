@@ -236,7 +236,7 @@ def validate_execution_and_reconciliation(payload: dict[str, Any], session: dict
         require(reconciliation.get("status") == "NO_TRADE_RECONCILED", "NO_TRADE must be reconciled")
         require(audit.get("execution_attempt_id") is None, "NO_TRADE audit must not have an execution attempt")
         return
-    require(execution.get("status") in {"ACCEPTED", "REJECTED", "FAILED"}, "actionable execution must have a final bounded status")
+    require(execution.get("status") in {"ACCEPTED", "ACCEPTED_PARTIAL", "REJECTED", "FAILED"}, "actionable execution must have a final bounded status")
     attempt_id = string(execution.get("attempt_id"), "execution.attempt_id")
     require(execution.get("session_id") == session["session_id"], "execution session mismatch")
     require(execution.get("proposal_id") == proposal["proposal_id"], "execution proposal mismatch")

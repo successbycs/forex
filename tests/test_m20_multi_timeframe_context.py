@@ -86,5 +86,5 @@ def test_m20_mtf_context_adapter_is_fixed_stage_apply_and_read_only_summary_only
 def test_m20_mtf_summary_keeps_costs_pnl_holding_time_and_mae_mfe_limit_visible(monkeypatch):
     monkeypatch.setattr(postgres_pgvector_adapter, "remote", lambda command: {"ok": True, "command": command})
     command = postgres_pgvector_adapter.m20_multi_timeframe_context_summary()["result"]["command"]
-    for field in ("realized_pnl_account", "commission_account", "estimated_total_cost_account", "holding_seconds", "NOT_RETAINED_IN_M20_12"):
+    for field in ("realized_pnl_account", "commission_account", "fee_account", "estimated_total_cost_account", "holding_seconds", "NOT_RETAINED_IN_M20_12"):
         assert field in command

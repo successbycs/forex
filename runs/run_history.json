@@ -8956,6 +8956,99 @@
         ],
         "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
       }
+    },
+    {
+      "event_id": "E000599",
+      "timestamp": "2026-09-07T00:13:54Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:b14d7b0398243b6f10eb6b7afe0f3130202e382f5dd6d2cb5f047a43fac24924",
+        "current": "sha256:2e60f0253f99648690a9274f27a34a24a53e40e80d670d98299a86ebacea4926",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
+    },
+    {
+      "event_id": "E000600",
+      "timestamp": "2026-09-07T00:26:53Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:2e60f0253f99648690a9274f27a34a24a53e40e80d670d98299a86ebacea4926",
+        "current": "sha256:1a68a5e457f9f410dd2b9b6ca6fe036e53b0f9b553fa478cae80ea462c84b0de",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
+    },
+    {
+      "event_id": "E000601",
+      "timestamp": "2026-09-07T00:28:59Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:1a68a5e457f9f410dd2b9b6ca6fe036e53b0f9b553fa478cae80ea462c84b0de",
+        "current": "sha256:bce9e998844350e45810e17d7860d3acf8a9f0fe1020f67350585dc2a9895485",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
     }
   ]
 }

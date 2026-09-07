@@ -79,7 +79,7 @@
     },
     {
       "id": "m20_listener_status",
-      "purpose": "Inspect the permanent M20 Demo listener's local heartbeat, report a stale heartbeat, and request a fixed-task recovery without exposing credentials.",
+      "purpose": "Inspect the permanent M20 Demo listener heartbeat without changing its task; use the explicit recovery operation to restart it.",
       "approval_required": false
     },
     {
@@ -90,6 +90,11 @@
     {
       "id": "m20_listener_activate_demo_lease",
       "purpose": "Create a new continuous GOMarketsMU-Demo EURUSD M1 lease with the governed M20 caps.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_resume_risk_policy",
+      "purpose": "Record a fixed operator resume request for a current Option B weekly-loss, peak-drawdown, or cash-flow pause; it never overrides a still-breached risk limit.",
       "approval_required": false
     },
     {

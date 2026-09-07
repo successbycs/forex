@@ -19,7 +19,7 @@ from urllib.request import Request, urlopen
 REQUIRED = {
     "server", "symbol", "proposal_id", "position_ticket", "side", "strategy",
     "opened_at_utc", "closed_at_utc", "entry_price", "exit_price", "lots",
-    "close_reason", "gross_pnl_aud", "commission_aud", "swap_aud",
+    "close_reason", "gross_pnl_aud", "commission_aud", "fee_aud", "swap_aud",
     "estimated_cost_aud", "realized_pnl_aud", "liquidity",
 }
 LIQUIDITY_REQUIRED = {"currency", "balance", "equity", "free_margin", "margin", "floating_pnl"}
@@ -46,7 +46,7 @@ def validate_sale(payload: dict[str, Any]) -> dict[str, Any]:
     liquidity = payload["liquidity"]
     if not isinstance(liquidity, dict) or set(liquidity) != LIQUIDITY_REQUIRED or liquidity["currency"] != "AUD":
         raise ValueError("Discord sale notification liquidity is invalid")
-    for name in ("entry_price", "exit_price", "lots", "gross_pnl_aud", "commission_aud", "swap_aud", "estimated_cost_aud", "realized_pnl_aud"):
+    for name in ("entry_price", "exit_price", "lots", "gross_pnl_aud", "commission_aud", "fee_aud", "swap_aud", "estimated_cost_aud", "realized_pnl_aud"):
         _number(payload[name], name)
     for name in LIQUIDITY_REQUIRED - {"currency"}:
         _number(liquidity[name], f"liquidity.{name}")
@@ -63,7 +63,7 @@ def render_sale(payload: dict[str, Any]) -> str:
         f"**Demo EURUSD sold — {outcome}: {result:+.2f} AUD**",
         f"{payload['side']} {float(payload['lots']):.2f} lots | {payload['strategy']} | ticket {payload['position_ticket']}",
         f"Entry {float(payload['entry_price']):.5f} → exit {float(payload['exit_price']):.5f} | {payload['close_reason']}",
-        f"Gross {float(payload['gross_pnl_aud']):+.2f} | commission {float(payload['commission_aud']):+.2f} | swap {float(payload['swap_aud']):+.2f} | estimated costs {float(payload['estimated_cost_aud']):.2f} AUD",
+        f"Gross {float(payload['gross_pnl_aud']):+.2f} | commission {float(payload['commission_aud']):+.2f} | fee {float(payload['fee_aud']):+.2f} | swap {float(payload['swap_aud']):+.2f} | estimated costs {float(payload['estimated_cost_aud']):.2f} AUD",
         f"Liquidity: balance {float(liquidity['balance']):,.2f} AUD | equity {float(liquidity['equity']):,.2f} | free margin {float(liquidity['free_margin']):,.2f} | used margin {float(liquidity['margin']):,.2f} | floating P/L {float(liquidity['floating_pnl']):+.2f}",
         f"Closed {payload['closed_at_utc']} | Demo-only, broker-reconciled",
     ))

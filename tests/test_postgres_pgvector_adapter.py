@@ -17,8 +17,67 @@ def test_adapter_exposes_only_fixed_forex_operations():
         "forex-m20-mtf-context-summary", "forex-m20-stage-strategy-trial-query",
         "forex-m20-stage-remove-trade-count-cap-schema",
         "forex-m20-apply-remove-trade-count-cap-schema",
+        "forex-m20-stage-unresolved-execution-schema",
+        "forex-m20-apply-unresolved-execution-schema",
+        "forex-m20-stage-broker-fee-ledger-schema",
+        "forex-m20-apply-broker-fee-ledger-schema",
+        "forex-m20-stage-persistent-risk-policy-schema",
+        "forex-m20-apply-persistent-risk-policy-schema",
+        "forex-m20-stage-risk-resume-audit-schema",
+        "forex-m20-apply-risk-resume-audit-schema",
+        "forex-m20-stage-fee-complete-reconciliation-ledger-schema",
+        "forex-m20-apply-fee-complete-reconciliation-ledger-schema",
+        "forex-m20-risk-policy-summary",
     })
     assert postgres_pgvector_adapter.READ_ONLY | postgres_pgvector_adapter.MUTATING == expected
+
+
+def test_m20_unresolved_execution_schema_staging_and_application_are_hash_bound():
+    migration = "sql/migrations/017_m20_unresolved_execution_state.sql"
+    transfer = mock.Mock(returncode=0, stdout="", stderr="")
+    conversion = mock.Mock(stdout=r"\\wsl.localhost\Ubuntu\home\chris\projects\forex\sql\migrations\017_m20_unresolved_execution_state.sql\n")
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=(migration, "a" * 64)), mock.patch.object(postgres_pgvector_adapter, "subprocess") as process, mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+        process.run.side_effect = [conversion, transfer]
+        assert postgres_pgvector_adapter.stage_m20_unresolved_execution_schema()["ok"]
+    staged = remote.call_args.args[0]
+    assert "017_m20_unresolved_execution_state.sql" in staged
+    assert "sha256sum" in staged and "install -m 0644" in staged
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=(migration, "a" * 64)), mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+        assert postgres_pgvector_adapter.apply_m20_unresolved_execution_schema()["ok"]
+    assert "sha256sum" in remote.call_args.args[0]
+
+
+def test_m20_risk_resume_audit_schema_is_hash_bound_and_risk_state_is_read_only_summary():
+    migration = "sql/migrations/020_m20_risk_resume_audit.sql"
+    transfer = mock.Mock(returncode=0, stdout="", stderr="")
+    conversion = mock.Mock(stdout=r"\\wsl.localhost\Ubuntu\home\chris\projects\forex\sql\migrations\020_m20_risk_resume_audit.sql\n")
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=(migration, "a" * 64)), mock.patch.object(postgres_pgvector_adapter, "subprocess") as process, mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+        process.run.side_effect = [conversion, transfer]
+        assert postgres_pgvector_adapter.stage_m20_risk_resume_audit_schema()["ok"]
+    assert "020_m20_risk_resume_audit.sql" in remote.call_args.args[0]
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=(migration, "a" * 64)), mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+        assert postgres_pgvector_adapter.apply_m20_risk_resume_audit_schema()["ok"]
+    assert "sha256sum" in remote.call_args.args[0]
+    with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+        assert postgres_pgvector_adapter.m20_risk_policy_summary()["ok"]
+    assert "demo_risk_policy_state" in remote.call_args.args[0]
+    assert "demo_risk_policy_resume" in remote.call_args.args[0]
+
+
+def test_m20_fee_complete_reconciliation_ledger_is_hash_bound_and_excludes_fee_less_pnl():
+    migration = "sql/migrations/021_m20_fee_complete_reconciliation_ledger.sql"
+    transfer = mock.Mock(returncode=0, stdout="", stderr="")
+    conversion = mock.Mock(stdout=r"\\wsl.localhost\Ubuntu\home\chris\projects\forex\sql\migrations\021_m20_fee_complete_reconciliation_ledger.sql\n")
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=(migration, "a" * 64)), mock.patch.object(postgres_pgvector_adapter, "subprocess") as process, mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+        process.run.side_effect = [conversion, transfer]
+        assert postgres_pgvector_adapter.stage_m20_fee_complete_reconciliation_ledger_schema()["ok"]
+    assert "021_m20_fee_complete_reconciliation_ledger.sql" in remote.call_args.args[0]
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=(migration, "a" * 64)), mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+        assert postgres_pgvector_adapter.apply_m20_fee_complete_reconciliation_ledger_schema()["ok"]
+    assert "sha256sum" in remote.call_args.args[0]
+    with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True, "stdout": "", "stderr": ""}) as remote:
+        assert postgres_pgvector_adapter.m20_audit_verify()["ok"]
+    assert "fee_incomplete_excluded=" in "\n".join(call.args[0] for call in remote.call_args_list)
 
 
 def test_schema_application_is_hash_bound_and_rerunnable():

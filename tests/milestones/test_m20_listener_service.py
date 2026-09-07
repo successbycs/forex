@@ -30,19 +30,18 @@ def test_permanent_listener_is_a_bounded_m1_supervisor_with_status_and_stop():
     assert "order_send" not in source
 
 
-def test_runner_has_a_narrow_history_unavailable_mvp_recovery_path():
+def test_runner_preserves_unresolved_history_for_operator_reconciliation():
     source = Path("t480/m20_demo_trading_session.py").read_text(encoding="utf-8")
     bridge = Path("t480/m20_postgres_audit_bridge.py").read_text(encoding="utf-8")
-    assert '"archive-history-unavailable-positions"' in source
-    assert '"BROKER_HISTORY_UNAVAILABLE"' in source
-    assert "not owned_positions" in source
-    assert "archive_history_unavailable_positions" in bridge
-    assert "M20 close deal history has no priced market deal" in bridge
+    assert '"archive-history-unavailable-positions"' not in source
+    assert "Missing or incomplete history is unresolved exposure/accounting" in source
+    assert "archive_history_unavailable_positions" not in bridge
+    assert "M20 closed outcome has no durable open position" in bridge
 
 
 def test_runner_uses_the_mt5_position_history_overload_for_reconciliation():
     source = Path("t480/m20_demo_trading_session.py").read_text(encoding="utf-8")
-    assert "history_deals_get(position=ticket)" in source
+    assert "history_deals_get(position=position_identifier)" in source
     assert "datetime.now(timezone.utc) + timedelta(seconds=5), position=ticket" not in source
 
 

@@ -41,9 +41,10 @@ def test_m20_trade_ledger_is_a_read_only_profit_and_loss_projection():
 
 
 def test_m20_cost_ledger_keeps_recorded_costs_separate_from_broker_pnl():
-    ledger = (ROOT / "sql/migrations/009_m20_trade_cost_ledger.sql").read_text()
+    ledger = ((ROOT / "sql/migrations/009_m20_trade_cost_ledger.sql").read_text()
+              + (ROOT / "sql/migrations/018_m20_broker_fee_ledger.sql").read_text())
     for required in (
-        "gross_price_pnl_account", "commission_account", "swap_account",
+        "gross_price_pnl_account", "commission_account", "fee_account", "swap_account",
         "estimated_spread_cost_account", "slippage_cost_account",
         "estimated_total_cost_account", "cost_attribution_status",
         "cumulative_estimated_cost_recorded",

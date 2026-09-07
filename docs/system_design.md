@@ -207,7 +207,7 @@ continuous Demo-only loop. A current bid/ask/spread plus completed M1 candles
 produce an immutable `BUY`, `SELL`, or `NO_TRADE` proposal. Only an actionable
 proposal with an active Demo lease, idempotency key, and persisted decision
 snapshot may reach the one fixed `GOMarketsMU-Demo` EUR/USD executor. The
-session is capped at ten trades, one open position, USD 10,000
+session has no development-phase total trade-count ceiling, retains one open position, USD 10,000
 per trade, USD 100,000 cumulative, and AUD 100 theoretical loss per trade.
 PostgreSQL retains attempts, position events,
 and outcomes for reconciliation and backtesting. There is no `GOMarketsMU-Live`

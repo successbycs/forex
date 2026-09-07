@@ -12,7 +12,8 @@ import hashlib
 import json
 import os
 import sys
-from datetime import datetime, timezone
+import uuid
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 
@@ -53,7 +54,7 @@ def _session(payload: dict[str, Any]) -> dict[str, Any]:
     required = {"session_id", "server", "instrument", "starts_at_utc", "expires_at_utc", "max_trades", "max_notional_per_trade_usd", "max_cumulative_notional_usd", "max_open_positions", "strategy_version", "operator_label"}
     if set(value) != required or value["server"] != "GOMarketsMU-Demo" or value["instrument"] != "EURUSD":
         raise SystemExit("M20 bridge accepts only the fixed Demo EURUSD session")
-    if ((value["max_trades"] is not None and (not isinstance(value["max_trades"], int) or not 1 <= value["max_trades"] <= 10))
+    if (value["max_trades"] is not None
             or value["max_open_positions"] != 1
             or not isinstance(value["max_notional_per_trade_usd"], (int, float)) or not 0 < value["max_notional_per_trade_usd"] <= 10000
             or not isinstance(value["max_cumulative_notional_usd"], (int, float)) or not 0 < value["max_cumulative_notional_usd"] <= 100000):
@@ -266,7 +267,7 @@ def reserve_execution(payload: dict[str, Any]) -> dict[str, Any]:
         cursor.execute("SELECT COALESCE(sum(p.notional_usd),0) FROM forex.demo_execution_attempt a JOIN forex.demo_trade_proposal p ON p.proposal_id=a.proposal_id WHERE a.session_id=%s", (session["session_id"],))
         if float(cursor.fetchone()[0]) + float(proposal["notional_usd"]) > float(session["max_cumulative_notional_usd"]):
             raise SystemExit("M20 cumulative notional cap is reached")
-        cursor.execute("SELECT count(*) FROM forex.demo_execution_attempt a LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=a.proposal_id WHERE o.proposal_id IS NULL AND NOT EXISTS (SELECT 1 FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type IN ('REJECTED','FAILED'))")
+        cursor.execute("SELECT count(*) FROM forex.demo_execution_attempt a LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=a.proposal_id WHERE o.proposal_id IS NULL AND NOT EXISTS (SELECT 1 FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type='REJECTED')")
         if cursor.fetchone()[0] != 0:
             raise SystemExit("M20 global one-position limit is reached")
         slot_number = None
@@ -284,13 +285,90 @@ def reserve_execution(payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "reservation": receipt, "postgres_audit": {**receipt, "record_sha256": _digest(receipt)}}
 
 
+def enforce_risk_policy(payload: dict[str, Any]) -> dict[str, Any]:
+    """Persist and enforce the fixed conservative risk budget before entry."""
+    policy = _object(payload, "policy")
+    account = _object(payload, "account")
+    policy_required = {"policy_version", "reporting_currency", "maximum_risk_per_trade_percent", "maximum_risk_per_trade_aud", "daily_loss_limit_percent", "weekly_loss_limit_percent", "peak_equity_drawdown_limit_percent", "loss_budget_timezone", "daily_pause_reset", "manual_resume_reasons", "require_known_external_cashflow"}
+    account_required = {"balance", "equity", "auckland_date", "auckland_week_start"}
+    if (set(policy) != policy_required or policy["policy_version"] != "forex.m20.conservative-risk.v1"
+            or policy["reporting_currency"] != "AUD" or policy["maximum_risk_per_trade_percent"] != .10
+            or policy["maximum_risk_per_trade_aud"] != 100.0 or policy["daily_loss_limit_percent"] != .50
+            or policy["weekly_loss_limit_percent"] != 1.0 or policy["peak_equity_drawdown_limit_percent"] != 2.0
+            or policy["loss_budget_timezone"] != "Pacific/Auckland" or policy["daily_pause_reset"] != "NEXT_AUCKLAND_DAY"
+            or policy["manual_resume_reasons"] != ["WEEKLY_LOSS", "PEAK_DRAWDOWN", "EXTERNAL_CASH_FLOW", "UNKNOWN_ACCOUNT_STATE"]
+            or policy["require_known_external_cashflow"] is not True or set(account) != account_required
+            or not all(isinstance(account[key], (int, float)) and account[key] > 0 for key in ("balance", "equity"))
+            or not all(isinstance(account[key], str) and len(account[key]) == 10 for key in ("auckland_date", "auckland_week_start"))):
+        raise SystemExit("M20 persistent risk policy payload is invalid")
+    balance, equity = float(account["balance"]), float(account["equity"])
+    with _connection() as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT expected_balance,peak_adjusted_equity,daily_anchor_equity,daily_anchor_date::text,weekly_anchor_equity,weekly_anchor_date::text,pause_reason,pause_until_date::text,cash_flow_review_approved FROM forex.demo_risk_policy_state WHERE policy_version=%s FOR UPDATE", (policy["policy_version"],))
+        state = cursor.fetchone()
+        if state is None:
+            cursor.execute("INSERT INTO forex.demo_risk_policy_state (policy_version,account_currency,baseline_balance,expected_balance,peak_adjusted_equity,daily_anchor_equity,daily_anchor_date,weekly_anchor_equity,weekly_anchor_date) VALUES (%s,'AUD',%s,%s,%s,%s,%s,%s,%s)", (policy["policy_version"], balance, balance, equity, equity, account["auckland_date"], equity, account["auckland_week_start"]))
+            return {"ok": True, "risk": {"entry_allowed": True, "pause_reason": None, "policy_equity": equity, "maximum_loss_aud": min(100.0, round(equity * .001, 2))}}
+        expected_balance, peak, daily_anchor, daily_date, weekly_anchor, weekly_date, pause_reason, pause_until, cash_flow_review_approved = state
+        expected_balance = float(expected_balance)
+        peak, daily_anchor, weekly_anchor = float(peak), float(daily_anchor), float(weekly_anchor)
+        reason = pause_reason
+        cash_flow_delta = balance - expected_balance
+        if abs(cash_flow_delta) > .02:
+            if cash_flow_review_approved:
+                # The fixed operator action explicitly acknowledges this cash
+                # movement. Shift every raw-equity anchor by the same amount
+                # so adjusted-equity drawdown remains continuous.
+                expected_balance = balance
+                peak += cash_flow_delta
+                daily_anchor += cash_flow_delta
+                weekly_anchor += cash_flow_delta
+                cash_flow_review_approved = False
+            else:
+                reason = "EXTERNAL_CASH_FLOW"
+        else:
+            cash_flow_review_approved = False
+        if daily_date != account["auckland_date"]:
+            daily_anchor, daily_date = equity, account["auckland_date"]
+            if reason == "DAILY_LOSS":
+                reason = None
+        if weekly_date != account["auckland_week_start"]:
+            weekly_anchor, weekly_date = equity, account["auckland_week_start"]
+        peak = max(peak, equity)
+        if reason is None and equity <= float(daily_anchor) * .995:
+            reason = "DAILY_LOSS"
+        if reason is None and equity <= float(weekly_anchor) * .99:
+            reason = "WEEKLY_LOSS"
+        if reason is None and equity <= peak * .98:
+            reason = "PEAK_DRAWDOWN"
+        cursor.execute("UPDATE forex.demo_risk_policy_state SET expected_balance=%s,peak_adjusted_equity=%s,daily_anchor_equity=%s,daily_anchor_date=%s,weekly_anchor_equity=%s,weekly_anchor_date=%s,pause_reason=%s,pause_until_date=%s,cash_flow_review_approved=%s,updated_at_utc=now() WHERE policy_version=%s", (expected_balance, peak, daily_anchor, daily_date, weekly_anchor, weekly_date, reason, (date.fromisoformat(account["auckland_date"]) + timedelta(days=1)).isoformat() if reason == "DAILY_LOSS" else pause_until, cash_flow_review_approved, policy["policy_version"]))
+    return {"ok": True, "risk": {"entry_allowed": reason is None, "pause_reason": reason, "policy_equity": equity, "maximum_loss_aud": min(100.0, round(equity * .001, 2))}}
+
+
+def resume_risk_policy(payload: dict[str, Any]) -> dict[str, Any]:
+    """Record a fixed operator resume request without overriding a current limit."""
+    if payload:
+        raise SystemExit("M20 risk-policy resume accepts no caller-controlled fields")
+    manual_reasons = {"WEEKLY_LOSS", "PEAK_DRAWDOWN", "EXTERNAL_CASH_FLOW", "UNKNOWN_ACCOUNT_STATE"}
+    with _connection() as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT pause_reason FROM forex.demo_risk_policy_state WHERE policy_version='forex.m20.conservative-risk.v1' FOR UPDATE")
+        row = cursor.fetchone()
+        if row is None or row[0] not in manual_reasons:
+            raise SystemExit("M20 risk-policy resume requires a current manual-review pause")
+        previous_reason = str(row[0])
+        resume_id = str(uuid.uuid4())
+        cursor.execute("INSERT INTO forex.demo_risk_policy_resume (resume_id,policy_version,previous_pause_reason,operator_action) VALUES (%s,'forex.m20.conservative-risk.v1',%s,'m20_listener_resume_risk_policy')", (resume_id, previous_reason))
+        cursor.execute("UPDATE forex.demo_risk_policy_state SET pause_reason=NULL,pause_until_date=NULL,cash_flow_review_approved=%s,updated_at_utc=now() WHERE policy_version='forex.m20.conservative-risk.v1'", (previous_reason == 'EXTERNAL_CASH_FLOW',))
+    return {"ok": True, "risk_resume": {"resume_id": resume_id, "previous_pause_reason": previous_reason, "next_account_check_required": True}}
+
+
 def record_result(payload: dict[str, Any]) -> dict[str, Any]:
     """Append an immutable broker result instead of mutating the attempt."""
     result = _object(payload, "result")
     required = {"event_id", "attempt_id", "event_type", "observed_at_utc", "broker_order_reference", "payload_sha256", "payload"}
-    if set(result) != required or result["event_type"] not in {"OPENED", "REJECTED", "FAILED"} or not isinstance(result["payload"], dict):
+    if (set(result) != required or result["event_type"] not in {"OPENED", "REJECTED", "FAILED", "UNKNOWN"}
+            or not isinstance(result["payload"], dict) or result["payload_sha256"] != _digest(result["payload"])):
         raise SystemExit("M20 broker result is invalid")
-    if result["event_type"] == "REJECTED":
+    if result["event_type"] in {"REJECTED", "UNKNOWN"}:
         diagnostic_fields = {
             "schema_version", "retcode", "broker_comment", "symbol", "action", "volume", "requested_price",
             "stop_loss", "take_profit", "deviation_points", "filling_mode", "time_mode", "magic",
@@ -300,6 +378,7 @@ def record_result(payload: dict[str, Any]) -> dict[str, Any]:
             "max_notional_per_trade_usd", "max_cumulative_notional_usd", "reservation_slot_number",
             "broker_order_reference", "broker_requested_price", "broker_requested_volume",
             "broker_requested_stop_loss", "broker_requested_take_profit", "position_ticket",
+            "position_identifier", "fill_status", "broker_filled_volume", "position_observation_error",
         }
         if set(result["payload"]) != diagnostic_fields or result["payload"].get("schema_version") != "forex.m20.mt5-result-context.v1":
             raise SystemExit("M20 rejected broker result lacks fixed diagnostic context")
@@ -320,7 +399,7 @@ def record_open_position(payload: dict[str, Any]) -> dict[str, Any]:
             or not all(isinstance(state[field], (int, float)) and state[field] > 0 for field in ("entry_price", "stop_loss", "take_profit"))):
         raise SystemExit("M20 open position state is invalid")
     with _connection() as conn, conn.cursor() as cursor:
-        cursor.execute("SELECT attempt.proposal_id FROM forex.demo_execution_attempt attempt JOIN forex.demo_strategy_selection selection ON selection.proposal_id=attempt.proposal_id WHERE attempt.attempt_id=%s AND selection.trade_owner_id=attempt.proposal_id AND selection.trade_owner_strategy_id IN ('momentum_breakout','compression_breakout','trend_pullback','range_reversion','session_breakout') AND selection.trade_owner_strategy_id=selection.selected_strategy_id AND selection.selection_status='SELECTED_EXECUTABLE' FOR UPDATE", (state["attempt_id"],))
+        cursor.execute("SELECT attempt.proposal_id FROM forex.demo_execution_attempt attempt JOIN forex.demo_strategy_selection selection ON selection.proposal_id=attempt.proposal_id WHERE attempt.attempt_id=%s AND selection.trade_owner_id=attempt.proposal_id AND selection.trade_owner_strategy_id IN ('momentum_breakout','compression_breakout','trend_pullback','range_reversion','session_breakout') AND selection.trade_owner_strategy_id=selection.selected_strategy_id AND selection.selection_status='SELECTED_EXECUTABLE' AND EXISTS (SELECT 1 FROM forex.demo_position_event event WHERE event.attempt_id=attempt.attempt_id AND event.event_type='OPENED' AND NULLIF(event.payload->>'position_ticket','')::bigint=%s) FOR UPDATE", (state["attempt_id"], state["position_ticket"]))
         attempt = cursor.fetchone()
         if attempt is None or attempt[0] != state["proposal_id"]:
             raise SystemExit("M20 open position state does not match its reserved attempt")
@@ -334,7 +413,7 @@ def update_open_position(payload: dict[str, Any]) -> dict[str, Any]:
     state = _object(payload, "state")
     result_required = {"event_id", "attempt_id", "event_type", "observed_at_utc", "broker_order_reference", "payload_sha256", "payload"}
     state_required = {"proposal_id", "position_ticket", "observed_at_utc", "stop_loss", "take_profit", "break_even_applied"}
-    if (set(result) != result_required or result["event_type"] != "UPDATED" or not isinstance(result["payload"], dict)
+    if (set(result) != result_required or result["event_type"] != "UPDATED" or not isinstance(result["payload"], dict) or result["payload_sha256"] != _digest(result["payload"])
             or set(state) != state_required or not isinstance(state["position_ticket"], int) or state["position_ticket"] <= 0
             or not isinstance(state["break_even_applied"], bool)
             or not all(isinstance(state[field], (int, float)) and state[field] > 0 for field in ("stop_loss", "take_profit"))):
@@ -352,82 +431,25 @@ def record_closed_outcome(payload: dict[str, Any]) -> dict[str, Any]:
     result = _object(payload, "result")
     outcome = _object(payload, "outcome")
     result_required = {"event_id", "attempt_id", "event_type", "observed_at_utc", "broker_order_reference", "payload_sha256", "payload"}
-    outcome_required = {"proposal_id", "closed_at_utc", "exit_price", "gross_price_pnl_account", "commission_account", "swap_account", "estimated_spread_cost_account", "slippage_cost_account", "estimated_total_cost_account", "realized_pnl_account", "account_currency", "close_reason", "reconciliation_status"}
-    if (set(result) != result_required or result["event_type"] != "CLOSED" or not isinstance(result["payload"], dict)
+    outcome_required = {"proposal_id", "closed_at_utc", "exit_price", "gross_price_pnl_account", "commission_account", "fee_account", "swap_account", "estimated_spread_cost_account", "slippage_cost_account", "estimated_total_cost_account", "realized_pnl_account", "account_currency", "close_reason", "reconciliation_status"}
+    if (set(result) != result_required or result["event_type"] != "CLOSED" or not isinstance(result["payload"], dict) or result["payload_sha256"] != _digest(result["payload"])
             or set(outcome) != outcome_required or outcome["reconciliation_status"] != "MATCHED"
             or outcome["account_currency"] != "AUD"
-            or not all(isinstance(outcome[field], (int, float)) for field in ("gross_price_pnl_account", "commission_account", "swap_account", "estimated_spread_cost_account", "slippage_cost_account", "estimated_total_cost_account", "realized_pnl_account"))
-            or outcome["estimated_spread_cost_account"] < 0):
+            or not all(isinstance(outcome[field], (int, float)) for field in ("gross_price_pnl_account", "commission_account", "fee_account", "swap_account", "estimated_spread_cost_account", "slippage_cost_account", "estimated_total_cost_account", "realized_pnl_account"))
+            or outcome["estimated_spread_cost_account"] < 0 or not isinstance(outcome["exit_price"], (int, float)) or outcome["exit_price"] <= 0):
         raise SystemExit("M20 closed lifecycle outcome is invalid")
     with _connection() as conn, conn.cursor() as cursor:
         cursor.execute("SELECT proposal_id FROM forex.demo_execution_attempt WHERE attempt_id=%s FOR UPDATE", (result["attempt_id"],))
         attempt = cursor.fetchone()
         if attempt is None or attempt[0] != outcome["proposal_id"]:
             raise SystemExit("M20 closed outcome does not match its reserved attempt")
-        cursor.execute("DELETE FROM forex.demo_open_position_state WHERE proposal_id=%s AND attempt_id=%s", (outcome["proposal_id"], result["attempt_id"]))
+        cursor.execute("DELETE FROM forex.demo_open_position_state WHERE proposal_id=%s AND attempt_id=%s RETURNING position_ticket", (outcome["proposal_id"], result["attempt_id"]))
+        if cursor.fetchone() is None:
+            raise SystemExit("M20 closed outcome has no durable open position")
         cursor.execute("INSERT INTO forex.demo_position_event (event_id,attempt_id,event_type,observed_at_utc,payload_sha256,payload) VALUES (%s,%s,'CLOSED',%s,%s,%s::jsonb)", (result["event_id"], result["attempt_id"], result["observed_at_utc"], result["payload_sha256"], json.dumps({"broker_order_reference": result["broker_order_reference"], **result["payload"]})))
-        cursor.execute("INSERT INTO forex.demo_trade_outcome (proposal_id,closed_at_utc,exit_price,gross_price_pnl_account,commission_account,swap_account,estimated_spread_cost_account,slippage_cost_account,estimated_total_cost_account,realized_pnl_account,account_currency,close_reason,reconciliation_status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'MATCHED')", (outcome["proposal_id"], outcome["closed_at_utc"], outcome["exit_price"], outcome["gross_price_pnl_account"], outcome["commission_account"], outcome["swap_account"], outcome["estimated_spread_cost_account"], outcome["slippage_cost_account"], outcome["estimated_total_cost_account"], outcome["realized_pnl_account"], outcome["account_currency"], outcome["close_reason"]))
+        cursor.execute("INSERT INTO forex.demo_trade_outcome (proposal_id,closed_at_utc,exit_price,gross_price_pnl_account,commission_account,fee_account,swap_account,estimated_spread_cost_account,slippage_cost_account,estimated_total_cost_account,realized_pnl_account,account_currency,close_reason,reconciliation_status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'MATCHED')", (outcome["proposal_id"], outcome["closed_at_utc"], outcome["exit_price"], outcome["gross_price_pnl_account"], outcome["commission_account"], outcome["fee_account"], outcome["swap_account"], outcome["estimated_spread_cost_account"], outcome["slippage_cost_account"], outcome["estimated_total_cost_account"], outcome["realized_pnl_account"], outcome["account_currency"], outcome["close_reason"]))
+        cursor.execute("UPDATE forex.demo_risk_policy_state SET expected_balance=expected_balance+%s,updated_at_utc=now() WHERE policy_version='forex.m20.conservative-risk.v1'", (outcome["realized_pnl_account"],))
     return {"ok": True, "recorded_event_id": result["event_id"], "proposal_id": outcome["proposal_id"]}
-
-
-def archive_history_unavailable_positions(payload: dict[str, Any]) -> dict[str, Any]:
-    """Terminally retain old missing-history positions without inventing P&L.
-
-    This is a deliberately narrow MVP recovery action.  It can be called only
-    after the fixed MT5 runner has observed zero owned EURUSD positions and
-    only for durable rows whose broker history has no priced market deal.  It
-    appends a FAILED event containing that broker diagnostic, then removes the
-    mutable *open* projection.  It never fabricates a close, fee, or outcome.
-    """
-    required = {"broker_open_position_count", "reason", "attempts"}
-    if set(payload) != required or payload["broker_open_position_count"] != 0 or payload["reason"] != "BROKER_HISTORY_UNAVAILABLE":
-        raise SystemExit("M20 history-unavailable archival payload is invalid")
-    attempts = payload["attempts"]
-    if not isinstance(attempts, list) or not attempts:
-        raise SystemExit("M20 history-unavailable archival attempts are invalid")
-    normalized: list[tuple[str, str]] = []
-    for item in attempts:
-        if not isinstance(item, dict) or set(item) != {"attempt_id", "history_diagnostic"}:
-            raise SystemExit("M20 history-unavailable archival item is invalid")
-        attempt_id, diagnostic = item["attempt_id"], item["history_diagnostic"]
-        if not isinstance(attempt_id, str) or not attempt_id or not isinstance(diagnostic, str) or not diagnostic.startswith("M20 close deal history has no priced market deal"):
-            raise SystemExit("M20 history-unavailable archival item is not broker-derived")
-        normalized.append((attempt_id, diagnostic))
-    if len({attempt_id for attempt_id, _ in normalized}) != len(normalized):
-        raise SystemExit("M20 history-unavailable archival repeats an attempt")
-    with _connection() as conn, conn.cursor() as cursor:
-        cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended('forex.m20.history-unavailable', 0))")
-        for attempt_id, diagnostic in normalized:
-            cursor.execute(
-                """SELECT state.proposal_id
-                     FROM forex.demo_open_position_state state
-                     JOIN forex.demo_execution_attempt attempt ON attempt.attempt_id=state.attempt_id
-                     LEFT JOIN forex.demo_trade_outcome outcome ON outcome.proposal_id=state.proposal_id
-                    WHERE state.attempt_id=%s AND outcome.proposal_id IS NULL
-                      AND EXISTS (SELECT 1 FROM forex.demo_position_event opened WHERE opened.attempt_id=state.attempt_id AND opened.event_type='OPENED')
-                      AND NOT EXISTS (SELECT 1 FROM forex.demo_position_event terminal WHERE terminal.attempt_id=state.attempt_id AND terminal.event_type IN ('CLOSED','REJECTED','FAILED'))
-                    FOR UPDATE OF state""",
-                (attempt_id,),
-            )
-            if cursor.fetchone() is None:
-                raise SystemExit("M20 history-unavailable archival target is not a sole unresolved open position")
-            event_payload = {
-                "reason": "BROKER_HISTORY_UNAVAILABLE",
-                "broker_open_position_count": 0,
-                "history_diagnostic": diagnostic,
-            }
-            event_id = f"{attempt_id}:broker-history-unavailable"
-            cursor.execute(
-                """INSERT INTO forex.demo_position_event
-                   (event_id,attempt_id,event_type,observed_at_utc,payload_sha256,payload)
-                   VALUES (%s,%s,'FAILED',now(),%s,%s::jsonb)
-                   ON CONFLICT (event_id) DO NOTHING""",
-                (event_id, attempt_id, _digest(event_payload), json.dumps(event_payload)),
-            )
-            cursor.execute("DELETE FROM forex.demo_open_position_state WHERE attempt_id=%s", (attempt_id,))
-            if cursor.rowcount != 1:
-                raise SystemExit("M20 history-unavailable archival did not remove its mutable open projection")
-    return {"ok": True, "archived_attempt_ids": [attempt_id for attempt_id, _ in normalized], "disposition": "HISTORY_UNAVAILABLE"}
 
 
 def load_open_positions(payload: dict[str, Any]) -> dict[str, Any]:
@@ -439,7 +461,10 @@ def load_open_positions(payload: dict[str, Any]) -> dict[str, Any]:
             """SELECT state.proposal_id,p.action,p.proposed_entry,p.stop_loss,a.attempt_id,a.submitted_at_utc,
                       state.position_ticket,state.entry_price,state.stop_loss,state.take_profit,state.break_even_applied,
                       snapshot.ask-snapshot.bid,
-                      COALESCE((SELECT event.payload->>'volume' FROM forex.demo_position_event event
+                      COALESCE((SELECT COALESCE(event.payload->>'broker_filled_volume',event.payload->>'volume') FROM forex.demo_position_event event
+                                WHERE event.attempt_id=a.attempt_id AND event.event_type='OPENED'
+                                ORDER BY event.observed_at_utc DESC LIMIT 1),''),
+                      COALESCE((SELECT event.payload->>'position_identifier' FROM forex.demo_position_event event
                                 WHERE event.attempt_id=a.attempt_id AND event.event_type='OPENED'
                                 ORDER BY event.observed_at_utc DESC LIMIT 1),''),selection.trade_owner_strategy_id
                  FROM forex.demo_open_position_state state
@@ -466,7 +491,8 @@ def load_open_positions(payload: dict[str, Any]) -> dict[str, Any]:
             "position_ticket": int(row[6]), "entry_price": float(row[7]),
             "stop_loss": float(row[8]), "take_profit": float(row[9]),
             "break_even_applied": bool(row[10]), "entry_spread": float(row[11]), "volume": volume,
-            "trade_owner_strategy_id": row[13],
+            "position_identifier": int(row[13]) if row[13] else int(row[6]),
+            "trade_owner_strategy_id": row[14],
         })
     return {"ok": True, "open_positions": positions}
 
@@ -477,25 +503,25 @@ def reconcile(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(proposal_id, str) or not proposal_id:
         raise SystemExit("M20 reconciliation proposal id is invalid")
     with _connection() as conn, conn.cursor() as cursor:
-        cursor.execute("SELECT p.session_id,p.action,s.snapshot_id,a.attempt_id,COALESCE(array_agg(e.event_type) FILTER (WHERE e.event_id IS NOT NULL), ARRAY[]::text[]),o.closed_at_utc,o.exit_price,o.realized_pnl_account,o.account_currency,o.close_reason,o.reconciliation_status,o.gross_price_pnl_account,o.commission_account,o.swap_account,o.estimated_spread_cost_account,o.slippage_cost_account,o.estimated_total_cost_account,state.position_ticket,state.entry_price,state.stop_loss,state.take_profit,state.break_even_applied FROM forex.demo_trade_proposal p JOIN forex.demo_decision_snapshot s ON s.proposal_id=p.proposal_id LEFT JOIN forex.demo_execution_attempt a ON a.proposal_id=p.proposal_id LEFT JOIN forex.demo_position_event e ON e.attempt_id=a.attempt_id LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=p.proposal_id LEFT JOIN forex.demo_open_position_state state ON state.proposal_id=p.proposal_id WHERE p.proposal_id=%s GROUP BY p.session_id,p.action,s.snapshot_id,a.attempt_id,o.closed_at_utc,o.exit_price,o.realized_pnl_account,o.account_currency,o.close_reason,o.reconciliation_status,o.gross_price_pnl_account,o.commission_account,o.swap_account,o.estimated_spread_cost_account,o.slippage_cost_account,o.estimated_total_cost_account,state.position_ticket,state.entry_price,state.stop_loss,state.take_profit,state.break_even_applied", (proposal_id,))
+        cursor.execute("SELECT p.session_id,p.action,s.snapshot_id,a.attempt_id,COALESCE(array_agg(e.event_type) FILTER (WHERE e.event_id IS NOT NULL), ARRAY[]::text[]),o.closed_at_utc,o.exit_price,o.realized_pnl_account,o.account_currency,o.close_reason,o.reconciliation_status,o.gross_price_pnl_account,o.commission_account,o.fee_account,o.swap_account,o.estimated_spread_cost_account,o.slippage_cost_account,o.estimated_total_cost_account,state.position_ticket,state.entry_price,state.stop_loss,state.take_profit,state.break_even_applied FROM forex.demo_trade_proposal p JOIN forex.demo_decision_snapshot s ON s.proposal_id=p.proposal_id LEFT JOIN forex.demo_execution_attempt a ON a.proposal_id=p.proposal_id LEFT JOIN forex.demo_position_event e ON e.attempt_id=a.attempt_id LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=p.proposal_id LEFT JOIN forex.demo_open_position_state state ON state.proposal_id=p.proposal_id WHERE p.proposal_id=%s GROUP BY p.session_id,p.action,s.snapshot_id,a.attempt_id,o.closed_at_utc,o.exit_price,o.realized_pnl_account,o.account_currency,o.close_reason,o.reconciliation_status,o.gross_price_pnl_account,o.commission_account,o.fee_account,o.swap_account,o.estimated_spread_cost_account,o.slippage_cost_account,o.estimated_total_cost_account,state.position_ticket,state.entry_price,state.stop_loss,state.take_profit,state.break_even_applied", (proposal_id,))
         row = cursor.fetchone()
         if row is None:
             raise SystemExit("M20 reconciliation proposal is absent")
     closed_and_outcome = row[3] is not None and "CLOSED" in row[4] and row[5] is not None and row[10] == "MATCHED"
-    terminal_rejection = row[3] is not None and ("REJECTED" in row[4] or "FAILED" in row[4])
-    open_reconciled = row[3] is not None and "OPENED" in row[4] and row[17] is not None and not closed_and_outcome
+    terminal_rejection = row[3] is not None and "REJECTED" in row[4]
+    open_reconciled = row[3] is not None and "OPENED" in row[4] and row[18] is not None and not closed_and_outcome
     status = "NO_TRADE_RECONCILED" if row[1] == "NO_TRADE" and row[3] is None else ("MATCHED" if closed_and_outcome or terminal_rejection else ("OPEN_RECONCILED" if open_reconciled else "PENDING"))
     reconciliation = {"session_id": row[0], "proposal_id": proposal_id, "snapshot_id": row[2], "execution_attempt_id": row[3], "status": status}
     if closed_and_outcome:
-        reconciliation["outcome"] = {"proposal_id": proposal_id, "closed_at_utc": row[5].astimezone(timezone.utc).isoformat().replace("+00:00", "Z"), "exit_price": float(row[6]), "realized_pnl_account": float(row[7]), "account_currency": row[8], "close_reason": row[9], "costs": {"gross_price_pnl_account": float(row[11]), "commission_account": float(row[12]), "swap_account": float(row[13]), "estimated_spread_cost_account": float(row[14]), "slippage_cost_account": float(row[15]), "estimated_total_cost_account": float(row[16])}}
+        reconciliation["outcome"] = {"proposal_id": proposal_id, "closed_at_utc": row[5].astimezone(timezone.utc).isoformat().replace("+00:00", "Z"), "exit_price": float(row[6]), "realized_pnl_account": float(row[7]), "account_currency": row[8], "close_reason": row[9], "costs": {"gross_price_pnl_account": float(row[11]), "commission_account": float(row[12]), "fee_account": float(row[13]), "swap_account": float(row[14]), "estimated_spread_cost_account": float(row[15]), "slippage_cost_account": float(row[16]), "estimated_total_cost_account": float(row[17])}}
     elif open_reconciled:
-        reconciliation["position"] = {"position_ticket": int(row[17]), "entry_price": float(row[18]), "stop_loss": float(row[19]), "take_profit": float(row[20]), "break_even_applied": bool(row[21])}
+        reconciliation["position"] = {"position_ticket": int(row[18]), "entry_price": float(row[19]), "stop_loss": float(row[20]), "take_profit": float(row[21]), "break_even_applied": bool(row[22])}
     return {"ok": True, "reconciliation": reconciliation}
 
 
 def main() -> int:
     command = sys.argv[1] if len(sys.argv) == 2 else ""
-    actions = {"persist-proposal": persist_proposal, "reserve-execution": reserve_execution, "record-result": record_result, "record-open-position": record_open_position, "update-open-position": update_open_position, "record-closed-outcome": record_closed_outcome, "archive-history-unavailable-positions": archive_history_unavailable_positions, "load-open-positions": load_open_positions, "reconcile": reconcile}
+    actions = {"persist-proposal": persist_proposal, "reserve-execution": reserve_execution, "enforce-risk-policy": enforce_risk_policy, "resume-risk-policy": resume_risk_policy, "record-result": record_result, "record-open-position": record_open_position, "update-open-position": update_open_position, "record-closed-outcome": record_closed_outcome, "load-open-positions": load_open_positions, "reconcile": reconcile}
     if command not in actions:
         raise SystemExit("M20 audit bridge command is not fixed")
     print(json.dumps(actions[command](_payload()), separators=(",", ":")))

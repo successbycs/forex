@@ -1,4 +1,4 @@
-# M20 — capped automated Demo trading MVP
+# M20 — bounded automated Demo trading MVP
 
 ## Purpose
 
@@ -17,10 +17,12 @@ following:
 
 - exactly `GOMarketsMU-Demo` and `EURUSD`;
 - continuous Demo-only authority (`maximum_duration_minutes: 0`) with a new
-  immutable session record for each activation; caps remain per recorded session;
+  immutable session record for each activation and no development-phase total
+  trade-count ceiling;
 - one open position at a time;
 - no more than USD 10,000 notional per trade and USD 100,000 cumulative notional;
 - a calculated protective stop whose theoretical loss is no more than AUD 100;
+- the persistent Option B risk guard: lesser of AUD 100 and 0.10% of equity per proposed loss, 0.50% daily loss pause, 1.00% weekly loss pause, 2.00% peak adjusted-equity drawdown pause, and fail-closed cash-flow reconciliation;
 - a persisted, unexpired proposal and unique idempotency key before execution.
 
 The broker credential is never tracked or retained in evidence. The only

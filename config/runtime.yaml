@@ -4,6 +4,18 @@ runtime_mode: DEMO_TRADING
 agent_authority_mode: DEMO_SESSION_BOUNDED
 live_trading_enabled: false
 maximum_concurrent_positions: 1
+persistent_risk_policy:
+  policy_version: forex.m20.conservative-risk.v1
+  reporting_currency: AUD
+  maximum_risk_per_trade_percent: 0.10
+  maximum_risk_per_trade_aud: 100.00
+  daily_loss_limit_percent: 0.50
+  weekly_loss_limit_percent: 1.00
+  peak_equity_drawdown_limit_percent: 2.00
+  loss_budget_timezone: Pacific/Auckland
+  daily_pause_reset: NEXT_AUCKLAND_DAY
+  manual_resume_reasons: [WEEKLY_LOSS, PEAK_DRAWDOWN, EXTERNAL_CASH_FLOW, UNKNOWN_ACCOUNT_STATE]
+  require_known_external_cashflow: true
 demo_session_limits:
   # null removes the legacy total-count ceiling. Cumulative notional remains
   # the total Demo exposure cap.
