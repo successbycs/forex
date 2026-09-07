@@ -134,6 +134,12 @@ def test_m20_unresolved_history_probe_is_fixed_demo_only_and_cannot_trade():
     assert len(command) < 2500
 
 
+def test_listener_install_requires_the_hash_bound_prepared_release():
+    command = t480_adapter.OPERATIONS["m20_listener_install"].powershell_command or ""
+    assert "m20_demo_listener_prepared.local.json" in command
+    assert "M20 release was not prepared and hash-bound" in command
+
+
 def test_m20_session_operation_is_fixed_demo_only_fresh_data_capture():
     command = t480_adapter.OPERATIONS["m20_demo_trading_session"].powershell_command or ""
     probe = (t480_adapter.ROOT / "t480" / "m20_demo_trading_session.py").read_text(encoding="utf-8")
