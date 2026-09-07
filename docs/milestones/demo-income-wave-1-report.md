@@ -432,3 +432,31 @@ webhook URL. Deployment preserves an already configured T480-local Discord
 setting. The status must be `true` before the first eligible open; a synthetic
 message is not proof and was not sent. The alert complements the dashboard; it
 cannot automatically resume a Codex goal.
+
+### SuccessByCS alert configuration and current availability checkpoint
+
+At 05:39 UTC, the operator authorised use of the locally configured
+SuccessByCS bot. The T480-local listener configuration was updated from the
+existing local CSP configuration without printing, copying into the repository,
+or committing the webhook secret. Release `8237331c7fa79d5a`, bound to source
+revision `63b9a30d654186eb129aed6581a02a73d233e1c9` and configuration fingerprint
+`sha256:da580b9e9131ff01987835cada4a7ada82465fdd3900fc38b8809d572a219eb5`, was
+installed successfully. The status surface reported
+`discord_open_alert_configured: true`. It does not expose the webhook URL.
+
+The latest read-only status at 05:44 UTC then reported a fresh supervisor
+heartbeat but `MONITORING_UNAVAILABLE`: its bounded durable-position monitor
+received the MT5 error `Terminal: Authorization failed`. The listener correctly
+failed closed and did not submit an assessment or an order. There was no open
+position to protect. The fixed recovery operation at 05:45 UTC could not reach
+T480 because SSH to `192.168.0.210:22` timed out during banner exchange; it did
+not run and made no change to the scheduled task, broker, lease, or risk state.
+
+Wave 1 remains **IN PROGRESS**. Resume when T480 is reachable, the MT5
+GOMarketsMU-Demo terminal authorises again, and a read-only listener status
+confirms a successful durable-position monitor before normal eligible Demo
+operation continues. The next genuine protected `OPENED` event will send the
+configured Discord alert, which is the cue to perform the authorised
+open-position restart/recovery evidence drill. Do not force a trade, send a
+synthetic Discord message, or treat the alert configuration itself as broker
+proof.
