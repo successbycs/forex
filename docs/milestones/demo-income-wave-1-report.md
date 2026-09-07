@@ -1,6 +1,6 @@
 # Wave 1 progress and proposed risk policy
 
-Status: **IN PROGRESS — Option B is implemented locally and its PostgreSQL schema is applied on Demo; a hash-bound runtime deployment and independently verified Demo lifecycle proof remain.**
+Status: **IN PROGRESS — Option B and the corrected listener are deployed on Demo. The Windows/Ubuntu risk-resume defect is resolved and independently checked. Fresh lifecycle/recovery evidence and final bound verification remain. See the latest checkpoint below.**
 
 ## W1.1 completed locally
 
@@ -369,3 +369,66 @@ account, or order parameter is exposed. Adapter regression tests and governance
 validation pass. The existing operator confirmation of no external cash flow
 authorises the recorded resume; its real-world result and subsequent balance
 check must still be captured before claiming the blockage resolved.
+
+### Resume verified on Demo; remaining Wave 1 proof
+
+Commit `7d50038` fixes the resume adapter. The unchanged runtime payload release
+`29072a8900d6831b` was hash-checked, rebound to that committed application
+revision and the unchanged `sha256:8a4f7d278e3b536b31f7f6c272ce032719877af7075c62cdd60ab0c1ae3a55e6`
+configuration, and restarted without replacing the current session lease.
+The corrected resume succeeded at 03:03:31 UTC and created audit record
+`b8694a8c-e227-4857-ae71-41e333d88d1c` for the reviewed `EXTERNAL_CASH_FLOW`
+pause.
+
+At 03:04 UTC, the subsequent risk check showed `pause_reason: null` and
+`cash_flow_review_approved: false`. Expected balance, broker balance, and broker
+equity all equalled AUD 100,995.22. Baseline, peak, daily anchor and weekly
+anchor stayed unchanged at AUD 100,995.51. The strict durable-position recovery
+succeeded with an empty result; the listener heartbeat was fresh. The
+read-only audit verifier passed its Demo-only, exposure, proposal-first,
+idempotency, append-only and fee-completeness checks. The temporary AUD 0.01
+drill was not repeated and the approved Option B limits remain in effect.
+
+Raw operation responses are retained unchanged under
+`runs/evidence/M20/w1-resume-20260907T030324Z/`. Independent offline assertions
+compared before/after state, the resume ID and timestamps, observed account
+values, unchanged anchors, recovery, and audit output; the result and SHA-256
+input hashes are separate at
+`runs/verification/M20/w1-resume-20260907T030324Z/resume-verification.json`
+(`FOREX_W1_RISK_RESUME_VERIFIED`). These are operational evidence, not a final
+M20 bundle. The focused M20, adapter, accounting-dashboard and configuration
+test suites passed, as did governance validation and `git diff --check`.
+
+| Item | Current result and remaining condition |
+| --- | --- |
+| Reported PostgreSQL/resume blockage | **PASS — resolved.** Resume writes and subsequent risk checks work through T480 Ubuntu. |
+| W1.1 release/configuration alignment | Rebound to `7d50038`; final effective-limit comparison in the bound Wave 1 bundle remains **PENDING**. |
+| W1.2 lifecycle/recovery | The last retained matched lifecycle is the earlier AUD -0.29 close. The current lease `9673811b-0e23-47f9-b8e6-e0a86d1adf06` has no execution yet in the captured summary. Its genuine opened-to-closed lifecycle and controlled interruption/recovery proof remain **PENDING**. |
+| W1.3 accounting proof | New sample must retain attributable raw broker deals and independently recompute fills, fees and net totals. Nonzero charges and partial fills remain unobserved; no synthetic observation is counted as broker proof. |
+| W1.4 risk recovery | Resume and unchanged anchors across the flat restart/session history are verified. Restart with an actually open, broker-protected position remains **PENDING**. The prior AUD 0.01 calculation-only probe does not by itself demonstrate a listener assessment refusal or open-position recovery. |
+| Final verification/review | **PENDING** until the required observations exist. No wave/milestone completion is claimed and no next wave is started. |
+
+A clean detached worktree at `/tmp/forex-wave1-7d50038` is prepared for the
+existing capture script; its governance and T480 preflight pass. This preserves
+the main checkout's unrelated research/prompt work without weakening the
+clean-revision rule. Do not invoke or recapture repeatedly while the required
+lifecycle is absent. Resume proof work when the ordinary approved Demo listener
+has an eligible protected position for the recovery drill and a current-lease
+broker close. Preserve the lease and caps; do not force a trade or renew a lease
+to manufacture evidence. No further operator decision is needed for the
+resolved connection defect.
+
+### Protected-open Wave 1 alert
+
+The listener now issues one best-effort Discord message after all three real
+conditions hold: the broker position is observed with positive entry, stop and
+take-profit values; PostgreSQL has accepted the durable `OPENED` record; and
+the local monitor job has been written. The message identifies the Demo EURUSD
+side, volume, ticket, entry, SL and TP, then asks the operator to resume Wave
+1. It cannot submit, modify, close, delay, or invalidate an order or lifecycle.
+
+The listener status returns only `discord_open_alert_configured`, never a
+webhook URL. Deployment preserves an already configured T480-local Discord
+setting. The status must be `true` before the first eligible open; a synthetic
+message is not proof and was not sent. The alert complements the dashboard; it
+cannot automatically resume a Codex goal.

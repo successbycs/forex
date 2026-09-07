@@ -37,3 +37,45 @@ def test_refuses_a_non_demo_payload():
         assert "Demo EURUSD" in str(error)
     else:
         raise AssertionError("live sale notification payload was accepted")
+
+
+def open_payload():
+    return {
+        "server": "GOMarketsMU-Demo", "symbol": "EURUSD", "proposal_id": "proposal-1",
+        "position_ticket": 123, "side": "BUY", "strategy": "compression_breakout",
+        "opened_at_utc": "2026-09-07T03:00:00Z", "entry_price": 1.16295,
+        "stop_loss": 1.16245, "take_profit": 1.16395, "lots": 0.01,
+    }
+
+
+def test_renders_durable_protected_open_as_wave_one_resume_prompt():
+    message = discord.render_open(open_payload())
+    assert "Demo EURUSD opened — resume Wave 1" in message
+    assert "BUY 0.01 lots" in message
+    assert "SL 1.16245 | TP 1.16395" in message
+    assert "durable OPENED record confirmed" in message
+
+
+def test_open_notification_is_disabled_without_local_opt_in(monkeypatch):
+    monkeypatch.delenv("FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED", raising=False)
+    result = discord.notify_open(open_payload())
+    assert result == {"ok": True, "delivery": "DISABLED", "proposal_id": "proposal-1"}
+
+
+def test_open_notification_refuses_live_or_unprotected_payloads():
+    candidate = open_payload()
+    candidate["server"] = "GOMarketsMU-Live"
+    try:
+        discord.validate_open(candidate)
+    except ValueError as error:
+        assert "Demo EURUSD" in str(error)
+    else:
+        raise AssertionError("live open notification payload was accepted")
+    candidate = open_payload()
+    candidate["stop_loss"] = 0
+    try:
+        discord.validate_open(candidate)
+    except ValueError as error:
+        assert "stop_loss" in str(error)
+    else:
+        raise AssertionError("unprotected open notification payload was accepted")

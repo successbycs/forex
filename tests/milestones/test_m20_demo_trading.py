@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 
@@ -49,3 +50,13 @@ def test_m20_records_no_trade_when_timeframes_conflict():
     result = propose(proposal_id="proposal-1", lease=lease(), snapshot=snapshot(m1=(1.1, 1.101), m5=(1.101, 1.1)))
     assert result.action == "NO_TRADE"
     assert result.notional_usd is None
+
+
+def test_open_notification_runs_only_after_durable_open_and_monitor_job_are_written():
+    source = (Path(__file__).resolve().parents[2] / "t480" / "m20_demo_trading_session.py").read_text(encoding="utf-8")
+    durable_open = '"record-open-position")'
+    monitor = "monitor_job = _write_monitor_job("
+    notification = "_notify_opened_position(proposal=proposal, position=position, opened_at_utc=opened_at_utc)"
+    assert durable_open in source
+    assert source.index(durable_open) < source.index(monitor) < source.index(notification)
+    assert "M20 Discord open notification" in source

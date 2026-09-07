@@ -1101,6 +1101,35 @@ def _two_opposite_completed_m1_candles(*, bars: list[dict[str, Any]], action: st
     )
 
 
+def _notify_opened_position(*, proposal: dict[str, Any], position: Any, opened_at_utc: str) -> None:
+    """Prompt the operator only after protected OPENED state is durable.
+
+    This best-effort notification is outside broker execution, PostgreSQL
+    persistence, and monitor scheduling. It cannot change a Demo position or
+    make a failed delivery look like an incomplete lifecycle.
+    """
+    try:
+        adapter_path = Path(__file__).with_name("m20_discord_trade_notification.payload")
+        loader = importlib.machinery.SourceFileLoader("m20_discord_trade_notification", str(adapter_path))
+        spec = importlib.util.spec_from_loader("m20_discord_trade_notification", loader)
+        if spec is None or spec.loader is None:
+            raise ImportError("M20 Discord open-notification payload is unavailable")
+        adapter = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(adapter)
+        notification = adapter.notify_open({
+            "server": SERVER, "symbol": SYMBOL, "proposal_id": proposal["proposal_id"],
+            "position_ticket": int(getattr(position, "ticket", 0)), "side": proposal["action"],
+            "strategy": str(proposal.get("trade_owner_strategy_id", "unknown")),
+            "opened_at_utc": opened_at_utc, "entry_price": float(getattr(position, "price_open", 0)),
+            "stop_loss": float(getattr(position, "sl", 0)), "take_profit": float(getattr(position, "tp", 0)),
+            "lots": float(getattr(position, "volume", 0)),
+        })
+        if not notification.get("ok"):
+            print(f"M20 Discord open notification failed after durable OPENED state: {notification.get('detail', 'unknown failure')}", file=sys.stderr)
+    except (ImportError, AttributeError, TypeError, ValueError, OSError) as error:
+        print(f"M20 Discord open notification unavailable after durable OPENED state: {error}", file=sys.stderr)
+
+
 def _notify_reconciled_sale(*, proposal: dict[str, Any], position: Any, outcome: dict[str, Any], costs: dict[str, float]) -> None:
     """Best-effort human notification after the immutable close is reconciled.
 
@@ -1663,12 +1692,14 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                               "payload": result_context}
             _bridge({"result": result_payload}, "record-result")
             if observed_open:
-                _bridge({"state": {"proposal_id": proposal["proposal_id"], "attempt_id": attempt_id, "position_ticket": int(position.ticket), "action": proposal["action"], "opened_at_utc": utc(datetime.now(timezone.utc)), "observed_at_utc": utc(datetime.now(timezone.utc)), "entry_price": float(position.price_open), "stop_loss": float(position.sl), "take_profit": float(position.tp)}}, "record-open-position")
+                opened_at_utc = utc(datetime.now(timezone.utc))
+                _bridge({"state": {"proposal_id": proposal["proposal_id"], "attempt_id": attempt_id, "position_ticket": int(position.ticket), "action": proposal["action"], "opened_at_utc": opened_at_utc, "observed_at_utc": opened_at_utc, "entry_price": float(position.price_open), "stop_loss": float(position.sl), "take_profit": float(position.tp)}}, "record-open-position")
                 monitor_job = _write_monitor_job(
                     session_path=session_path, proposal=proposal, trade_owner_strategy_id=strategy_selection["trade_owner_strategy_id"], attempt_id=attempt_id,
                     position=position, submitted_at=submitted_at, entry_spread=ask - bid,
                     risk=risk, offset_seconds=offset_seconds,
                 )
+                _notify_opened_position(proposal=proposal, position=position, opened_at_utc=opened_at_utc)
                 reconciliation = {"status": "OPEN_MONITORING", "position_ticket": int(position.ticket)}
             elif event_type == "REJECTED":
                 reconciliation = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")["reconciliation"]

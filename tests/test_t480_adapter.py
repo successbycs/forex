@@ -181,7 +181,8 @@ def test_m20_listener_status_is_fixed_and_redacted():
     assert "m20_demo_listener_status.local.json" in command
     assert "C:\\ProgramData\\ForexListener\\state" in command
     assert "Documents\\Code\\forex-m1-probe\\m20_demo_listener_status" not in command
-    assert "m20_demo_listener_service.local.json" not in command
+    assert "m20_demo_listener_service.local.json" in command
+    assert "discord_open_alert_configured=$notifications" in command
     assert "FOREX_M20_POSTGRES_DSN" not in command
     assert "heartbeat_at_nzst" in command and "next_assessment_at_nzst" in command
     assert "heartbeat_age_seconds" in command
@@ -1010,3 +1011,14 @@ def test_retained_history_reconciliation_validates_all_four_exact_broker_positio
     assert [row["position_identifier"] for row in rows] == [41488649, 41495536, 41499398, 41499981]
     assert [row["realized_pnl_account"] for row in rows] == [0.18, 0.01, -0.56, -0.21]
     assert all(row["fee_account"] == 0.0 and len(row["broker_deals"]) == 2 for row in rows)
+
+
+def test_m20_listener_open_alert_is_redacted_and_local_settings_survive_redeploy():
+    status = t480_adapter.OPERATIONS["m20_listener_status"].powershell_command or ""
+    configure = t480_adapter.OPERATIONS["m20_listener_configure"].powershell_command or ""
+    assert "discord_open_alert_configured=$notifications" in status
+    assert "FOREX_M20_DISCORD_WEBHOOK_URL" in status
+    assert "discord.com/api/webhooks" not in status
+    assert "FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED" in configure
+    assert "$previous" in configure
+    assert "discord.com/api/webhooks" not in configure

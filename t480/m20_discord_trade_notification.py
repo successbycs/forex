@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Fixed, best-effort Discord notification for a reconciled M20 Demo sale.
+"""Fixed, best-effort Discord notifications for M20 Demo position lifecycle events.
 
-The webhook URL is deliberately read only from the T480-local environment.  A
+The webhook URL is deliberately read only from the T480-local environment. A
 notification failure is reported to the caller but is never allowed to alter a
 Demo trade, its monitor, or its PostgreSQL lifecycle.
 """
@@ -16,32 +16,44 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
-REQUIRED = {
+SALE_REQUIRED = {
     "server", "symbol", "proposal_id", "position_ticket", "side", "strategy",
     "opened_at_utc", "closed_at_utc", "entry_price", "exit_price", "lots",
     "close_reason", "gross_pnl_aud", "commission_aud", "fee_aud", "swap_aud",
     "estimated_cost_aud", "realized_pnl_aud", "liquidity",
+}
+OPEN_REQUIRED = {
+    "server", "symbol", "proposal_id", "position_ticket", "side", "strategy",
+    "opened_at_utc", "entry_price", "stop_loss", "take_profit", "lots",
 }
 LIQUIDITY_REQUIRED = {"currency", "balance", "equity", "free_margin", "margin", "floating_pnl"}
 
 
 def _number(value: Any, name: str) -> float:
     if not isinstance(value, (int, float)):
-        raise ValueError(f"Discord sale notification {name} must be numeric")
+        raise ValueError(f"Discord notification {name} must be numeric")
     return float(value)
 
 
-def validate_sale(payload: dict[str, Any]) -> dict[str, Any]:
-    """Validate the sole supported outbound event without accepting a URL."""
-    if set(payload) != REQUIRED:
-        raise ValueError("Discord sale notification payload fields are invalid")
+def _validate_identity(payload: dict[str, Any], required: set[str], event: str) -> None:
+    if set(payload) != required:
+        raise ValueError(f"Discord {event} notification payload fields are invalid")
     if payload["server"] != "GOMarketsMU-Demo" or payload["symbol"] != "EURUSD":
-        raise ValueError("Discord sale notification accepts only Demo EURUSD")
+        raise ValueError(f"Discord {event} notification accepts only Demo EURUSD")
     if payload["side"] not in {"BUY", "SELL"}:
-        raise ValueError("Discord sale notification side is invalid")
+        raise ValueError(f"Discord {event} notification side is invalid")
     if not all(isinstance(payload[key], str) and payload[key] for key in (
-        "proposal_id", "strategy", "opened_at_utc", "closed_at_utc", "close_reason",
+        "proposal_id", "strategy", "opened_at_utc",
     )) or not isinstance(payload["position_ticket"], int) or payload["position_ticket"] <= 0:
+        raise ValueError(f"Discord {event} notification identity is invalid")
+
+
+def validate_sale(payload: dict[str, Any]) -> dict[str, Any]:
+    """Validate a Demo EURUSD close notification without accepting a URL."""
+    _validate_identity(payload, SALE_REQUIRED, "sale")
+    if not all(isinstance(payload[key], str) and payload[key] for key in (
+        "closed_at_utc", "close_reason",
+    )):
         raise ValueError("Discord sale notification identity is invalid")
     liquidity = payload["liquidity"]
     if not isinstance(liquidity, dict) or set(liquidity) != LIQUIDITY_REQUIRED or liquidity["currency"] != "AUD":
@@ -50,6 +62,15 @@ def validate_sale(payload: dict[str, Any]) -> dict[str, Any]:
         _number(payload[name], name)
     for name in LIQUIDITY_REQUIRED - {"currency"}:
         _number(liquidity[name], f"liquidity.{name}")
+    return payload
+
+
+def validate_open(payload: dict[str, Any]) -> dict[str, Any]:
+    """Validate a protected Demo EURUSD open notification without accepting a URL."""
+    _validate_identity(payload, OPEN_REQUIRED, "open")
+    for name in ("entry_price", "stop_loss", "take_profit", "lots"):
+        if _number(payload[name], name) <= 0:
+            raise ValueError(f"Discord open notification {name} must be positive")
     return payload
 
 
@@ -69,6 +90,17 @@ def render_sale(payload: dict[str, Any]) -> str:
     ))
 
 
+def render_open(payload: dict[str, Any]) -> str:
+    """Render the Wave 1 resumption prompt after durable protected OPENED state."""
+    payload = validate_open(payload)
+    return "\n".join((
+        "**Demo EURUSD opened — resume Wave 1**",
+        f"{payload['side']} {float(payload['lots']):.2f} lots | {payload['strategy']} | ticket {payload['position_ticket']}",
+        f"Entry {float(payload['entry_price']):.5f} | SL {float(payload['stop_loss']):.5f} | TP {float(payload['take_profit']):.5f}",
+        f"Opened {payload['opened_at_utc']} | broker protection and durable OPENED record confirmed",
+    ))
+
+
 def _webhook_url() -> str:
     if os.environ.get("FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED", "false").lower() != "true":
         return ""
@@ -78,9 +110,7 @@ def _webhook_url() -> str:
     return url
 
 
-def notify_sale(payload: dict[str, Any]) -> dict[str, Any]:
-    """Send one sale notification. Disabled or failed delivery is non-fatal."""
-    message = render_sale(payload)
+def _notify(payload: dict[str, Any], message: str) -> dict[str, Any]:
     url = _webhook_url()
     if not url:
         return {"ok": True, "delivery": "DISABLED", "proposal_id": payload["proposal_id"]}
@@ -92,6 +122,16 @@ def notify_sale(payload: dict[str, Any]) -> dict[str, Any]:
     except (HTTPError, URLError, TimeoutError, OSError) as error:
         return {"ok": False, "delivery": "FAILED", "proposal_id": payload["proposal_id"], "detail": str(error)[:160]}
     return {"ok": True, "delivery": "SENT", "proposal_id": payload["proposal_id"]}
+
+
+def notify_sale(payload: dict[str, Any]) -> dict[str, Any]:
+    """Send one close notification. Disabled or failed delivery is non-fatal."""
+    return _notify(payload, render_sale(payload))
+
+
+def notify_open(payload: dict[str, Any]) -> dict[str, Any]:
+    """Send one durable protected-open notification. Delivery is non-fatal."""
+    return _notify(payload, render_open(payload))
 
 
 def main() -> int:
