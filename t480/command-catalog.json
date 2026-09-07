@@ -579,22 +579,32 @@
     },
     {
       "id": "m20_listener_discord_stage_1",
-      "purpose": "Stage fixed M20 Discord sale-notification adapter part one.",
+      "purpose": "Stage fixed M20 Discord lifecycle-notification adapter part 1.",
       "approval_required": false
     },
     {
       "id": "m20_listener_discord_stage_2",
-      "purpose": "Stage fixed M20 Discord sale-notification adapter part two.",
+      "purpose": "Stage fixed M20 Discord lifecycle-notification adapter part 2.",
       "approval_required": false
     },
     {
       "id": "m20_listener_discord_stage_3",
-      "purpose": "Stage fixed M20 Discord sale-notification adapter part three.",
+      "purpose": "Stage fixed M20 Discord lifecycle-notification adapter part 3.",
       "approval_required": false
     },
     {
       "id": "m20_listener_discord_stage_4",
-      "purpose": "Assemble and verify the fixed M20 Discord sale-notification adapter.",
+      "purpose": "Stage fixed M20 Discord lifecycle-notification adapter part 4.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_discord_stage_5",
+      "purpose": "Stage fixed M20 Discord lifecycle-notification adapter part 5.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_discord_stage_6",
+      "purpose": "Assemble and verify the fixed M20 Discord lifecycle-notification adapter.",
       "approval_required": false
     },
     {
