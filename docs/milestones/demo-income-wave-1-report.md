@@ -85,7 +85,7 @@ Local tests do not prove W1. The changed release must be staged on the fixed
 Demo surface, its effective limits read back, and then independently checked.
 W1.2 and W1.3 remain in progress: MT5 API error handling, partial-fill state,
 and broker deal-history reconciliation require further implementation and
-Demo evidence. Option B values and pause authority are now approved. Migrations 016 through 021 have been staged and applied successfully to the fixed Demo PostgreSQL surface; the read-only audit verifier passes. The risk state has no baseline yet because this release is not deployed. The remaining decision is whether USD 100,000 cumulative notional should remain during the development phase.
+Demo evidence. Option B values and pause authority are now approved. Migrations 016 through 021 have been staged and applied successfully to the fixed Demo PostgreSQL surface; the read-only audit verifier passes. The remaining decision is whether USD 100,000 cumulative notional should remain during the development phase.
 
 ## 2026-09-07 deployment correction
 
@@ -104,7 +104,26 @@ in a short fixed operation, records that release, and only then writes the
 non-secret configuration containing the governed risk policy. This preserves
 the configuration-to-release binding while fitting the endpoint limit.
 
-The deployment source must be committed before staging because its configured
-application revision is bound to `git HEAD`. The next steps are to commit this
-correction, stage the release, verify its active heartbeat and risk baseline on
-Demo, and collect independent lifecycle evidence.
+The deployment source is committed because its configured application revision
+is bound to `git HEAD`.
+
+## 2026-09-07 Demo deployment evidence
+
+Release `274556076400bc3c` was staged and installed after the remote SHA-256
+checks for the listener, runner, PostgreSQL audit bridge, and Discord adapter.
+The task produced a fresh heartbeat on `GOMarketsMU-Demo` for EURUSD and made a
+valid `NO_TRADE` decision; it did not place an order.
+
+The new continuous Demo lease is `3a44122e-4575-4e08-b632-8a506afc7293` and
+has `maximum_trades: null`, one open position, USD 10,000 maximum notional per
+trade, USD 100,000 cumulative notional, and AUD 100 maximum loss per trade.
+
+The remote PostgreSQL policy state was initialized in AUD at policy equity
+AUD 100,995.51, with no pause. It recorded the Conservative Option B policy
+and its daily 0.50%, weekly 1.00%, and peak drawdown 2.00% controls. The
+read-only audit verifier returned `FOREX_M20_DEMO_AUDIT_VERIFY_OK` after
+deployment.
+
+This is deployment proof, not milestone closeout. A post-release accepted
+broker lifecycle with fee-complete reconciliation, independent verification,
+and the contract's review recommendation remain required.
