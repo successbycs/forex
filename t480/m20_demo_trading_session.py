@@ -94,6 +94,10 @@ MINIMUM_NET_PROFIT_AUD = float(os.environ.get("FOREX_M20_MINIMUM_NET_PROFIT_AUD"
 if not 0.10 <= MINIMUM_NET_PROFIT_AUD <= 5.00:
     raise SystemExit("M20 minimum projected net profit is outside the governed Demo range")
 
+# This is a one-off, operator-approved W1.4 refusal drill, not an adjustable
+# risk setting.  The normal continuous Demo lease remains fixed at AUD 100.
+REFUSAL_DRILL_MAXIMUM_LOSS_AUD = 0.01
+
 
 RISK_POLICY_REQUIRED = {"policy_version", "reporting_currency", "maximum_risk_per_trade_percent", "maximum_risk_per_trade_aud", "daily_loss_limit_percent", "weekly_loss_limit_percent", "peak_equity_drawdown_limit_percent", "loss_budget_timezone", "daily_pause_reset", "manual_resume_reasons", "require_known_external_cashflow"}
 
@@ -188,12 +192,15 @@ def load_session_lease(path: Path, now: datetime) -> dict[str, Any]:
         ("maximum_open_positions", 1, 1),
         ("maximum_notional_per_trade_usd", 1, 10000),
         ("maximum_cumulative_notional_usd", 1, 100000),
-        ("maximum_loss_per_trade_aud", 100, 100),
     )
     for field, lower, upper in limits:
         value = payload[field]
         if isinstance(value, bool) or not isinstance(value, int) or not lower <= value <= upper:
             raise SystemExit(f"M20 session lease {field} is outside its fixed cap")
+    maximum_loss = payload["maximum_loss_per_trade_aud"]
+    if (isinstance(maximum_loss, bool) or not isinstance(maximum_loss, (int, float))
+            or float(maximum_loss) not in {REFUSAL_DRILL_MAXIMUM_LOSS_AUD, 100.0}):
+        raise SystemExit("M20 session lease maximum_loss_per_trade_aud is outside its fixed cap")
     if payload["maximum_trades"] is not None:
         raise SystemExit("M20 session lease maximum_trades is invalid")
     if payload["maximum_cumulative_notional_usd"] < payload["maximum_notional_per_trade_usd"]:
@@ -417,7 +424,7 @@ def _session(lease: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _risk_levels(*, action: str, entry: float, volume: float, tick_size: float, tick_value_loss: float, point: float, maximum_loss_aud: int) -> tuple[float, float, float]:
+def _risk_levels(*, action: str, entry: float, volume: float, tick_size: float, tick_value_loss: float, point: float, maximum_loss_aud: float) -> tuple[float, float, float]:
     """Return stop, take-profit, and USD notional for the fixed minimum lot.
 
     Tick value is broker-reported in the account currency for one whole lot;
@@ -729,6 +736,60 @@ def quote_identity(terminal_path: str) -> dict[str, Any]:
             raise SystemExit("M20 quote identity is invalid")
         return {"marker": "FOREX_M20_DEMO_QUOTE_IDENTITY_OK", "server": account.server,
                 "symbol": SYMBOL, "tick_time_msc": tick_msc, "bid": bid, "ask": ask}
+    finally:
+        mt5.shutdown()
+
+
+def risk_refusal_drill(terminal_path: str, session_path: Path) -> dict[str, Any]:
+    """Prove the exact temporary AUD 0.01 boundary with live Demo metadata.
+
+    This is deliberately a calculation-only operation.  It validates the
+    broker account, EURUSD quote and minimum volume, then asks the same risk
+    sizing function used by execution whether one broker price increment fits
+    inside the fixed drill cap.  It has no order request or submission path.
+    """
+    lease = load_session_lease(session_path, datetime.now(timezone.utc))
+    if float(lease["maximum_loss_per_trade_aud"]) != REFUSAL_DRILL_MAXIMUM_LOSS_AUD:
+        raise SystemExit("M20 risk refusal drill requires the fixed temporary AUD 0.01 lease")
+    if not mt5.initialize(path=terminal_path):
+        raise SystemExit(mt5.last_error())
+    try:
+        account = mt5.account_info()
+        symbol = mt5.symbol_info(SYMBOL)
+        tick = mt5.symbol_info_tick(SYMBOL)
+        if not account or account.server != SERVER or getattr(account, "currency", "") != "AUD":
+            raise SystemExit("M20 risk refusal drill is not connected to the required AUD GOMarketsMU-Demo account")
+        if not symbol or symbol.name != SYMBOL or not tick:
+            raise SystemExit("M20 risk refusal drill has no EURUSD broker metadata")
+        volume = float(symbol.volume_min)
+        tick_size = float(symbol.trade_tick_size)
+        tick_value_loss = float(symbol.trade_tick_value_loss)
+        point = float(symbol.point)
+        entry = float(tick.ask)
+        if min(volume, tick_size, tick_value_loss, point, entry) <= 0:
+            raise SystemExit("M20 risk refusal drill received invalid EURUSD broker metadata")
+        minimum_increment_loss = volume * tick_value_loss
+        try:
+            _risk_levels(
+                action="BUY", entry=entry, volume=volume, tick_size=tick_size,
+                tick_value_loss=tick_value_loss, point=point,
+                maximum_loss_aud=REFUSAL_DRILL_MAXIMUM_LOSS_AUD,
+            )
+        except SystemExit as error:
+            reason = str(error)
+            if reason != "M20 minimum EURUSD price increment exceeds the AUD loss cap":
+                raise
+            return {
+                "marker": "FOREX_M20_DEMO_RISK_REFUSAL_DRILL_OK",
+                "server": account.server,
+                "symbol": SYMBOL,
+                "maximum_loss_per_trade_aud": REFUSAL_DRILL_MAXIMUM_LOSS_AUD,
+                "minimum_volume": volume,
+                "minimum_increment_loss_aud": round(minimum_increment_loss, 6),
+                "refusal_reason": reason,
+                "order_submitted": False,
+            }
+        raise SystemExit("M20 risk refusal drill did not refuse the minimum broker increment")
     finally:
         mt5.shutdown()
 
@@ -1657,6 +1718,8 @@ if __name__ == "__main__":
         print(json.dumps(recover_open_positions(sys.argv[1]), separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--quote-identity":
         print(json.dumps(quote_identity(sys.argv[1]), separators=(",", ":")))
+    elif len(sys.argv) == 4 and sys.argv[3] == "--risk-refusal-drill":
+        print(json.dumps(risk_refusal_drill(sys.argv[1], Path(sys.argv[2])), separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--reconcile-retained-history":
         print(json.dumps(reconcile_historical_retained_positions(sys.argv[1]), separators=(",", ":")))
     else:

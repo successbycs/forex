@@ -103,6 +103,16 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_activate_refusal_drill_lease",
+      "purpose": "Create only the fixed five-minute AUD 0.01 W1.4 Demo refusal-drill lease.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_refusal_drill",
+      "purpose": "Run only the hash-bound calculation-only EURUSD minimum-increment refusal drill on GOMarketsMU-Demo.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_resume_risk_policy",
       "purpose": "Record a fixed operator resume request for a current Option B weekly-loss, peak-drawdown, or cash-flow pause; it never overrides a still-breached risk limit.",
       "approval_required": false

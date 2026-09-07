@@ -240,3 +240,75 @@ is still not complete: it needs a clean, post-release accepted Demo
 `OPENED`-to-`CLOSED` lifecycle with broker fees, the W1.4 restrictive-risk and
 recovery drills, retained raw proof, independent verification, and the
 contract-required review recommendation.
+
+## 2026-09-07 Wave 1 resumed: current lifecycle, liveness, and safe checkpoint
+
+At 02:40 UTC, the fixed read-only listener status was stale on deployed release
+`073853dd0cce8d57`. Its last durable monitor record named the unresolved Demo
+SELL attempt `a78aec5c-6dd3-5f91-aaa4-464571e2cc93`, broker position
+`41751387`, with its recorded SL and TP. The weaker account-liquidity helper
+reported zero positions, but it intentionally treats an unavailable MT5
+position result as an empty collection and therefore could not close that
+attempt.
+
+The fixed `m20_listener_recover` operation restarted only the existing
+`Forex-M20-Demo-Listener` Scheduled Task. It did not expose an arbitrary order
+operation. The restarted monitor reconciled that durable attempt to a
+broker-side close at 14:40:43 NZST. The independent lifecycle summary reports
+an exact `OPENED` then `CLOSED` lifecycle, entry 1.16085, exit 1.16106, AUD
+realised P&L -0.29, and broker commission, fee, and swap each AUD 0.00. Its
+reconciliation status is `MATCHED`; the unresolved-attempt summary is `[]` and
+the independent audit verifier returned `FOREX_M20_DEMO_AUDIT_VERIFY_OK`.
+
+At 02:44 UTC the existing deployed listener was again `RUNNING` with a fresh
+heartbeat, an IDLE successful monitor result, and no current protected
+position. This is a current operational observation, not a final evidence
+bundle or a claim of continuous uptime. The zero broker charges make this a
+fee-complete zero-charge lifecycle; it does not demonstrate nonzero-fee
+handling, which remains pending actual observation.
+
+The risk state is fail-closed with `EXTERNAL_CASH_FLOW`, even though its
+expected balance and observed account balance both now equal AUD 100,995.22.
+The likely sequence is that the restarted runner assessed balance before the
+supervisor reconciled the already broker-closed tracked position; it briefly
+saw the -0.29 realised trade movement as unexplained cash flow. This is an
+inference from the persisted timestamps and state, not a claimed direct remote
+exception trace. No resume action was issued. The pause prevents new entries
+until a recorded review, so it is safe but not correct evidence of an actual
+deposit or withdrawal.
+
+Local changes now make startup reconcile durable open-position state before
+the first assessment/risk gate, and fail closed with
+`MONITORING_UNAVAILABLE` if that reconciliation cannot run. They also prevent
+a bounded monitor pass from causing a negative `sleep()` interval and a stale
+supervisor. Focused listener, M20 trading, T480 adapter, and runtime-config
+tests pass, as do milestone governance validation and `git diff --check`.
+These changes are **not deployed**: the T480 release protocol binds
+`application_revision` to `git HEAD`, and this goal does not authorise a
+commit. Do not stage, prepare, configure, or install this uncommitted source as
+proof for the existing revision.
+
+### Exact resumption conditions
+
+1. Obtain explicit commit authority for the reviewed listener and test changes.
+   Commit the exact source, then refresh any affected fingerprint and stage,
+   prepare, configure, and install its hash-bound release. Capture a fresh
+   listener status and strict lifecycle/risk summaries after deployment.
+2. Verify the false `EXTERNAL_CASH_FLOW` pause was not caused by a real account
+   cash flow. If it was not, use the fixed resume action only after that
+   operator review, then verify the next account check remains unpaused and
+   matches expected balance. If it was real, record the approved cash-flow
+   adjustment instead; do not resume on inference alone.
+3. Obtain an explicit temporary restrictive-limit value and restoration
+   procedure for the W1.4 refusal drill. Run it only against the deployed
+   hash-bound release, with no intentional loss, and retain before/after risk
+   state plus restart/protected-position proof.
+4. Capture a clean-worktree, post-deployment M20 evidence bundle and run the
+   independent verifier. Current documentation and uncommitted source make the
+   fixed capture command correctly refuse a bundle today. A fresh zero-charge
+   lifecycle exists, but a nonzero broker charge remains an explicit pending
+   W1.3 condition when the broker supplies one.
+
+Wave 1 remains **IN PROGRESS**. No M20 closeout, production access, strategy
+expansion, new lease, risk-policy resume, commit, or deployment was performed
+by this checkpoint.

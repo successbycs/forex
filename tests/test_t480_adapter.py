@@ -216,6 +216,19 @@ def test_m20_demo_lease_activation_is_fixed_bounded_and_secret_free():
     assert "POSTGRES_DSN" not in command
 
 
+def test_m20_refusal_drill_is_fixed_to_aud_cent_and_cannot_submit_an_order():
+    lease_command = t480_adapter.OPERATIONS["m20_listener_activate_refusal_drill_lease"].powershell_command
+    drill_command = t480_adapter.OPERATIONS["m20_listener_refusal_drill"].powershell_command
+    assert "GOMarketsMU-Demo" in lease_command
+    assert "maximum_loss_per_trade_aud=0.01" in lease_command
+    assert "$now.AddMinutes(5)" in lease_command
+    assert "--risk-refusal-drill" in drill_command
+    assert "m20_demo_trading_session.payload" in drill_command
+    assert "order_send" not in lease_command
+    assert "order_send" not in drill_command
+    assert "GOMarketsMU-Live" not in lease_command + drill_command
+
+
 def test_m20_listener_stop_is_fixed_to_the_listener_task_only():
     command = t480_adapter.OPERATIONS["m20_listener_stop"].powershell_command
     assert "Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener'" in command
@@ -655,6 +668,14 @@ def test_m20_session_lease_rejects_missing_audit_or_widened_cap(tmp_path, monkey
     path.write_text(json.dumps(lease), encoding="utf-8")
     now = datetime(2026, 9, 3, 0, 30, tzinfo=timezone.utc)
     assert probe.load_session_lease(path, now)["maximum_trades"] is None
+    lease["maximum_loss_per_trade_aud"] = .01
+    path.write_text(json.dumps(lease), encoding="utf-8")
+    assert probe.load_session_lease(path, now)["maximum_loss_per_trade_aud"] == .01
+    lease["maximum_loss_per_trade_aud"] = .02
+    path.write_text(json.dumps(lease), encoding="utf-8")
+    with pytest.raises(SystemExit, match="maximum_loss_per_trade_aud is outside its fixed cap"):
+        probe.load_session_lease(path, now)
+    lease["maximum_loss_per_trade_aud"] = 100
     lease["maximum_trades"] = 1
     path.write_text(json.dumps(lease), encoding="utf-8")
     with pytest.raises(SystemExit, match="maximum_trades is invalid"):
@@ -664,6 +685,15 @@ def test_m20_session_lease_rejects_missing_audit_or_widened_cap(tmp_path, monkey
     path.write_text(json.dumps(lease), encoding="utf-8")
     with pytest.raises(SystemExit, match="audit prerequisites are absent"):
         probe.load_session_lease(path, now)
+
+
+def test_m20_aud_cent_risk_refusal_is_enforced_before_any_order_path(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    with pytest.raises(SystemExit, match="minimum EURUSD price increment exceeds the AUD loss cap"):
+        probe._risk_levels(
+            action="BUY", entry=1.16, volume=.01, tick_size=.00001,
+            tick_value_loss=1.4, point=.00001, maximum_loss_aud=.01,
+        )
 
 
 def test_m20_position_query_error_is_not_treated_as_no_position(monkeypatch):

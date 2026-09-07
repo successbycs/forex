@@ -80,6 +80,72 @@ def test_listener_module_loads_without_mt5_dependency():
     assert module._nzst("2026-09-03T09:30:00Z") == "03/09/26 21:30:00 NZST"
 
 
+def test_listener_never_sleeps_a_negative_interval_after_monitoring():
+    spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module._idle_wait_seconds(105.0, 100.0) == module.POLL_SECONDS
+    assert round(module._idle_wait_seconds(100.4, 100.0), 6) == 0.4
+    assert module._idle_wait_seconds(100.0, 100.0) == 0.0
+    assert module._idle_wait_seconds(100.0, 100.1) == 0.0
+
+
+def test_listener_reconciles_durable_positions_before_its_first_assessment(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "STOP_PATH", tmp_path / "listener.stop")
+    monkeypatch.setattr(module, "STATUS_PATH", tmp_path / "listener-status.json")
+    monkeypatch.setattr(module, "ASSESSMENT_TOTAL_PATH", tmp_path / "assessment-total.json")
+    monkeypatch.setattr(module, "POLL_SECONDS", 0)
+    monkeypatch.setattr(module, "_load_environment", lambda: {"python_path": "python", "terminal_path": "terminal"})
+    monkeypatch.setattr(module, "_active_lease", lambda: True)
+    calls = []
+
+    def monitor(values, previous, retry_at):
+        calls.append("monitor")
+        return {"state": "IDLE"}, 10_000.0
+
+    def quote(values):
+        calls.append("quote")
+        module.STOP_PATH.write_text("stop", encoding="utf-8")
+        return {"error": "test quote unavailable"}
+
+    monkeypatch.setattr(module, "_monitor_update", monitor)
+    monkeypatch.setattr(module, "_quote_identity", quote)
+    module.run()
+    assert calls[:2] == ["monitor", "quote"]
+
+
+def test_listener_blocks_assessment_when_startup_reconciliation_fails(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "STOP_PATH", tmp_path / "listener.stop")
+    monkeypatch.setattr(module, "STATUS_PATH", tmp_path / "listener-status.json")
+    monkeypatch.setattr(module, "ASSESSMENT_TOTAL_PATH", tmp_path / "assessment-total.json")
+    monkeypatch.setattr(module, "POLL_SECONDS", 0)
+    monkeypatch.setattr(module, "_load_environment", lambda: {"python_path": "python", "terminal_path": "terminal"})
+    monkeypatch.setattr(module, "_active_lease", lambda: True)
+    calls = []
+
+    def monitor(values, previous, retry_at):
+        calls.append("monitor")
+        module.STOP_PATH.write_text("stop", encoding="utf-8")
+        return {"state": "FAILED", "result": {"error": "test failure"}}, 10_000.0
+
+    monkeypatch.setattr(module, "_monitor_update", monitor)
+    monkeypatch.setattr(module, "_quote_identity", lambda values: calls.append("quote"))
+    statuses = []
+    monkeypatch.setattr(module, "_write_status", lambda payload: statuses.append(payload))
+    module.run()
+    assert calls == ["monitor"]
+    assert any(status["state"] == "MONITORING_UNAVAILABLE" for status in statuses)
+
+
 def test_listener_metrics_explain_a_no_trade_breakout_rejection():
     spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
     module = importlib.util.module_from_spec(spec)

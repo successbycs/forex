@@ -211,6 +211,12 @@ def _quote_key(quote: dict[str, Any]) -> str:
     return f"{quote['tick_time_msc']}:{quote['bid']}:{quote['ask']}"
 
 
+def _idle_wait_seconds(next_assessment_at: float, now: float | None = None) -> float:
+    """Return a safe bounded wait after a monitor pass may have used the interval."""
+    remaining = next_assessment_at - (time.monotonic() if now is None else now)
+    return max(0.0, min(POLL_SECONDS, remaining))
+
+
 def _monitor_update(values: dict[str, str], previous: dict[str, Any], retry_at: float) -> tuple[dict[str, Any], float]:
     """Perform one bounded MT5 monitor pass between assessment invocations.
 
@@ -266,6 +272,7 @@ def run() -> None:
     last_quote: dict[str, Any] | None = None
     monitor_state: dict[str, Any] = {"state": "IDLE"}
     monitor_retry_at = 0.0
+    monitor_initialized = False
     last_assessment_completed_at_utc: str | None = None
     last_assessment_duration_ms: int | None = None
     # Publish a release-bound liveness record before the first bounded broker
@@ -286,6 +293,22 @@ def run() -> None:
                            "detail": "Service is alive; no tick capture or Demo order is permitted without an active Demo lease."})
             time.sleep(POLL_SECONDS)
             continue
+        # On startup a broker-side close can already be reflected in account
+        # balance while its durable open-position record still awaits
+        # reconciliation.  Reconcile first so that the risk guard does not
+        # misclassify that realised trade P&L as an external cash flow.
+        if not monitor_initialized or monitor_state.get("state") == "FAILED":
+            monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
+            if monitor_state.get("state") == "FAILED":
+                _write_status({"state": "MONITORING_UNAVAILABLE", "iteration": iteration,
+                               "last_result": last_result, "next_assessment_at_utc": None,
+                               "assessment_completed_at_utc": last_assessment_completed_at_utc,
+                               "assessment_duration_ms": last_assessment_duration_ms,
+                               "monitor": monitor_state, "quote": last_quote,
+                               "detail": "Durable open-position reconciliation is unavailable; no assessment or order is submitted."})
+                time.sleep(POLL_SECONDS)
+                continue
+            monitor_initialized = True
         if now < next_assessment_at:
             # A bounded monitor pass belongs in the idle period.  It must not
             # delay an eligible fresh-quote assessment and its trade decision.
@@ -297,7 +320,10 @@ def run() -> None:
                            "assessment_duration_ms": last_assessment_duration_ms,
                            "monitor": monitor_state,
                            "detail": "Waiting for the five-second minimum before accepting the next MT5 quote update."})
-            time.sleep(min(POLL_SECONDS, next_assessment_at - now))
+            # Monitoring is bounded but can still consume the remaining
+            # assessment interval.  A negative sleep would terminate this
+            # permanent supervisor and leave a stale heartbeat.
+            time.sleep(_idle_wait_seconds(next_assessment_at, now))
             continue
         quote = _quote_identity(values)
         if quote.get("error"):
