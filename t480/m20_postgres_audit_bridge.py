@@ -528,7 +528,7 @@ def record_historical_reconciliation(payload: dict[str, Any]) -> dict[str, Any]:
                 "broker_deals": item["broker_deals"],
                 "broker_deals_sha256": item["broker_deals_sha256"],
             }
-            event_id = str(uuid5(NAMESPACE_URL, f"{item['attempt_id']}:historical-retained-close:v1"))
+            event_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{item['attempt_id']}:historical-retained-close:v1"))
             cursor.execute("INSERT INTO forex.demo_position_event (event_id,attempt_id,event_type,observed_at_utc,payload_sha256,payload) VALUES (%s,%s,'CLOSED',now(),%s,%s::jsonb)", (event_id, item["attempt_id"], _digest(event_payload), json.dumps({"broker_order_reference": item["broker_order_reference"], **event_payload})))
             cursor.execute("INSERT INTO forex.demo_trade_outcome (proposal_id,closed_at_utc,exit_price,gross_price_pnl_account,commission_account,fee_account,swap_account,estimated_spread_cost_account,slippage_cost_account,estimated_total_cost_account,realized_pnl_account,account_currency,close_reason,reconciliation_status) VALUES (%s,%s,%s,%s,%s,%s,%s,NULL,NULL,NULL,%s,'AUD','RETAINED_BROKER_HISTORY_EXACT_POSITION_MATCH','MATCHED')", (item["proposal_id"], item["closed_at_utc"], item["exit_price"], item["gross_price_pnl_account"], item["commission_account"], item["fee_account"], item["swap_account"], item["realized_pnl_account"]))
             revision_id = "historical-retained-broker-reconciliation:" + item["attempt_id"]

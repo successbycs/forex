@@ -932,6 +932,7 @@ def test_fixed_retained_history_reconciliation_has_no_order_or_generic_history_s
     assert "order_send" not in command and "order_send" not in runner[runner.index("def reconcile_historical_retained_positions"):runner.index("def _closed_m1_bars_for_monitor")]
     assert "_HISTORICAL_RECOVERY" in runner and "history_deals_get(position=position_id)" in runner
     assert "_HISTORICAL_RECOVERIES" in bridge
+    assert "uuid.uuid5(uuid.NAMESPACE_URL" in bridge
     recovery = bridge[bridge.index("def record_historical_reconciliation"):bridge.index("def load_open_positions")]
     assert "UPDATE forex.demo_risk_policy_state" not in recovery
     assert "estimated_spread_cost_account,slippage_cost_account,estimated_total_cost_account,realized_pnl_account" in recovery
