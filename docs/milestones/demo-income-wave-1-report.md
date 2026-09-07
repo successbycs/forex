@@ -156,3 +156,26 @@ attempt's exact broker position, or a separately approved, hash-bound
 reconciliation procedure that can prove the mapping without overwriting the
 append-only audit record. Until then the listener may run only as a
 fail-closed observer; it cannot submit a new order.
+
+## 2026-09-07 retained broker-history attribution
+
+The fixed `m20_unresolved_history_probe` read the Demo EURUSD deal history
+for the four unresolved timestamps. It applies the governed +10,800-second
+broker timestamp offset before comparison. Each mapping is unique by adjusted
+open time, action, and 0.01-lot volume:
+
+| Attempt | Broker position | Open UTC | Close UTC | Net AUD | Broker charges |
+| --- | ---: | --- | --- | ---: | --- |
+| `feffc714-c88f-5d34-bdca-705040a28565` | 41488649 | 09:18:05 | 09:28:07 | 0.18 | commission 0, fee 0, swap 0 |
+| `e0dac54c-6b56-5a84-9022-126c3c21e00b` | 41495536 | 11:18:08 | 11:21:00 | 0.01 | commission 0, fee 0, swap 0 |
+| `15dffa0b-0446-500c-af09-ddce686e11f9` | 41499398 | 12:04:03 | 12:13:02 | -0.56 | commission 0, fee 0, swap 0 |
+| `c66d1af4-3d00-56a8-83e2-881f1eec416b` | 41499981 | 12:13:07 | 12:15:01 | -0.21 | commission 0, fee 0, swap 0 |
+
+This closes the retained-broker-history gap, but does not alter the immutable
+audit. The current bridge correctly refuses `record-closed-outcome` without a
+durable open-position state row, which these legacy attempts predate. The
+remaining W1.2/W1.3 implementation is a fixed append-only historical
+reconciliation action that validates these deal sets, appends provenance and a
+reconciliation revision, and never modifies the existing `OPENED` or `FAILED`
+events. Until it is independently verified, the global one-position gate must
+remain closed.
