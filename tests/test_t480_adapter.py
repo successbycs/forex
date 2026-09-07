@@ -262,6 +262,9 @@ def test_m20_listener_install_is_hash_checked_and_fixed():
     command = t480_adapter.OPERATIONS["m20_listener_install"].powershell_command
     assert "Forex-M20-Demo-Listener" in command
     assert "Register-ScheduledTask" in command
+    assert "New-ScheduledTaskTrigger -AtStartup" in command
+    assert "New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U" in command
+    assert "AtLogOn" not in command
     assert "m20_demo_listener_service.local.json" in command
     assert "m20_demo_listener_service.payload" in command
     assert "C:\\ProgramData\\ForexListener" in command
