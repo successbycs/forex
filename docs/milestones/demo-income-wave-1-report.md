@@ -208,3 +208,35 @@ before the append-only remote database write. Local validation covers all four
 broker deal mappings and the broader Wave 1 focused test suite; the current
 milestone validator correctly reports configuration-fingerprint drift until
 that governed configuration is formally adopted.
+
+## 2026-09-07 retained-history reconciliation executed and verified
+
+Release `073853dd0cce8d57` was hash-verified, prepared, configured, and
+installed on the fixed `GOMarketsMU-Demo` EURUSD listener surface. The first
+reconciliation execution failed closed before writing because the bridge lacked
+a UUID function import. The defect and deployment guard were corrected in
+commits `5b1a0d8` and `4c3a845`; installation now refuses a release that lacks
+a successful hash-bound preparation.
+
+The corrected fixed reconciliation then completed with
+`FOREX_M20_HISTORICAL_RECONCILIATION_OPERATION_OK`. It appended all four
+broker-attributed legacy lifecycles. The independent read-only unresolved
+summary is now `[]`. The lifecycle ledger records, for every recovered attempt,
+`OPENED`, `FAILED`, and appended `CLOSED` events, a `REPAIRED` outcome, actual
+commission, fee, and swap of AUD 0.00, and the retained broker-history reason.
+The recovered net total is AUD -0.58.
+
+The persistent conservative-risk policy remains unpaused, with the original
+AUD 100,995.51 baseline, expected balance, peak, daily anchor, and weekly
+anchor. The reconciliation did not treat historic P&L as a current cash flow.
+The independent audit verifier returned
+`FOREX_M20_DEMO_AUDIT_VERIFY_OK`, including Demo-only, cap, idempotency,
+immutable-trigger, and fee-completeness checks. The listener then produced a
+fresh `RUNNING` heartbeat and a normal `NO_TRADE` assessment without a
+protected broker position.
+
+This clears the four legacy unresolved-attempt blockers for W1.2/W1.3. Wave 1
+is still not complete: it needs a clean, post-release accepted Demo
+`OPENED`-to-`CLOSED` lifecycle with broker fees, the W1.4 restrictive-risk and
+recovery drills, retained raw proof, independent verification, and the
+contract-required review recommendation.
