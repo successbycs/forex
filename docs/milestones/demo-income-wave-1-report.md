@@ -127,3 +127,32 @@ deployment.
 This is deployment proof, not milestone closeout. A post-release accepted
 broker lifecycle with fee-complete reconciliation, independent verification,
 and the contract's review recommendation remain required.
+
+## 2026-09-07 unresolved-exposure gate
+
+The deployed listener was restarted through its fixed recovery action after a
+stale heartbeat. It produced a fresh heartbeat, then correctly failed closed
+at the database one-position gate. The listener reported no protected current
+broker position, but that observation cannot close a historical attempt.
+
+The fixed read-only `forex-m20-unresolved-attempt-summary` identifies four
+legacy attempts with `OPENED` then `FAILED` events. Each lacks a broker order
+reference, position ticket, and position identifier. They are:
+
+- `feffc714-c88f-5d34-bdca-705040a28565`
+- `e0dac54c-6b56-5a84-9022-126c3c21e00b`
+- `15dffa0b-0446-500c-af09-ddce686e11f9`
+- `c66d1af4-3d00-56a8-83e2-881f1eec416b`
+
+The gate must remain closed: a flat current terminal result cannot establish
+how any of these historical broker executions ended. W1.2 and W1.3 are
+**PENDING**, not failed, while retained broker history is insufficient to map
+each attempt to exact opening and closing deals and their fees. W1.4's
+open-position restart drill is also **PENDING** because no safely attributable
+protected position is available.
+
+Resumption requires retained broker deal/order history that identifies each
+attempt's exact broker position, or a separately approved, hash-bound
+reconciliation procedure that can prove the mapping without overwriting the
+append-only audit record. Until then the listener may run only as a
+fail-closed observer; it cannot submit a new order.
