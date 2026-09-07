@@ -2,6 +2,59 @@
 
 Status: **IN PROGRESS — Option B and the corrected listener are deployed on Demo. The Windows/Ubuntu risk-resume defect is resolved and independently checked. Fresh lifecycle/recovery evidence and final bound verification remain. See the latest checkpoint below.**
 
+## 2026-09-07 W1.R execution checkpoint — maintenance hold and T480 continuity
+
+W1.R is in progress. The listener remains in the fixed
+`W1R_COORDINATED_MAINTENANCE` hold, so it continues bounded broker-side
+reconciliation but cannot assess a quote or submit a Demo entry. Do not remove
+that hold while the recovery drill remains incomplete.
+
+The following corrections are deployed on the fixed `GOMarketsMU-Demo`
+surface:
+
+- Every per-position recovery failure now makes the supervisor fail closed;
+  a successful process exit cannot report `IDLE` over a failed recovery.
+- A failed MT5 `positions_get()` result is reported as unavailable, rather
+  than as zero positions.
+- The listener status separates durable protection from fresh observation.
+  The retained historical SELL ticket `41760154` therefore reports
+  `LAST_KNOWN_UNVERIFIED`; it is not represented as a current protected
+  position. A direct successful broker read at the maintenance boundary
+  reported `GOMarketsMU-Demo`, AUD, and zero open positions.
+- Release `c523b1c904b8aa51` produced a fresh `MAINTENANCE_HOLD` heartbeat
+  and successful empty recovery. Its hashes and configuration were prepared
+  before install. The installed listener now uses a Windows boot trigger with
+  passwordless S4U for the registered user, rather than a logon trigger.
+
+The shared T480 startup dependency was also tested without extending or
+closing its M5 milestone. Its temporary S4U probe completed successfully and
+could see the Ubuntu distribution. The original boot action was found to name
+an unavailable `health_dashboard` Compose service in the deployed checkout;
+this terminated its WSL keepalive even though already-running endpoints still
+returned health responses. The shared correction starts only `n8n` (which
+starts PostgreSQL through Compose dependency resolution) and relies on the
+dashboard's own restart policy. It passed the shared local suite and the
+updated boot-triggered S4U task was registered with the former task XML kept
+on T480 for rollback. A manually started task returned Ready with n8n and
+dashboard health endpoints responding, but that is not no-logon reboot proof.
+
+The host reboot drill was intentionally not run. The shared maintenance
+preflight did not provide a usable current backup marker, and the shared M5
+contract says to stop in that condition. No claim is made about reboot,
+detached-T16, or post-reboot recovery. The exact resumption condition is:
+
+1. produce and independently verify a current recovery-safe backup marker on
+   the shared T480 surface;
+2. retain a new flat-account and active-hold broker observation immediately
+   before the drill; and
+3. run the approved reboot, then capture fresh task, WSL/PostgreSQL, MT5 Demo
+   identity, listener and risk-state evidence without Windows sign-in.
+
+W1.R has not supplied W1.2/W1.4 protected-position restart proof, a nonzero
+broker-charge outcome, incident/notification delivery proof, the full
+detached-T16 window, or the contract-required final independent review.
+Those remain pending and Wave 1 is not complete.
+
 ## W1.1 completed locally
 
 The development-phase total trade-count ceiling is removed. The canonical
