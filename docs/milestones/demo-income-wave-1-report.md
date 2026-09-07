@@ -460,3 +460,33 @@ configured Discord alert, which is the cue to perform the authorised
 open-position restart/recovery evidence drill. Do not force a trade, send a
 synthetic Discord message, or treat the alert configuration itself as broker
 proof.
+
+### 2026-09-07 W1.R planning handover — not executed
+
+The operator requested packaging of the reviewed fixes without execution.
+[W1.R: T480 reliability and recovery](../prompts/demo-income-wave-1-recovery-work-package.md)
+now supplies R1–R7, mapped to W1.1–W1.4, with owners, dependencies, acceptance,
+real-world tests and rollback boundaries. The wave guide and both Wave 1 goal
+entry points reference that package. This update changes planning documentation
+only; no repair, deployment, restart, trade, goal resume or milestone transition
+was performed, and no acceptance criterion is newly marked PASS.
+
+The preceding review found intermittent SSH recovery and a shared PostgreSQL
+shutdown/readiness gap from 15:47:10 to 17:39:15 NZST. Its cause was not proven.
+The listener was reachable again at the review's 17:54 NZST snapshot. These
+observations supersede the interpretation of a permanently offline T480, not
+the need for current checks. They are not a final raw evidence bundle.
+
+The earlier statement that there was no position to protect during failed
+observation was too strong. Unknown broker exposure must remain unknown; an
+empty durable recovery list or missing protection field is insufficient proof
+of flatness. The review also locally reproduced per-position `RECOVERY_FAILED`
+being presented as `IDLE`. R2/R3 schedule those corrections; they are not yet
+implemented by this planning update.
+
+Next execution, when explicitly instructed, begins with W1.R's diagnosis and
+state-handling prerequisites, then coordinated maintenance, proposed platform
+continuity proof and original Wave 1 evidence. Reuse prior risk decisions and
+completed implementation. Resolve only missing authority/contract scope for
+dependent shared-platform drills. Preserve the original proof gaps and do not
+automatically start another wave or the lab's own milestone.

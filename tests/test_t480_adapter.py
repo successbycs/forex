@@ -198,6 +198,15 @@ def test_m20_listener_status_is_fixed_and_redacted():
     assert "Stop-ScheduledTask" not in command
     assert "assessment_total=$s.assessment_total" in command
     assert "$s.monitor.state -eq 'RUNNING'" in command
+    assert "protection_observation=$protectionObservation" in command
+    assert "LAST_KNOWN_UNVERIFIED" in command
+
+
+def test_m20_liquidity_does_not_describe_a_failed_position_read_as_flat():
+    command = t480_adapter.OPERATIONS["m20_demo_account_liquidity"].powershell_command or ""
+    assert "position_observation" in command
+    assert "positions is not None" in command
+    assert "open_positions':len(m.positions_get() or ())" not in command
 
 
 def test_m20_listener_recovery_is_fixed_to_the_listener_task_only():

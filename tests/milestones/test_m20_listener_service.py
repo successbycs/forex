@@ -146,6 +146,41 @@ def test_listener_blocks_assessment_when_startup_reconciliation_fails(tmp_path, 
     assert any(status["state"] == "MONITORING_UNAVAILABLE" for status in statuses)
 
 
+def test_listener_blocks_assessment_when_a_retained_position_recovery_fails(monkeypatch):
+    spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    class Completed:
+        returncode = 0
+        stdout = '{"marker":"FOREX_M20_DEMO_MONITOR_OPERATION_OK","recovered":[{"attempt_id":"retained","status":"RECOVERY_FAILED","error":"history unavailable"}]}'
+        stderr = ""
+
+    monkeypatch.setattr(module.subprocess, "run", lambda *args, **kwargs: Completed())
+    monkeypatch.setattr(module.time, "monotonic", lambda: 100.0)
+    state, _ = module._monitor_update({"python_path": "python", "terminal_path": "terminal"}, {}, 0.0)
+    assert state["state"] == "FAILED"
+    assert "retained position" in state["error"]
+
+
+def test_listener_accepts_empty_or_reconciled_recovery_only_when_the_marker_is_valid(monkeypatch):
+    spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    class Completed:
+        returncode = 0
+        stdout = '{"marker":"FOREX_M20_DEMO_MONITOR_OPERATION_OK","recovered":[{"attempt_id":"closed","reconciliation":{"status":"MATCHED"}}]}'
+        stderr = ""
+
+    monkeypatch.setattr(module.subprocess, "run", lambda *args, **kwargs: Completed())
+    monkeypatch.setattr(module.time, "monotonic", lambda: 100.0)
+    state, _ = module._monitor_update({"python_path": "python", "terminal_path": "terminal"}, {}, 0.0)
+    assert state["state"] == "IDLE"
+
+
 def test_listener_metrics_explain_a_no_trade_breakout_rejection():
     spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
     module = importlib.util.module_from_spec(spec)

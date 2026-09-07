@@ -6,6 +6,19 @@ Read the [shared wave guide](demo-income-waves.md). This wave covers original
 activities 1–4. Its purpose is reliable exposure and accounting under durable
 risk limits; it does not establish a profitable strategy.
 
+## Proposed recovery work package: W1.R
+
+The [T480 reliability and recovery work package](demo-income-wave-1-recovery-work-package.md)
+packages the 7 September blocker review into R1–R7: diagnose interruptions,
+correct recovery/exposure states, coordinate maintenance, prove T480 continuity,
+retain incident alerts, then finish the original broker evidence. It maps to
+W1.1–W1.4 below and supplies their proposed remediation schedule; it is not a
+new wave or milestone. Shared-platform changes remain owned by `cs-ai-lab-infra`.
+
+**W1.R is documentation only and has not been executed.** Reuse prior Wave 1
+work and explicit approvals. Revalidate findings and contract scope before
+dependent changes, particularly the proposed no-logon reboot dependency.
+
 ## Activities, success, and real-world tests
 
 | ID | Change and mission value | Success criteria | Real-world demonstration |
@@ -48,7 +61,7 @@ Do not start Wave 2 or close M20 merely because Wave 1 tests pass.
 ## Copy-and-paste goal prompt
 
 ```text
-/goal Execute Wave 1: Trustworthy Demo execution in this repository. Read docs/prompts/demo-income-wave-1.md and docs/prompts/demo-income-waves.md in full and treat their activity specifications, shared boundaries, evidence rules, and usage controls as this goal's execution brief.
+/goal Execute Wave 1: Trustworthy Demo execution in this repository. Read docs/prompts/demo-income-wave-1.md, docs/prompts/demo-income-waves.md and docs/prompts/demo-income-wave-1-recovery-work-package.md in full and treat their activity specifications, shared boundaries, evidence rules, and usage controls as this goal's execution brief. Use W1.R's R1-R7 dependency schedule for the reviewed recovery work, preserving completed work and W1.1-W1.4 acceptance. Check the current cs-ai-lab-infra state and coordinate shared-platform dependencies without automatically starting another milestone.
 
 Scope is W1.1-W1.4 only: align approved contract/configuration/deployment; correct order and position lifecycle handling; reconcile net broker P&L and costs; enforce approved persistent capital-risk boundaries. Verify previous findings against current code before editing.
 

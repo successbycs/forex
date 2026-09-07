@@ -12,7 +12,7 @@ establish Demo reliability and economic evidence; they do not promise income.
 
 | Wave | Original activities | Intended result | Prompt |
 | --- | --- | --- | --- |
-| 1 | 1–4 | Trustworthy broker state, net accounting, and persistent risk boundaries | [Wave 1](demo-income-wave-1.md) |
+| 1 | 1–4, with proposed W1.R remediation | Trustworthy broker state, net accounting, persistent risk boundaries and recovery | [Wave 1](demo-income-wave-1.md); [W1.R work package](demo-income-wave-1-recovery-work-package.md) |
 | 2 | 5–6 | Honest eligibility checks and matching replay/deployed decisions | [Wave 2](demo-income-wave-2.md) |
 | 3 | 7–9 | A frozen economic experiment, measured operator effort, and verified findings | [Wave 3](demo-income-wave-3.md) |
 
@@ -21,6 +21,15 @@ goal prompt. The short prompt instructs the executing agent to read the full
 wave file and this guide; it does not depend on remembering this conversation.
 Run it from this repository's workspace. A wave is an execution grouping, not
 a new milestone or an amendment to the registry.
+
+The proposed **W1.R** schedule is: R1 diagnose; R2/R3 correct recovery and
+unknown-exposure handling; R4 coordinate maintenance and deploy with R6 incident
+recording; R5 demonstrate continuity/recovery and R6 alerts; R7 finish the
+original W1.1–W1.4 evidence. Shared T480 work remains an explicit dependency
+owned by `cs-ai-lab-infra`, whose own recovery Wave 1 is a different workstream.
+Packaging W1.R does not authorise execution, host maintenance or a new milestone.
+Wave 3 reuses valid technical recovery evidence and adds its longer operational
+and economic assessment.
 
 Before starting, select the model and reasoning setting in the client. The
 usage-conscious recommendation is GPT-5.6 Terra, High reasoning, Standard speed

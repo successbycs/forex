@@ -247,17 +247,36 @@ def _monitor_update(values: dict[str, str], previous: dict[str, Any], retry_at: 
         except json.JSONDecodeError:
             result = {"error": completed.stderr.strip() or completed.stdout.strip()}
         recovered = result.get("recovered") if isinstance(result, dict) else None
-        running = isinstance(recovered, list) and any(
-            isinstance(item, dict) and isinstance(item.get("reconciliation"), dict)
-            and item["reconciliation"].get("status") == "OPEN_MONITORING"
-            for item in recovered
-        )
+        valid_terminal_statuses = {"OPEN_MONITORING", "MATCHED"}
+        recovery_error: str | None = None
+        running = False
+        if completed.returncode != 0:
+            recovery_error = "M20 durable-position recovery process failed"
+        elif not isinstance(result, dict) or result.get("marker") != "FOREX_M20_DEMO_MONITOR_OPERATION_OK":
+            recovery_error = "M20 durable-position recovery returned an invalid marker"
+        elif not isinstance(recovered, list):
+            recovery_error = "M20 durable-position recovery returned an invalid result list"
+        else:
+            for item in recovered:
+                if not isinstance(item, dict):
+                    recovery_error = "M20 durable-position recovery returned a malformed item"
+                    break
+                if item.get("status") == "RECOVERY_FAILED":
+                    recovery_error = "M20 durable-position recovery failed for a retained position"
+                    break
+                reconciliation = item.get("reconciliation")
+                if not isinstance(reconciliation, dict) or reconciliation.get("status") not in valid_terminal_statuses:
+                    recovery_error = "M20 durable-position recovery returned an unresolved position"
+                    break
+                running = running or reconciliation["status"] == "OPEN_MONITORING"
         state = {
-            "state": "RUNNING" if completed.returncode == 0 and running else ("IDLE" if completed.returncode == 0 else "FAILED"),
+            "state": "FAILED" if recovery_error else ("RUNNING" if running else "IDLE"),
             "exit_code": completed.returncode,
             "last_checked_at_utc": _utc_now(),
             "result": result,
         }
+        if recovery_error:
+            state["error"] = recovery_error
         retry_at = now + ASSESSMENT_INTERVAL_SECONDS
     return state, retry_at
 

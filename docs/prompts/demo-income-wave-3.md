@@ -7,6 +7,12 @@ activities 7–9. Verify Waves 1 and 2 and current affected proof before beginni
 a new execution experiment. Later-stage research may require an approved M20
 amendment; this prompt does not authorise starting a later milestone.
 
+Reuse current [W1.R recovery evidence](demo-income-wave-1-recovery-work-package.md)
+where its release/configuration and scope still apply. W1.R provides short
+technical continuity and recovery demonstrations; W3.2 adds the agreed extended
+observation of operator effort and incidents. Do not repeat unchanged drills
+solely to populate this wave's report.
+
 ## Activities, success, and real-world tests
 
 | ID | Change and mission value | Success criteria | Real-world demonstration |
