@@ -63,6 +63,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_unresolved_history_probe",
+      "purpose": "Read only the fixed GOMarketsMU-Demo EURUSD broker-deal window for unresolved M20 attempts.",
+      "approval_required": false
+    },
+    {
       "id": "m3_mt5_history_depth_probe",
       "purpose": "Measure fixed closed EURUSD H1 history depth from GOMarketsMU-Demo without persisting or trading.",
       "approval_required": false

@@ -123,6 +123,16 @@ def test_requirements_prohibit_trading_and_arbitrary_market_data_access():
     assert "order" in prohibited
 
 
+def test_m20_unresolved_history_probe_is_fixed_demo_only_and_cannot_trade():
+    command = t480_adapter.OPERATIONS["m20_unresolved_history_probe"].powershell_command or ""
+    assert "history_deals_get" in command
+    assert "GOMarketsMU-Demo" in command
+    assert "2026,9,3,9" in command and "2026,9,3,12,30" in command
+    assert "position_identifier" in command and "commission" in command and "fee" in command
+    assert "order_send" not in command
+    assert len(command) < 2500
+
+
 def test_m20_session_operation_is_fixed_demo_only_fresh_data_capture():
     command = t480_adapter.OPERATIONS["m20_demo_trading_session"].powershell_command or ""
     probe = (t480_adapter.ROOT / "t480" / "m20_demo_trading_session.py").read_text(encoding="utf-8")

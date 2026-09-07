@@ -144,6 +144,20 @@ def _m20_demo_account_liquidity_command() -> str:
     return "$ErrorActionPreference='Stop'; $s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json; if ([string]::IsNullOrWhiteSpace($s.python_path) -or !(Test-Path -LiteralPath $s.python_path)) { throw 'M20 configured Python interpreter is absent' }; & $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path; exit $LASTEXITCODE"
 
 
+def _m20_unresolved_history_probe_command() -> str:
+    """Read a fixed narrow Demo EURUSD deal window for unresolved-attempt attribution."""
+    code = (
+        "import json,sys;from datetime import datetime,timezone;import MetaTrader5 as m;"
+        "p=sys.argv[1];ok=m.initialize(path=p);a=m.account_info() if ok else None;"
+        "bad=(not a or a.server!='GOMarketsMU-Demo' or a.currency!='AUD');"
+        "d=m.history_deals_get(datetime(2026,9,3,9,tzinfo=timezone.utc),datetime(2026,9,3,12,30,tzinfo=timezone.utc)) if not bad else None;"
+        "rows=[] if d is None else [{'ticket':int(x.ticket),'order':int(x.order),'position_identifier':int(x.position_id),'time_utc':datetime.fromtimestamp(x.time,timezone.utc).isoformat().replace('+00:00','Z'),'entry':int(x.entry),'type':int(x.type),'volume':float(x.volume),'price':float(x.price),'profit':float(x.profit),'commission':float(x.commission),'swap':float(x.swap),'fee':float(x.fee),'reason':int(x.reason)} for x in d if x.symbol=='EURUSD'];"
+        "print(json.dumps({'ok':bool(a) and not bad and d is not None,'server':getattr(a,'server',None),'currency':getattr(a,'currency',None),'symbol':'EURUSD','from_utc':'2026-09-03T09:00:00Z','to_utc':'2026-09-03T12:30:00Z','deals':rows,'mt5_error':None if d is not None else str(m.last_error())},separators=(',',':')));"
+        "m.shutdown() if ok else None;sys.exit(0 if a and not bad and d is not None else 3)"
+    )
+    return "$ErrorActionPreference='Stop'; $s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json; if ([string]::IsNullOrWhiteSpace($s.python_path) -or !(Test-Path -LiteralPath $s.python_path)) { throw 'M20 configured Python interpreter is absent' }; & $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path; exit $LASTEXITCODE"
+
+
 def _m3_mt5_history_depth_probe_command() -> str:
     """Return the fixed read-only M3 history-depth command for Windows."""
     source = (ROOT / "t480" / "m3_mt5_history_depth_probe.py").read_bytes()
@@ -517,6 +531,12 @@ OPERATIONS: dict[str, Operation] = {
         timeout_seconds=60,
     ),
     "m20_demo_account_liquidity": Operation("m20_demo_account_liquidity", "Read fixed GOMarketsMU-Demo account liquidity fields without trading.", powershell_command=_m20_demo_account_liquidity_command()),
+    "m20_unresolved_history_probe": Operation(
+        "m20_unresolved_history_probe",
+        "Read only the fixed GOMarketsMU-Demo EURUSD broker-deal window for unresolved M20 attempts.",
+        powershell_command=_m20_unresolved_history_probe_command(),
+        timeout_seconds=60,
+    ),
     "m3_mt5_history_depth_probe": Operation(
         "m3_mt5_history_depth_probe",
         "Measure fixed closed EURUSD H1 history depth from GOMarketsMU-Demo without persisting or trading.",
