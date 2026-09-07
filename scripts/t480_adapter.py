@@ -669,7 +669,7 @@ OPERATIONS["m20_listener_bridge_verify"] = Operation(
         "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + _runner_release_id + "'; "
         "$file=Join-Path $root 'm20_postgres_audit_bridge.payload'; "
         "$fragments=@(Get-ChildItem -LiteralPath $root|Where-Object {$_.Name -match '^m20_postgres_audit_bridge\\.part\\d{2}$'}|Sort-Object Name|ForEach-Object {$_.FullName}); "
-        "if ($fragments.Count -ne 24) { throw ('M20 listener bridge fragments are incomplete: '+$fragments.Count) }; "
+        "if ($fragments.Count -ne 32) { throw ('M20 listener bridge fragments are incomplete: '+$fragments.Count) }; "
         "$encoded=(($fragments|ForEach-Object {[IO.File]::ReadAllText($_)}) -join ''); [IO.File]::WriteAllBytes($file,[Convert]::FromBase64String($encoded)); "
         "if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -ne '" + _bridge_source_digest + "') { throw 'M20 listener bridge staged source hash failed' }; "
         "$fragments|ForEach-Object { Remove-Item -LiteralPath $_ -Force }; [pscustomobject]@{verified=$true}|ConvertTo-Json -Compress"

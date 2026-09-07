@@ -276,6 +276,7 @@ def test_m20_listener_runner_and_bridge_staging_are_fixed_and_hash_checked():
         else:
             assert "WriteAllText" in first and "WriteAllText" in final
             assert "ReadAllText" in bridge_verify and "Get-FileHash" in bridge_verify
+            assert "$fragments.Count -ne 32" in bridge_verify
         staged_name = filename.removesuffix(".payload")
         assert staged_name in first and staged_name in final
 

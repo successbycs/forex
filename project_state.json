@@ -40,7 +40,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-07T00:36:25Z",
+  "last_updated_at": "2026-09-07T00:42:32Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
