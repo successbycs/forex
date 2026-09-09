@@ -1,5 +1,78 @@
 # Wave 1 progress and proposed risk policy
 
+## 2026-09-10 continuation checkpoint — inspection only, budget stop
+
+**Wave 1 remains incomplete. No implementation, deployment, restart, risk
+resume, hold release or trade was performed in this continuation.**
+
+Read the supplied goal objective and the required wave guide, W1 specification,
+W1.R package, resume prompt and this full report. Inspected Git status,
+AGENTS.md, current project state, the complete active M20 contract, evidence
+rules and current risk implementation. Preserved the existing wave/research
+documentation edits, run-history changes and other local work.
+
+The fixed read-only `m20_listener_status` observation at
+`2026-09-09T23:28:12Z` (10 September 11:28 NZST) reports:
+
+- release `c523b1c904b8aa51`, `state=STALE`, `running=false` as derived by the
+  status helper from heartbeat freshness;
+- last heartbeat `2026-09-09T22:46:03.472998Z`, age 2,528 seconds;
+- last recorded detail is the maintenance hold, with an IDLE/empty recovery
+  result at that old heartbeat;
+- historical ticket `41760154` remains `LAST_KNOWN_UNVERIFIED`.
+
+The adapter retained its raw operation response in its configured append-only
+execution log. This is a new status observation, not current broker exposure,
+proof of process termination or a verified live job handle. The actual task,
+process and broker state require diagnostics before any restart. Do not infer
+flat exposure from the stale empty recovery result. No current backup or
+no-logon recovery proof was checked in this continuation.
+
+Current `enforce_risk_policy` still stores a single `pause_reason` and only
+evaluates weekly/drawdown breaches when it is empty. Day rollover clears a
+daily reason. This confirms that the reviewed latch defect remains in source;
+no new behavioural reproduction or fix was performed during this checkpoint.
+The active M20 state remains `NEEDS_FIX`.
+
+### Concrete remaining plan
+
+1. Inspect actual scheduled-task/process diagnostics and current shared-runtime
+   state without restarting a healthy service. Confirm maintenance hold and
+   broker/audit exposure through the permitted serialized surface.
+2. Reproduce overlapping daily/weekly/drawdown breaches with the actual risk
+   function, then implement independent persistent reasons and resume handling.
+   Test recovery, rollover, restart, cash-flow overlap and remaining headroom
+   against isolated persistence. Preserve Option B thresholds and anchors.
+3. Verify technical-stop sizing and cost/reservation headroom; prepare any
+   exact required execution-rule amendment before dependent deployment.
+4. Review and commit the narrowly scoped authorised fixes; prepare a hash-bound
+   release and rollback. Preserve unrelated documentation/local work. Confirm
+   shared backup/restore prerequisites before disruptive host/database drills.
+5. Complete W1.R recovery and W1.1 effective-limit proof, W1.2 genuine lifecycle
+   and interruption proof, W1.3 broker accounting/charge observations, W1.4
+   protected-position restart and actual restrictive-limit refusal. Restore
+   Option B immediately after the approved AUD 0.01 drill. Keep unobserved
+   partial fills/nonzero charges explicitly pending where required.
+6. Independently verify retained raw evidence and obtain required bound review;
+   do not claim Wave 1 or M20 complete from local tests or this handover.
+
+### Budget and resumption condition
+
+The objective explicitly limits execution to 25,000 tokens. The active goal
+mechanism has no recorded cap and provides no tool to change an active budget.
+The first usage recheck reported **30,948 tokens**, exceeding the requested
+limit during required document/current-state loading. Execution stopped at
+this inspection checkpoint; the excess is disclosed rather than represented
+as compliance. No budget increase or replacement goal was created.
+
+Resume implementation only with renewed operator budget authority. Use this
+checkpoint and the inspected current specifications to avoid another full
+historical-report reload unless the objective requires it; inspect changes and
+fresh external state. The goal remains unfinished, not complete or formally
+blocked merely because its budget was exceeded.
+
+## Earlier checkpoints — historical observations follow
+
 Status: **IN PROGRESS — Option B and the corrected listener are deployed on Demo. The Windows/Ubuntu risk-resume defect is resolved and independently checked. Fresh lifecycle/recovery evidence and final bound verification remain. See the latest checkpoint below.**
 
 ## 2026-09-07 W1.R execution checkpoint — maintenance hold and T480 continuity
@@ -543,3 +616,102 @@ continuity proof and original Wave 1 evidence. Reuse prior risk decisions and
 completed implementation. Resolve only missing authority/contract scope for
 dependent shared-platform drills. Preserve the original proof gaps and do not
 automatically start another wave or the lab's own milestone.
+
+## 2026-09-10 continuation — independent risk pauses implemented, deployment pending
+
+**Wave 1 remains incomplete.** The operator supplied an additional 50,000-token
+allowance. Implementation commit: `3472885` (`fix(wave1): preserve independent
+risk pauses and gate reservations`). No push, branch, next wave, Live access,
+new Demo lease or maintenance release occurred. The final goal-tool check
+returned no registered goal; no native budget enforcement or completion is
+claimed for this continuation.
+
+### Implemented and reviewed locally
+
+- Migration 022 retains each risk pause independently, backfills an existing
+  scalar reason, preserves anchors/resume history, and prevents a legacy
+  scalar-only writer from silently clearing the new latches.
+- Daily rollover clears only the daily latch. Weekly/peak/manual reasons
+  survive recovery, week rollover and process restart. An operator resume
+  acknowledges one manual reason and requires another account observation.
+- The risk state binds to the verified Demo account identity using a hash;
+  another account cannot inherit or reset it. Legacy state binds on its first
+  accepted observation after migration; this does not prove historical identity.
+- Remaining daily, weekly, peak and per-trade cash headroom limits new planned
+  risk. Reservations and risk changes share a transaction lock across leases;
+  the reservation rejects paused, stale, unbound or insufficient risk state.
+  The runner refreshes account state before reservation. Existing global
+  unresolved-attempt protection remains in place.
+- At minimum volume, the executor retains the intended technical stop and
+  refuses an unaffordable trade. The strategy documents now expressly remove
+  stop tightening solely to fit the budget. This is the scoped W1.4 correction,
+  not a new strategy or a change to Option B amounts.
+- Fixed read-only task diagnostics expose task state, process identities,
+  power settings and recent Python application events. The supervisor now
+  retains bounded, redacted crash frames and retries a transient Windows
+  status-file replacement failure at most three times. These changes are
+  not deployed and do not establish the cause of the observed crashes.
+
+### Validation and retained evidence
+
+`scripts/verify_project.sh` passed, including **294 tests**, configuration,
+registry, Triad-policy, secret and adapter checks. **23 tests use an actual
+isolated PostgreSQL 16 instance** on localhost port 55481 and the dedicated
+`forex_w1_test` database. Reservation refusal tests isolate proposal parsing;
+they do not claim a complete broker execution or a concurrent end-to-end
+order-race demonstration.
+
+The original committed risk function reproduced the defect against PostgreSQL:
+following a simultaneous breach, recovery and next-day rollover permitted entry.
+The corrected function retains weekly and peak pauses. A separate actual restart
+of the isolated database preserved its state exactly; a subsequent recovered
+next-day observation still refused entry. All equity paths here are synthetic.
+
+Evidence index: `runs/evidence/w1-continuation-20260910/index.json`.
+Remote raw observations and local engineering outputs occupy separate
+subdirectories. The index binds source hashes and implementation revision.
+`runs/verification/w1-continuation-20260910/artifact-check.json` separately checks
+artifact hashes, restart equality, retained manual latches, broker flatness and
+operating pause preservation. This is a separate verifier process, not a Triad
+recommendation, external witness or M20 proof bundle.
+
+### Current T480 observations
+
+- The listener was found stopped, task result **1**, and was recovered once
+  under the existing maintenance hold. It subsequently exited again. The
+  final status is **STALE**, old release `c523b1c904b8aa51`, last heartbeat
+  `2026-09-09T23:44:21.611405Z`. Do not describe it as continuously running.
+- Task diagnostics show S4U, no Forex Python process, and both battery-start
+  prohibition and stop-on-battery enabled. No matching Python Application
+  Error/WER event was returned. These settings are observations, not proof
+  that battery state caused either exit. Historical Python exception frames
+  were not retained; the new crash recorder addresses that diagnostic gap.
+- A fresh read-only broker probe observed `GOMarketsMU-Demo`, AUD balance and
+  equity **100,994.79**, and **zero open positions**. This is flatness at that
+  capture, not a continuing guarantee or a reinterpretation of the old
+  monitor-job ticket.
+- The operating database still has `EXTERNAL_CASH_FLOW` paused, baseline
+  **100,995.51**, expected balance **100,995.32**, unchanged anchors and its
+  existing resume record. The AUD 0.53 difference from the new balance needs
+  broker-ledger attribution. The operator's historical AUD -0.29 confirmation
+  cannot be extended to this difference. No pause was cleared.
+- The shared backup check returned a valid **PostgreSQL-logical** manifest
+  captured on **2026-09-07 19:45 NZST**. It is older than the shared 24-hour RPO.
+  The available shared handover reports isolated synthetic restore success
+  but does not establish a verified retained full-lab T16 bundle. A current
+  backup/restore evidence pointer was requested from the operator.
+
+### Remaining criteria and resumption sequence
+
+| Area | Status and exact remaining work |
+| --- | --- |
+| W1.1 / R4 | Local configuration fingerprint and migration artifacts updated. Obtain current affected-data backup and isolated-restore evidence; retain fresh broker/ledger/risk baseline, then stage migration 022 and the compatible reviewed release under the entry hold. Verify source hashes, task configuration and unchanged anchors before considering release. |
+| W1.2 | Prior lifecycle repairs retained. Capture a genuine eligible Demo open-to-close lifecycle on the final release and independently reconcile protection, ownership and terminal/broker results. No manufactured signal or forced loss. |
+| W1.3 | Broker charge and reconciliation proof remains incomplete. Qualify actual commission/financing/fee behavior and reconcile the current balance difference; preserve the cash-flow pause until its exact attribution and approved review are satisfied. |
+| W1.4 | Independent latches and reservation headroom pass local integration checks. Planned-loss allowance currently includes stop distance and the existing spread-based slippage estimate; it still does **not** establish applicable commission, financing or other charges. Complete this qualification/integration, reservation concurrency proof and review of unknown-account manual-pause persistence before enabling entries. Then prove a real protected listener restart and the approved AUD 0.01 refusal drill, restoring Option B immediately. |
+| R1 / R5 | Recurring task exit remains unresolved. Deploy the redacted crash recorder when deployment prerequisites permit, capture the actual failing frames, fix the supported cause, and demonstrate recovery. Do not infer battery causation or change startup principals blindly. Detached-T16 and separate flat/no-logon reboot windows remain unproven. |
+| R6 / R7 | Local crash retention is implemented; bounded incident delivery/recovery proof and current independent review gates remain pending. Rebuild affected proof against the final contract, revision, configuration and broker evidence before claiming completion. |
+
+The maintenance hold and independent risk pause must remain. Database migration,
+reboot and other disruptive work remain blocked on current recovery evidence.
+Do not close Wave 1 or M20 from this code commit or the passing local checks.
