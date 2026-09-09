@@ -2503,6 +2503,8 @@
         "sql/migrations/019_m20_persistent_risk_policy.sql",
         "sql/migrations/020_m20_risk_resume_audit.sql",
         "sql/migrations/021_m20_fee_complete_reconciliation_ledger.sql",
+        "sql/migrations/022_m20_independent_risk_pauses.sql",
+        "tests/milestones/test_m20_risk_policy_persistence.py",
         "docs/milestones/M20-mvp-retrospective.md",
         "docs/m1_trading_strategy.md",
         "scripts/m20_listener_dashboard.py",

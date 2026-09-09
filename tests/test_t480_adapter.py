@@ -545,9 +545,9 @@ class _RiskConnection:
 
 def test_option_b_risk_guard_pauses_at_daily_loss_and_sets_the_next_auckland_reset(monkeypatch):
     bridge = _m20_audit_bridge_module()
-    cursor = _RiskCursor([(100000.0, 100000.0, 100000.0, "2026-09-07", 100000.0, "2026-09-07", None, None, False)])
+    cursor = _RiskCursor([(100000.0, 100000.0, 100000.0, "2026-09-07", 100000.0, "2026-09-07", None, None, False, [], "a" * 64)])
     monkeypatch.setattr(bridge, "_connection", lambda: _RiskConnection(cursor))
-    result = bridge.enforce_risk_policy({"policy": _option_b_policy(), "account": {"balance": 100000.0, "equity": 99400.0, "auckland_date": "2026-09-07", "auckland_week_start": "2026-09-07"}})
+    result = bridge.enforce_risk_policy({"policy": _option_b_policy(), "account": {"account_scope_sha256": "a" * 64, "balance": 100000.0, "equity": 99400.0, "auckland_date": "2026-09-07", "auckland_week_start": "2026-09-07"}})
     assert result["risk"]["entry_allowed"] is False
     assert result["risk"]["pause_reason"] == "DAILY_LOSS"
     assert cursor.calls[-1][1][6:9] == ("DAILY_LOSS", "2026-09-08", False)
@@ -555,14 +555,14 @@ def test_option_b_risk_guard_pauses_at_daily_loss_and_sets_the_next_auckland_res
 
 def test_option_b_external_cashflow_only_clears_after_a_recorded_review(monkeypatch):
     bridge = _m20_audit_bridge_module()
-    resume_cursor = _RiskCursor([("EXTERNAL_CASH_FLOW",)])
+    resume_cursor = _RiskCursor([(["EXTERNAL_CASH_FLOW"], False)])
     monkeypatch.setattr(bridge, "_connection", lambda: _RiskConnection(resume_cursor))
     assert bridge.resume_risk_policy({})["risk_resume"]["previous_pause_reason"] == "EXTERNAL_CASH_FLOW"
-    assert resume_cursor.calls[-1][1] == (True,)
+    assert resume_cursor.calls[-1][1] == (None, [], True)
 
-    cursor = _RiskCursor([(100000.0, 100000.0, 100000.0, "2026-09-07", 100000.0, "2026-09-07", None, None, True)])
+    cursor = _RiskCursor([(100000.0, 100000.0, 100000.0, "2026-09-07", 100000.0, "2026-09-07", None, None, True, [], "a" * 64)])
     monkeypatch.setattr(bridge, "_connection", lambda: _RiskConnection(cursor))
-    result = bridge.enforce_risk_policy({"policy": _option_b_policy(), "account": {"balance": 101000.0, "equity": 101000.0, "auckland_date": "2026-09-07", "auckland_week_start": "2026-09-07"}})
+    result = bridge.enforce_risk_policy({"policy": _option_b_policy(), "account": {"account_scope_sha256": "a" * 64, "balance": 101000.0, "equity": 101000.0, "auckland_date": "2026-09-07", "auckland_week_start": "2026-09-07"}})
     assert result["risk"]["entry_allowed"] is True
     assert cursor.calls[-1][1][0:3] == (101000.0, 101000.0, 101000.0)
     assert cursor.calls[-1][1][8] is False
@@ -838,7 +838,7 @@ def test_m20_risk_stop_is_conservative_against_the_aud_loss_cap(monkeypatch):
         )
 
 
-def test_m20_selected_strategy_plan_keeps_cost_observation_out_of_risk_inputs(monkeypatch):
+def test_m20_selected_strategy_plan_accepts_cost_observation(monkeypatch):
     probe = _m20_probe_module(monkeypatch)
     bars = [
         {"open": 1.16000 + index * .00001, "high": 1.16004 + index * .00001,
@@ -1053,3 +1053,20 @@ def test_m20_discord_enable_operation_reads_only_approved_local_secret_sources()
     assert "ConvertTo-Json" in command
     assert "WriteAllText" in command
     assert "discordapp" in command
+
+
+@pytest.mark.parametrize('action', ['BUY', 'SELL'])
+def test_m20_minimum_lot_refused_without_tightening_technical_stop(monkeypatch, action):
+    probe = _m20_probe_module(monkeypatch)
+    bars = [{'open': 1.16, 'high': 1.161, 'low': 1.159, 'close': 1.16} for _ in range(12)]
+    args = dict(strategy_id='momentum_breakout', signal=action, m1=bars,
+                tick={'ask': 1.16005, 'bid': 1.15995},
+                risk={'volume': .01, 'tick_size': .00001, 'tick_value_loss': 1.4,
+                      'point': .00001, 'observed_spread': .0001})
+    funded = probe._strategy_trade_plan(**args, session={'maximum_loss_per_trade_aud': 100, 'max_notional_per_trade_usd': 10000})
+    assert funded[0] == action
+    assert funded[2] == pytest.approx(1.159 if action == 'BUY' else 1.161)
+    refused = probe._strategy_trade_plan(**args, session={'maximum_loss_per_trade_aud': .01, 'max_notional_per_trade_usd': 10000})
+    assert refused[0] == 'NO_TRADE'
+    assert refused[1:5] == (None, None, None, None)
+    assert 'technical stop' in refused[5]

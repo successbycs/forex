@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import sys
 import uuid
 from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal, ROUND_DOWN
 from typing import Any
 
 
@@ -186,7 +188,13 @@ def persist_proposal(payload: dict[str, Any]) -> dict[str, Any]:
     context = _multi_timeframe_context(payload, proposal)
     revision, fingerprint = _metadata(payload)
     with _connection() as conn, conn.cursor() as cursor:
-        cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (session["session_id"],))
+        # All leases share one Demo risk/entry writer. A per-session lock did
+        # not serialize the global unresolved-exposure check across leases.
+        cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended('forex.m20.conservative-risk.v1', 0))")
+        cursor.execute("SELECT pause_reasons,cash_flow_review_approved FROM forex.demo_risk_policy_state WHERE policy_version='forex.m20.conservative-risk.v1' FOR UPDATE")
+        risk_state = cursor.fetchone()
+        if risk_state is None or risk_state[0] or risk_state[1]:
+            raise SystemExit("M20 reservation requires checked, unpaused persistent risk state")
         cursor.execute(
             """INSERT INTO forex.demo_trade_session
                (session_id,operator_label,server,instrument,starts_at_utc,expires_at_utc,max_trades,max_notional_usd,max_cumulative_notional_usd,max_open_positions,status,strategy_version,application_revision,configuration_fingerprint)
@@ -249,11 +257,21 @@ def reserve_execution(payload: dict[str, Any]) -> dict[str, Any]:
     if proposal["action"] not in {"BUY", "SELL"}:
         raise SystemExit("NO_TRADE proposals cannot reserve an execution slot")
     reservation = _object(payload, "reservation")
-    required = {"attempt_id", "idempotency_key", "submitted_at_utc", "redacted_result", "broker_open_positions"}
+    required = {"attempt_id", "idempotency_key", "submitted_at_utc", "redacted_result", "broker_open_positions", "account_scope_sha256", "planned_loss_aud"}
     if set(reservation) != required or reservation["broker_open_positions"] != 0:
         raise SystemExit("M20 reservation must observe no open EURUSD position")
     with _connection() as conn, conn.cursor() as cursor:
-        cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (session["session_id"],))
+        cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended('forex.m20.conservative-risk.v1', 0))")
+        cursor.execute("SELECT pause_reasons,cash_flow_review_approved,account_scope_sha256,last_observed_equity,peak_adjusted_equity,daily_anchor_equity,weekly_anchor_equity,risk_observed_at_utc >= clock_timestamp() - interval '10 seconds' FROM forex.demo_risk_policy_state WHERE policy_version='forex.m20.conservative-risk.v1' FOR UPDATE")
+        risk_state = cursor.fetchone()
+        if (risk_state is None or risk_state[0] or risk_state[1]
+                or risk_state[2] is None or risk_state[2] != reservation["account_scope_sha256"]
+                or risk_state[7] is not True):
+            raise SystemExit("M20 reservation requires fresh, unpaused, account-bound risk state")
+        planned_loss = reservation["planned_loss_aud"]
+        available = _risk_response(*(float(value) for value in risk_state[3:7]), set())["risk"]["maximum_loss_aud"]
+        if type(planned_loss) not in (int, float) or not math.isfinite(planned_loss) or not 0 < planned_loss <= available:
+            raise SystemExit("M20 planned loss exceeds remaining capital headroom")
         cursor.execute("SELECT status,expires_at_utc > now(),max_trades,max_notional_usd,max_cumulative_notional_usd,max_open_positions FROM forex.demo_trade_session WHERE session_id=%s AND starts_at_utc=%s AND expires_at_utc=%s FOR UPDATE", (session["session_id"], session["starts_at_utc"], session["expires_at_utc"]))
         row = cursor.fetchone()
         if row is None or row[0] != "ACTIVE" or row[1] is not True or tuple(row[2:]) != (session["max_trades"], session["max_notional_per_trade_usd"], session["max_cumulative_notional_usd"], 1):
@@ -285,12 +303,34 @@ def reserve_execution(payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "reservation": receipt, "postgres_audit": {**receipt, "record_sha256": _digest(receipt)}}
 
 
+RISK_PAUSE_ORDER = ("EXTERNAL_CASH_FLOW", "UNKNOWN_ACCOUNT_STATE", "PEAK_DRAWDOWN", "WEEKLY_LOSS", "DAILY_LOSS")
+
+
+def _ordered_risk_pauses(reasons: set[str]) -> list[str]:
+    if not reasons.issubset(RISK_PAUSE_ORDER):
+        raise SystemExit("M20 persisted risk pause is invalid")
+    return [reason for reason in RISK_PAUSE_ORDER if reason in reasons]
+
+
+def _risk_response(equity: float, peak: float, daily: float, weekly: float, reasons: set[str]) -> dict[str, Any]:
+    """Cash headroom before another trade, rounded down rather than above a cap."""
+    e, p, d, w = (Decimal(str(value)) for value in (equity, peak, daily, weekly))
+    headroom = min(Decimal("100"), e * Decimal("0.001"),
+                   e - d * Decimal("0.995"), e - w * Decimal("0.99"),
+                   e - p * Decimal("0.98"))
+    allowance = max(Decimal("0"), headroom).quantize(Decimal("0.01"), rounding=ROUND_DOWN)
+    ordered = _ordered_risk_pauses(reasons)
+    return {"ok": True, "risk": {"entry_allowed": not ordered and allowance > 0,
+            "pause_reason": ordered[0] if ordered else None, "pause_reasons": ordered,
+            "policy_equity": equity, "maximum_loss_aud": float(allowance)}}
+
+
 def enforce_risk_policy(payload: dict[str, Any]) -> dict[str, Any]:
     """Persist and enforce the fixed conservative risk budget before entry."""
     policy = _object(payload, "policy")
     account = _object(payload, "account")
     policy_required = {"policy_version", "reporting_currency", "maximum_risk_per_trade_percent", "maximum_risk_per_trade_aud", "daily_loss_limit_percent", "weekly_loss_limit_percent", "peak_equity_drawdown_limit_percent", "loss_budget_timezone", "daily_pause_reset", "manual_resume_reasons", "require_known_external_cashflow"}
-    account_required = {"balance", "equity", "auckland_date", "auckland_week_start"}
+    account_required = {"balance", "equity", "auckland_date", "auckland_week_start", "account_scope_sha256"}
     if (set(policy) != policy_required or policy["policy_version"] != "forex.m20.conservative-risk.v1"
             or policy["reporting_currency"] != "AUD" or policy["maximum_risk_per_trade_percent"] != .10
             or policy["maximum_risk_per_trade_aud"] != 100.0 or policy["daily_loss_limit_percent"] != .50
@@ -298,20 +338,37 @@ def enforce_risk_policy(payload: dict[str, Any]) -> dict[str, Any]:
             or policy["loss_budget_timezone"] != "Pacific/Auckland" or policy["daily_pause_reset"] != "NEXT_AUCKLAND_DAY"
             or policy["manual_resume_reasons"] != ["WEEKLY_LOSS", "PEAK_DRAWDOWN", "EXTERNAL_CASH_FLOW", "UNKNOWN_ACCOUNT_STATE"]
             or policy["require_known_external_cashflow"] is not True or set(account) != account_required
-            or not all(isinstance(account[key], (int, float)) and account[key] > 0 for key in ("balance", "equity"))
+            or not all(type(account[key]) in (int, float) and math.isfinite(account[key]) and account[key] > 0 for key in ("balance", "equity"))
             or not all(isinstance(account[key], str) and len(account[key]) == 10 for key in ("auckland_date", "auckland_week_start"))):
         raise SystemExit("M20 persistent risk policy payload is invalid")
     balance, equity = float(account["balance"]), float(account["equity"])
+    scope = account["account_scope_sha256"]
+    if not isinstance(scope, str) or len(scope) != 64 or any(c not in "0123456789abcdef" for c in scope):
+        raise SystemExit("M20 risk account identity binding is invalid")
+    try:
+        observed_day = date.fromisoformat(account["auckland_date"])
+        if account["auckland_week_start"] != (observed_day - timedelta(days=observed_day.weekday())).isoformat():
+            raise ValueError("week anchor differs")
+    except ValueError as error:
+        raise SystemExit("M20 risk observation date is invalid") from error
     with _connection() as conn, conn.cursor() as cursor:
-        cursor.execute("SELECT expected_balance,peak_adjusted_equity,daily_anchor_equity,daily_anchor_date::text,weekly_anchor_equity,weekly_anchor_date::text,pause_reason,pause_until_date::text,cash_flow_review_approved FROM forex.demo_risk_policy_state WHERE policy_version=%s FOR UPDATE", (policy["policy_version"],))
+        cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (policy["policy_version"],))
+        cursor.execute("SELECT expected_balance,peak_adjusted_equity,daily_anchor_equity,daily_anchor_date::text,weekly_anchor_equity,weekly_anchor_date::text,pause_reason,pause_until_date::text,cash_flow_review_approved,pause_reasons,account_scope_sha256 FROM forex.demo_risk_policy_state WHERE policy_version=%s FOR UPDATE", (policy["policy_version"],))
         state = cursor.fetchone()
         if state is None:
-            cursor.execute("INSERT INTO forex.demo_risk_policy_state (policy_version,account_currency,baseline_balance,expected_balance,peak_adjusted_equity,daily_anchor_equity,daily_anchor_date,weekly_anchor_equity,weekly_anchor_date) VALUES (%s,'AUD',%s,%s,%s,%s,%s,%s,%s)", (policy["policy_version"], balance, balance, equity, equity, account["auckland_date"], equity, account["auckland_week_start"]))
-            return {"ok": True, "risk": {"entry_allowed": True, "pause_reason": None, "policy_equity": equity, "maximum_loss_aud": min(100.0, round(equity * .001, 2))}}
-        expected_balance, peak, daily_anchor, daily_date, weekly_anchor, weekly_date, pause_reason, pause_until, cash_flow_review_approved = state
+            cursor.execute("INSERT INTO forex.demo_risk_policy_state (policy_version,account_currency,baseline_balance,expected_balance,peak_adjusted_equity,daily_anchor_equity,daily_anchor_date,weekly_anchor_equity,weekly_anchor_date,account_scope_sha256,last_observed_equity,risk_observed_at_utc) VALUES (%s,'AUD',%s,%s,%s,%s,%s,%s,%s,%s,%s,now())", (policy["policy_version"], balance, balance, equity, equity, account["auckland_date"], equity, account["auckland_week_start"], scope, equity))
+            return _risk_response(equity, equity, equity, equity, set())
+        expected_balance, peak, daily_anchor, daily_date, weekly_anchor, weekly_date, pause_reason, pause_until, cash_flow_review_approved, pause_reasons, bound_scope = state
+        if bound_scope is not None and bound_scope != scope:
+            raise SystemExit("M20 observed account differs from the bound risk account")
         expected_balance = float(expected_balance)
         peak, daily_anchor, weekly_anchor = float(peak), float(daily_anchor), float(weekly_anchor)
-        reason = pause_reason
+        reasons = set(pause_reasons)
+        if pause_reason is not None:
+            reasons.add(pause_reason)
+        _ordered_risk_pauses(reasons)
+        if daily_date > account["auckland_date"] or weekly_date > account["auckland_week_start"]:
+            raise SystemExit("M20 risk observation predates durable anchors")
         cash_flow_delta = balance - expected_balance
         if abs(cash_flow_delta) > .02:
             if cash_flow_review_approved:
@@ -324,24 +381,25 @@ def enforce_risk_policy(payload: dict[str, Any]) -> dict[str, Any]:
                 weekly_anchor += cash_flow_delta
                 cash_flow_review_approved = False
             else:
-                reason = "EXTERNAL_CASH_FLOW"
+                reasons.add("EXTERNAL_CASH_FLOW")
         else:
             cash_flow_review_approved = False
         if daily_date != account["auckland_date"]:
             daily_anchor, daily_date = equity, account["auckland_date"]
-            if reason == "DAILY_LOSS":
-                reason = None
+            reasons.discard("DAILY_LOSS")
+            pause_until = None
         if weekly_date != account["auckland_week_start"]:
             weekly_anchor, weekly_date = equity, account["auckland_week_start"]
         peak = max(peak, equity)
-        if reason is None and equity <= float(daily_anchor) * .995:
-            reason = "DAILY_LOSS"
-        if reason is None and equity <= float(weekly_anchor) * .99:
-            reason = "WEEKLY_LOSS"
-        if reason is None and equity <= peak * .98:
-            reason = "PEAK_DRAWDOWN"
-        cursor.execute("UPDATE forex.demo_risk_policy_state SET expected_balance=%s,peak_adjusted_equity=%s,daily_anchor_equity=%s,daily_anchor_date=%s,weekly_anchor_equity=%s,weekly_anchor_date=%s,pause_reason=%s,pause_until_date=%s,cash_flow_review_approved=%s,updated_at_utc=now() WHERE policy_version=%s", (expected_balance, peak, daily_anchor, daily_date, weekly_anchor, weekly_date, reason, (date.fromisoformat(account["auckland_date"]) + timedelta(days=1)).isoformat() if reason == "DAILY_LOSS" else pause_until, cash_flow_review_approved, policy["policy_version"]))
-    return {"ok": True, "risk": {"entry_allowed": reason is None, "pause_reason": reason, "policy_equity": equity, "maximum_loss_aud": min(100.0, round(equity * .001, 2))}}
+        if equity <= float(daily_anchor) * .995:
+            reasons.add("DAILY_LOSS")
+        if equity <= float(weekly_anchor) * .99:
+            reasons.add("WEEKLY_LOSS")
+        if equity <= peak * .98:
+            reasons.add("PEAK_DRAWDOWN")
+        ordered = _ordered_risk_pauses(reasons)
+        cursor.execute("UPDATE forex.demo_risk_policy_state SET expected_balance=%s,peak_adjusted_equity=%s,daily_anchor_equity=%s,daily_anchor_date=%s,weekly_anchor_equity=%s,weekly_anchor_date=%s,pause_reason=%s,pause_until_date=%s,cash_flow_review_approved=%s,pause_reasons=%s,account_scope_sha256=%s,last_observed_equity=%s,risk_observed_at_utc=now(),updated_at_utc=now() WHERE policy_version=%s", (expected_balance, peak, daily_anchor, daily_date, weekly_anchor, weekly_date, ordered[0] if ordered else None, (observed_day + timedelta(days=1)).isoformat() if "DAILY_LOSS" in reasons else None, cash_flow_review_approved, ordered, scope, equity, policy["policy_version"]))
+    return _risk_response(equity, peak, daily_anchor, weekly_anchor, reasons)
 
 
 def resume_risk_policy(payload: dict[str, Any]) -> dict[str, Any]:
@@ -350,15 +408,21 @@ def resume_risk_policy(payload: dict[str, Any]) -> dict[str, Any]:
         raise SystemExit("M20 risk-policy resume accepts no caller-controlled fields")
     manual_reasons = {"WEEKLY_LOSS", "PEAK_DRAWDOWN", "EXTERNAL_CASH_FLOW", "UNKNOWN_ACCOUNT_STATE"}
     with _connection() as conn, conn.cursor() as cursor:
-        cursor.execute("SELECT pause_reason FROM forex.demo_risk_policy_state WHERE policy_version='forex.m20.conservative-risk.v1' FOR UPDATE")
+        cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended('forex.m20.conservative-risk.v1', 0))")
+        cursor.execute("SELECT pause_reasons,cash_flow_review_approved FROM forex.demo_risk_policy_state WHERE policy_version='forex.m20.conservative-risk.v1' FOR UPDATE")
         row = cursor.fetchone()
-        if row is None or row[0] not in manual_reasons:
+        reasons = set(row[0]) if row else set()
+        ordered = _ordered_risk_pauses(reasons)
+        reviewable = [reason for reason in ordered if reason in manual_reasons]
+        if not reviewable:
             raise SystemExit("M20 risk-policy resume requires a current manual-review pause")
-        previous_reason = str(row[0])
+        previous_reason = reviewable[0]
         resume_id = str(uuid.uuid4())
         cursor.execute("INSERT INTO forex.demo_risk_policy_resume (resume_id,policy_version,previous_pause_reason,operator_action) VALUES (%s,'forex.m20.conservative-risk.v1',%s,'m20_listener_resume_risk_policy')", (resume_id, previous_reason))
-        cursor.execute("UPDATE forex.demo_risk_policy_state SET pause_reason=NULL,pause_until_date=NULL,cash_flow_review_approved=%s,updated_at_utc=now() WHERE policy_version='forex.m20.conservative-risk.v1'", (previous_reason == 'EXTERNAL_CASH_FLOW',))
-    return {"ok": True, "risk_resume": {"resume_id": resume_id, "previous_pause_reason": previous_reason, "next_account_check_required": True}}
+        reasons.remove(previous_reason)
+        remaining = _ordered_risk_pauses(reasons)
+        cursor.execute("UPDATE forex.demo_risk_policy_state SET pause_reason=%s,pause_reasons=%s,cash_flow_review_approved=%s,risk_observed_at_utc=NULL,updated_at_utc=now() WHERE policy_version='forex.m20.conservative-risk.v1'", (remaining[0] if remaining else None, remaining, bool(row[1]) or previous_reason == 'EXTERNAL_CASH_FLOW'))
+    return {"ok": True, "risk_resume": {"resume_id": resume_id, "previous_pause_reason": previous_reason, "remaining_pause_reasons": remaining, "next_account_check_required": True}}
 
 
 def record_result(payload: dict[str, Any]) -> dict[str, Any]:

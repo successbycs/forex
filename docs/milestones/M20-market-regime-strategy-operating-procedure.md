@@ -155,7 +155,7 @@ the complete lifecycle.
 
 | Owner | Entry | Protective stop | Initial target | Owner exit |
 | --- | --- | --- | --- | --- |
-| Momentum Breakout | Two aligned M1 candles break the prior five-candle range after spread. | Opposite side of the prior range, tightened if necessary to the AUD risk cap. | 1.5R, reduced only to credible nearby support/resistance; refuse below 1.25R. | Broker SL/TP, +1R breakeven, two opposite completed candles, or ten-minute time stop. |
+| Momentum Breakout | Two aligned M1 candles break the prior five-candle range after spread. | Opposite side of the prior range; refuse an unaffordable minimum lot rather than tighten the technical stop. | 1.5R, reduced only to credible nearby support/resistance; refuse below 1.25R. | Broker SL/TP, +1R breakeven, two opposite completed candles, or ten-minute time stop. |
 | Compression Breakout | Confirmed break from the qualified tight range. | Outside the pre-break compression range. | Defined risk multiple and nearby structure. | Return into the range, broker SL/TP, or its defined time stop. |
 | Trend Pullback | Trend, pullback, and resumption all align. | Beyond the pullback extreme. | Next structure level or defined risk multiple. | Trend failure, broker SL/TP, or time stop. |
 | Range Reversion | Rejection at verified range support/resistance without a confirmed break. | Outside the rejected range edge. | Range midpoint first; opposite edge only if rules allow. | Confirmed breakout, broker SL/TP, or time stop. |

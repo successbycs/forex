@@ -16,6 +16,7 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+import traceback
 from types import SimpleNamespace
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -27,6 +28,7 @@ ROOT = Path(__file__).resolve().parent
 # sibling state directory so release switches cannot split the observer view.
 STATE_ROOT = ROOT.parent.parent / "state" if ROOT.parent.name == "releases" else ROOT
 STATUS_PATH = STATE_ROOT / "m20_demo_listener_status.local.json"
+FAILURE_PATH = STATE_ROOT / "m20_demo_listener_failures.local.jsonl"
 STOP_PATH = STATE_ROOT / "m20_demo_listener.stop"
 LEASE_PATH = STATE_ROOT / "m20_demo_session.local.json"
 CONFIG_PATH = STATE_ROOT / "m20_demo_listener_service.local.json"
@@ -69,7 +71,16 @@ def _write_status(payload: dict[str, Any]) -> None:
         payload["next_assessment_at_nzst"] = _nzst(payload["next_assessment_at_utc"])
     temporary = STATUS_PATH.with_suffix(".tmp")
     temporary.write_text(json.dumps(payload, sort_keys=True, separators=(",", ":")), encoding="utf-8")
-    temporary.replace(STATUS_PATH)
+    for attempt in range(3):
+        try:
+            temporary.replace(STATUS_PATH)
+            break
+        except PermissionError:
+            # Windows readers may briefly deny replacement. Bound the retry;
+            # a persistent storage failure still terminates with a crash record.
+            if attempt == 2:
+                raise
+            time.sleep(.05)
 
 
 def _assessment_total() -> int:
@@ -437,12 +448,36 @@ def run() -> None:
                    "next_assessment_at_utc": None, "monitor": monitor_state, "detail": "Stop sentinel observed."})
 
 
+def run_guarded() -> None:
+    try:
+        run()
+    except (Exception, SystemExit) as error:
+        if isinstance(error, SystemExit) and error.code in (None, 0):
+            raise
+        # Never retain exception messages, source lines, locals or environment:
+        # database/notification exceptions can contain credentials.
+        failure = {"captured_at_utc": _utc_now(), "release_id": ROOT.name,
+                   "exception_type": type(error).__name__,
+                   "errno": getattr(error, "errno", None),
+                   "winerror": getattr(error, "winerror", None),
+                   "frames": [{"file": Path(frame.filename).name, "line": frame.lineno,
+                               "function": frame.name}
+                              for frame in traceback.extract_tb(error.__traceback__)[-6:]]}
+        try:
+            with FAILURE_PATH.open("a", encoding="utf-8") as stream:
+                stream.write(json.dumps(failure, sort_keys=True) + "\n")
+        except OSError:
+            pass  # Storage failure must not replace the original exception.
+        try:
+            _write_status({"state": "STARTUP_FAILED", "iteration": 0, "last_result": {},
+                           "next_assessment_at_utc": None,
+                           "detail": "Listener exited: " + type(error).__name__ + "; inspect retained failure frames."})
+        except OSError:
+            pass
+        raise
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 1:
         raise SystemExit("M20 listener service accepts no arguments")
-    try:
-        run()
-    except SystemExit as error:
-        _write_status({"state": "STARTUP_FAILED", "iteration": 0, "last_result": {},
-                       "next_assessment_at_utc": None, "detail": str(error)})
-        raise
+    run_guarded()

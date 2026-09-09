@@ -257,6 +257,20 @@ def _m20_listener_status_command() -> str:
     )
 
 
+def _m20_listener_diagnostics_command() -> str:
+    """Inspect the fixed task and its process identities without recovery."""
+    return (
+        "$ErrorActionPreference='Stop'; $task=Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener'; "
+        "$info=Get-ScheduledTaskInfo -TaskName $task.TaskName; "
+        "$settings=$task.Settings|Select-Object DisallowStartIfOnBatteries,StopIfGoingOnBatteries,ExecutionTimeLimit,RestartCount,RestartInterval; "
+        "$events=@(Get-WinEvent -FilterHashtable @{LogName='Application';StartTime=$info.LastRunTime;Id=1000,1001} -MaxEvents 10 -ErrorAction SilentlyContinue|Where-Object {$_.Message -match 'python'}|Select-Object TimeCreated,Id,ProviderName,Message); "
+        "$processes=@(Get-CimInstance Win32_Process | Where-Object { $_.Name -match '^python(w)?\\.exe$' -and $_.CommandLine -like '*ForexListener*' } | Select-Object ProcessId,ParentProcessId,SessionId,CreationDate); "
+        "$hold=Test-Path -LiteralPath 'C:\\ProgramData\\ForexListener\\state\\m20_demo_maintenance_hold.local.json'; "
+        "$failure=$null;$f='C:\\ProgramData\\ForexListener\\state\\m20_demo_listener_failures.local.jsonl';if(Test-Path -LiteralPath $f){$failure=Get-Content -LiteralPath $f -Tail 1|ConvertFrom-Json}; "
+        "[pscustomobject]@{captured_at_utc=(Get-Date).ToUniversalTime().ToString('o');task_state=$task.State.ToString();last_result=$info.LastTaskResult;last_run_utc=$info.LastRunTime.ToUniversalTime().ToString('o');logon_type=$task.Principal.LogonType.ToString();maintenance_hold_present=$hold;processes=$processes;settings=$settings;python_events=$events;last_failure=$failure}|ConvertTo-Json -Depth 6 -Compress"
+    )
+
+
 def _m20_listener_recover_command() -> str:
     """Restart only the fixed listener Scheduled Task; no trading/order surface."""
     return (
@@ -638,6 +652,11 @@ OPERATIONS: dict[str, Operation] = {
         "Run the fixed bounded GOMarketsMU-Demo EURUSD M1/M5 session; a hash-bound PostgreSQL audit bridge must persist before any transaction.",
         powershell_command=_m20_demo_trading_session_command(),
         timeout_seconds=720,
+    ),
+    "m20_listener_diagnostics": Operation(
+        "m20_listener_diagnostics",
+        "Read the fixed Forex listener task and process identities without restart or broker access.",
+        powershell_command=_m20_listener_diagnostics_command(),
     ),
     "m20_listener_status": Operation(
         "m20_listener_status",

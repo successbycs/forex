@@ -67,13 +67,14 @@ ASSETS = {
     "m20_persistent_risk_policy_schema": "sql/migrations/019_m20_persistent_risk_policy.sql",
     "m20_risk_resume_audit_schema": "sql/migrations/020_m20_risk_resume_audit.sql",
     "m20_fee_complete_reconciliation_ledger_schema": "sql/migrations/021_m20_fee_complete_reconciliation_ledger.sql",
+    "m20_independent_risk_pauses_schema": "sql/migrations/022_m20_independent_risk_pauses.sql",
     "m20_strategy_trial_query": "sql/m20_strategy_trial_summary.sql",
     "import": "scripts/build_m2_postgres_import.py",
 }
 M2_SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
 M2_SNAPSHOT_ARTIFACT_SHA256 = "sha256:dc5384732d71091aa2279aaf6d92e8e1780c8021eacde948432ad7bc68fdabaa"
 READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour", "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-lineage-verify", "forex-m20-audit-verify", "forex-m20-rejection-summary", "forex-m20-lifecycle-summary", "forex-m20-unresolved-attempt-summary", "forex-m20-strategy-trial-summary", "forex-m20-mtf-context-verify", "forex-m20-mtf-context-summary", "forex-m20-risk-policy-summary"}
-MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema", "forex-m20-stage-cost-ledger-schema", "forex-m20-apply-cost-ledger-schema", "forex-m20-stage-open-position-schema", "forex-m20-apply-open-position-schema", "forex-m20-stage-continuous-lease-schema", "forex-m20-apply-continuous-lease-schema", "forex-m20-stage-outcome-reconciliation-schema", "forex-m20-apply-outcome-reconciliation-schema", "forex-m20-stage-regime-strategy-schema", "forex-m20-apply-regime-strategy-schema", "forex-m20-stage-projected-cost-schema", "forex-m20-apply-projected-cost-schema", "forex-m20-stage-mtf-context-schema", "forex-m20-apply-mtf-context-schema", "forex-m20-stage-remove-trade-count-cap-schema", "forex-m20-apply-remove-trade-count-cap-schema", "forex-m20-stage-unresolved-execution-schema", "forex-m20-apply-unresolved-execution-schema", "forex-m20-stage-broker-fee-ledger-schema", "forex-m20-apply-broker-fee-ledger-schema", "forex-m20-stage-persistent-risk-policy-schema", "forex-m20-apply-persistent-risk-policy-schema", "forex-m20-stage-risk-resume-audit-schema", "forex-m20-apply-risk-resume-audit-schema", "forex-m20-stage-fee-complete-reconciliation-ledger-schema", "forex-m20-apply-fee-complete-reconciliation-ledger-schema", "forex-m20-stage-strategy-trial-query"}
+MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema", "forex-m20-stage-cost-ledger-schema", "forex-m20-apply-cost-ledger-schema", "forex-m20-stage-open-position-schema", "forex-m20-apply-open-position-schema", "forex-m20-stage-continuous-lease-schema", "forex-m20-apply-continuous-lease-schema", "forex-m20-stage-outcome-reconciliation-schema", "forex-m20-apply-outcome-reconciliation-schema", "forex-m20-stage-regime-strategy-schema", "forex-m20-apply-regime-strategy-schema", "forex-m20-stage-projected-cost-schema", "forex-m20-apply-projected-cost-schema", "forex-m20-stage-mtf-context-schema", "forex-m20-apply-mtf-context-schema", "forex-m20-stage-remove-trade-count-cap-schema", "forex-m20-apply-remove-trade-count-cap-schema", "forex-m20-stage-unresolved-execution-schema", "forex-m20-apply-unresolved-execution-schema", "forex-m20-stage-broker-fee-ledger-schema", "forex-m20-apply-broker-fee-ledger-schema", "forex-m20-stage-persistent-risk-policy-schema", "forex-m20-apply-persistent-risk-policy-schema", "forex-m20-stage-risk-resume-audit-schema", "forex-m20-apply-risk-resume-audit-schema", "forex-m20-stage-fee-complete-reconciliation-ledger-schema", "forex-m20-apply-fee-complete-reconciliation-ledger-schema", "forex-m20-stage-strategy-trial-query", "forex-m20-stage-independent-risk-pauses-schema", "forex-m20-apply-independent-risk-pauses-schema"}
 
 
 def remote(body: str) -> dict:
@@ -841,6 +842,31 @@ docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "
     return wrap("forex_m20_apply_risk_resume_audit_schema", remote(body), digest)
 
 
+def stage_m20_independent_risk_pauses_schema() -> dict:
+    """Stage the hash-bound independent-pause migration without applying it."""
+    relative, digest = asset("m20_independent_risk_pauses_schema")
+    source = subprocess.run(["wslpath", "-w", str(ROOT / relative)], text=True, capture_output=True, check=True).stdout.strip()
+    staged = r"C:\\Users\\chris\\Documents\\Code\\forex-m1-probe\\022_m20_independent_risk_pauses.sql"
+    quote = lambda value: "'" + value.replace("'", "''") + "'"
+    command = "$ErrorActionPreference='Stop'; & scp.exe -B -o BatchMode=yes -o StrictHostKeyChecking=yes -- " + quote(source) + " " + quote(TARGET + ":" + staged) + "; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+    transfer = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", base64.b64encode(command.encode("utf-16-le")).decode("ascii")], text=True, capture_output=True, check=False)
+    if transfer.returncode:
+        return wrap("forex_m20_stage_independent_risk_pauses_schema", {"exit_code": transfer.returncode, "stdout": transfer.stdout, "stderr": transfer.stderr, "ok": False}, digest)
+    body = f'''file="{REMOTE_FOREX}/{relative}"
+test -f /mnt/c/Users/chris/Documents/Code/forex-m1-probe/022_m20_independent_risk_pauses.sql
+install -m 0644 /mnt/c/Users/chris/Documents/Code/forex-m1-probe/022_m20_independent_risk_pauses.sql "$file"
+[[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]'''
+    return wrap("forex_m20_stage_independent_risk_pauses_schema", remote(body), digest)
+
+
+def apply_m20_independent_risk_pauses_schema() -> dict:
+    relative, digest = asset("m20_independent_risk_pauses_schema")
+    body = f'''file="{REMOTE_FOREX}/{relative}"
+test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$file"'''
+    return wrap("forex_m20_apply_independent_risk_pauses_schema", remote(body), digest)
+
+
 def stage_m20_fee_complete_reconciliation_ledger_schema() -> dict:
     """Stage the hash-bound append-only fee-complete reconciliation ledger migration only."""
     relative, digest = asset("m20_fee_complete_reconciliation_ledger_schema")
@@ -868,7 +894,7 @@ docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "
 
 def m20_risk_policy_summary() -> dict:
     """Read the persistent Option B state and append-only resume records only."""
-    body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT json_build_object('state',(SELECT row_to_json(s) FROM (SELECT policy_version,account_currency,baseline_balance,expected_balance,peak_adjusted_equity,daily_anchor_equity,daily_anchor_date,weekly_anchor_equity,weekly_anchor_date,pause_reason,pause_until_date,cash_flow_review_approved,created_at_utc,updated_at_utc FROM forex.demo_risk_policy_state WHERE policy_version='forex.m20.conservative-risk.v1') s),'resume_requests',(SELECT COALESCE(json_agg(row_to_json(r) ORDER BY r.requested_at_utc),'[]'::json) FROM (SELECT resume_id,policy_version,previous_pause_reason,requested_at_utc,operator_action FROM forex.demo_risk_policy_resume) r));" </dev/null'''
+    body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT json_build_object('pause_reasons',(SELECT to_jsonb(p)->'pause_reasons' FROM forex.demo_risk_policy_state p WHERE policy_version='forex.m20.conservative-risk.v1'),'state',(SELECT row_to_json(s) FROM (SELECT policy_version,account_currency,baseline_balance,expected_balance,peak_adjusted_equity,daily_anchor_equity,daily_anchor_date,weekly_anchor_equity,weekly_anchor_date,pause_reason,pause_until_date,cash_flow_review_approved,created_at_utc,updated_at_utc FROM forex.demo_risk_policy_state WHERE policy_version='forex.m20.conservative-risk.v1') s),'resume_requests',(SELECT COALESCE(json_agg(row_to_json(r) ORDER BY r.requested_at_utc),'[]'::json) FROM (SELECT resume_id,policy_version,previous_pause_reason,requested_at_utc,operator_action FROM forex.demo_risk_policy_resume) r));" </dev/null'''
     return wrap("forex_m20_risk_policy_summary", remote(body))
 
 
@@ -1036,6 +1062,8 @@ def main(argv: list[str] | None = None) -> int:
     actions["forex-m20-apply-persistent-risk-policy-schema"] = apply_m20_persistent_risk_policy_schema
     actions["forex-m20-stage-risk-resume-audit-schema"] = stage_m20_risk_resume_audit_schema
     actions["forex-m20-apply-risk-resume-audit-schema"] = apply_m20_risk_resume_audit_schema
+    actions["forex-m20-stage-independent-risk-pauses-schema"] = stage_m20_independent_risk_pauses_schema
+    actions["forex-m20-apply-independent-risk-pauses-schema"] = apply_m20_independent_risk_pauses_schema
     actions["forex-m20-risk-policy-summary"] = m20_risk_policy_summary
     actions["forex-m20-stage-fee-complete-reconciliation-ledger-schema"] = stage_m20_fee_complete_reconciliation_ledger_schema
     actions["forex-m20-apply-fee-complete-reconciliation-ledger-schema"] = apply_m20_fee_complete_reconciliation_ledger_schema

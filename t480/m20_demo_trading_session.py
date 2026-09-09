@@ -125,10 +125,14 @@ def persistent_risk_policy() -> dict[str, Any]:
 def risk_account_snapshot(account: Any, captured_at: datetime) -> dict[str, Any]:
     policy = persistent_risk_policy()
     balance, equity = float(getattr(account, "balance", 0)), float(getattr(account, "equity", 0))
-    if min(balance, equity) <= 0:
+    if not all(math.isfinite(value) and value > 0 for value in (balance, equity)):
         raise SystemExit("M20 persistent risk policy requires known positive account balance and equity")
+    login = getattr(account, "login", None)
+    if getattr(account, "server", None) != SERVER or getattr(account, "currency", None) != "AUD" or type(login) is not int or login <= 0:
+        raise SystemExit("M20 persistent risk policy requires the fixed Demo account identity")
+    scope = hashlib.sha256(f"{SERVER}:{login}".encode()).hexdigest()
     local = captured_at.astimezone(ZoneInfo(policy["loss_budget_timezone"]))
-    return {"balance": balance, "equity": equity, "auckland_date": local.date().isoformat(), "auckland_week_start": (local.date() - timedelta(days=local.weekday())).isoformat()}
+    return {"balance": balance, "equity": equity, "account_scope_sha256": scope, "auckland_date": local.date().isoformat(), "auckland_week_start": (local.date() - timedelta(days=local.weekday())).isoformat()}
 
 
 def utc(value: datetime) -> str:
@@ -593,6 +597,8 @@ def _strategy_trade_plan(*, strategy_id: str | None, signal: str, m1: list[dict[
     """
     if strategy_id not in STRATEGY_IDS or signal not in {"BUY", "SELL"} or len(m1) < 12:
         return "NO_TRADE", None, None, None, None, "No selected actionable M1 strategy."
+    if float(session["maximum_loss_per_trade_aud"]) <= 0:
+        return "NO_TRADE", None, None, None, None, "No remaining Option B loss headroom."
     action = signal
     entry = float(tick["ask"] if action == "BUY" else tick["bid"])
     prior_five = m1[-6:-1]
@@ -615,15 +621,13 @@ def _strategy_trade_plan(*, strategy_id: str | None, signal: str, m1: list[dict[
     else:
         technical_stop = low(prior_five) if action == "BUY" else high(prior_five)
         plan_reason = "Prior five-candle range boundary supplies the technical stop; target is 1.5R."
-    capped_stop, _, notional = _risk_levels(
-        action=action, entry=entry, maximum_loss_aud=session["maximum_loss_per_trade_aud"],
-        tick_size=float(risk["tick_size"]), tick_value_loss=float(risk["tick_value_loss"]),
-        point=float(risk["point"]), volume=float(risk["volume"]),
-    )
-    stop = max(capped_stop, technical_stop) if action == "BUY" else min(capped_stop, technical_stop)
+    stop = technical_stop
+    notional = float(risk["volume"]) * 100000 * entry
     if (action == "BUY" and not 0 < stop < entry) or (action == "SELL" and not stop > entry):
         return "NO_TRADE", None, None, None, None, "Selected strategy's technical stop is invalid at the current quote."
-    stop = (math.ceil(stop / risk["point"] - 1e-9) if action == "BUY" else math.floor(stop / risk["point"] + 1e-9)) * risk["point"]
+    stop = (math.floor(stop / risk["tick_size"] + 1e-9) if action == "BUY" else math.ceil(stop / risk["tick_size"] - 1e-9)) * risk["tick_size"]
+    if _planned_stop_loss(entry, stop, risk) > session["maximum_loss_per_trade_aud"]:
+        return "NO_TRADE", None, None, None, None, "Minimum volume at the valid technical stop exceeds remaining capital headroom."
     distance = abs(entry - stop)
     if strategy_id == "range_reversion":
         # A reversion trade is owned by its range hypothesis: the first
@@ -638,6 +642,13 @@ def _strategy_trade_plan(*, strategy_id: str | None, signal: str, m1: list[dict[
     if notional > session["max_notional_per_trade_usd"]:
         raise SystemExit("M20 minimum EURUSD volume exceeds the Demo notional cap")
     return action, entry, stop, take, notional, plan_reason
+
+
+def _planned_stop_loss(entry: float, stop: float, risk: dict[str, float]) -> float:
+    # Same spread-based slippage allowance as the existing cost model. Broker
+    # commission and financing qualification remain separate Wave 1 evidence.
+    distance = abs(entry - stop) + max(0.0, float(risk.get("observed_spread", 0))) * .5
+    return distance / float(risk["tick_size"]) * float(risk["tick_value_loss"]) * float(risk["volume"])
 
 
 def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, list[dict[str, Any]]], captured_at: datetime, risk: dict[str, float], listener_poll_seconds: float, safety_gates: dict[str, bool] | None = None) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], list[dict[str, Any]]]:
@@ -1603,11 +1614,15 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         bridge_payload["multi_timeframe_context"] = multi_timeframe_context
         persisted = _bridge(bridge_payload, "persist-proposal")
         if proposal["action"] != "NO_TRADE":
+            fresh_account = risk_account_snapshot(mt5.account_info(), datetime.now(timezone.utc))
+            _bridge({"policy": risk_policy, "account": fresh_account}, "enforce-risk-policy")
+            planned_loss = _planned_stop_loss(float(proposal["proposed_entry"]), float(proposal["stop_loss"]), {**risk, "observed_spread": float(tick_record["ask"]) - float(tick_record["bid"])})
             submitted_at = utc(datetime.now(timezone.utc))
             attempt_id = str(uuid5(NAMESPACE_URL, f"{proposal['proposal_id']}:attempt"))
             reservation = {
                 "attempt_id": attempt_id, "idempotency_key": str(uuid5(NAMESPACE_URL, f"{proposal['proposal_id']}:idempotency")),
                 "submitted_at_utc": submitted_at, "redacted_result": "MT5 result pending", "broker_open_positions": 0,
+                "account_scope_sha256": fresh_account["account_scope_sha256"], "planned_loss_aud": planned_loss,
             }
             reserved = _bridge({**bridge_payload, "reservation": reservation}, "reserve-execution")
             order_type = mt5.ORDER_TYPE_BUY if proposal["action"] == "BUY" else mt5.ORDER_TYPE_SELL

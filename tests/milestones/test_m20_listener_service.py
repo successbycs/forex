@@ -241,3 +241,56 @@ def test_listener_metrics_explain_a_no_trade_breakout_rejection():
     assert metrics["decision"] == "NO_TRADE"
     assert metrics["two_candle_direction"] == "MIXED"
     assert metrics["prior_five_high"] > metrics["prior_five_low"]
+
+
+def _crash_test_service():
+    spec = importlib.util.spec_from_file_location('listener_crash_test', SOURCE)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_listener_crash_record_preserves_failure_without_sensitive_message(tmp_path, monkeypatch):
+    import pytest
+    service = _crash_test_service()
+    failure_path = tmp_path / 'failure.jsonl'
+    status_path = tmp_path / 'status.json'
+    monkeypatch.setattr(service, 'FAILURE_PATH', failure_path)
+    monkeypatch.setattr(service, 'STATUS_PATH', status_path)
+    def fail():
+        raise PermissionError(13, 'sensitive-test-message-must-not-appear')
+    monkeypatch.setattr(service, 'run', fail)
+    for _ in range(2):
+        with pytest.raises(PermissionError):
+            service.run_guarded()
+    records = [json.loads(line) for line in failure_path.read_text().splitlines()]
+    assert len(records) == 2
+    assert all(r['exception_type'] == 'PermissionError' and r['errno'] == 13 and r['frames'] for r in records)
+    assert 'sensitive-test-message' not in failure_path.read_text() + status_path.read_text()
+    assert json.loads(status_path.read_text())['state'] == 'STARTUP_FAILED'
+
+
+def test_listener_retries_transient_status_replacement_but_bounds_persistent_failure(tmp_path, monkeypatch):
+    import pytest
+    service = _crash_test_service()
+    monkeypatch.setattr(service, 'STATUS_PATH', tmp_path / 'status.json')
+    monkeypatch.setattr(service.time, 'sleep', lambda delay: None)
+    original = Path.replace
+    attempts = []
+    def temporary_collision(path, target):
+        attempts.append(1)
+        if len(attempts) < 3:
+            raise PermissionError('reader has file open')
+        return original(path, target)
+    monkeypatch.setattr(Path, 'replace', temporary_collision)
+    service._write_status({'state': 'MAINTENANCE_HOLD'})
+    assert len(attempts) == 3
+    assert json.loads(service.STATUS_PATH.read_text())['state'] == 'MAINTENANCE_HOLD'
+    attempts.clear()
+    def permanent_failure(path, target):
+        attempts.append(1)
+        raise PermissionError('persistent')
+    monkeypatch.setattr(Path, 'replace', permanent_failure)
+    with pytest.raises(PermissionError):
+        service._write_status({'state': 'MAINTENANCE_HOLD'})
+    assert len(attempts) == 3

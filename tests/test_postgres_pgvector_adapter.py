@@ -28,6 +28,8 @@ def test_adapter_exposes_only_fixed_forex_operations():
         "forex-m20-stage-fee-complete-reconciliation-ledger-schema",
         "forex-m20-apply-fee-complete-reconciliation-ledger-schema",
         "forex-m20-risk-policy-summary",
+        "forex-m20-stage-independent-risk-pauses-schema",
+        "forex-m20-apply-independent-risk-pauses-schema",
     })
     assert postgres_pgvector_adapter.READ_ONLY | postgres_pgvector_adapter.MUTATING == expected
 

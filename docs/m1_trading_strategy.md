@@ -83,10 +83,12 @@ five-candle setup.  For a sell, it is just above the highest high.  The
 executor must then apply the hard AUD 100 loss limit using the broker's tick
 size, tick value, minimum volume, and permitted price increments.
 
-The actual stop is the closer-to-entry of the technical stop and the
-AUD-100-capped stop.  If the technical setup needs more than AUD 100 of risk,
-or the broker's minimum increment alone would exceed the cap, the result is
-`NO_TRADE`.
+Wave 1 corrects the stop-cap rule: preserve the technical stop, aligned away
+from entry to the broker tick size. At the fixed minimum volume, refuse the
+trade if planned stop loss plus the configured slippage allowance exceeds
+the lesser of the lease cap and remaining Option B headroom. Never tighten
+the technical stop solely to make the cash budget fit. Broker commission
+and financing qualification remain required before Wave 1 is complete.
 
 Initial take profit is 1.5R, where `R` is the distance from entry to the
 actual stop.  It is reduced to the nearest credible M1 support/resistance
