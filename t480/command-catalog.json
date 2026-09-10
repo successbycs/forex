@@ -268,6 +268,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_stage_20",
+      "purpose": "Stage and verify fixed M20 listener payload part 20.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_runner_stage_1",
       "purpose": "Stage fixed M20 listener runner payload part one.",
       "approval_required": false

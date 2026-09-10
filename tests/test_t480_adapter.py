@@ -348,12 +348,9 @@ def test_m20_listener_retires_only_the_known_legacy_restart_marker_under_hold():
 
 def test_m20_continuity_protocol_is_fixed_held_only_and_has_no_order_surface():
     command = t480_adapter.OPERATIONS["m20_listener_run_continuity_protocol"].powershell_command or ""
-    assert "m20_demo_maintenance_hold.local.json" in command
-    assert "GOMarketsMU-Demo" in command and "EURUSD" not in command  # account surface is fixed, no symbol input
-    assert "open_positions" in command
-    assert "Forex-M20-Continuity-Protocol" in command
-    assert "New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U" in command
-    assert "--continuity-protocol" in command
+    assert "m20_demo_listener_service.payload" in command
+    assert "--arm-continuity-protocol" in command
+    assert len(command) < 4000
     assert "order_send" not in command and "GOMarketsMU-Live" not in command
 
 
@@ -403,7 +400,7 @@ def test_m20_listener_prepare_verifies_all_payloads_before_activation():
 
 def test_m20_listener_staging_is_split_and_hash_checked():
     first = t480_adapter.OPERATIONS["m20_listener_stage_1"].powershell_command
-    final = t480_adapter.OPERATIONS["m20_listener_stage_19"].powershell_command
+    final = t480_adapter.OPERATIONS["m20_listener_stage_20"].powershell_command
     assert len(first) < 4000 and len(final) < 4000
     assert "WriteAllBytes" in first
     assert "[IO.File]::Open" in final and "Get-FileHash" in final

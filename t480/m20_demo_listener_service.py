@@ -761,6 +761,63 @@ def _notify_continuity(run_id: str, event: str) -> dict[str, Any]:
     return {"state": "FAILED", "reason": "DELIVERY_FAILED"}
 
 
+def arm_continuity_protocol() -> int:
+    """Preflight and schedule the non-trading protocol entirely on T480."""
+    if CONTINUITY_PROTOCOL_PATH.exists():
+        raise SystemExit("M20 continuity protocol record already exists")
+    if not _maintenance_hold()["active"]:
+        raise SystemExit("M20 continuity protocol requires maintenance hold")
+    values = _load_environment()
+    sample = _continuity_sample(ROOT.name)
+    if not sample.get("valid"):
+        raise SystemExit("M20 continuity protocol requires fresh held listener heartbeat")
+    try:
+        import MetaTrader5 as mt5
+        initialized = mt5.initialize(path=str(values["terminal_path"]))
+        account = mt5.account_info() if initialized else None
+        positions = mt5.positions_get() if account is not None else None
+        valid_account = (account is not None and account.server == "GOMarketsMU-Demo"
+                         and account.currency == "AUD" and positions is not None and len(positions) == 0)
+    finally:
+        if "initialized" in locals() and initialized:
+            mt5.shutdown()
+    if not valid_account:
+        raise SystemExit("M20 continuity protocol requires flat available Demo account")
+    task_check = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
+         "$t=Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop;"
+         "if($t.Principal.LogonType.ToString() -ne 'S4U'){exit 2};exit 0"],
+        text=True, capture_output=True, check=False, timeout=15,
+    )
+    if task_check.returncode != 0:
+        raise SystemExit("M20 continuity protocol requires listener S4U task identity")
+    run_id = hashlib.sha256((ROOT.name + _utc_now()).encode("utf-8")).hexdigest()[:24]
+    baseline = {"release_id": ROOT.name, "listener_logon_type": "S4U",
+                "account": {"server": account.server, "currency": account.currency,
+                            "position_observation": "AVAILABLE", "open_positions": 0}}
+    record = {"schema_version": "forex.m20.continuity-protocol.v1", "run_id": run_id,
+              "release_id": ROOT.name, "started_at_utc": _utc_now(), "state": "ARMED",
+              "baseline": baseline, "samples": [], "incident_delivery": {"state": "PENDING"}}
+    _write_continuity_protocol(record)
+    protocol_task = "Forex-M20-Continuity-Protocol"
+    command = (
+        "$ErrorActionPreference='Stop';$n='Forex-M20-Continuity-Protocol';"
+        "$a=New-ScheduledTaskAction -Execute '" + str(values["python_path"]).replace("'", "''")
+        + "' -Argument '\"" + str(Path(__file__).resolve()).replace("'", "''") + "\" --continuity-protocol';"
+        "$p=New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U -RunLevel Highest;"
+        "$s=New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero);"
+        "Register-ScheduledTask -TaskName $n -Action $a -Principal $p -Settings $s -Force|Out-Null;Start-ScheduledTask -TaskName $n"
+    )
+    scheduled = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command],
+                                text=True, capture_output=True, check=False, timeout=30)
+    if scheduled.returncode != 0:
+        CONTINUITY_PROTOCOL_PATH.unlink(missing_ok=True)
+        raise SystemExit("M20 continuity protocol task registration failed")
+    print(json.dumps({"armed": True, "run_id": run_id, "task": protocol_task,
+                      "maintenance_hold": True, "broker_mutation": "NONE"}, separators=(",", ":")))
+    return 0
+
+
 def run_continuity_protocol() -> int:
     """Run the self-contained held-only continuity proof on T480.
 
@@ -819,5 +876,7 @@ if __name__ == "__main__":
         run_guarded()
     elif len(sys.argv) == 2 and sys.argv[1] == "--continuity-protocol":
         raise SystemExit(run_continuity_protocol())
+    elif len(sys.argv) == 2 and sys.argv[1] == "--arm-continuity-protocol":
+        raise SystemExit(arm_continuity_protocol())
     else:
         raise SystemExit("M20 listener service accepts no arguments or --continuity-protocol")
