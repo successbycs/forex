@@ -365,6 +365,9 @@ def test_m20_listener_install_is_hash_checked_and_fixed():
     assert "m20_demo_listener_service.payload" in command
     assert "C:\\ProgramData\\ForexListener" in command
     assert "Export-ScheduledTask" in command
+    assert "Get-CimInstance Win32_Process" in command
+    assert "m20_demo_listener_service.payload" in command
+    assert "Stop-Process -Id $_.ProcessId -Force" in command
     assert "M20 deployment rolled back" in command
     assert "-RestartCount 3" in command
     assert "-ExecutionTimeLimit ([TimeSpan]::Zero)" in command
