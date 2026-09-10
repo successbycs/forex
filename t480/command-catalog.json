@@ -113,6 +113,16 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_install_watchdog",
+      "purpose": "Install the fixed Session-0 watchdog that asks Windows Task Scheduler to run the existing Demo listener at boot and every two minutes.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_watchdog_status",
+      "purpose": "Read the fixed Session-0 listener watchdog task and schedule without starting either task.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_activate_demo_lease",
       "purpose": "Create a new continuous GOMarketsMU-Demo EURUSD M1 lease with the governed M20 caps.",
       "approval_required": false

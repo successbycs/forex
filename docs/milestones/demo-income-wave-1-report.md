@@ -1572,3 +1572,31 @@ review. The operator's model assignment requires Terra for this implementation;
 the current Astra turn stops at the concrete review finding and safe handover.
 Genuine lifecycle/accounting/protected-restart evidence and final M20 gates
 remain pending; NO_TRADE_RECONCILED is operational evidence only.
+
+## 2026-09-10 T480 autonomous listener watchdog installed
+
+The non-trading continuity interval was cancelled under maintenance hold and
+retained as `INCONCLUSIVE` with reason
+`OPERATOR_CANCELLED_BEFORE_INTERVAL`; it is not continuity proof.
+
+To remove reliance on a T16 connection or interactive sign-in, the fixed T480
+operation `m20_listener_install_watchdog` installed
+`Forex-M20-Listener-Watchdog`. It runs as `S4U` in Session 0, starts at Windows
+boot, and repeats every two minutes for up to 3,650 days. Its only action is
+Windows Task Scheduler's fixed request to run `Forex-M20-Demo-Listener`.
+It has no broker, order, lease, risk-policy, hold-release, credential, or
+caller-supplied command surface. The installation response records
+`broker_mutation: NONE`.
+
+A separate fixed read-only check confirms the watchdog is installed, `Ready`,
+uses `schtasks.exe /run /tn "Forex-M20-Demo-Listener"`, ran successfully, and
+uses the `S4U` logon type. The listener remained `Running` in
+`MAINTENANCE_HOLD` with a fresh heartbeat, no failure record, and a flat
+GOMarketsMU-Demo account. Raw T480 operation responses remain in the governed
+adapter execution log; no webhook, credential, or account secret is retained
+here.
+
+This confirms installed unattended scheduling, not an unattended reboot proof.
+A controlled reboot/no-sign-in test remains the real-world continuity criterion
+and must retain the task and listener recovery observations before it can be
+claimed. No Live access, forced order, hold release, or push occurred.

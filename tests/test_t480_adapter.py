@@ -396,6 +396,27 @@ def test_m20_listener_install_is_hash_checked_and_fixed():
     assert "FOREX_M20_DISCORD_WEBHOOK_URL" not in command
 
 
+def test_m20_listener_watchdog_is_fixed_session_zero_and_has_no_order_surface():
+    command = t480_adapter.OPERATIONS["m20_listener_install_watchdog"].powershell_command or ""
+    assert "Forex-M20-Demo-Listener" in command
+    assert "Forex-M20-Listener-Watchdog" in command
+    assert "New-ScheduledTaskTrigger -AtStartup" in command
+    assert "-RepetitionInterval (New-TimeSpan -Minutes 2)" in command
+    assert "New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U" in command
+    assert "schtasks.exe" in command
+    assert "broker_mutation='NONE'" in command
+    assert "order_send" not in command and "GOMarketsMU-Live" not in command
+
+
+def test_m20_listener_watchdog_status_is_read_only():
+    command = t480_adapter.OPERATIONS["m20_listener_watchdog_status"].powershell_command or ""
+    assert "Forex-M20-Listener-Watchdog" in command
+    assert "Get-ScheduledTaskInfo" in command
+    assert "Start-ScheduledTask" not in command
+    assert "Stop-ScheduledTask" not in command
+    assert "order_send" not in command and "GOMarketsMU-Live" not in command
+
+
 def test_m20_listener_release_includes_the_fixed_t480_discord_adapter_without_exposing_its_webhook():
     prepare = t480_adapter.OPERATIONS["m20_listener_prepare"].powershell_command or ""
     configure = t480_adapter.OPERATIONS["m20_listener_configure"].powershell_command or ""

@@ -372,6 +372,30 @@ def _m20_listener_recover_command() -> str:
     )
 
 
+def _m20_listener_install_watchdog_command() -> str:
+    """Install a fixed Session-0 task that asks Task Scheduler to run the listener."""
+    return (
+        "$ErrorActionPreference='Stop';$listener='Forex-M20-Demo-Listener';$watch='Forex-M20-Listener-Watchdog';"
+        "if($null -eq (Get-ScheduledTask -TaskName $listener -ErrorAction SilentlyContinue)){throw 'Listener task is absent'};"
+        "$principal=New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U -RunLevel Highest;"
+        "$action=New-ScheduledTaskAction -Execute 'schtasks.exe' -Argument '/run /tn \"Forex-M20-Demo-Listener\"';"
+        "$boot=New-ScheduledTaskTrigger -AtStartup;$repeat=New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(1)) -RepetitionInterval (New-TimeSpan -Minutes 2) -RepetitionDuration (New-TimeSpan -Days 3650);"
+        "$settings=New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 1) -MultipleInstances IgnoreNew;"
+        "Register-ScheduledTask -TaskName $watch -Action $action -Trigger @($boot,$repeat) -Principal $principal -Settings $settings -Force|Out-Null;Start-ScheduledTask -TaskName $watch -ErrorAction SilentlyContinue;"
+        "[pscustomobject]@{installed=$true;task=$watch;listener=$listener;interval_minutes=2;broker_mutation='NONE'}|ConvertTo-Json -Compress"
+    )
+
+
+def _m20_listener_watchdog_status_command() -> str:
+    """Read the fixed watchdog identity and schedule without starting either task."""
+    return (
+        "$ErrorActionPreference='Stop';$t=Get-ScheduledTask -TaskName 'Forex-M20-Listener-Watchdog' -ErrorAction SilentlyContinue;"
+        "if($null -eq $t){[pscustomobject]@{installed=$false;task='Forex-M20-Listener-Watchdog'}|ConvertTo-Json -Compress;exit 0};"
+        "$i=Get-ScheduledTaskInfo -TaskName $t.TaskName;$a=$t.Actions|Select-Object -First 1;"
+        "[pscustomobject]@{installed=$true;task=$t.TaskName;state=$t.State.ToString();logon_type=$t.Principal.LogonType.ToString();execute=$a.Execute;arguments=$a.Arguments;last_result=$i.LastTaskResult;last_run_utc=$i.LastRunTime.ToUniversalTime().ToString('o')}|ConvertTo-Json -Compress"
+    )
+
+
 def _m20_listener_activate_demo_lease_command() -> str:
     """Create only the fixed, bounded M20 Demo lease for the listener."""
     return (
@@ -820,6 +844,16 @@ OPERATIONS: dict[str, Operation] = {
         "m20_listener_recover",
         "Restart only the fixed permanent M20 Demo listener Scheduled Task.",
         powershell_command=_m20_listener_recover_command(),
+    ),
+    "m20_listener_install_watchdog": Operation(
+        "m20_listener_install_watchdog",
+        "Install the fixed Session-0 watchdog that asks Windows Task Scheduler to run the existing Demo listener at boot and every two minutes.",
+        powershell_command=_m20_listener_install_watchdog_command(),
+    ),
+    "m20_listener_watchdog_status": Operation(
+        "m20_listener_watchdog_status",
+        "Read the fixed Session-0 listener watchdog task and schedule without starting either task.",
+        powershell_command=_m20_listener_watchdog_status_command(),
     ),
     "m20_listener_activate_demo_lease": Operation(
         "m20_listener_activate_demo_lease",
