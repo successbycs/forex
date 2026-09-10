@@ -387,7 +387,13 @@ def test_m20_listener_install_is_hash_checked_and_fixed():
     assert "M20 deployment rolled back" in command
     assert "-RestartCount 3" in command
     assert "-ExecutionTimeLimit ([TimeSpan]::Zero)" in command
+    assert "Forex-M20-Listener-Watchdog" in command
+    assert "-RepetitionInterval (New-TimeSpan -Minutes 2)" in command
+    assert "schtasks.exe" in command
+    assert "/run /tn \"Forex-M20-Demo-Listener\"" in command
+    assert "-MultipleInstances IgnoreNew" in command
     assert "FOREX_M20_POSTGRES_DSN" not in command
+    assert "FOREX_M20_DISCORD_WEBHOOK_URL" not in command
 
 
 def test_m20_listener_release_includes_the_fixed_t480_discord_adapter_without_exposing_its_webhook():
