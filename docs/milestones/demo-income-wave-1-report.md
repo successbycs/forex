@@ -1,5 +1,17 @@
 # Wave 1 progress and proposed risk policy
 
+## 2026-09-10 closeout review and automatic-restart failure repair in progress
+
+Astra independently accepted the captured protected listener recovery and later exact broker closure of BUY 42234057: AUD -0.47, broker stop-loss close at 08:43:50 UTC, PostgreSQL observation one second later, original proposal/attempt/lease retained. Six closed trades net AUD -1.98 and exactly bridge 100994.79 to 100992.81. Raw: `runs/evidence/M20/w1-closeout-20260910T084421Z/raw/`. Separate verification: `runs/verification/M20/w1-closeout-20260910/verify_retained.py` and `result.json`. Review: `docs/reviews/w1-closeout-astra-20260910.md`.
+
+The next ordinary SELL 42235606 exposed a real failure in the newly added automatic drill: at 08:51:09 the scheduled task was Ready/result1 with no processes despite configured retries. The fixed listener recovery was performed under maintenance hold; by 08:52:43 monitoring was healthy. Broker account was AVAILABLE/flat at AUD 100992.55, post-recovery unresolved executions were empty, and expected balance matched. Original risk anchors and Option B pauses remain unchanged. The second close is broker/ledger evidence separately from the six-trade sample.
+
+Terra is repairing drill bookkeeping so invalid/unwritable state cannot terminate protection, enforcing exact attempt+ticket recovery, and replacing exit-and-hope-for-task-retry with a supervised replacement worker. Astra also found that the old refusal probe called an obsolete sizing helper; the corrected probe shares the current loss calculation and validates quote UTC freshness. No trade is manufactured. Deployment and fresh refusal proof follow affected-area review under the existing hold.
+
+Scope correction: unobserved partial fills, nonzero posted charges and overnight/special-day tariffs are explicit qualification gaps, not mandatory observations for the approved temporary intraday scope. Normal eligible-signal refusal is not an extra requirement invented by the handover. Actual production risk-calculation refusal and isolated reservation tests remain distinct.
+
+**Wave 1 is not yet complete.** Required work includes reviewed repair/deployment, fresh applicable refusal proof with immediate original-lease restoration, exact final payload/configuration/limits binding and current recommendation. W1.R detached-T16/no-logon and incident-delivery proof still needs its explicit dependency disposition; backups alone are deferred to W4.0. Do not infer those capabilities from a listener-only restart or silently waive them. M20 retains its full independent capture/verification/Triad gates. No new wave, Live access or push is authorised.
+
 ## 2026-09-10 automated protected-restart trigger deployed
 
 The operator authorised removal of the manual restart dependency. Commit `d897484` adds a T480-local one-shot trigger: after the first naturally accepted full Demo position has a durable `OPEN_MONITORING` record and broker SL/TP, it atomically records the bound attempt/ticket, exits the Scheduled Task once, and relies on the existing bounded task restart. Startup recovery records either `RECOVERED` for that exact open ticket or `CLOSED_BEFORE_RECOVERY`; terminal state prevents repetition. It never creates an order or changes broker protection. The focused listener and T480 adapter tests passed (95 tests total). The trigger is installed in release `fde38161fecebeae`.

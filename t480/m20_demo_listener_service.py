@@ -50,33 +50,83 @@ RUNNER_PATH = ROOT / "m20_demo_trading_session.payload"
 POLL_SECONDS = 1
 ASSESSMENT_INTERVAL_SECONDS = 5
 MONITOR_RETRY_SECONDS = 10
+RESTART_DRILL_OBSERVATION = "NOT_CHECKED"
 
 
 class ProtectedRestartDrillRequested(RuntimeError):
     """Intentional one-shot task exit after durable broker protection exists."""
 
 
-def _restart_drill_state() -> dict[str, Any]:
-    """Load or atomically arm the one-shot protected-position restart drill."""
+def _restart_drill_state() -> dict[str, Any] | None:
+    """Load or atomically arm the optional one-shot protected restart drill.
+
+    The drill can never displace the normal protection/recovery path.  Its
+    corrupt or unwritable local marker therefore disables only the drill; the
+    marker is preserved for operator diagnosis and is never reset or rearmed.
+    """
+    global RESTART_DRILL_OBSERVATION
     if not PROTECTED_RESTART_DRILL_PATH.exists():
         state = {"schema_version": "forex.m20.protected-restart-drill.v1", "state": "ARMED"}
         temporary = PROTECTED_RESTART_DRILL_PATH.with_suffix(".tmp")
-        temporary.write_text(json.dumps(state, sort_keys=True, separators=(",", ":")), encoding="utf-8")
-        temporary.replace(PROTECTED_RESTART_DRILL_PATH)
+        try:
+            temporary.write_text(json.dumps(state, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+            temporary.replace(PROTECTED_RESTART_DRILL_PATH)
+        except OSError:
+            RESTART_DRILL_OBSERVATION = "UNWRITABLE"
+            return None
+        RESTART_DRILL_OBSERVATION = "VALID"
         return state
     try:
         state = json.loads(PROTECTED_RESTART_DRILL_PATH.read_text(encoding="utf-8-sig"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise SystemExit("M20 protected restart drill state is unreadable") from error
-    if not isinstance(state, dict) or state.get("schema_version") != "forex.m20.protected-restart-drill.v1" or state.get("state") not in {"ARMED", "RESTART_REQUESTED", "RECOVERED", "CLOSED_BEFORE_RECOVERY"}:
-        raise SystemExit("M20 protected restart drill state is invalid")
+    except (OSError, json.JSONDecodeError):
+        RESTART_DRILL_OBSERVATION = "UNREADABLE"
+        return None
+    if (not isinstance(state, dict)
+            or state.get("schema_version") != "forex.m20.protected-restart-drill.v1"
+            or state.get("state") not in {"ARMED", "RESTART_REQUESTED", "RESTARTING", "RECOVERED", "CLOSED_BEFORE_RECOVERY", "RESTART_FAILED"}):
+        RESTART_DRILL_OBSERVATION = "INVALID"
+        return None
+    if state["state"] != "ARMED" and (not isinstance(state.get("attempt_id"), str) or not state["attempt_id"]
+                                        or not isinstance(state.get("position_ticket"), int) or isinstance(state["position_ticket"], bool) or state["position_ticket"] <= 0):
+        RESTART_DRILL_OBSERVATION = "INVALID"
+        return None
+    RESTART_DRILL_OBSERVATION = "VALID"
     return state
 
 
-def _write_restart_drill_state(state: dict[str, Any]) -> None:
+def _write_restart_drill_state(state: dict[str, Any]) -> bool:
+    global RESTART_DRILL_OBSERVATION
     temporary = PROTECTED_RESTART_DRILL_PATH.with_suffix(".tmp")
-    temporary.write_text(json.dumps(state, sort_keys=True, separators=(",", ":")), encoding="utf-8")
-    temporary.replace(PROTECTED_RESTART_DRILL_PATH)
+    try:
+        temporary.write_text(json.dumps(state, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+        temporary.replace(PROTECTED_RESTART_DRILL_PATH)
+    except OSError:
+        RESTART_DRILL_OBSERVATION = "UNWRITABLE"
+        return False
+    RESTART_DRILL_OBSERVATION = "VALID"
+    return True
+
+
+def _restart_drill_status() -> dict[str, Any]:
+    """Return a redacted drill incident suitable for the public heartbeat."""
+    state = _restart_drill_state()
+    if state is None:
+        return {"observation": RESTART_DRILL_OBSERVATION, "state": None}
+    state_name = state["state"]
+    observation = "VALID" if state_name in {"ARMED", "RECOVERED", "CLOSED_BEFORE_RECOVERY"} else (
+        "LEGACY_UNVERIFIED" if state_name == "RESTART_REQUESTED" and not state.get("restart_parent_pid") else
+        ("PENDING" if state_name in {"RESTART_REQUESTED", "RESTARTING"} else "FAULTED")
+    )
+    return {
+        "observation": observation, "state": state_name,
+        "attempt_id": state.get("attempt_id"), "position_ticket": state.get("position_ticket"),
+        "requested_at_utc": state.get("requested_at_utc"),
+        "restart_parent_pid": state.get("restart_parent_pid"),
+        "restart_started_at_utc": state.get("restart_started_at_utc"),
+        "recovery_worker_pid": state.get("recovery_worker_pid"),
+        "failure_reason": state.get("failure_reason"),
+        "completed_at_utc": state.get("recovered_at_utc", state.get("observed_at_utc")),
+    }
 
 
 def _request_protected_restart(output: dict[str, Any]) -> None:
@@ -84,37 +134,86 @@ def _request_protected_restart(output: dict[str, Any]) -> None:
     state = _restart_drill_state()
     execution = output.get("execution")
     reconciliation = output.get("reconciliation")
-    if state.get("state") != "ARMED" or not isinstance(execution, dict) or not isinstance(reconciliation, dict):
+    if not isinstance(state, dict) or state.get("state") != "ARMED" or not isinstance(execution, dict) or not isinstance(reconciliation, dict):
         return
     if execution.get("status") != "ACCEPTED" or execution.get("monitor_job_scheduled") is not True or reconciliation.get("status") != "OPEN_MONITORING":
         return
     ticket = reconciliation.get("position_ticket")
     attempt_id = execution.get("attempt_id")
     if not isinstance(ticket, int) or ticket <= 0 or not isinstance(attempt_id, str):
-        raise SystemExit("M20 protected restart drill cannot bind accepted position")
-    _write_restart_drill_state({"schema_version": "forex.m20.protected-restart-drill.v1", "state": "RESTART_REQUESTED", "attempt_id": attempt_id, "position_ticket": ticket, "requested_at_utc": _utc_now()})
+        return
+    if not _write_restart_drill_state({"schema_version": "forex.m20.protected-restart-drill.v1", "state": "RESTART_REQUESTED", "attempt_id": attempt_id, "position_ticket": ticket, "requested_at_utc": _utc_now()}):
+        return
     raise ProtectedRestartDrillRequested("M20 protected restart drill requested")
 
 
 def _record_protected_restart_recovery(monitor: dict[str, Any]) -> None:
     """Close the one-shot drill only after startup sees the bound durable state."""
     state = _restart_drill_state()
-    if state.get("state") != "RESTART_REQUESTED":
+    if not isinstance(state, dict) or state.get("state") not in {"RESTART_REQUESTED", "RESTARTING"}:
         return
     recovered = monitor.get("result", {}).get("recovered") if isinstance(monitor.get("result"), dict) else None
     if not isinstance(recovered, list):
         return
-    ticket = state.get("position_ticket")
+    ticket = state["position_ticket"]
+    attempt_id = state["attempt_id"]
     for item in recovered:
-        if not isinstance(item, dict) or item.get("position_ticket") != ticket:
+        if not isinstance(item, dict) or item.get("position_ticket") != ticket or item.get("attempt_id") != attempt_id:
             continue
         reconciliation = item.get("reconciliation")
         status = reconciliation.get("status") if isinstance(reconciliation, dict) else None
         if status == "OPEN_MONITORING":
-            _write_restart_drill_state({**state, "state": "RECOVERED", "recovered_at_utc": _utc_now()})
+            _write_restart_drill_state({**state, "state": "RECOVERED", "recovery_worker_pid": os.getpid(), "recovered_at_utc": _utc_now()})
         elif status == "MATCHED":
-            _write_restart_drill_state({**state, "state": "CLOSED_BEFORE_RECOVERY", "observed_at_utc": _utc_now()})
+            _write_restart_drill_state({**state, "state": "CLOSED_BEFORE_RECOVERY", "recovery_worker_pid": os.getpid(), "observed_at_utc": _utc_now()})
         return
+
+
+def _latch_protected_restart_failure(reason: str, exit_code: int | None = None) -> None:
+    """Retain a redacted drill fault and leave normal monitoring available."""
+    state = _restart_drill_state()
+    if not isinstance(state, dict) or state.get("state") == "ARMED":
+        return
+    failed = {**state, "state": "RESTART_FAILED", "failure_reason": reason,
+              "failure_at_utc": _utc_now(), "restart_parent_pid": os.getpid()}
+    if exit_code is not None:
+        failed["restart_child_exit_code"] = exit_code
+    _write_restart_drill_state(failed)
+
+
+def _run_protected_restart_child() -> bool:
+    """Run one fixed child worker while this task-owned parent waits inertly."""
+    state = _restart_drill_state()
+    if not isinstance(state, dict) or state.get("state") != "RESTART_REQUESTED":
+        return False
+    restarting = {**state, "state": "RESTARTING", "restart_parent_pid": os.getpid(),
+                  "restart_started_at_utc": _utc_now()}
+    if not _write_restart_drill_state(restarting):
+        return False
+    try:
+        child = subprocess.Popen(
+            [str(Path(sys.executable).resolve()), str(Path(__file__).resolve())], close_fds=True,
+        )
+    except OSError:
+        _latch_protected_restart_failure("CHILD_SPAWN_FAILED")
+        return False
+    while True:
+        try:
+            exit_code = child.wait(timeout=1)
+            break
+        except subprocess.TimeoutExpired:
+            # Parent remains inert and task-owned while the child is alive.
+            continue
+        except OSError:
+            # Do not resume a second monitor loop until a later wait proves
+            # that this child is gone. ScheduledTask stop kills this process
+            # tree if an operator needs to interrupt the retained parent.
+            _latch_protected_restart_failure("CHILD_WAIT_FAILED")
+            time.sleep(POLL_SECONDS)
+    if exit_code != 0:
+        _latch_protected_restart_failure("CHILD_EXIT_NONZERO", exit_code)
+        return False
+    return True
 
 
 def _utc_now() -> str:
@@ -406,6 +505,7 @@ def run() -> None:
         maintenance_hold = _maintenance_hold()
         if maintenance_hold["active"]:
             monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
+            _record_protected_restart_recovery(monitor_state)
             _write_status({"state": "MAINTENANCE_HOLD", "iteration": iteration,
                            "last_result": last_result, "next_assessment_at_utc": None,
                            "assessment_completed_at_utc": last_assessment_completed_at_utc,
@@ -417,6 +517,7 @@ def run() -> None:
             continue
         if not _active_lease():
             monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
+            _record_protected_restart_recovery(monitor_state)
             _write_status({"state": "WAITING_FOR_ACTIVE_DEMO_LEASE", "iteration": iteration,
                            "last_result": last_result, "next_assessment_at_utc": None,
                            "assessment_completed_at_utc": last_assessment_completed_at_utc,
@@ -442,6 +543,18 @@ def run() -> None:
                 continue
             monitor_initialized = True
             _record_protected_restart_recovery(monitor_state)
+        restart_drill = _restart_drill_status()
+        if restart_drill["observation"] not in {"VALID", "LEGACY_UNVERIFIED"}:
+            monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
+            _write_status({"state": "DRILL_UNAVAILABLE", "iteration": iteration,
+                           "last_result": last_result, "next_assessment_at_utc": None,
+                           "assessment_completed_at_utc": last_assessment_completed_at_utc,
+                           "assessment_duration_ms": last_assessment_duration_ms,
+                           "monitor": monitor_state, "quote": last_quote,
+                           "protected_restart_drill": restart_drill,
+                           "detail": "Protected-restart drill marker is unavailable; monitoring continues but no assessment or Demo order is permitted."})
+            time.sleep(POLL_SECONDS)
+            continue
         if now < next_assessment_at:
             # A bounded monitor pass belongs in the idle period.  It must not
             # delay an eligible fresh-quote assessment and its trade decision.
@@ -451,7 +564,7 @@ def run() -> None:
                            "next_assessment_at_utc": datetime.fromtimestamp(time.time() + next_assessment_at - now, timezone.utc).isoformat().replace("+00:00", "Z"),
                            "assessment_completed_at_utc": last_assessment_completed_at_utc,
                            "assessment_duration_ms": last_assessment_duration_ms,
-                           "monitor": monitor_state,
+                           "monitor": monitor_state, "protected_restart_drill": restart_drill,
                            "detail": "Waiting for the five-second minimum before accepting the next MT5 quote update."})
             # Monitoring is bounded but can still consume the remaining
             # assessment interval.  A negative sleep would terminate this
@@ -465,7 +578,7 @@ def run() -> None:
                            "last_result": last_result, "next_assessment_at_utc": None,
                            "assessment_completed_at_utc": last_assessment_completed_at_utc,
                            "assessment_duration_ms": last_assessment_duration_ms,
-                           "monitor": monitor_state, "quote": quote,
+                           "monitor": monitor_state, "quote": quote, "protected_restart_drill": restart_drill,
                            "detail": "Waiting for a readable fresh Demo EURUSD quote; no assessment or order is submitted."})
             time.sleep(POLL_SECONDS)
             continue
@@ -476,7 +589,7 @@ def run() -> None:
                            "last_result": last_result, "next_assessment_at_utc": None,
                            "assessment_completed_at_utc": last_assessment_completed_at_utc,
                            "assessment_duration_ms": last_assessment_duration_ms,
-                           "monitor": monitor_state, "quote": quote,
+                           "monitor": monitor_state, "quote": quote, "protected_restart_drill": restart_drill,
                            "detail": "The five-second interval has elapsed; waiting for the next MT5 quote update before assessing again."})
             time.sleep(POLL_SECONDS)
             continue
@@ -514,41 +627,48 @@ def run() -> None:
                        "assessment_completed_at_utc": assessment_completed_at_utc,
                        "assessment_duration_ms": assessment_duration_ms,
                        "next_assessment_at_utc": datetime.fromtimestamp(time.time() + max(0, next_assessment_at - time.monotonic()), timezone.utc).isoformat().replace("+00:00", "Z"),
-                       "monitor": monitor_state, "quote": quote,
+                       "monitor": monitor_state, "quote": quote, "protected_restart_drill": restart_drill,
                        "detail": "This assessment started from a fresh MT5 quote. The next needs a later quote update and the five-second minimum; decisions use completed M1 candles."})
     _write_status({"state": "STOPPED", "iteration": iteration, "last_result": last_result,
                    "next_assessment_at_utc": None, "monitor": monitor_state, "detail": "Stop sentinel observed."})
 
 
 def run_guarded() -> None:
-    try:
-        run()
-    except (Exception, SystemExit) as error:
-        if isinstance(error, ProtectedRestartDrillRequested):
-            raise
-        if isinstance(error, SystemExit) and error.code in (None, 0):
-            raise
-        # Never retain exception messages, source lines, locals or environment:
-        # database/notification exceptions can contain credentials.
-        failure = {"captured_at_utc": _utc_now(), "release_id": ROOT.name,
-                   "exception_type": type(error).__name__,
-                   "errno": getattr(error, "errno", None),
-                   "winerror": getattr(error, "winerror", None),
-                   "frames": [{"file": Path(frame.filename).name, "line": frame.lineno,
-                               "function": frame.name}
-                              for frame in traceback.extract_tb(error.__traceback__)[-6:]]}
+    while True:
         try:
-            with FAILURE_PATH.open("a", encoding="utf-8") as stream:
-                stream.write(json.dumps(failure, sort_keys=True) + "\n")
-        except OSError:
-            pass  # Storage failure must not replace the original exception.
-        try:
-            _write_status({"state": "STARTUP_FAILED", "iteration": 0, "last_result": {},
-                           "next_assessment_at_utc": None,
-                           "detail": "Listener exited: " + type(error).__name__ + "; inspect retained failure frames."})
-        except OSError:
-            pass
-        raise
+            run()
+            return
+        except ProtectedRestartDrillRequested:
+            # ScheduledTask retry did not restart a deliberate normal exit.
+            # This parent remains task-owned and inert while one fixed child
+            # worker runs; a failure falls back to parent monitoring only.
+            if _run_protected_restart_child():
+                return
+            continue
+        except (Exception, SystemExit) as error:
+            if isinstance(error, SystemExit) and error.code in (None, 0):
+                raise
+            # Never retain exception messages, source lines, locals or environment:
+            # database/notification exceptions can contain credentials.
+            failure = {"captured_at_utc": _utc_now(), "release_id": ROOT.name,
+                       "exception_type": type(error).__name__,
+                       "errno": getattr(error, "errno", None),
+                       "winerror": getattr(error, "winerror", None),
+                       "frames": [{"file": Path(frame.filename).name, "line": frame.lineno,
+                                   "function": frame.name}
+                                  for frame in traceback.extract_tb(error.__traceback__)[-6:]]}
+            try:
+                with FAILURE_PATH.open("a", encoding="utf-8") as stream:
+                    stream.write(json.dumps(failure, sort_keys=True) + "\n")
+            except OSError:
+                pass  # Storage failure must not replace the original exception.
+            try:
+                _write_status({"state": "STARTUP_FAILED", "iteration": 0, "last_result": {},
+                               "next_assessment_at_utc": None,
+                               "detail": "Listener exited: " + type(error).__name__ + "; inspect retained failure frames."})
+            except OSError:
+                pass
+            raise
 
 
 if __name__ == "__main__":

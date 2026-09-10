@@ -1,9 +1,25 @@
 import importlib.util
+import importlib.machinery
 import json
 from pathlib import Path
 
+import pytest
+
 
 SOURCE = Path("t480/m20_demo_listener_service.py")
+
+
+@pytest.fixture(autouse=True)
+def isolate_protected_restart_drill(tmp_path, monkeypatch):
+    """Keep every dynamically loaded listener module off the repository tree."""
+    original = importlib.machinery.SourceFileLoader.exec_module
+
+    def load(loader, module):
+        original(loader, module)
+        if Path(getattr(module, "__file__", "")).resolve() == SOURCE.resolve():
+            monkeypatch.setattr(module, "PROTECTED_RESTART_DRILL_PATH", tmp_path / "restart-drill.json")
+
+    monkeypatch.setattr(importlib.machinery.SourceFileLoader, "exec_module", load)
 
 
 def test_permanent_listener_is_a_bounded_m1_supervisor_with_status_and_stop():
@@ -118,6 +134,8 @@ def test_listener_blocks_assessment_but_keeps_monitoring_during_maintenance(tmp_
     monkeypatch.setattr(module, "STATUS_PATH", tmp_path / "listener-status.json")
     monkeypatch.setattr(module, "ASSESSMENT_TOTAL_PATH", tmp_path / "assessment-total.json")
     monkeypatch.setattr(module, "MAINTENANCE_HOLD_PATH", tmp_path / "hold.json")
+    monkeypatch.setattr(module, "PROTECTED_RESTART_DRILL_PATH", tmp_path / "restart-drill.json")
+    module._write_restart_drill_state({"schema_version": "forex.m20.protected-restart-drill.v1", "state": "RESTART_REQUESTED", "attempt_id": "attempt", "position_ticket": 42, "requested_at_utc": "2026-09-10T00:00:00Z"})
     module.MAINTENANCE_HOLD_PATH.write_text(json.dumps({
         "schema_version": "forex.m20.maintenance-hold.v1", "enabled": True, "reason": "test",
     }), encoding="utf-8")
@@ -127,7 +145,7 @@ def test_listener_blocks_assessment_but_keeps_monitoring_during_maintenance(tmp_
     def monitor(values, previous, retry_at):
         calls.append("monitor")
         module.STOP_PATH.write_text("stop", encoding="utf-8")
-        return {"state": "IDLE"}, 0.0
+        return {"state": "IDLE", "result": {"recovered": [{"attempt_id": "attempt", "position_ticket": 42, "reconciliation": {"status": "OPEN_MONITORING"}}]}}, 0.0
     monkeypatch.setattr(module, "_monitor_update", monitor)
     monkeypatch.setattr(module, "_quote_identity", lambda values: calls.append("quote"))
     statuses = []
@@ -135,6 +153,7 @@ def test_listener_blocks_assessment_but_keeps_monitoring_during_maintenance(tmp_
     module.run()
     assert calls == ["monitor"]
     assert any(status["state"] == "MAINTENANCE_HOLD" for status in statuses)
+    assert module._restart_drill_state()["state"] == "RECOVERED"
 
 
 def test_listener_reconciles_durable_positions_before_its_first_assessment(tmp_path, monkeypatch):
@@ -318,5 +337,142 @@ def test_one_shot_protected_restart_drill_records_recovery_or_prior_close(tmp_pa
     service = _crash_test_service()
     monkeypatch.setattr(service, "PROTECTED_RESTART_DRILL_PATH", tmp_path / "restart-drill.json")
     service._write_restart_drill_state({"schema_version": "forex.m20.protected-restart-drill.v1", "state": "RESTART_REQUESTED", "attempt_id": "attempt", "position_ticket": 42, "requested_at_utc": "2026-09-10T00:00:00Z"})
-    service._record_protected_restart_recovery({"result": {"recovered": [{"position_ticket": 42, "reconciliation": {"status": "OPEN_MONITORING"}}]}})
+    service._record_protected_restart_recovery({"result": {"recovered": [{"attempt_id": "other", "position_ticket": 42, "reconciliation": {"status": "OPEN_MONITORING"}}]}})
+    assert service._restart_drill_state()["state"] == "RESTART_REQUESTED"
+    service._record_protected_restart_recovery({"result": {"recovered": [{"attempt_id": "attempt", "position_ticket": 42, "reconciliation": {"status": "OPEN_MONITORING"}}]}})
     assert service._restart_drill_state()["state"] == "RECOVERED"
+
+
+def test_protected_restart_drill_corruption_or_write_failure_does_not_interrupt_protection(tmp_path, monkeypatch):
+    service = _crash_test_service()
+    marker = tmp_path / "restart-drill.json"
+    monkeypatch.setattr(service, "PROTECTED_RESTART_DRILL_PATH", marker)
+    marker.write_text("not-json", encoding="utf-8")
+    assert service._restart_drill_state() is None
+    assert service._restart_drill_status() == {"observation": "UNREADABLE", "state": None}
+    service._request_protected_restart({
+        "execution": {"status": "ACCEPTED", "monitor_job_scheduled": True, "attempt_id": "attempt"},
+        "reconciliation": {"status": "OPEN_MONITORING", "position_ticket": 42},
+    })
+    service._record_protected_restart_recovery({"result": {"recovered": []}})
+    assert marker.read_text(encoding="utf-8") == "not-json"
+
+    marker.unlink()
+    monkeypatch.setattr(service, "_write_restart_drill_state", lambda state: False)
+    service._request_protected_restart({
+        "execution": {"status": "ACCEPTED", "monitor_job_scheduled": True, "attempt_id": "attempt"},
+        "reconciliation": {"status": "OPEN_MONITORING", "position_ticket": 42},
+    })
+    assert service._restart_drill_state()["state"] == "ARMED"
+
+
+def test_protected_restart_drill_rejects_boolean_ticket_and_keeps_marker_for_review(tmp_path, monkeypatch):
+    service = _crash_test_service()
+    marker = tmp_path / "restart-drill.json"
+    monkeypatch.setattr(service, "PROTECTED_RESTART_DRILL_PATH", marker)
+    marker.write_text(json.dumps({
+        "schema_version": "forex.m20.protected-restart-drill.v1", "state": "RESTART_REQUESTED",
+        "attempt_id": "attempt", "position_ticket": True,
+    }), encoding="utf-8")
+    assert service._restart_drill_state() is None
+    assert service._restart_drill_status() == {"observation": "INVALID", "state": None}
+
+
+def test_protected_restart_child_uses_fixed_absolute_payload_and_retains_parent(tmp_path, monkeypatch):
+    service = _crash_test_service()
+    monkeypatch.setattr(service, "PROTECTED_RESTART_DRILL_PATH", tmp_path / "restart-drill.json")
+    service._write_restart_drill_state({"schema_version": "forex.m20.protected-restart-drill.v1", "state": "RESTART_REQUESTED", "attempt_id": "attempt", "position_ticket": 42, "requested_at_utc": "2026-09-10T00:00:00Z"})
+    calls = []
+
+    class Child:
+        def wait(self, timeout=None):
+            calls.append(("wait", timeout))
+            return 0
+
+    def launch(argv, **kwargs):
+        calls.append(("launch", argv, kwargs))
+        return Child()
+
+    monkeypatch.setattr(service.subprocess, "Popen", launch)
+    assert service._run_protected_restart_child() is True
+    launch_call = calls[0]
+    assert Path(launch_call[1][0]).is_absolute() and Path(launch_call[1][1]).is_absolute()
+    assert launch_call[1][0] == str(Path(service.sys.executable).resolve())
+    assert launch_call[1][1] == str(Path(service.__file__).resolve())
+    assert launch_call[2] == {"close_fds": True}
+    state = service._restart_drill_state()
+    assert state["state"] == "RESTARTING" and state["restart_parent_pid"] == service.os.getpid()
+
+
+@pytest.mark.parametrize("mode", ["spawn", "nonzero"])
+def test_restart_child_failure_latches_fault_then_parent_resumes_monitoring(tmp_path, monkeypatch, mode):
+    service = _crash_test_service()
+    monkeypatch.setattr(service, "PROTECTED_RESTART_DRILL_PATH", tmp_path / "restart-drill.json")
+    service._write_restart_drill_state({"schema_version": "forex.m20.protected-restart-drill.v1", "state": "RESTART_REQUESTED", "attempt_id": "attempt", "position_ticket": 42, "requested_at_utc": "2026-09-10T00:00:00Z"})
+    calls = []
+
+    def run():
+        calls.append("run")
+        if len(calls) == 1:
+            raise service.ProtectedRestartDrillRequested("test")
+
+    monkeypatch.setattr(service, "run", run)
+    if mode == "spawn":
+        monkeypatch.setattr(service.subprocess, "Popen", lambda *args, **kwargs: (_ for _ in ()).throw(OSError("blocked")))
+    else:
+        monkeypatch.setattr(service.subprocess, "Popen", lambda *args, **kwargs: type("Child", (), {"wait": lambda self, timeout=None: 7})())
+    service.run_guarded()
+    assert calls == ["run", "run"]
+    state = service._restart_drill_state()
+    assert state["state"] == "RESTART_FAILED"
+    assert state["failure_reason"] == ("CHILD_SPAWN_FAILED" if mode == "spawn" else "CHILD_EXIT_NONZERO")
+    assert service._restart_drill_status()["observation"] == "FAULTED"
+
+
+def test_restart_wait_error_keeps_parent_inert_until_child_exit_is_known(tmp_path, monkeypatch):
+    service = _crash_test_service()
+    monkeypatch.setattr(service, "PROTECTED_RESTART_DRILL_PATH", tmp_path / "restart-drill.json")
+    service._write_restart_drill_state({"schema_version": "forex.m20.protected-restart-drill.v1", "state": "RESTART_REQUESTED", "attempt_id": "attempt", "position_ticket": 42, "requested_at_utc": "2026-09-10T00:00:00Z"})
+    attempts = []
+
+    class Child:
+        def wait(self, timeout=None):
+            attempts.append(timeout)
+            if len(attempts) == 1:
+                raise OSError("wait failed")
+            return 9
+
+    monkeypatch.setattr(service.subprocess, "Popen", lambda *args, **kwargs: Child())
+    monkeypatch.setattr(service.time, "sleep", lambda delay: None)
+    assert service._run_protected_restart_child() is False
+    assert attempts == [1, 1]
+    assert service._restart_drill_state()["failure_reason"] == "CHILD_EXIT_NONZERO"
+
+
+def test_corrupt_restart_drill_marker_blocks_assessment_but_not_monitoring(tmp_path, monkeypatch):
+    service = _crash_test_service()
+    marker = tmp_path / "restart-drill.json"
+    marker.write_text("not-json", encoding="utf-8")
+    monkeypatch.setattr(service, "PROTECTED_RESTART_DRILL_PATH", marker)
+    monkeypatch.setattr(service, "STOP_PATH", tmp_path / "listener.stop")
+    monkeypatch.setattr(service, "STATUS_PATH", tmp_path / "listener-status.json")
+    monkeypatch.setattr(service, "ASSESSMENT_TOTAL_PATH", tmp_path / "assessment-total.json")
+    monkeypatch.setattr(service, "POLL_SECONDS", 0)
+    monkeypatch.setattr(service, "_load_environment", lambda: {"python_path": "python", "terminal_path": "terminal"})
+    monkeypatch.setattr(service, "_active_lease", lambda: True)
+    calls = []
+
+    def monitor(values, previous, retry_at):
+        calls.append("monitor")
+        if len(calls) == 2:
+            service.STOP_PATH.write_text("stop", encoding="utf-8")
+        return {"state": "IDLE", "result": {"recovered": []}}, 10_000.0
+
+    monkeypatch.setattr(service, "_monitor_update", monitor)
+    monkeypatch.setattr(service, "_quote_identity", lambda values: calls.append("quote"))
+    statuses = []
+    monkeypatch.setattr(service, "_write_status", lambda payload: statuses.append(payload))
+    service.run()
+    assert calls == ["monitor", "monitor"]
+    blocked = next(status for status in statuses if status["state"] == "DRILL_UNAVAILABLE")
+    assert blocked["protected_restart_drill"] == {"observation": "UNREADABLE", "state": None}

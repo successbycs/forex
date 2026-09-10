@@ -259,10 +259,10 @@ def test_m20_listener_status_is_fixed_and_redacted():
     assert "$supervisorAlive" in command
     assert "quote=$s.quote" in command
     assert "release_id=$s.release_id" in command
-    assert "task_action=$taskAction" in command
+    assert "task_action=$taskAction" not in command
     assert "$age -ge 30" in command
     assert "state=if ($stale) { 'STALE' }" in command
-    assert "Forex-M20-Demo-Listener" in command
+    assert "Forex-M20-Demo-Listener" not in command
     assert "EXPLICIT_RECOVERY_REQUIRED" in command
     assert "Start-ScheduledTask" not in command
     assert "Stop-ScheduledTask" not in command
@@ -270,6 +270,10 @@ def test_m20_listener_status_is_fixed_and_redacted():
     assert "$s.monitor.state -eq 'RUNNING'" in command
     assert "protection_observation=$protectionObservation" in command
     assert "LAST_KNOWN_UNVERIFIED" in command
+    assert "m20_demo_protected_restart_drill.local.json" not in command
+    assert "$s.protected_restart_drill" in command
+    assert "protected_restart_drill=$drill" in command
+    assert "NOT_REPORTED" in command
 
 
 def test_m20_liquidity_does_not_describe_a_failed_position_read_as_flat():
@@ -1051,6 +1055,123 @@ def test_m20_aud_cent_risk_refusal_is_enforced_before_any_order_path(monkeypatch
             action="BUY", entry=1.16, volume=.01, tick_size=.00001,
             tick_value_loss=1.4, point=.00001, maximum_loss_aud=.01,
         )
+
+
+def test_m20_risk_refusal_drill_uses_normal_technical_stop_predicate_without_order(monkeypatch, tmp_path):
+    probe = _m20_probe_module(monkeypatch)
+    now = datetime(2026, 9, 10, 12, 0, 10, tzinfo=timezone.utc)
+
+    class FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now if tz is None else now.astimezone(tz)
+
+    monkeypatch.setattr(probe, "datetime", FrozenDatetime)
+    account = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD")
+    symbol = types.SimpleNamespace(name="EURUSD", volume_min=.01, trade_tick_size=.00001,
+                                   trade_tick_value_loss=1.4, point=.00001)
+    # Broker time includes the canonical configured 15-minute offset.
+    tick = types.SimpleNamespace(bid=1.10000, ask=1.10005,
+                                 time=int((now + timedelta(minutes=15)).timestamp()))
+    calls = []
+    probe.mt5.initialize = lambda **_: True
+    probe.mt5.shutdown = lambda: calls.append("shutdown")
+    probe.mt5.account_info = lambda: account
+    probe.mt5.symbol_info = lambda _: symbol
+    probe.mt5.symbol_info_tick = lambda _: tick
+    probe.mt5.order_send = lambda *_: pytest.fail("calculation-only drill submitted an order")
+    monkeypatch.setattr(probe, "load_session_lease", lambda *_: {"maximum_loss_per_trade_aud": .01})
+    monkeypatch.setattr(probe, "tick_time_offset_seconds", lambda: 900)
+    original_loss = probe._planned_stop_loss
+
+    def observed_normal_predicate(entry, stop, risk):
+        calls.append((entry, stop, dict(risk)))
+        return original_loss(entry, stop, risk)
+
+    monkeypatch.setattr(probe, "_planned_stop_loss", observed_normal_predicate)
+    monkeypatch.setattr(probe, "_risk_levels", lambda **_: pytest.fail("obsolete sizing path used"))
+
+    result = probe.risk_refusal_drill("/fixed/demo/terminal", tmp_path / "lease.json")
+
+    assert result["marker"] == "FOREX_M20_DEMO_RISK_REFUSAL_DRILL_OK"
+    assert result["order_submitted"] is False
+    assert result["quote_observed_at_utc"] == probe.utc(now)
+    assert result["captured_at_utc"] == probe.utc(now)
+    assert result["quote_freshness_seconds"] == 0
+    assert result["minimum_valid_stop"] == pytest.approx(1.10004)
+    assert result["planned_stop_loss_aud"] > .01
+    assert result["refusal_reason"] == "Minimum volume at the valid technical stop exceeds remaining capital headroom."
+    assert len(calls) == 2 and calls[-1] == "shutdown"
+    entry, stop, risk = calls[0]
+    assert (entry, stop, risk["observed_spread"]) == pytest.approx((1.10005, 1.10004, .00005))
+
+
+def test_m20_risk_refusal_drill_rejects_nonfinite_demo_quote_before_calculation(monkeypatch, tmp_path):
+    probe = _m20_probe_module(monkeypatch)
+    probe.mt5.initialize = lambda **_: True
+    shutdowns = []
+    probe.mt5.shutdown = lambda: shutdowns.append(True)
+    probe.mt5.account_info = lambda: types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD")
+    probe.mt5.symbol_info = lambda _: types.SimpleNamespace(
+        name="EURUSD", volume_min=.01, trade_tick_size=.00001,
+        trade_tick_value_loss=1.4, point=.00001,
+    )
+    probe.mt5.symbol_info_tick = lambda _: types.SimpleNamespace(
+        bid=float("nan"), ask=1.10005, time=int(datetime.now(timezone.utc).timestamp()),
+    )
+    probe.mt5.order_send = lambda *_: pytest.fail("calculation-only drill submitted an order")
+    monkeypatch.setattr(probe, "load_session_lease", lambda *_: {"maximum_loss_per_trade_aud": .01})
+    monkeypatch.setattr(probe, "tick_time_offset_seconds", lambda: 0)
+    monkeypatch.setattr(probe, "_planned_stop_loss", lambda *_: pytest.fail("nonfinite quote reached loss predicate"))
+
+    with pytest.raises(SystemExit, match="invalid EURUSD broker metadata"):
+        probe.risk_refusal_drill("/fixed/demo/terminal", tmp_path / "lease.json")
+    assert shutdowns == [True]
+
+
+@pytest.mark.parametrize("quote_time", [
+    datetime(2026, 9, 10, 11, 59, 39, tzinfo=timezone.utc),
+    datetime(2026, 9, 10, 12, 0, 11, tzinfo=timezone.utc),
+])
+def test_m20_risk_refusal_drill_rejects_stale_or_future_quote_after_metadata_reads(monkeypatch, tmp_path, quote_time):
+    probe = _m20_probe_module(monkeypatch)
+    now = datetime(2026, 9, 10, 12, 0, 10, tzinfo=timezone.utc)
+
+    class FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now if tz is None else now.astimezone(tz)
+
+    monkeypatch.setattr(probe, "datetime", FrozenDatetime)
+    probe.mt5.initialize = lambda **_: True
+    shutdowns = []
+    probe.mt5.shutdown = lambda: shutdowns.append(True)
+    probe.mt5.account_info = lambda: types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD")
+    probe.mt5.symbol_info = lambda _: types.SimpleNamespace(
+        name="EURUSD", volume_min=.01, trade_tick_size=.00001,
+        trade_tick_value_loss=1.4, point=.00001,
+    )
+    probe.mt5.symbol_info_tick = lambda _: types.SimpleNamespace(
+        bid=1.10000, ask=1.10005, time=int(quote_time.timestamp()),
+    )
+    probe.mt5.order_send = lambda *_: pytest.fail("calculation-only drill submitted an order")
+    monkeypatch.setattr(probe, "load_session_lease", lambda *_: {"maximum_loss_per_trade_aud": .01})
+    monkeypatch.setattr(probe, "tick_time_offset_seconds", lambda: 0)
+    monkeypatch.setattr(probe, "_planned_stop_loss", lambda *_: pytest.fail("stale quote reached loss predicate"))
+
+    with pytest.raises(SystemExit, match="invalid EURUSD broker metadata"):
+        probe.risk_refusal_drill("/fixed/demo/terminal", tmp_path / "lease.json")
+    assert shutdowns == [True]
+
+
+def test_m20_strategy_plan_and_refusal_drill_share_technical_stop_normalization(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    assert probe._normalized_technical_stop(
+        action="BUY", entry=1.10005, technical_stop=1.10004, tick_size=.00001,
+    ) == pytest.approx(1.10004)
+    assert probe._normalized_technical_stop(
+        action="BUY", entry=1.10005, technical_stop=1.10005, tick_size=.00001,
+    ) is None
 
 
 def test_m20_position_query_error_is_not_treated_as_no_position(monkeypatch):

@@ -848,11 +848,13 @@ def _strategy_trade_plan(*, strategy_id: str | None, signal: str, m1: list[dict[
     else:
         technical_stop = low(prior_five) if action == "BUY" else high(prior_five)
         plan_reason = "Prior five-candle range boundary supplies the technical stop; target is 1.5R."
-    stop = technical_stop
     notional = float(risk["volume"]) * 100000 * entry
-    if (action == "BUY" and not 0 < stop < entry) or (action == "SELL" and not stop > entry):
+    stop = _normalized_technical_stop(
+        action=action, entry=entry, technical_stop=technical_stop,
+        tick_size=float(risk["tick_size"]),
+    )
+    if stop is None:
         return "NO_TRADE", None, None, None, None, "Selected strategy's technical stop is invalid at the current quote."
-    stop = (math.floor(stop / risk["tick_size"] + 1e-9) if action == "BUY" else math.ceil(stop / risk["tick_size"] - 1e-9)) * risk["tick_size"]
     if _planned_stop_loss(entry, stop, risk) > session["maximum_loss_per_trade_aud"]:
         return "NO_TRADE", None, None, None, None, "Minimum volume at the valid technical stop exceeds remaining capital headroom."
     distance = abs(entry - stop)
@@ -869,6 +871,18 @@ def _strategy_trade_plan(*, strategy_id: str | None, signal: str, m1: list[dict[
     if notional > session["max_notional_per_trade_usd"]:
         raise SystemExit("M20 minimum EURUSD volume exceeds the Demo notional cap")
     return action, entry, stop, take, notional, plan_reason
+
+
+def _normalized_technical_stop(*, action: str, entry: float, technical_stop: float, tick_size: float) -> float | None:
+    """Return the executable tick-aligned stop used by every strategy owner."""
+    if (not all(math.isfinite(value) for value in (entry, technical_stop, tick_size))
+            or min(entry, tick_size) <= 0
+            or (action == "BUY" and not 0 < technical_stop < entry)
+            or (action == "SELL" and not technical_stop > entry)
+            or action not in {"BUY", "SELL"}):
+        return None
+    return (math.floor(technical_stop / tick_size + 1e-9) if action == "BUY"
+            else math.ceil(technical_stop / tick_size - 1e-9)) * tick_size
 
 
 def _planned_stop_loss(entry: float, stop: float, risk: dict[str, float]) -> float:
@@ -991,9 +1005,9 @@ def risk_refusal_drill(terminal_path: str, session_path: Path) -> dict[str, Any]
     """Prove the exact temporary AUD 0.01 boundary with live Demo metadata.
 
     This is deliberately a calculation-only operation.  It validates the
-    broker account, EURUSD quote and minimum volume, then asks the same risk
-    sizing function used by execution whether one broker price increment fits
-    inside the fixed drill cap.  It has no order request or submission path.
+    broker account, EURUSD quote and minimum volume, then applies the normal
+    technical-stop loss predicate to the smallest valid stop derived from the
+    current quote.  It has no signal, order request, or submission path.
     """
     lease = load_session_lease(session_path, datetime.now(timezone.utc))
     if float(lease["maximum_loss_per_trade_aud"]) != REFUSAL_DRILL_MAXIMUM_LOSS_AUD:
@@ -1012,31 +1026,49 @@ def risk_refusal_drill(terminal_path: str, session_path: Path) -> dict[str, Any]
         tick_size = float(symbol.trade_tick_size)
         tick_value_loss = float(symbol.trade_tick_value_loss)
         point = float(symbol.point)
-        entry = float(tick.ask)
-        if min(volume, tick_size, tick_value_loss, point, entry) <= 0:
-            raise SystemExit("M20 risk refusal drill received invalid EURUSD broker metadata")
-        minimum_increment_loss = volume * tick_value_loss
+        bid, entry = float(tick.bid), float(tick.ask)
         try:
-            _risk_levels(
-                action="BUY", entry=entry, volume=volume, tick_size=tick_size,
-                tick_value_loss=tick_value_loss, point=point,
-                maximum_loss_aud=REFUSAL_DRILL_MAXIMUM_LOSS_AUD,
-            )
-        except SystemExit as error:
-            reason = str(error)
-            if reason != "M20 minimum EURUSD price increment exceeds the AUD loss cap":
-                raise
+            quote_observed_at = datetime.fromtimestamp(int(getattr(tick, "time", 0)), timezone.utc)
+        except (TypeError, ValueError, OverflowError, OSError) as error:
+            raise SystemExit("M20 risk refusal drill received an invalid EURUSD quote timestamp") from error
+        quote_observed_at -= timedelta(seconds=tick_time_offset_seconds())
+        # Do this after every broker read.  A valid-looking value captured
+        # before a terminal synchronization delay is not current metadata.
+        captured_at = datetime.now(timezone.utc)
+        quote_age_seconds = (captured_at - quote_observed_at).total_seconds()
+        if (not all(math.isfinite(value) for value in (volume, tick_size, tick_value_loss, point, bid, entry))
+                or min(volume, tick_size, tick_value_loss, point, bid, entry) <= 0 or entry < bid
+                or not 0 <= quote_age_seconds <= MAX_TICK_AGE_SECONDS):
+            raise SystemExit("M20 risk refusal drill received invalid EURUSD broker metadata")
+        stop = _normalized_technical_stop(
+            action="BUY", entry=entry, technical_stop=entry - tick_size,
+            tick_size=tick_size,
+        )
+        if stop is None:
+            raise SystemExit("M20 risk refusal drill cannot form a valid minimum EURUSD technical stop")
+        # This is a lower-bound loss calculation: actual qualified financing
+        # and commission can only increase the entry risk.  Current spread is
+        # retained because the normal-path predicate charges it immediately.
+        risk = {"volume": volume, "tick_size": tick_size,
+                "tick_value_loss": tick_value_loss, "observed_spread": entry - bid}
+        planned_stop_loss = _planned_stop_loss(entry, stop, risk)
+        if planned_stop_loss > REFUSAL_DRILL_MAXIMUM_LOSS_AUD:
+            reason = "Minimum volume at the valid technical stop exceeds remaining capital headroom."
             return {
                 "marker": "FOREX_M20_DEMO_RISK_REFUSAL_DRILL_OK",
                 "server": account.server,
                 "symbol": SYMBOL,
                 "maximum_loss_per_trade_aud": REFUSAL_DRILL_MAXIMUM_LOSS_AUD,
                 "minimum_volume": volume,
-                "minimum_increment_loss_aud": round(minimum_increment_loss, 6),
+                "quote_observed_at_utc": utc(quote_observed_at),
+                "captured_at_utc": utc(captured_at),
+                "quote_freshness_seconds": round(quote_age_seconds, 3),
+                "minimum_valid_stop": round(stop, 10),
+                "planned_stop_loss_aud": round(planned_stop_loss, 6),
                 "refusal_reason": reason,
                 "order_submitted": False,
             }
-        raise SystemExit("M20 risk refusal drill did not refuse the minimum broker increment")
+        raise SystemExit("M20 risk refusal drill did not refuse the minimum valid technical stop")
     finally:
         mt5.shutdown()
 
