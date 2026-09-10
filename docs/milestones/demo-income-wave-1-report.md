@@ -1,5 +1,49 @@
 # Wave 1 progress and proposed risk policy
 
+## 2026-09-10 supervised protected-restart proof captured; closeout remains pending
+
+A naturally accepted `GOMarketsMU-Demo` EURUSD BUY, ticket `42239799`, provides
+the missing supervised protected-position handoff. The listener recorded the
+durable attempt `278446f4-a0ac-5d46-8f66-5feb0a22272b`, submitted the 0.01-lot
+BUY at 1.16405 with broker SL 1.16377 and TP 1.16447, then requested its
+one-shot handoff only after protection was observed. The T480-local parent
+(PID 9236) launched exactly one child worker (PID 23120); the child recovered
+that exact attempt and ticket as `OPEN_MONITORING` at 09:15:17 UTC. This was
+ordinary Demo operation: no order was created by the drill.
+
+The same position subsequently closed by its owner exit at 09:19:02 UTC.
+Broker history and PostgreSQL lineage record `CLOSED` / `MATCHED`, exit price
+1.16386 and AUD -0.26 realised P&L. Broker-posted commission, fee and swap
+were each AUD 0.00; recorded spread and slippage are estimates and must not be
+presented as posted broker charges. At the evidence freeze, the account was
+AVAILABLE and flat (balance/equity AUD 100991.90), the expected balance was
+the same, Option B had no pause reasons, and unresolved attempts were empty.
+Raw observations are retained unchanged under
+`runs/evidence/M20/w1-supervised-restart-20260910/raw/`.
+
+The current governed configuration fingerprint was refreshed to
+`sha256:6087a6d3f489f02cb0678557bf2d482e49699471fdebcfd62b0b8e50d03ab008`
+after the reviewed adapter-catalogue addition for narrowly retiring the failed
+legacy marker. The deployed listener binding remains application revision
+`7c2c1d1687ac9efc3b98be134f3c0ccb2992809f`, release
+`6097225ef545ea46`, and the runtime risk/financing configuration fingerprint
+`sha256:16abde21dc56729b2418f9c48d7091362a3c7622f976e3bb36e49f8492e0fb67`.
+This distinction is retained because the catalogue control operation did not
+alter the deployed listener payload.
+
+Focused M20 and isolated persistent-risk tests pass (the isolated database
+tests correctly skip when `FOREX_W1_TEST_DSN` is not supplied). Governance
+validation passes after the fingerprint refresh. The listener is presently in
+maintenance hold only to freeze this evidence; monitoring remains active.
+
+**Wave 1 is not complete yet.** An independent read-only review must assess
+this new raw bundle and the release/configuration binding. R5's detached-T16
+and no-logon continuity criteria, R6's retained incident-and-alert delivery
+evidence, and the broader M20 capture/review gates remain distinct. Partial
+fills, nonzero posted charges, and overnight tariffs remain explicitly
+unobserved qualifications for the temporary intraday scope. Do not infer
+profitability or Live readiness from these Demo results.
+
 ## 2026-09-10 final held deployment and ordinary operation resumed
 
 ### Legacy restart marker retired and current proof path armed
