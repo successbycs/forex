@@ -130,8 +130,8 @@ def validate_session(payload: dict[str, Any]) -> dict[str, Any]:
     return session
 
 
-def validate_bars(bars: Any, timeframe: str, observed_at: datetime) -> None:
-    require(isinstance(bars, list) and len(bars) >= 2, f"snapshot requires at least two closed {timeframe} bars")
+def validate_bars(bars: Any, timeframe: str, observed_at: datetime, *, allow_empty: bool = False) -> None:
+    require(isinstance(bars, list) and (allow_empty or len(bars) >= 2), f"snapshot requires at least two closed {timeframe} bars")
     previous_close: datetime | None = None
     for index, bar in enumerate(bars):
         require(isinstance(bar, dict), f"{timeframe} bar {index} must be an object")
@@ -159,7 +159,11 @@ def validate_snapshot(payload: dict[str, Any], session: dict[str, Any]) -> dict[
     gates = snapshot.get("safety_gates")
     expected_gates = {"fresh_quote", "completed_m1", "normal_spread", "no_existing_position", "demo_lease_active", "news_blackout_inactive", "abnormal_volatility_inactive"}
     require(isinstance(gates, dict) and set(gates) == expected_gates and all(value is True or value is False for value in gates.values()), "snapshot safety gates are invalid")
-    validate_bars(snapshot.get("m1_closed_bars"), "M1", observed)
+    # A malformed or insufficient M1 response is retained as an explicit
+    # non-actionable assessment with no invented candle rows.  It can never
+    # authorize an order because completed_m1 is false.
+    allow_empty_m1 = gates.get("completed_m1") is False and payload.get("proposal", {}).get("action") == "NO_TRADE"
+    validate_bars(snapshot.get("m1_closed_bars"), "M1", observed, allow_empty=allow_empty_m1)
     m5_bars = snapshot.get("m5_closed_bars")
     require(isinstance(m5_bars, list), "M5 shadow-context candles must be a list")
     if m5_bars:
@@ -236,19 +240,23 @@ def validate_execution_and_reconciliation(payload: dict[str, Any], session: dict
         require(reconciliation.get("status") == "NO_TRADE_RECONCILED", "NO_TRADE must be reconciled")
         require(audit.get("execution_attempt_id") is None, "NO_TRADE audit must not have an execution attempt")
         return
-    require(execution.get("status") in {"ACCEPTED", "ACCEPTED_PARTIAL", "REJECTED", "FAILED"}, "actionable execution must have a final bounded status")
+    require(execution.get("status") in {"ACCEPTED", "ACCEPTED_PARTIAL", "REJECTED", "FAILED", "NOT_SUBMITTED_AFTER_RESERVATION"}, "actionable execution must have a final bounded status")
     attempt_id = string(execution.get("attempt_id"), "execution.attempt_id")
     require(execution.get("session_id") == session["session_id"], "execution session mismatch")
     require(execution.get("proposal_id") == proposal["proposal_id"], "execution proposal mismatch")
     string(execution.get("idempotency_key"), "execution.idempotency_key")
     submitted = utc(execution.get("submitted_at_utc"), "execution.submitted_at_utc")
     require(utc(proposal["decision_at_utc"], "proposal.decision_at_utc") <= submitted <= utc(proposal["expires_at_utc"], "proposal.expires_at_utc"), "execution was not submitted during proposal validity")
+    require(reconciliation.get("execution_attempt_id") == attempt_id, "reconciliation execution attempt mismatch")
+    require(audit.get("execution_attempt_id") == attempt_id, "PostgreSQL audit execution attempt mismatch")
+    if execution.get("status") == "NOT_SUBMITTED_AFTER_RESERVATION":
+        require(reconciliation.get("status") == "NOT_SUBMITTED_RECONCILED", "stale actionable assessment must record terminal non-submission")
+        require("outcome" not in reconciliation, "non-submission must not have a trade outcome")
+        return
     require(execution.get("open_positions_before") == 0, "execution did not enforce one-position limit")
     cumulative = execution.get("cumulative_notional_before_usd")
     require(isinstance(cumulative, (int, float)) and 0 <= cumulative, "execution cumulative notional is invalid")
     require(cumulative + proposal["notional_usd"] <= session["max_cumulative_notional_usd"], "execution exceeds cumulative session cap")
-    require(reconciliation.get("execution_attempt_id") == attempt_id, "reconciliation execution attempt mismatch")
-    require(audit.get("execution_attempt_id") == attempt_id, "PostgreSQL audit execution attempt mismatch")
     require(reconciliation.get("status") == "MATCHED", "actionable execution must be reconciled as MATCHED")
     if execution.get("status") == "REJECTED":
         require("outcome" not in reconciliation, "rejected execution must not have a trade outcome")

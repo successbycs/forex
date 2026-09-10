@@ -292,7 +292,7 @@ def reserve_execution(payload: dict[str, Any]) -> dict[str, Any]:
         cursor.execute("SELECT COALESCE(sum(p.notional_usd),0) FROM forex.demo_execution_attempt a JOIN forex.demo_trade_proposal p ON p.proposal_id=a.proposal_id WHERE a.session_id=%s", (session["session_id"],))
         if float(cursor.fetchone()[0]) + float(proposal["notional_usd"]) > float(session["max_cumulative_notional_usd"]):
             raise SystemExit("M20 cumulative notional cap is reached")
-        cursor.execute("SELECT count(*) FROM forex.demo_execution_attempt a LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=a.proposal_id WHERE o.proposal_id IS NULL AND NOT EXISTS (SELECT 1 FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type='REJECTED')")
+        cursor.execute("SELECT count(*) FROM forex.demo_execution_attempt a LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=a.proposal_id WHERE o.proposal_id IS NULL AND NOT EXISTS (SELECT 1 FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type IN ('REJECTED','NOT_SUBMITTED'))")
         if cursor.fetchone()[0] != 0:
             raise SystemExit("M20 global one-position limit is reached")
         slot_number = None
@@ -451,7 +451,7 @@ def record_result(payload: dict[str, Any]) -> dict[str, Any]:
     """Append an immutable broker result instead of mutating the attempt."""
     result = _object(payload, "result")
     required = {"event_id", "attempt_id", "event_type", "observed_at_utc", "broker_order_reference", "payload_sha256", "payload"}
-    if (set(result) != required or result["event_type"] not in {"OPENED", "REJECTED", "FAILED", "UNKNOWN"}
+    if (set(result) != required or result["event_type"] not in {"OPENED", "REJECTED", "FAILED", "UNKNOWN", "NOT_SUBMITTED"}
             or not isinstance(result["payload"], dict) or result["payload_sha256"] != _digest(result["payload"])):
         raise SystemExit("M20 broker result is invalid")
     if result["event_type"] in {"REJECTED", "UNKNOWN"}:
@@ -468,10 +468,22 @@ def record_result(payload: dict[str, Any]) -> dict[str, Any]:
         }
         if set(result["payload"]) != diagnostic_fields or result["payload"].get("schema_version") != "forex.m20.mt5-result-context.v1":
             raise SystemExit("M20 rejected broker result lacks fixed diagnostic context")
+    if result["event_type"] == "NOT_SUBMITTED":
+        if set(result["payload"]) != {"schema_version", "reason", "validation_at_utc"} or result["payload"].get("schema_version") != "forex.m20.not-submitted.v1" or not isinstance(result["payload"].get("reason"), str) or not result["payload"]["reason"]:
+            raise SystemExit("M20 non-submission result lacks fixed validation context")
+        _parse_utc(result["payload"]["validation_at_utc"], "not-submitted validation_at_utc")
     with _connection() as conn, conn.cursor() as cursor:
         cursor.execute("SELECT 1 FROM forex.demo_execution_attempt WHERE attempt_id=%s FOR UPDATE", (result["attempt_id"],))
         if cursor.fetchone() is None:
             raise SystemExit("M20 result has no reserved execution attempt")
+        if result["event_type"] == "NOT_SUBMITTED":
+            cursor.execute("SELECT 1 FROM forex.demo_position_event WHERE attempt_id=%s LIMIT 1", (result["attempt_id"],))
+            if cursor.fetchone() is not None:
+                raise SystemExit("M20 non-submission cannot mask an observed broker execution")
+        else:
+            cursor.execute("SELECT 1 FROM forex.demo_position_event WHERE attempt_id=%s AND event_type='NOT_SUBMITTED' LIMIT 1", (result["attempt_id"],))
+            if cursor.fetchone() is not None:
+                raise SystemExit("M20 observed broker execution cannot follow a terminal non-submission")
         cursor.execute("INSERT INTO forex.demo_position_event (event_id,attempt_id,event_type,observed_at_utc,payload_sha256,payload) VALUES (%s,%s,%s,%s,%s,%s::jsonb)", (result["event_id"], result["attempt_id"], result["event_type"], result["observed_at_utc"], result["payload_sha256"], json.dumps({"broker_order_reference": result["broker_order_reference"], **result["payload"]})))
     return {"ok": True, "recorded_event_id": result["event_id"]}
 
@@ -679,8 +691,9 @@ def reconcile(payload: dict[str, Any]) -> dict[str, Any]:
             raise SystemExit("M20 reconciliation proposal is absent")
     closed_and_outcome = row[3] is not None and "CLOSED" in row[4] and row[5] is not None and row[10] == "MATCHED"
     terminal_rejection = row[3] is not None and "REJECTED" in row[4]
+    terminal_non_submission = row[3] is not None and "NOT_SUBMITTED" in row[4]
     open_reconciled = row[3] is not None and "OPENED" in row[4] and row[18] is not None and not closed_and_outcome
-    status = "NO_TRADE_RECONCILED" if row[1] == "NO_TRADE" and row[3] is None else ("MATCHED" if closed_and_outcome or terminal_rejection else ("OPEN_RECONCILED" if open_reconciled else "PENDING"))
+    status = "NO_TRADE_RECONCILED" if row[1] == "NO_TRADE" and row[3] is None else ("NOT_SUBMITTED_RECONCILED" if terminal_non_submission else ("MATCHED" if closed_and_outcome or terminal_rejection else ("OPEN_RECONCILED" if open_reconciled else "PENDING")))
     reconciliation = {"session_id": row[0], "proposal_id": proposal_id, "snapshot_id": row[2], "execution_attempt_id": row[3], "status": status}
     if closed_and_outcome:
         reconciliation["outcome"] = {"proposal_id": proposal_id, "closed_at_utc": row[5].astimezone(timezone.utc).isoformat().replace("+00:00", "Z"), "exit_price": float(row[6]), "realized_pnl_account": float(row[7]), "account_currency": row[8], "close_reason": row[9], "costs": {"gross_price_pnl_account": float(row[11]), "commission_account": float(row[12]), "fee_account": float(row[13]), "swap_account": float(row[14]), "estimated_spread_cost_account": float(row[15]), "slippage_cost_account": float(row[16]), "estimated_total_cost_account": float(row[17])}}

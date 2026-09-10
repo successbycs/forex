@@ -279,3 +279,41 @@ def test_concurrent_reservations_across_leases_allow_only_one(database, monkeypa
     assert sorted(results) == ['REFUSED','RESERVED']
     with psycopg.connect(database) as c:
         assert c.execute('SELECT count(*) FROM forex.demo_execution_attempt').fetchone()[0] == 1
+
+
+def test_not_submitted_result_is_terminal_and_cannot_mask_or_follow_broker_events(database):
+    """Exercise migration 023 and the bridge against the isolated PostgreSQL database."""
+    import psycopg
+    bridge = load_bridge()
+    now = '2026-09-10T00:00:00Z'
+    with psycopg.connect(database) as conn:
+        for path in sorted((ROOT / 'sql/migrations').glob('*.sql')):
+            if 6 <= int(path.name[:3]) <= 18 or path.name.startswith(('021_', '023_')):
+                conn.execute(path.read_text())
+        for suffix in ('non-submitted', 'rejected'):
+            conn.execute("INSERT INTO forex.demo_trade_session(session_id,operator_label,server,instrument,starts_at_utc,expires_at_utc,max_trades,max_notional_usd,max_cumulative_notional_usd,max_open_positions,status,strategy_version,application_revision,configuration_fingerprint) VALUES (%s,'test','GOMarketsMU-Demo','EURUSD',%s,'2099-01-01T00:00:00Z',NULL,10000,100000,1,'ACTIVE','test','test',%s)", (suffix, now, 'sha256:' + 'a' * 64))
+            conn.execute("INSERT INTO forex.demo_trade_proposal(proposal_id,session_id,decision_at_utc,expires_at_utc,selected_timeframe,action,proposed_entry,stop_loss,take_profit,notional_usd,confidence,rationale,decision_snapshot_sha256,strategy_version,application_revision,configuration_fingerprint) VALUES (%s,%s,%s,'2099-01-01T00:00:00Z','M1','BUY',1.1,1.099,1.102,1000,70,'test',%s,'test','test',%s)", (suffix, suffix, now, 'sha256:' + 'b' * 64, 'sha256:' + 'a' * 64))
+            conn.execute("INSERT INTO forex.demo_decision_snapshot(snapshot_id,proposal_id,observed_at_utc,captured_at_utc,bid,ask,spread_points,m1_closed_bars,m5_closed_bars,freshness_seconds,payload_sha256) VALUES (%s,%s,%s,%s,1.1,1.1001,10,'[]','[]',0,%s)", (suffix, suffix, now, now, 'sha256:' + 'b' * 64))
+            conn.execute("INSERT INTO forex.demo_execution_attempt(attempt_id,proposal_id,session_id,slot_number,idempotency_key,submitted_at_utc,status,redacted_result) VALUES (%s,%s,%s,NULL,%s,%s,'SUBMITTED','test')", (suffix, suffix, suffix, suffix, now))
+
+    def event(attempt_id, event_type):
+        payload = ({'schema_version': 'forex.m20.not-submitted.v1', 'reason': 'minute crossed', 'validation_at_utc': now}
+                   if event_type == 'NOT_SUBMITTED' else {
+                       'schema_version': 'forex.m20.mt5-result-context.v1', 'retcode': 1, 'broker_comment': 'test', 'symbol': 'EURUSD', 'action': 'BUY', 'volume': .01, 'requested_price': 1.1, 'stop_loss': 1.099, 'take_profit': 1.102, 'deviation_points': 20, 'filling_mode': 1, 'time_mode': 0, 'magic': 1, 'observed_bid': 1.1, 'observed_ask': 1.1001, 'spread_points': 10, 'tick_freshness_seconds': 0, 'symbol_point': .00001, 'trade_tick_size': .00001, 'stops_level_points': 0, 'freeze_level_points': 0, 'volume_min': .01, 'volume_max': 100, 'volume_step': .01, 'visible_positions_count': 0, 'lease_max_trades': None, 'max_open_positions': 1, 'max_notional_per_trade_usd': 10000, 'max_cumulative_notional_usd': 100000, 'reservation_slot_number': None, 'broker_order_reference': '', 'broker_requested_price': None, 'broker_requested_volume': None, 'broker_requested_stop_loss': None, 'broker_requested_take_profit': None, 'position_ticket': None, 'position_identifier': None, 'fill_status': 'REJECTED', 'broker_filled_volume': None, 'position_observation_error': None})
+        return {'result': {'event_id': f'{attempt_id}-{event_type}', 'attempt_id': attempt_id, 'event_type': event_type,
+                           'observed_at_utc': now, 'broker_order_reference': '', 'payload_sha256': bridge._digest(payload), 'payload': payload}}
+
+    assert bridge.record_result(event('non-submitted', 'NOT_SUBMITTED'))['ok'] is True
+    assert bridge.reconcile({'proposal_id': 'non-submitted'})['reconciliation']['status'] == 'NOT_SUBMITTED_RECONCILED'
+    with psycopg.connect(database) as conn:
+        unresolved = conn.execute("SELECT count(*) FROM forex.demo_execution_attempt a LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=a.proposal_id WHERE o.proposal_id IS NULL AND NOT EXISTS (SELECT 1 FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type IN ('REJECTED','NOT_SUBMITTED'))").fetchone()[0]
+    assert unresolved == 1  # only the deliberately still-pending rejected fixture remains
+    with pytest.raises(SystemExit, match='cannot follow'):
+        bridge.record_result(event('non-submitted', 'REJECTED'))
+
+    assert bridge.record_result(event('rejected', 'REJECTED'))['ok'] is True
+    assert bridge.reconcile({'proposal_id': 'rejected'})['reconciliation']['status'] == 'MATCHED'
+    with psycopg.connect(database) as conn:
+        assert conn.execute("SELECT count(*) FROM forex.demo_execution_attempt a LEFT JOIN forex.demo_trade_outcome o ON o.proposal_id=a.proposal_id WHERE o.proposal_id IS NULL AND NOT EXISTS (SELECT 1 FROM forex.demo_position_event e WHERE e.attempt_id=a.attempt_id AND e.event_type IN ('REJECTED','NOT_SUBMITTED'))").fetchone()[0] == 0
+    with pytest.raises(SystemExit, match='cannot mask'):
+        bridge.record_result(event('rejected', 'NOT_SUBMITTED'))

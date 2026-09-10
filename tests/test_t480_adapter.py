@@ -33,6 +33,76 @@ def _m20_audit_bridge_module():
     return module
 
 
+def _capture_test_environment(monkeypatch, probe, *, initial, after_capture):
+    """Set up an actionable, deterministic capture without an MT5 terminal."""
+    clock = {"now": initial}
+
+    class FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            value = clock["now"]
+            return value if tz is None else value.astimezone(tz)
+
+    monkeypatch.setattr(probe, "datetime", FrozenDatetime)
+    account = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=1)
+    symbol = types.SimpleNamespace(name="EURUSD", point=.00001, volume_min=.01, trade_tick_size=.00001,
+                                   trade_tick_value_loss=1.4, volume_max=100, volume_step=.01)
+    tick = types.SimpleNamespace(time=int(initial.timestamp()), bid=1.1, ask=1.10005)
+    probe.mt5.initialize = lambda **_: True
+    probe.mt5.shutdown = lambda: None
+    probe.mt5.account_info = lambda: account
+    probe.mt5.symbol_info = lambda _: symbol
+    probe.mt5.symbol_info_tick = lambda _: tick
+    rates = []
+    boundary = initial.replace(second=0, microsecond=0)
+    for index in range(probe.CLOSED_BAR_COUNT):
+        opened = boundary - timedelta(minutes=probe.CLOSED_BAR_COUNT - index)
+        rates.append({"time": int(opened.timestamp()), "open": 1.1, "high": 1.1001,
+                      "low": 1.0999, "close": 1.1, "tick_volume": 1})
+    probe.mt5.copy_rates_from_pos = lambda *_: rates
+    probe.mt5.ORDER_TYPE_BUY = 0
+    probe.mt5.ORDER_TYPE_SELL = 1
+    probe.mt5.TRADE_ACTION_DEAL = 1
+    probe.mt5.ORDER_TIME_GTC = 0
+    probe.mt5.ORDER_FILLING_IOC = 1
+    lease = {"session_id": "s", "server": "GOMarketsMU-Demo", "instrument": "EURUSD",
+             "starts_at_utc": probe.utc(initial - timedelta(minutes=1)), "expires_at_utc": probe.utc(initial + timedelta(minutes=20)),
+             "max_trades": None, "max_notional_per_trade_usd": 10000, "max_cumulative_notional_usd": 100000,
+             "max_open_positions": 1, "maximum_loss_per_trade_aud": 100, "strategy_version": probe.STRATEGY_VERSION,
+             "operator_label": "test", "status": "ACTIVE"}
+    monkeypatch.setattr(probe, "load_session_lease", lambda *_: lease)
+    monkeypatch.setattr(probe, "_session", lambda _: dict(lease))
+    monkeypatch.setattr(probe, "tick_time_offset_seconds", lambda: 0)
+    monkeypatch.setattr(probe, "_shadow_context_rows", lambda **_: ([], None))
+    monkeypatch.setattr(probe, "persistent_risk_policy", lambda: {})
+    monkeypatch.setattr(probe, "_entry_risk_snapshot", lambda *_: {"account_scope_sha256": "a" * 64})
+    monkeypatch.setattr(probe, "_positions_or_fail", lambda **_: ())
+    monkeypatch.setattr(probe, "_provenance", lambda: ("a" * 40, "sha256:" + "b" * 64))
+    monkeypatch.setattr(probe, "_financing_terms", lambda *_: {})
+    monkeypatch.setattr(probe, "financing_policy", lambda: {})
+    financing = {"status": "QUALIFIED_INPUTS", "expected_swap_aud": 0, "commission_allowance_aud": 0, "adverse_financing_aud": 0}
+    monkeypatch.setattr(probe, "project_financing", lambda **_: dict(financing))
+    monkeypatch.setattr(probe, "_planned_stop_loss", lambda *_: 1)
+    snapshot = {"snapshot_id": "snapshot", "observed_at_utc": probe.utc(initial), "captured_at_utc": probe.utc(initial),
+                "bid": 1.1, "ask": 1.10005, "spread_points": 5, "freshness_seconds": 0,
+                "m1_closed_bars": [{"timeframe": "M1", "opened_at_utc": probe.utc(initial - timedelta(minutes=2)), "closed_at_utc": probe.utc(initial - timedelta(minutes=1)), "close": 1.1},
+                                   {"timeframe": "M1", "opened_at_utc": probe.utc(initial - timedelta(minutes=1)), "closed_at_utc": probe.utc(initial), "close": 1.1}],
+                "m5_closed_bars": [], "safety_gates": {key: True for key in ("fresh_quote", "completed_m1", "normal_spread", "no_existing_position", "demo_lease_active", "news_blackout_inactive", "abnormal_volatility_inactive")},
+                "payload_sha256": "sha256:" + "c" * 64}
+    proposal = {"proposal_id": "proposal", "session_id": "s", "snapshot_id": "snapshot", "decision_at_utc": probe.utc(initial),
+                "expires_at_utc": probe.utc(initial + timedelta(minutes=5)), "selected_timeframe": "M1", "action": "BUY",
+                "proposed_entry": 1.10005, "stop_loss": 1.099, "take_profit": 1.102, "notional_usd": 1000,
+                "confidence": 70, "rationale": "test actionable proposal", "decision_snapshot_sha256": snapshot["payload_sha256"], "strategy_version": probe.STRATEGY_VERSION}
+    selection = {"proposal_id": "proposal", "market_regime": "MOMENTUM_BREAKOUT", "market_regime_reason": "test",
+                 "selected_strategy_id": "momentum_breakout", "strategy_rule_version": "test", "selection_status": "SELECTED_EXECUTABLE",
+                 "trade_owner_id": "proposal", "trade_owner_strategy_id": "momentum_breakout", "cost_coverage_status": "FEASIBLE"}
+    assessments = [{"id": name, "label": name, "signal": "BUY" if name == "momentum_breakout" else "NO_TRADE", "eligible_for_execution": True, "reason": "test"}
+                   for name in ("momentum_breakout", "compression_breakout", "trend_pullback", "range_reversion", "session_breakout")]
+    monkeypatch.setattr(probe, "_assessment", lambda *_: (dict(snapshot), dict(proposal), dict(selection), list(assessments)))
+    monkeypatch.setattr(probe, "_shadow_context", lambda **_: {"context_id": "context", "proposal_id": "proposal", "selected_m1_action": "BUY", "overall_alignment": "NEUTRAL", "context_disposition": "NEUTRAL", "reason": "test", "rule_version": "test", "retrieved_at_utc": probe.utc(initial), "source_inputs_sha256": "sha256:" + "d" * 64, "contexts": []})
+    return lease, clock
+
+
 def test_catalog_and_adapter_operations_match():
     t480_adapter.validate_contract()
     catalog = json.loads(t480_adapter.CATALOG_PATH.read_text(encoding="utf-8"))
@@ -512,6 +582,220 @@ def test_m20_stale_entry_history_does_not_change_closed_bar_monitor_input(monkey
     assert not probe._entry_m1_history_is_synchronized(rows=parsed, observed_at=boundary + timedelta(seconds=48))
 
 
+def test_m20_submission_recheck_rejects_a_minute_boundary_crossing(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    boundary = datetime(2026, 9, 9, 6, 0, tzinfo=timezone.utc)
+    tick = types.SimpleNamespace(time=int((boundary + timedelta(seconds=5)).timestamp()), bid=1.1, ask=1.1001)
+    rates = []
+    for index in range(probe.CLOSED_BAR_COUNT):
+        opened = boundary - timedelta(minutes=probe.CLOSED_BAR_COUNT - index)
+        rates.append({"time": int(opened.timestamp()), "open": 1.1, "high": 1.1001,
+                      "low": 1.0999, "close": 1.1, "tick_volume": 1})
+    probe.mt5.symbol_info_tick = lambda _: tick
+    clock = [boundary + timedelta(seconds=5), boundary + timedelta(minutes=1)]
+    class FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            value = clock.pop(0)
+            return value if tz is None else value.astimezone(tz)
+    monkeypatch.setattr(probe, "datetime", FrozenDatetime)
+    # Terminal history blocks through the boundary only after the first
+    # fresh-quote check. The real recheck must refuse it.
+    probe.mt5.copy_rates_from_pos = lambda *_: rates
+    _, _, reason = probe._current_entry_inputs(
+        offset_seconds=0, expected_boundary=int(boundary.timestamp())
+    )
+    assert reason == "M1_INPUT_UNSYNCHRONIZED: closed M1 history does not end at the current quote minute."
+
+
+def test_m20_submission_recheck_rejects_changed_m1_digest(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    boundary = datetime(2026, 9, 9, 6, 0, tzinfo=timezone.utc)
+    tick = types.SimpleNamespace(time=int((boundary + timedelta(seconds=5)).timestamp()), bid=1.1, ask=1.1001)
+    rates = []
+    for index in range(probe.CLOSED_BAR_COUNT):
+        opened = boundary - timedelta(minutes=probe.CLOSED_BAR_COUNT - index)
+        rates.append({"time": int(opened.timestamp()), "open": 1.1, "high": 1.1001,
+                      "low": 1.0999, "close": 1.1, "tick_volume": 1})
+    _, original_digest = probe._bar_rows(rates, timeframe_name="M1", seconds=60,
+                                         cutoff=int(boundary.timestamp()), timestamp_offset_seconds=0)
+    changed = [dict(row) for row in rates]
+    changed[-1]["close"] = 1.10005
+    class FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            value = boundary + timedelta(seconds=5)
+            return value if tz is None else value.astimezone(tz)
+    monkeypatch.setattr(probe, "datetime", FrozenDatetime)
+    probe.mt5.symbol_info_tick = lambda _: tick
+    probe.mt5.copy_rates_from_pos = lambda *_: changed
+    _, _, reason = probe._current_entry_inputs(offset_seconds=0, expected_boundary=int(boundary.timestamp()), expected_m1_digest=original_digest)
+    assert reason == "M1_INPUT_UNSYNCHRONIZED: closed M1 history does not end at the current quote minute."
+
+
+def test_m20_monitor_suppresses_stale_reversal_but_keeps_open_monitoring(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    now = datetime(2026, 9, 9, 6, 5, 20, tzinfo=timezone.utc)
+    class FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now if tz is None else now.astimezone(tz)
+    monkeypatch.setattr(probe, "datetime", FrozenDatetime)
+    position = types.SimpleNamespace(ticket=7, magic=probe.EXECUTOR_MAGIC, price_open=1.1, sl=1.099, tp=1.102)
+    probe.mt5.symbol_info_tick = lambda _: types.SimpleNamespace(time=int(now.timestamp()), bid=1.1, ask=1.1001)
+    probe._positions_or_fail = lambda **_: (position,)
+    stale = []
+    latest = now.replace(second=0) - timedelta(minutes=2)
+    for index in range(probe.CLOSED_BAR_COUNT):
+        opened = latest - timedelta(minutes=probe.CLOSED_BAR_COUNT - index)
+        stale.append({"opened_at_utc": probe.utc(opened), "closed_at_utc": probe.utc(opened + timedelta(minutes=1)), "open": 1.1, "high": 1.1001, "low": 1.0998, "close": 1.0999, "volume": 1})
+    probe._closed_m1_bars_for_monitor = lambda *_: stale
+    closed = []
+    probe._close_accepted_position = lambda **_: (closed.append(True), ("close", 1.1, {}))[1]
+    monkeypatch.setattr(probe, "_record_closed_monitor_outcome", lambda **_: {"status": "CLOSED"})
+    result = probe._monitor_open_position(
+        proposal={"proposal_id": "p", "action": "BUY", "trade_owner_strategy_id": "momentum_breakout", "proposed_entry": 1.1, "initial_stop_loss": 1.099},
+        attempt_id="a", position=position, submitted_at=now - timedelta(minutes=5), entry_spread=.0001,
+        risk={"volume": .01, "tick_size": .00001, "tick_value_loss": 1.4, "point": .00001}, offset_seconds=0, single_pass=True,
+    )
+    assert result["status"] == "OPEN_MONITORING"
+    assert not closed
+    fresh = []
+    latest = now.replace(second=0)
+    for index in range(probe.CLOSED_BAR_COUNT):
+        opened = latest - timedelta(minutes=probe.CLOSED_BAR_COUNT - index)
+        fresh.append({"opened_at_utc": probe.utc(opened), "closed_at_utc": probe.utc(opened + timedelta(minutes=1)), "open": 1.1, "high": 1.1001, "low": 1.0998, "close": 1.0999, "volume": 1})
+    probe._closed_m1_bars_for_monitor = lambda *_: fresh
+    assert probe._monitor_open_position(
+        proposal={"proposal_id": "p", "action": "BUY", "trade_owner_strategy_id": "momentum_breakout", "proposed_entry": 1.1, "initial_stop_loss": 1.099},
+        attempt_id="a", position=position, submitted_at=now - timedelta(minutes=5), entry_spread=.0001,
+        risk={"volume": .01, "tick_size": .00001, "tick_value_loss": 1.4, "point": .00001}, offset_seconds=0, single_pass=True,
+    ) == {"status": "CLOSED"}
+    assert closed == [True]
+
+
+def test_m20_capture_persists_invalid_m1_as_no_trade_without_order(monkeypatch, tmp_path):
+    """Exercise capture(), not merely its parser, on a terminal history fault."""
+    probe = _m20_probe_module(monkeypatch)
+    now = datetime.now(timezone.utc)
+    tick = types.SimpleNamespace(time=int(now.timestamp()), bid=1.1, ask=1.1001)
+    account = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=1)
+    symbol = types.SimpleNamespace(name="EURUSD", point=.00001, volume_min=.01, trade_tick_size=.00001, trade_tick_value_loss=1.4)
+    probe.mt5.initialize = lambda **_: True
+    probe.mt5.shutdown = lambda: None
+    probe.mt5.account_info = lambda: account
+    probe.mt5.symbol_info = lambda _: symbol
+    probe.mt5.copy_rates_from_pos = lambda *_: None
+    monkeypatch.setattr(probe, "_listen_for_tick", lambda: (tick, .1))
+    monkeypatch.setattr(probe, "tick_time_offset_seconds", lambda: 0)
+    monkeypatch.setattr(probe, "_shadow_context_rows", lambda **_: ([], None))
+    monkeypatch.setattr(probe, "persistent_risk_policy", lambda: {})
+    monkeypatch.setattr(probe, "_entry_risk_snapshot", lambda *_: {"account_scope_sha256": "a" * 64})
+    monkeypatch.setattr(probe, "_positions_or_fail", lambda **_: ())
+    monkeypatch.setattr(probe, "_provenance", lambda: ("a" * 40, "sha256:" + "b" * 64))
+    monkeypatch.setattr(probe, "_financing_terms", lambda *_: {})
+    monkeypatch.setattr(probe, "financing_policy", lambda: {})
+    monkeypatch.setattr(probe, "project_financing", lambda **_: {"status": "QUALIFIED_INPUTS"})
+    monkeypatch.setattr(probe, "_shadow_context", lambda **_: {"context_id": "x", "proposal_id": "x", "selected_m1_action": "NO_TRADE", "overall_alignment": "NEUTRAL", "context_disposition": "NEUTRAL", "reason": "x", "rule_version": "x", "retrieved_at_utc": probe.utc(now), "source_inputs_sha256": "sha256:" + "a" * 64, "contexts": []})
+    lease = {"session_id": "s", "server": "GOMarketsMU-Demo", "instrument": "EURUSD", "starts_at_utc": probe.utc(now-timedelta(minutes=1)), "expires_at_utc": probe.utc(now+timedelta(minutes=20)), "max_trades": None, "max_notional_per_trade_usd": 10000, "max_cumulative_notional_usd": 100000, "max_open_positions": 1, "maximum_loss_per_trade_aud": 100, "strategy_version": probe.STRATEGY_VERSION, "operator_label": "test", "status": "ACTIVE"}
+    monkeypatch.setattr(probe, "load_session_lease", lambda *_: lease)
+    monkeypatch.setattr(probe, "_session", lambda _: lease)
+    calls = []
+    def bridge(payload, command):
+        calls.append((command, payload))
+        if command == "enforce-risk-policy": return {"risk": {"entry_allowed": True, "maximum_loss_aud": 100}}
+        if command == "persist-proposal": return {"postgres_audit": {"session_id":"s", "proposal_id": payload["proposal"]["proposal_id"], "snapshot_id": payload["proposal"]["snapshot_id"], "execution_attempt_id":None, "record_sha256":"sha256:"+"a"*64}}
+        return {"reconciliation": {"session_id":"s", "proposal_id": payload["proposal_id"], "snapshot_id":"x", "status":"NO_TRADE_RECONCILED"}}
+    monkeypatch.setattr(probe, "_bridge", bridge)
+    probe.mt5.order_send = lambda *_: pytest.fail("invalid M1 capture must not order")
+    result = probe.capture("terminal", tmp_path / "lease.json")
+    assert result["proposal"]["action"] == "NO_TRADE"
+    assert result["proposal"]["rationale"].startswith("M1_INPUT_INVALID_OR_INSUFFICIENT")
+    assert result["decision_snapshot"]["m1_closed_bars"] == []
+    assert [name for name, _ in calls].count("persist-proposal") == 1
+
+
+def test_m20_capture_crossing_assessed_minute_records_terminal_non_submission(monkeypatch, tmp_path):
+    """A reserved proposal that crosses its minute must never reach order_send."""
+    from scripts.m20_demo_evidence_contract import validate_execution_and_reconciliation
+
+    probe = _m20_probe_module(monkeypatch)
+    initial = datetime(2026, 9, 9, 6, 0, 59, tzinfo=timezone.utc)
+    after_capture = initial + timedelta(seconds=1)
+    _, clock = _capture_test_environment(monkeypatch, probe, initial=initial, after_capture=after_capture)
+    calls = []
+
+    def bridge(payload, command):
+        calls.append((command, payload))
+        if command == "enforce-risk-policy":
+            return {"risk": {"entry_allowed": True, "maximum_loss_aud": 100}}
+        if command == "persist-proposal":
+            return {"postgres_audit": {"session_id": "s", "proposal_id": "proposal", "snapshot_id": "snapshot", "execution_attempt_id": None, "record_sha256": "sha256:" + "e" * 64}}
+        if command == "reserve-execution":
+            # The reservation is the last operation before the real fresh
+            # quote/M1 recheck. Simulate its minute-boundary delay here.
+            clock["now"] = after_capture
+            attempt_id = payload["reservation"]["attempt_id"]
+            return {"reservation": {"slot_number": None}, "postgres_audit": {"session_id": "s", "proposal_id": "proposal", "snapshot_id": "snapshot", "execution_attempt_id": attempt_id, "record_sha256": "sha256:" + "e" * 64}}
+        if command == "reconcile":
+            attempt_id = next(payload["result"]["attempt_id"] for command, payload in calls if command == "record-result")
+            return {"reconciliation": {"session_id": "s", "proposal_id": "proposal", "snapshot_id": "snapshot", "execution_attempt_id": attempt_id, "status": "NOT_SUBMITTED_RECONCILED"}}
+        assert command == "record-result"
+        return {"ok": True}
+
+    monkeypatch.setattr(probe, "_bridge", bridge)
+    monkeypatch.setattr(probe.mt5, "order_send", lambda *_: pytest.fail("crossed-minute reservation must not call order_send"), raising=False)
+
+    result = probe.capture("terminal", tmp_path / "lease.json")
+    assert result["execution"]["status"] == "NOT_SUBMITTED_AFTER_RESERVATION"
+    assert [command for command, _ in calls] == ["enforce-risk-policy", "persist-proposal", "enforce-risk-policy", "reserve-execution", "record-result", "reconcile"]
+    event = next(payload["result"] for command, payload in calls if command == "record-result")
+    assert event["event_type"] == "NOT_SUBMITTED"
+    validate_execution_and_reconciliation(result, result["session"], result["decision_snapshot"], result["proposal"])
+
+
+
+def test_m20_capture_same_minute_real_recheck_reaches_order_send(monkeypatch, tmp_path):
+    """Control: the real fresh quote/M1 recheck permits an unchanged minute."""
+    probe = _m20_probe_module(monkeypatch)
+    initial = datetime(2026, 9, 9, 6, 0, 59, tzinfo=timezone.utc)
+    _capture_test_environment(monkeypatch, probe, initial=initial, after_capture=initial)
+
+    def bridge(payload, command):
+        if command == "enforce-risk-policy":
+            return {"risk": {"entry_allowed": True, "maximum_loss_aud": 100}}
+        if command == "persist-proposal":
+            return {"postgres_audit": {"session_id": "s", "proposal_id": "proposal", "snapshot_id": "snapshot", "execution_attempt_id": None, "record_sha256": "sha256:" + "e" * 64}}
+        if command == "reserve-execution":
+            attempt_id = payload["reservation"]["attempt_id"]
+            return {"reservation": {"slot_number": None}, "postgres_audit": {"session_id": "s", "proposal_id": "proposal", "snapshot_id": "snapshot", "execution_attempt_id": attempt_id, "record_sha256": "sha256:" + "e" * 64}}
+        pytest.fail(f"unexpected bridge command before order_send: {command}")
+
+    monkeypatch.setattr(probe, "_bridge", bridge)
+    reached = []
+    monkeypatch.setattr(probe.mt5, "order_send", lambda *_: (reached.append(True), (_ for _ in ()).throw(RuntimeError("order_send reached")))[1], raising=False)
+    with pytest.raises(RuntimeError, match="order_send reached"):
+        probe.capture("terminal", tmp_path / "lease.json")
+    assert reached == [True]
+
+
+def test_m20_owner_time_exit_runs_before_bad_monitor_history(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    now = datetime.now(timezone.utc)
+    position = types.SimpleNamespace(ticket=8, magic=probe.EXECUTOR_MAGIC, price_open=1.1, sl=1.099, tp=1.102)
+    probe.mt5.symbol_info_tick = lambda _: types.SimpleNamespace(time=int(now.timestamp()), bid=1.1, ask=1.1001)
+    probe._positions_or_fail = lambda **_: (position,)
+    probe._closed_m1_bars_for_monitor = lambda *_: pytest.fail("time exit must precede candle reader")
+    monkeypatch.setattr(probe, "_close_accepted_position", lambda **_: ("close", 1.1, {}))
+    monkeypatch.setattr(probe, "_record_closed_monitor_outcome", lambda **kw: {"reason": kw["close_reason"]})
+    result = probe._monitor_open_position(
+        proposal={"proposal_id":"p", "action":"BUY", "trade_owner_strategy_id":"range_reversion", "proposed_entry":1.1, "initial_stop_loss":1.099},
+        attempt_id="a", position=position, submitted_at=now-timedelta(minutes=7), entry_spread=.0001,
+        risk={"volume":.01, "tick_size":.00001, "tick_value_loss":1.4, "point":.00001}, offset_seconds=0, single_pass=True,
+    )
+    assert result["reason"] == "RANGE_REVERSION_M1_TIME_STOP_6_MINUTES"
+
+
 def test_m20_cost_gate_requires_projected_net_profit_above_the_fixed_floor(monkeypatch):
     probe = _m20_probe_module(monkeypatch)
     risk = {"volume": 0.01, "tick_size": 0.00001, "tick_value_loss": 1.395, "observed_spread": 0.00010}
@@ -848,10 +1132,12 @@ def test_m20_broker_reported_but_unobserved_fill_is_audited_as_unknown_and_block
     calls = []
 
     class Cursor:
+        reads = 0
         def execute(self, *args):
             calls.append(args)
         def fetchone(self):
-            return (1,)
+            self.reads += 1
+            return (1,) if self.reads == 1 else None
         def __enter__(self):
             return self
         def __exit__(self, *_):

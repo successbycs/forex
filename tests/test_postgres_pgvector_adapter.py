@@ -30,6 +30,8 @@ def test_adapter_exposes_only_fixed_forex_operations():
         "forex-m20-risk-policy-summary", "forex-m20-wave1-reconciliation-context",
         "forex-m20-stage-listener-release", "forex-m20-stage-wave1-gap-reconciliation", "forex-m20-apply-wave1-gap-reconciliation", "forex-m20-stage-independent-risk-pauses-schema",
         "forex-m20-apply-independent-risk-pauses-schema",
+        "forex-m20-stage-not-submitted-execution-schema",
+        "forex-m20-apply-not-submitted-execution-schema",
     })
     assert postgres_pgvector_adapter.READ_ONLY | postgres_pgvector_adapter.MUTATING == expected
 
@@ -172,7 +174,7 @@ def test_m20_unresolved_attempt_summary_is_fixed_and_excludes_rejected_attempts(
     with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
         assert postgres_pgvector_adapter.m20_unresolved_attempt_summary()["ok"]
     query = remote.call_args.args[0]
-    for required in ("demo_execution_attempt", "demo_trade_outcome", "demo_position_event", "position_identifier", "event_type='REJECTED'"):
+    for required in ("demo_execution_attempt", "demo_trade_outcome", "demo_position_event", "position_identifier", "'REJECTED'", "'NOT_SUBMITTED'"):
         assert required in query
     assert "password" not in query.lower()
 

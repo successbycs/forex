@@ -257,7 +257,9 @@ def _bar_rows(rates: Any, *, timeframe_name: str, seconds: int, cutoff: int, tim
             "volume": int(rate["tick_volume"]),
         }
         ohlc = (row["open"], row["high"], row["low"], row["close"])
-        if min(ohlc) <= 0 or row["low"] > min(row["open"], row["close"]) or row["high"] < max(row["open"], row["close"]):
+        if (not all(math.isfinite(value) for value in ohlc) or min(ohlc) <= 0
+                or row["low"] > min(row["open"], row["close"])
+                or row["high"] < max(row["open"], row["close"])):
             raise SystemExit(f"EURUSD {timeframe_name} candle has invalid OHLC")
         rows.append(row)
     rows = rows[-CLOSED_BAR_COUNT:]
@@ -290,6 +292,46 @@ def _entry_m1_history_is_synchronized(*, rows: list[dict[str, Any]], observed_at
             return False
         previous_closed_at = closed_at
     return previous_closed_at == boundary
+
+
+def _current_entry_inputs(*, offset_seconds: int, expected_boundary: int | None = None, expected_m1_digest: str | None = None) -> tuple[Any | None, list[dict[str, Any]], str | None]:
+    """Read a fresh quote and its complete M1 window at the current UTC time.
+
+    This is used both at capture and immediately after reservation.  A failed
+    recheck is deliberately an entry refusal only: it has no bearing on the
+    monitor's broker protection or owner wall-clock exits.
+    """
+    tick = mt5.symbol_info_tick(SYMBOL)
+    if not tick:
+        return None, [], "M1_INPUT_UNAVAILABLE: EURUSD quote is unavailable at submission recheck."
+    observed_at = datetime.fromtimestamp(int(getattr(tick, "time", 0)), timezone.utc) - timedelta(seconds=offset_seconds)
+    # Copying terminal rates can block through a synchronization boundary.
+    # Read the wall clock only after every broker read below.
+    checked_at = datetime.now(timezone.utc)
+    freshness_seconds = (checked_at - observed_at).total_seconds()
+    bid, ask = float(getattr(tick, "bid", 0)), float(getattr(tick, "ask", 0))
+    if (not 0 <= freshness_seconds <= MAX_TICK_AGE_SECONDS or not math.isfinite(bid) or not math.isfinite(ask) or bid <= 0 or ask < bid
+            or int(observed_at.timestamp()) // 60 != int(checked_at.timestamp()) // 60):
+        return tick, [], "M1_INPUT_UNAVAILABLE: EURUSD quote is stale or invalid at submission recheck."
+    try:
+        rows, digest = _bar_rows(
+            mt5.copy_rates_from_pos(SYMBOL, mt5.TIMEFRAME_M1, 1, CLOSED_BAR_COUNT + 8),
+            timeframe_name="M1", seconds=60,
+            cutoff=int(observed_at.timestamp()) // 60 * 60,
+            timestamp_offset_seconds=offset_seconds,
+        )
+    except (SystemExit, KeyError, TypeError, ValueError, OverflowError):
+        return tick, [], "M1_INPUT_UNAVAILABLE: closed M1 history is invalid or insufficient at submission recheck."
+    checked_at = datetime.now(timezone.utc)
+    boundary = int(checked_at.timestamp()) // 60 * 60
+    freshness_seconds = (checked_at - observed_at).total_seconds()
+    if (not 0 <= freshness_seconds <= MAX_TICK_AGE_SECONDS
+            or int(observed_at.timestamp()) // 60 != int(checked_at.timestamp()) // 60
+            or expected_boundary is not None and boundary != expected_boundary
+            or expected_m1_digest is not None and digest != expected_m1_digest
+            or not _entry_m1_history_is_synchronized(rows=rows, observed_at=checked_at)):
+        return tick, rows, "M1_INPUT_UNSYNCHRONIZED: closed M1 history does not end at the current quote minute."
+    return tick, rows, None
 
 
 def _shadow_context_rows(*, timeframe_name: str, timeframe: Any, seconds: int, observed_at: datetime, timestamp_offset_seconds: int) -> tuple[list[dict[str, Any]], str | None]:
@@ -1548,8 +1590,20 @@ def _monitor_open_position(*, proposal: dict[str, Any], attempt_id: str, positio
                 close_reason=f"{owner.upper()}_M1_TIME_STOP_{maximum_hold_seconds // 60}_MINUTES", broker_order_reference=reference,
                 expected_exit_price=exit_price, closed_costs=costs,
             )
-        bars = _closed_m1_bars_for_monitor(tick, offset_seconds)
-        if _two_opposite_completed_m1_candles(bars=bars, action=action, opened_at=opened_at):
+        # Reversal invalidation is discretionary. Delayed, gapped, or invalid
+        # terminal history cannot close a protected position; broker SL/TP and
+        # the owner wall-clock exit above remain available.
+        try:
+            bars = _closed_m1_bars_for_monitor(tick, offset_seconds)
+        except (SystemExit, KeyError, TypeError, ValueError, OverflowError):
+            bars = []
+        monitor_checked_at = datetime.now(timezone.utc)
+        monitor_tick_at = datetime.fromtimestamp(int(tick.time), timezone.utc) - timedelta(seconds=offset_seconds)
+        monitor_age = (monitor_checked_at - monitor_tick_at).total_seconds()
+        if (0 <= monitor_age <= MAX_TICK_AGE_SECONDS
+                and int(monitor_tick_at.timestamp()) // 60 == int(monitor_checked_at.timestamp()) // 60
+                and _entry_m1_history_is_synchronized(rows=bars, observed_at=monitor_checked_at)
+                and _two_opposite_completed_m1_candles(bars=bars, action=action, opened_at=opened_at)):
             reference, exit_price, costs = _close_accepted_position(
                 position=current, submitted_at=submitted_at,
                 proposed_entry=float(proposal["proposed_entry"]), entry_spread=entry_spread, risk=risk,
@@ -1711,20 +1765,33 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         if bid <= 0 or ask < bid:
             raise SystemExit("EURUSD tick bid/ask is invalid")
         raw_bars: dict[str, list[dict[str, Any]]] = {}
+        m1_input_reason: str | None = None
         for name, timeframe, seconds in TIMEFRAMES:
             if name == "M1":
                 rates = mt5.copy_rates_from_pos(SYMBOL, timeframe, 1, CLOSED_BAR_COUNT + 8)
                 boundary = int(observed_at.timestamp()) // seconds * seconds
-                rows, _ = _bar_rows(rates, timeframe_name=name, seconds=seconds,
-                                    cutoff=boundary, timestamp_offset_seconds=offset_seconds)
-                raw_bars[name] = [{"timeframe": name, **row} for row in rows]
+                try:
+                    rows, _ = _bar_rows(rates, timeframe_name=name, seconds=seconds,
+                                        cutoff=boundary, timestamp_offset_seconds=offset_seconds)
+                    raw_bars[name] = [{"timeframe": name, **row} for row in rows]
+                except (SystemExit, KeyError, TypeError, ValueError, OverflowError):
+                    # Retain no partly parsed or invented rows.  The durable
+                    # NO_TRADE rationale records why this entry input was not
+                    # usable; a later poll must obtain a complete fresh run.
+                    raw_bars[name] = []
+                    m1_input_reason = "M1_INPUT_INVALID_OR_INSUFFICIENT: no complete chronological closed M1 window was available."
             else:
                 raw_bars[name], _ = _shadow_context_rows(
                     timeframe_name=name, timeframe=timeframe, seconds=seconds,
                     observed_at=observed_at, timestamp_offset_seconds=offset_seconds,
                 )
-        entry_m1_synchronized = _entry_m1_history_is_synchronized(
-            rows=raw_bars["M1"], observed_at=observed_at
+        # Context reads can cross a minute. Bind the persisted assessment to
+        # the wall clock after the complete entry input capture, not its start.
+        captured_at = datetime.now(timezone.utc)
+        freshness_seconds = (captured_at - observed_at).total_seconds()
+        entry_m1_synchronized = (
+            int(observed_at.timestamp()) // 60 == int(captured_at.timestamp()) // 60
+            and _entry_m1_history_is_synchronized(rows=raw_bars["M1"], observed_at=observed_at)
         )
         session = _session(lease)
         risk_policy = persistent_risk_policy()
@@ -1751,7 +1818,8 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         risk["financing_by_side"] = {side: project_financing(terms=terms, action=side, volume=risk["volume"], now=captured_at, horizon=horizon, policy=mandate) for side in ("BUY", "SELL")}
         visible_positions = _positions_or_fail(context="assessment", symbol=SYMBOL)
         safety_gates = {
-            "fresh_quote": int(freshness_seconds) <= MAX_TICK_AGE_SECONDS,
+            "fresh_quote": (0 <= freshness_seconds <= MAX_TICK_AGE_SECONDS
+                            and int(observed_at.timestamp()) // 60 == int(captured_at.timestamp()) // 60),
             # Count alone is insufficient: a reconnect can return an old,
             # internally plausible M1 window alongside a fresh quote.  Entry
             # requires 64 consecutive completed bars ending at this quote's
@@ -1769,6 +1837,18 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         snapshot, proposal, strategy_selection, strategy_assessments = _assessment(
             session, tick_record, raw_bars, captured_at, risk, listener_poll_seconds, safety_gates
         )
+        if m1_input_reason:
+            proposal["rationale"] = m1_input_reason
+            strategy_selection.update({"selected_strategy_id": None, "strategy_rule_version": None,
+                                       "selection_status": "NO_SELECTION", "trade_owner_strategy_id": None,
+                                       "market_regime": "UNSAFE_OR_UNTRADEABLE",
+                                       "market_regime_reason": m1_input_reason,
+                                       "entry_spread_cost_aud": None, "expected_exit_spread_cost_aud": None,
+                                       "commission_allowance_aud": None, "slippage_allowance_aud": None,
+                                       "expected_swap_aud": None, "projected_gross_profit_at_take_profit_aud": None,
+                                       "estimated_round_trip_cost_aud": None, "minimum_net_profit_aud": None,
+                                       "expected_net_profit_at_take_profit_aud": None,
+                                       "cost_coverage_status": "NOT_APPLICABLE"})
         pre_context_owner = strategy_selection.get("selected_strategy_id")
         pre_context_candidate = next((item["signal"] for item in strategy_assessments if item["id"] == pre_context_owner), "NO_TRADE")
         if proposal["action"] != "NO_TRADE" and risk_gate["entry_allowed"] is not True:
@@ -1841,6 +1921,28 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                 "account_scope_sha256": fresh_account["account_scope_sha256"], "planned_loss_aud": planned_loss,
             }
             reserved = _bridge({**bridge_payload, "reservation": reservation}, "reserve-execution")
+            _, _, submission_refusal = _current_entry_inputs(
+                offset_seconds=offset_seconds,
+                expected_boundary=int(parse_utc(proposal["decision_at_utc"], "decision_at_utc").timestamp()) // 60 * 60,
+                expected_m1_digest=hashlib.sha256(json.dumps([{key: value for key, value in row.items() if key != "timeframe"} for row in raw_bars["M1"]], sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+            )
+            if submission_refusal:
+                validation_at = utc(datetime.now(timezone.utc))
+                non_submission_context = {
+                    "schema_version": "forex.m20.not-submitted.v1", "reason": submission_refusal,
+                    "validation_at_utc": validation_at,
+                }
+                _bridge({"result": {
+                    "event_id": str(uuid5(NAMESPACE_URL, f"{attempt_id}:not-submitted")),
+                    "attempt_id": attempt_id, "event_type": "NOT_SUBMITTED",
+                    "observed_at_utc": validation_at, "broker_order_reference": "",
+                    "payload_sha256": "sha256:" + hashlib.sha256(json.dumps(non_submission_context, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+                    "payload": non_submission_context,
+                }}, "record-result")
+                reconciliation = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")["reconciliation"]
+                if reconciliation.get("status") != "NOT_SUBMITTED_RECONCILED":
+                    raise SystemExit("M20 stale submission refusal was not reconciled")
+                return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "risk_policy": risk_gate, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments, "multi_timeframe_context": multi_timeframe_context, "execution": {"status": "NOT_SUBMITTED_AFTER_RESERVATION", "attempt_id": attempt_id, "session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "idempotency_key": reservation["idempotency_key"], "submitted_at_utc": submitted_at, "open_positions_before": 0, "cumulative_notional_before_usd": 0}, "reconciliation": reconciliation, "postgres_audit": reserved["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
             order_type = mt5.ORDER_TYPE_BUY if proposal["action"] == "BUY" else mt5.ORDER_TYPE_SELL
             request = {"action": mt5.TRADE_ACTION_DEAL, "symbol": SYMBOL, "volume": risk["volume"], "type": order_type,
                        "price": proposal["proposed_entry"], "sl": proposal["stop_loss"], "tp": proposal["take_profit"],
