@@ -84,7 +84,7 @@ OWNER_MAX_HOLD_SECONDS = {
 # These are deliberately fixed M20 policy constants, rather than caller
 # inputs.  Actual commission, swap, and realised P&L remain broker-derived
 # when a trade closes; this gate is a conservative pre-trade projection.
-COST_POLICY_VERSION = "forex.m20.m1-cost-coverage.v1"
+COST_POLICY_VERSION = "forex.m20.m1-cost-coverage.v2"
 EXPECTED_EXIT_SPREAD_MULTIPLIER = 1.0
 EXPECTED_SLIPPAGE_SPREAD_MULTIPLIER = 0.5
 # The canonical runtime configuration is injected into the fixed release by
@@ -568,6 +568,129 @@ def _market_selection(*, tick: dict[str, Any], m1: list[dict[str, Any]], assessm
             "selected_strategy_id": None, "strategy_rule_version": None, "selection_status": "NO_SELECTION"}
 
 
+def financing_policy() -> dict[str, Any]:
+    """Missing mandate refuses entries; it never changes existing exits."""
+    try:
+        policy = json.loads(os.environ['FOREX_M20_FINANCING_POLICY'])
+        if policy['policy_version'] != 'forex.m20.financing.v1' or policy['exit_mode'] != 'EXISTING_OWNER_EXITS':
+            raise ValueError('unsupported mandate')
+        return policy
+    except (KeyError, ValueError, TypeError) as error:
+        raise SystemExit('M20 financing mandate is absent or invalid') from error
+
+
+def project_financing(*, terms: dict[str, Any], action: str, volume: float,
+                      now: datetime, horizon: datetime, policy: dict[str, Any]) -> dict[str, Any]:
+    """Signed points-mode EURUSD financing; explicit calendar, no guessed fees.
+
+    USD debits convert at AUDUSD bid; credits at ask. Unsupported broker modes
+    remain unqualified. Calendar coverage includes the entire holding horizon.
+    """
+    result = {'status': 'UNKNOWN', 'policy_version': policy.get('policy_version'),
+              'expected_swap_aud': None, 'commission_allowance_aud': None,
+              'adverse_financing_aud': None, 'reason': None, 'inputs': terms,
+              'mandate': policy, 'horizon_utc': utc(horizon)}
+    try:
+        def finite(value: Any, positive: bool = False) -> float:
+            if isinstance(value, bool): raise ValueError('invalid numeric value')
+            value = float(value)
+            if not math.isfinite(value) or (positive and value <= 0): raise ValueError('invalid numeric value')
+            return value
+        if action not in {'BUY', 'SELL'} or horizon < now: raise ValueError('invalid action/horizon')
+        volume = finite(volume, True)
+        age = (now - parse_utc(terms['captured_at_utc'], 'financing capture')).total_seconds()
+        quote_age = (now - parse_utc(terms['conversion_at_utc'], 'conversion quote')).total_seconds()
+        maximum_age = finite(policy['maximum_quote_age_seconds'], True)
+        if not 0 <= age <= maximum_age or not 0 <= quote_age <= maximum_age:
+            raise ValueError('stale financing/conversion observation')
+        if terms['server'] != SERVER or terms['symbol'] != SYMBOL or terms['profit_currency'] != 'USD':
+            raise ValueError('unsupported financing surface')
+        if terms['swap_mode'] != 1 or isinstance(terms['swap_mode'], bool):
+            raise ValueError('unsupported swap mode')
+        bid, ask = finite(terms['audusd_bid'], True), finite(terms['audusd_ask'], True)
+        if ask < bid: raise ValueError('crossed conversion quote')
+        start = parse_utc(policy['calendar_valid_from_utc'], 'calendar start')
+        end = parse_utc(policy['calendar_valid_until_utc'], 'calendar end')
+        if not start <= now <= horizon < end or not policy['calendar_source']:
+            raise ValueError('unqualified rollover calendar coverage')
+        fee_per_lot = finite(policy['round_trip_charge_aud_per_lot'])
+        if fee_per_lot < 0 or not policy['charge_source']: raise ValueError('unqualified commission/fee terms')
+        swap_points = finite(terms['swap_long'] if action == 'BUY' else terms['swap_short'])
+        per_day_usd = swap_points * finite(terms['point'], True) * finite(terms['contract_size'], True) * volume
+        multipliers = 0.0
+        seen = set()
+        for row in policy['rollovers']:
+            at = parse_utc(row['at_utc'], 'rollover')
+            multiplier = finite(row['multiplier'])
+            if at in seen or multiplier < 0 or not start <= at < end:
+                raise ValueError('invalid/duplicate rollover calendar event')
+            seen.add(at)
+            if now <= at <= horizon: multipliers += multiplier
+        signed_usd = per_day_usd * multipliers
+        signed_aud = signed_usd / (bid if signed_usd < 0 else ask)
+        # Keep full precision for risk; round only when presenting or reconciling.
+        result.update(status='QUALIFIED_INPUTS', expected_swap_aud=signed_aud,
+                      commission_allowance_aud=fee_per_lot * volume,
+                      adverse_financing_aud=max(0.0, -signed_aud),
+                      reason='POINTS_MODE_WITH_DECLARED_CALENDAR', multiplier=multipliers,
+                      horizon_utc=utc(horizon), inputs=terms, calendar_source=policy['calendar_source'],
+                      charge_source=policy['charge_source'])
+    except (KeyError, TypeError, ValueError, OverflowError, SystemExit) as error:
+        result['reason'] = str(error)
+    return result
+
+
+def review_holding(*, forecast_lower_bound_aud: float | None, benefit_buffer_aud: float | None,
+                   forecast_qualified: bool, risk_allowed: bool,
+                   financing: dict[str, Any]) -> dict[str, Any]:
+    """Read-only recommendation; W1 grants no forecast or new exit authority.
+
+    Forecast is incremental executable-price benefit minus incremental exit
+    friction, before future swap. Entry costs/accrued charges are already sunk.
+    """
+    if financing.get('status') != 'QUALIFIED_INPUTS' or not forecast_qualified:
+        return {'decision': 'REVIEW_REQUIRED', 'reason': 'COST_OR_HORIZON_EVIDENCE_UNQUALIFIED', 'execution_authority': False}
+    values = (forecast_lower_bound_aud, benefit_buffer_aud, financing.get('expected_swap_aud'))
+    if any(v is None or isinstance(v, bool) or not math.isfinite(float(v)) for v in values) or benefit_buffer_aud < 0:
+        return {'decision': 'REVIEW_REQUIRED', 'reason': 'INVALID_FORECAST_BOUND', 'execution_authority': False}
+    lower = float(forecast_lower_bound_aud) + float(financing['expected_swap_aud'])
+    return {'decision': 'HOLD' if risk_allowed and lower > benefit_buffer_aud else 'CLOSE',
+            'reason': 'INCREMENTAL_VALUE_AND_RISK', 'conservative_incremental_aud': lower,
+            'execution_authority': False}
+
+
+def financing_preview(terminal_path: str) -> dict[str, Any]:
+    """Fixed read-only deployed calculator proof; no order or ledger mutation."""
+    if not mt5.initialize(path=terminal_path): raise SystemExit('Demo terminal unavailable')
+    try:
+        account = mt5.account_info()
+        if not account or account.server != SERVER or account.currency != 'AUD':
+            raise SystemExit('Demo AUD account required')
+        symbol = mt5.symbol_info(SYMBOL)
+        if not symbol: raise SystemExit('EURUSD unavailable')
+        now = datetime.now(timezone.utc)
+        policy = financing_policy()
+        terms = _financing_terms(symbol, now)
+        projections = {side: project_financing(terms=terms, action=side, volume=float(symbol.volume_min), now=now,
+                       horizon=now + timedelta(seconds=max(OWNER_MAX_HOLD_SECONDS.values())), policy=policy) for side in ('BUY', 'SELL')}
+        return {'server': account.server, 'captured_at_utc': utc(now), 'projections': projections,
+                'order_submitted': False, 'new_holding_authority': False, 'exit_mode': policy['exit_mode']}
+    finally:
+        mt5.shutdown()
+
+
+def _financing_terms(symbol: Any, captured_at: datetime) -> dict[str, Any]:
+    conversion = mt5.symbol_info_tick('AUDUSD')
+    return {'captured_at_utc': utc(captured_at), 'server': SERVER, 'symbol': SYMBOL,
+            'profit_currency': getattr(symbol, 'currency_profit', None),
+            'swap_mode': getattr(symbol, 'swap_mode', None),
+            'swap_long': getattr(symbol, 'swap_long', None), 'swap_short': getattr(symbol, 'swap_short', None),
+            'point': getattr(symbol, 'point', None), 'contract_size': getattr(symbol, 'trade_contract_size', None),
+            'audusd_bid': getattr(conversion, 'bid', None), 'audusd_ask': getattr(conversion, 'ask', None),
+            'conversion_at_utc': utc(datetime.fromtimestamp(int(getattr(conversion, 'time', 0)), timezone.utc)
+                                     - timedelta(seconds=tick_time_offset_seconds()))}
+
+
 def _project_cost_coverage(*, action: str, entry: float, take_profit: float, risk: dict[str, float]) -> dict[str, Any]:
     """Project minimum profitable outcome from fixed, explicit M20 inputs."""
     if action not in {"BUY", "SELL"}:
@@ -581,16 +704,21 @@ def _project_cost_coverage(*, action: str, entry: float, take_profit: float, ris
     entry_spread = spread * value_per_price
     exit_spread = spread * EXPECTED_EXIT_SPREAD_MULTIPLIER * value_per_price
     slippage = spread * EXPECTED_SLIPPAGE_SPREAD_MULTIPLIER * value_per_price
-    estimated_cost = round(entry_spread + exit_spread + slippage, 2)
+    financing = risk.get("financing", {})
+    if financing.get("status") != "QUALIFIED_INPUTS":
+        return {**_project_cost_coverage(action="NO_TRADE", entry=entry, take_profit=take_profit, risk=risk), "cost_coverage_status": "NOT_FEASIBLE"}
+    commission = float(financing["commission_allowance_aud"])
+    signed_swap = float(financing["expected_swap_aud"])
+    estimated_cost = entry_spread + exit_spread + slippage + commission + max(0.0, -signed_swap)
     gross_profit = abs(take_profit - entry) * value_per_price
     expected_net = round(gross_profit - estimated_cost, 2)
     return {"entry_spread_cost_aud": round(entry_spread, 2),
             "expected_exit_spread_cost_aud": round(exit_spread, 2),
-            "commission_allowance_aud": 0.0,
+            "commission_allowance_aud": round(commission, 2),
             "slippage_allowance_aud": round(slippage, 2),
-            "expected_swap_aud": 0.0,
+            "expected_swap_aud": round(signed_swap, 2),
             "projected_gross_profit_at_take_profit_aud": round(gross_profit, 2),
-            "estimated_round_trip_cost_aud": estimated_cost,
+            "estimated_round_trip_cost_aud": round(estimated_cost, 2),
             "minimum_net_profit_aud": MINIMUM_NET_PROFIT_AUD,
             "expected_net_profit_at_take_profit_aud": expected_net,
             "cost_coverage_status": "FEASIBLE" if expected_net >= MINIMUM_NET_PROFIT_AUD else "NOT_FEASIBLE"}
@@ -653,10 +781,10 @@ def _strategy_trade_plan(*, strategy_id: str | None, signal: str, m1: list[dict[
 
 
 def _planned_stop_loss(entry: float, stop: float, risk: dict[str, float]) -> float:
-    # Same spread-based slippage allowance as the existing cost model. Broker
-    # commission and financing qualification remain separate Wave 1 evidence.
+    # Include qualified round-trip charges and adverse financing at full
+    # precision; positive financing cannot expand Option B risk capacity.
     distance = abs(entry - stop) + max(0.0, float(risk.get("observed_spread", 0))) * .5
-    return distance / float(risk["tick_size"]) * float(risk["tick_value_loss"]) * float(risk["volume"])
+    return distance / float(risk["tick_size"]) * float(risk["tick_value_loss"]) * float(risk["volume"]) + float(risk.get("financing", {}).get("adverse_financing_aud", 0)) + float(risk.get("financing", {}).get("commission_allowance_aud", 0))
 
 
 def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, list[dict[str, Any]]], captured_at: datetime, risk: dict[str, float], listener_poll_seconds: float, safety_gates: dict[str, bool] | None = None) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], list[dict[str, Any]]]:
@@ -672,10 +800,18 @@ def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, l
     risk = {**risk, "observed_spread": float(tick["ask"]) - float(tick["bid"])}
     signals = {item["id"]: item["signal"] for item in assessments}
     executable_strategy_id = selection["selected_strategy_id"] if selection["selection_status"] == "SELECTED_EXECUTABLE" else None
+    candidate_side = signals.get(executable_strategy_id, "NO_TRADE")
+    financing = risk.get("financing_by_side", {}).get(candidate_side, {"status": "UNKNOWN"})
+    risk = {**risk, "financing": financing}
+    financing_allowed = financing.get("status") == "QUALIFIED_INPUTS"
+    if not financing_allowed:
+        executable_strategy_id = None
     action, entry, stop, take, notional, reason = _strategy_trade_plan(
         strategy_id=executable_strategy_id, signal=signals.get(executable_strategy_id, "NO_TRADE"),
         m1=m1, tick=tick, session=session, risk=risk,
     )
+    if not financing_allowed and candidate_side in {"BUY", "SELL"}:
+        reason = "FINANCING_UNQUALIFIED: " + str(financing.get("reason", "missing financing terms"))
     cost_coverage = _project_cost_coverage(action=action, entry=float(entry or 0), take_profit=float(take or 0), risk=risk)
     selection.update(cost_coverage)
     if action != "NO_TRADE" and selection["selection_status"] != "SELECTED_EXECUTABLE":
@@ -698,6 +834,7 @@ def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, l
         "bid": tick["bid"], "ask": tick["ask"], "spread_points": tick["spread_points"],
         "freshness_seconds": int(tick["freshness_seconds"]), "m1_closed_bars": bars["M1"], "m5_closed_bars": bars["M5"],
         "safety_gates": gates, "market_context": selection, "strategy_assessments": assessments,
+        "financing": financing, "holding_review": review_holding(forecast_lower_bound_aud=None, benefit_buffer_aud=None, forecast_qualified=False, risk_allowed=True, financing=financing),
     }
     digest = "sha256:" + hashlib.sha256(json.dumps(snapshot_body, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     snapshot_id = str(uuid5(NAMESPACE_URL, f"{session['session_id']}:{digest}"))
@@ -1556,6 +1693,10 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                 "spread_points": round((ask - bid) / float(symbol.point), 4),
         }
         risk = {"volume": float(symbol.volume_min), "tick_size": float(symbol.trade_tick_size), "tick_value_loss": float(symbol.trade_tick_value_loss), "point": float(symbol.point)}
+        mandate = financing_policy()
+        terms = _financing_terms(symbol, captured_at)
+        horizon = captured_at + timedelta(seconds=max(OWNER_MAX_HOLD_SECONDS.values()))
+        risk["financing_by_side"] = {side: project_financing(terms=terms, action=side, volume=risk["volume"], now=captured_at, horizon=horizon, policy=mandate) for side in ("BUY", "SELL")}
         visible_positions = _positions_or_fail(context="assessment", symbol=SYMBOL)
         safety_gates = {
             "fresh_quote": int(freshness_seconds) <= MAX_TICK_AGE_SECONDS,
@@ -1627,6 +1768,13 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         if proposal["action"] != "NO_TRADE":
             fresh_account = _entry_risk_snapshot(mt5.account_info(), datetime.now(timezone.utc))
             _bridge({"policy": risk_policy, "account": fresh_account}, "enforce-risk-policy")
+            financing = risk["financing_by_side"][proposal["action"]]
+            risk["financing"] = financing
+            fresh_terms = _financing_terms(mt5.symbol_info(SYMBOL), datetime.now(timezone.utc))
+            fresh_now = datetime.now(timezone.utc)
+            fresh_financing = project_financing(terms=fresh_terms, action=proposal["action"], volume=risk["volume"], now=fresh_now, horizon=fresh_now + timedelta(seconds=max(OWNER_MAX_HOLD_SECONDS.values())), policy=mandate)
+            if fresh_financing.get("status") != "QUALIFIED_INPUTS" or any(fresh_financing[k] != financing[k] for k in ("expected_swap_aud", "commission_allowance_aud", "adverse_financing_aud")):
+                raise SystemExit("M20 financing changed before reservation; fresh assessment required")
             planned_loss = _planned_stop_loss(float(proposal["proposed_entry"]), float(proposal["stop_loss"]), {**risk, "observed_spread": float(tick_record["ask"]) - float(tick_record["bid"])})
             submitted_at = utc(datetime.now(timezone.utc))
             attempt_id = str(uuid5(NAMESPACE_URL, f"{proposal['proposal_id']}:attempt"))
@@ -1775,6 +1923,8 @@ if __name__ == "__main__":
         print(json.dumps(recover_open_positions(sys.argv[1]), separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--quote-identity":
         print(json.dumps(quote_identity(sys.argv[1]), separators=(",", ":")))
+    elif len(sys.argv) == 4 and sys.argv[3] == "--financing-preview":
+        print(json.dumps(financing_preview(sys.argv[1]), separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--risk-refusal-drill":
         print(json.dumps(risk_refusal_drill(sys.argv[1], Path(sys.argv[2])), separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--reconcile-retained-history":

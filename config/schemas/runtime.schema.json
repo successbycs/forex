@@ -2,45 +2,231 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "environment", "runtime_mode", "agent_authority_mode", "live_trading_enabled", "maximum_concurrent_positions", "persistent_risk_policy", "demo_session_limits"],
+  "required": [
+    "schema_version",
+    "environment",
+    "runtime_mode",
+    "agent_authority_mode",
+    "live_trading_enabled",
+    "maximum_concurrent_positions",
+    "persistent_risk_policy",
+    "demo_session_limits",
+    "financing_policy"
+  ],
   "properties": {
-    "schema_version": {"const": "forex.runtime.v2"},
-    "environment": {"enum": ["development", "test"]},
-    "runtime_mode": {"const": "DEMO_TRADING"},
-    "agent_authority_mode": {"const": "DEMO_SESSION_BOUNDED"},
-    "live_trading_enabled": {"const": false},
-    "maximum_concurrent_positions": {"const": 1},
+    "schema_version": {
+      "const": "forex.runtime.v2"
+    },
+    "environment": {
+      "enum": [
+        "development",
+        "test"
+      ]
+    },
+    "runtime_mode": {
+      "const": "DEMO_TRADING"
+    },
+    "agent_authority_mode": {
+      "const": "DEMO_SESSION_BOUNDED"
+    },
+    "live_trading_enabled": {
+      "const": false
+    },
+    "maximum_concurrent_positions": {
+      "const": 1
+    },
     "persistent_risk_policy": {
-      "type": "object", "additionalProperties": false,
-      "required": ["policy_version", "reporting_currency", "maximum_risk_per_trade_percent", "maximum_risk_per_trade_aud", "daily_loss_limit_percent", "weekly_loss_limit_percent", "peak_equity_drawdown_limit_percent", "loss_budget_timezone", "daily_pause_reset", "manual_resume_reasons", "require_known_external_cashflow"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_version",
+        "reporting_currency",
+        "maximum_risk_per_trade_percent",
+        "maximum_risk_per_trade_aud",
+        "daily_loss_limit_percent",
+        "weekly_loss_limit_percent",
+        "peak_equity_drawdown_limit_percent",
+        "loss_budget_timezone",
+        "daily_pause_reset",
+        "manual_resume_reasons",
+        "require_known_external_cashflow"
+      ],
       "properties": {
-        "policy_version": {"const": "forex.m20.conservative-risk.v1"},
-        "reporting_currency": {"const": "AUD"},
-        "maximum_risk_per_trade_percent": {"const": 0.10},
-        "maximum_risk_per_trade_aud": {"const": 100.0},
-        "daily_loss_limit_percent": {"const": 0.50},
-        "weekly_loss_limit_percent": {"const": 1.0},
-        "peak_equity_drawdown_limit_percent": {"const": 2.0},
-        "loss_budget_timezone": {"const": "Pacific/Auckland"},
-        "daily_pause_reset": {"const": "NEXT_AUCKLAND_DAY"},
-        "manual_resume_reasons": {"const": ["WEEKLY_LOSS", "PEAK_DRAWDOWN", "EXTERNAL_CASH_FLOW", "UNKNOWN_ACCOUNT_STATE"]},
-        "require_known_external_cashflow": {"const": true}
+        "policy_version": {
+          "const": "forex.m20.conservative-risk.v1"
+        },
+        "reporting_currency": {
+          "const": "AUD"
+        },
+        "maximum_risk_per_trade_percent": {
+          "const": 0.1
+        },
+        "maximum_risk_per_trade_aud": {
+          "const": 100.0
+        },
+        "daily_loss_limit_percent": {
+          "const": 0.5
+        },
+        "weekly_loss_limit_percent": {
+          "const": 1.0
+        },
+        "peak_equity_drawdown_limit_percent": {
+          "const": 2.0
+        },
+        "loss_budget_timezone": {
+          "const": "Pacific/Auckland"
+        },
+        "daily_pause_reset": {
+          "const": "NEXT_AUCKLAND_DAY"
+        },
+        "manual_resume_reasons": {
+          "const": [
+            "WEEKLY_LOSS",
+            "PEAK_DRAWDOWN",
+            "EXTERNAL_CASH_FLOW",
+            "UNKNOWN_ACCOUNT_STATE"
+          ]
+        },
+        "require_known_external_cashflow": {
+          "const": true
+        }
       }
     },
     "demo_session_limits": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["maximum_trades", "maximum_duration_minutes", "maximum_open_positions", "maximum_notional_per_trade_usd", "maximum_cumulative_notional_usd", "maximum_loss_per_trade_aud", "minimum_net_profit_aud", "require_persisted_proposal", "require_idempotency_key"],
+      "required": [
+        "maximum_trades",
+        "maximum_duration_minutes",
+        "maximum_open_positions",
+        "maximum_notional_per_trade_usd",
+        "maximum_cumulative_notional_usd",
+        "maximum_loss_per_trade_aud",
+        "minimum_net_profit_aud",
+        "require_persisted_proposal",
+        "require_idempotency_key"
+      ],
       "properties": {
-        "maximum_trades": {"const": null},
-        "maximum_duration_minutes": {"type": "integer", "minimum": 0, "maximum": 60},
-        "maximum_open_positions": {"const": 1},
-        "maximum_notional_per_trade_usd": {"type": "integer", "minimum": 1, "maximum": 10000},
-        "maximum_cumulative_notional_usd": {"type": "integer", "minimum": 1, "maximum": 100000},
-        "maximum_loss_per_trade_aud": {"const": 100},
-        "minimum_net_profit_aud": {"type": "number", "minimum": 0.1, "maximum": 5},
-        "require_persisted_proposal": {"const": true},
-        "require_idempotency_key": {"const": true}
+        "maximum_trades": {
+          "const": null
+        },
+        "maximum_duration_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60
+        },
+        "maximum_open_positions": {
+          "const": 1
+        },
+        "maximum_notional_per_trade_usd": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "maximum_cumulative_notional_usd": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "maximum_loss_per_trade_aud": {
+          "const": 100
+        },
+        "minimum_net_profit_aud": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 5
+        },
+        "require_persisted_proposal": {
+          "const": true
+        },
+        "require_idempotency_key": {
+          "const": true
+        }
+      }
+    },
+    "financing_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_version",
+        "exit_mode",
+        "maximum_quote_age_seconds",
+        "calendar_valid_from_utc",
+        "calendar_valid_until_utc",
+        "calendar_source",
+        "round_trip_charge_aud_per_lot",
+        "charge_source",
+        "rollovers"
+      ],
+      "properties": {
+        "policy_version": {
+          "const": "forex.m20.financing.v1"
+        },
+        "exit_mode": {
+          "const": "EXISTING_OWNER_EXITS"
+        },
+        "maximum_quote_age_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "calendar_valid_from_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "calendar_valid_until_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "calendar_source": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "round_trip_charge_aud_per_lot": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "charge_source": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "rollovers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "at_utc",
+              "multiplier"
+            ],
+            "properties": {
+              "at_utc": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "multiplier": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 7
+              }
+            }
+          }
+        }
       }
     }
   }

@@ -30,3 +30,16 @@ demo_session_limits:
   minimum_net_profit_aud: 0.10
   require_persisted_proposal: true
   require_idempotency_key: true
+
+# Existing 6–10 minute owner exits remain authoritative. Unknown broker terms
+# block entries; this mandate does not enable overnight holding or new exits.
+financing_policy:
+  policy_version: forex.m20.financing.v1
+  exit_mode: EXISTING_OWNER_EXITS
+  maximum_quote_age_seconds: 10
+  calendar_valid_from_utc: null
+  calendar_valid_until_utc: null
+  calendar_source: null
+  rollovers: []
+  round_trip_charge_aud_per_lot: null
+  charge_source: null

@@ -781,6 +781,16 @@
       "id": "m20_close_duplicate_terminal",
       "purpose": "Close duplicate interactive configured MT5 instances only while Demo is flat and the listener is held and stopped.",
       "approval_required": false
+    },
+    {
+      "id": "m20_swap_terms",
+      "purpose": "Read fixed Demo EURUSD financing terms and AUDUSD conversion quotes without trading.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_financing_preview",
+      "purpose": "Run the hash-bound deployed Demo financing calculator without placing orders.",
+      "approval_required": false
     }
   ]
 }

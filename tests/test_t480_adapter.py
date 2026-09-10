@@ -472,6 +472,7 @@ def test_m20_selected_strategy_without_a_valid_plan_is_not_execution_authority(m
 def test_m20_cost_gate_requires_projected_net_profit_above_the_fixed_floor(monkeypatch):
     probe = _m20_probe_module(monkeypatch)
     risk = {"volume": 0.01, "tick_size": 0.00001, "tick_value_loss": 1.395, "observed_spread": 0.00010}
+    risk["financing"] = {"status": "QUALIFIED_INPUTS", "expected_swap_aud": 0.0, "commission_allowance_aud": 0.0, "adverse_financing_aud": 0.0}
     rejected = probe._project_cost_coverage(action="BUY", entry=1.1, take_profit=1.10002, risk=risk)
     accepted = probe._project_cost_coverage(action="BUY", entry=1.1, take_profit=1.10150, risk=risk)
     assert rejected["cost_coverage_status"] == "NOT_FEASIBLE"

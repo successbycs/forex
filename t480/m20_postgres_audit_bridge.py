@@ -75,6 +75,13 @@ def _proposal(payload: dict[str, Any]) -> dict[str, Any]:
 def _snapshot(payload: dict[str, Any], proposal: dict[str, Any]) -> dict[str, Any]:
     value = _object(payload, "decision_snapshot")
     required = {"snapshot_id", "observed_at_utc", "captured_at_utc", "bid", "ask", "spread_points", "m1_closed_bars", "m5_closed_bars", "freshness_seconds", "safety_gates", "market_context", "strategy_assessments", "payload_sha256"}
+    financing_fields = {"financing", "holding_review"}
+    if financing_fields & set(value):
+        required |= financing_fields
+        if not all(isinstance(value.get(key), dict) for key in financing_fields):
+            raise SystemExit("M20 financing snapshot fields are invalid")
+        if proposal.get("action") in {"BUY", "SELL"} and value["financing"].get("status") != "QUALIFIED_INPUTS":
+            raise SystemExit("M20 actionable proposal has unqualified financing")
     gates = value.get("safety_gates")
     expected_gates = {"fresh_quote", "completed_m1", "normal_spread", "no_existing_position", "demo_lease_active", "news_blackout_inactive", "abnormal_volatility_inactive"}
     if (set(value) != required or value["snapshot_id"] != proposal["snapshot_id"] or value["payload_sha256"] != proposal["decision_snapshot_sha256"] or not isinstance(value["m1_closed_bars"], list) or not isinstance(value["m5_closed_bars"], list)

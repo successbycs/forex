@@ -158,6 +158,21 @@ def _m20_unresolved_history_probe_command() -> str:
     return "$ErrorActionPreference='Stop'; $s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json; if ([string]::IsNullOrWhiteSpace($s.python_path) -or !(Test-Path -LiteralPath $s.python_path)) { throw 'M20 configured Python interpreter is absent' }; & $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path; exit $LASTEXITCODE"
 
 
+def _m20_swap_terms_command() -> str:
+    code = """import json,sys,datetime
+import MetaTrader5 as m
+if not m.initialize(path=sys.argv[1]): raise SystemExit('Terminal unavailable')
+try:
+ a=m.account_info()
+ if not a or a.server!='GOMarketsMU-Demo' or a.currency!='AUD': raise SystemExit('Demo AUD required')
+ s=m.symbol_info('EURUSD'); q=m.symbol_info_tick('EURUSD'); c=m.symbol_info_tick('AUDUSD')
+ fields=('name','currency_base','currency_profit','currency_margin','point','trade_tick_size','trade_tick_value_loss','trade_contract_size','volume_min','swap_mode','swap_long','swap_short','swap_rollover3days')
+ print(json.dumps({'captured_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'server':a.server,'currency':a.currency,'symbol':{k:getattr(s,k,None) for k in fields},'quote':{k:getattr(q,k,None) for k in ('bid','ask','time')},'audusd':{k:getattr(c,k,None) for k in ('bid','ask','time')}}))
+finally:m.shutdown()
+"""
+    return "$ErrorActionPreference='Stop';$s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json;& $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path;exit $LASTEXITCODE"
+
+
 def _m20_wave1_candles_command() -> str:
     code = ("import json,sys;import MetaTrader5 as m;ok=m.initialize(path=sys.argv[1]);a=m.account_info() if ok else None;"
             "valid=bool(a) and a.server=='GOMarketsMU-Demo' and a.currency=='AUD';s=m.symbol_info('EURUSD') if valid else None;t=m.terminal_info() if valid else None;"
@@ -259,6 +274,7 @@ def _m20_demo_trading_session_command() -> str:
     tick_offset_seconds = configuration.mt5.broker_tick_time_offset_seconds
     minimum_net_profit = configuration.runtime.demo_session_limits.minimum_net_profit_aud
     risk_policy = json.dumps(asdict(configuration.runtime.persistent_risk_policy), separators=(",", ":"))
+    financing = json.dumps(configuration.runtime.financing_policy, separators=(",", ":"))
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     return (
         "$ErrorActionPreference='Stop'; "
@@ -281,6 +297,7 @@ def _m20_demo_trading_session_command() -> str:
         "$env:FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "'; "
         "$env:FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(tick_offset_seconds) + "'; "
         "$env:FOREX_M20_MINIMUM_NET_PROFIT_AUD='" + str(minimum_net_profit) + "'; "
+        "$env:FOREX_M20_FINANCING_POLICY='" + financing.replace("'", "''") + "'; "
         "$env:FOREX_M20_PERSISTENT_RISK_POLICY='" + risk_policy.replace("'", "''") + "'; "
         "$env:FOREX_M20_APPLICATION_REVISION='" + revision + "'; & $c.python_path $p $c.terminal_path $lease; exit $LASTEXITCODE"
     )
@@ -503,11 +520,12 @@ def _m20_listener_configure_command() -> str:
     fingerprint = project_configuration_fingerprint()
     configuration = load_configuration(ROOT, environ={})
     risk_policy = json.dumps(asdict(configuration.runtime.persistent_risk_policy), separators=(",", ":"))
+    financing = json.dumps(configuration.runtime.financing_policy, separators=(",", ":"))
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     return (
         "$ErrorActionPreference='Stop';$b='C:\\ProgramData\\ForexListener';$s=Join-Path $b state;$l=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe';"
         "$m=gc -Raw (Join-Path $s 'm20_demo_listener_prepared.local.json')|ConvertFrom-Json;if($m.release_id -ne '" + release_id + "'-or $m.configuration_fingerprint -ne '" + fingerprint + "'-or $m.application_revision -ne '" + revision + "'){throw 'M20 verified release binding is absent or stale'};"
-        "$x=gc -Raw (Join-Path $l 'mt5.local.json')|ConvertFrom-Json;$active=Join-Path $s 'm20_demo_listener_service.local.json';$previous=$null;if(Test-Path $active){try{$previous=gc -Raw $active|ConvertFrom-Json}catch{}};$c=[ordered]@{FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "';FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(configuration.mt5.broker_tick_time_offset_seconds) + "';FOREX_M20_MINIMUM_NET_PROFIT_AUD='" + str(configuration.runtime.demo_session_limits.minimum_net_profit_aud) + "';FOREX_M20_PERSISTENT_RISK_POLICY='" + risk_policy.replace("'", "''") + "';FOREX_M20_APPLICATION_REVISION='" + revision + "';python_path=$x.python_path;terminal_path=$x.terminal_path};if($null -ne $previous){foreach($key in @('FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED','FOREX_M20_DISCORD_WEBHOOK_URL')){if($previous.PSObject.Properties.Name -contains $key){$c[$key]=[string]$previous.$key}}};"
+        "$x=gc -Raw (Join-Path $l 'mt5.local.json')|ConvertFrom-Json;$active=Join-Path $s 'm20_demo_listener_service.local.json';$previous=$null;if(Test-Path $active){try{$previous=gc -Raw $active|ConvertFrom-Json}catch{}};$c=[ordered]@{FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "';FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(configuration.mt5.broker_tick_time_offset_seconds) + "';FOREX_M20_MINIMUM_NET_PROFIT_AUD='" + str(configuration.runtime.demo_session_limits.minimum_net_profit_aud) + "';FOREX_M20_FINANCING_POLICY='" + financing.replace("'", "''") + "';FOREX_M20_PERSISTENT_RISK_POLICY='" + risk_policy.replace("'", "''") + "';FOREX_M20_APPLICATION_REVISION='" + revision + "';python_path=$x.python_path;terminal_path=$x.terminal_path};if($null -ne $previous){foreach($key in @('FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED','FOREX_M20_DISCORD_WEBHOOK_URL')){if($previous.PSObject.Properties.Name -contains $key){$c[$key]=[string]$previous.$key}}};"
         "if(!(Test-Path (Join-Path $s 'm20_demo_session.local.json'))){Copy-Item (Join-Path $l 'm20_demo_session.local.json') (Join-Path $s 'm20_demo_session.local.json') -ea SilentlyContinue};$t=Join-Path $s 'm20_demo_listener_service.local.json.tmp';[IO.File]::WriteAllText($t,($c|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false)));Move-Item $t $active -Force;[pscustomobject]@{configured=$true;release_id=$m.release_id}|ConvertTo-Json -Compress"
     )
 
@@ -700,6 +718,8 @@ OPERATIONS: dict[str, Operation] = {
     "m20_demo_account_liquidity": Operation("m20_demo_account_liquidity", "Read fixed GOMarketsMU-Demo account liquidity fields without trading.", powershell_command=_m20_demo_account_liquidity_command()),
     "m20_terminal_history_diagnostics": Operation("m20_terminal_history_diagnostics", "Inspect bounded terminal history error lines and Demo exposure without trading.", powershell_command=_m20_terminal_history_diagnostics_command(), timeout_seconds=60),
     "m20_close_duplicate_terminal": Operation("m20_close_duplicate_terminal", "Close duplicate interactive configured MT5 instances only while Demo is flat and the listener is held and stopped.", powershell_command=_m20_close_duplicate_terminal_command(), timeout_seconds=60),
+    "m20_financing_preview": Operation("m20_financing_preview", "Run the hash-bound deployed Demo financing calculator without placing orders.", powershell_command=_m20_demo_trading_session_command().replace("$c.terminal_path $lease;", "$c.terminal_path $lease --financing-preview;"), timeout_seconds=60),
+    "m20_swap_terms": Operation("m20_swap_terms", "Read fixed Demo EURUSD financing terms and AUDUSD conversion quotes without trading.", powershell_command=_m20_swap_terms_command(), timeout_seconds=60),
     "m20_wave1_candles": Operation("m20_wave1_candles", "Inspect fixed Demo M1 candle availability and the terminal error without trading.", powershell_command=_m20_wave1_candles_command(), timeout_seconds=60),
     "m20_wave1_history": Operation("m20_wave1_history", "Read the fixed September 2026 Wave 1 Demo account deal/order reconciliation window.", powershell_command=_m20_wave1_history_command(), timeout_seconds=60),
     "m20_unresolved_history_probe": Operation(

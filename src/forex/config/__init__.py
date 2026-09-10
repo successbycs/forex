@@ -77,6 +77,7 @@ class RuntimeConfig:
     maximum_concurrent_positions: int
     persistent_risk_policy: PersistentRiskPolicy
     demo_session_limits: DemoSessionLimits
+    financing_policy: dict[str, Any]
 
 
 @dataclass(frozen=True)
