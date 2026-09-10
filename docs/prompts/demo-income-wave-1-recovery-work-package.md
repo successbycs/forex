@@ -1,8 +1,11 @@
 # W1.R work package: T480 reliability and recovery
 
-Prepared: 7 September 2026. Status: **PROPOSED — DOCUMENTATION ONLY; NOT EXECUTED.**
+Prepared 7 September; plan alignment updated 10 September 2026. **Current W1
+recovery specification; execution status comes from the current handover and
+bound evidence.** This update does not restart or deploy anything.
 
-The operator requested packaging of the reviewed fixes, not their execution.
+The original request packaged reviewed fixes; later work and approvals must be
+read from the current handover rather than inferred from this original plan.
 This package schedules remediation within [Wave 1](demo-income-wave-1.md) and
 its W1.1–W1.4 acceptance criteria. Read the [shared guide](demo-income-waves.md)
 and [Wave 1 report](../milestones/demo-income-wave-1-report.md) with it.
@@ -68,7 +71,8 @@ Starting references: `t480/m20_demo_listener_service.py` (`_monitor_update`),
 ## Fix schedule and dependencies
 
 This is a dependency schedule, not a calendar forecast. No `target_date` or
-completion timestamp is assigned. All activities below are **PLANNED**.
+completion timestamp is assigned. Preserve the actual status of each activity
+from its handover/evidence; the table defines dependencies, not a status reset.
 
 | Stage | Activities and owner | Dependency / exit condition | Wave mapping |
 | --- | --- | --- | --- |
@@ -82,6 +86,11 @@ Recommendation: complete R1–R4's diagnosis, code and maintenance prerequisites
 before broader Wave 1 execution resumes. Their completion is not a substitute
 for R5–R7. Missing platform authority blocks only dependent operations; finish
 independent authorised work and hand over the precise dependency.
+
+The 10 September W1.4 risk-latch repair joins Stage B and must be included
+before final Stage C deployment and Stage E proof. Verify overlapping pause,
+recovery and rollover cases as specified in [Wave 1](demo-income-wave-1.md).
+Do not repeat successful R1–R4 work or infer current faults from old logs.
 
 ## R1 — Diagnose shared-service and connection interruptions
 
@@ -169,6 +178,14 @@ audit checks confirm flat exposure and no unresolved execution. The separate
 listener-only restart with an open position preserves broker protection.
 Restoration retains the same lease, counters, baseline and risk anchors,
 allowing only broker-reconciled P&L and legitimate policy-boundary transitions.
+**Operator amendment, 2026-09-10:** Backup and isolated-restore evidence is
+deferred to W4.0, before any funded pilot. Missing backup evidence does not
+block Wave 1 Demo deployment, migration 022 or otherwise authorised recovery
+drills. Prioritise core Demo functionality. Retain the existing entry hold,
+fresh broker/audit checks, transaction-safe migrations, unchanged ledger/risk
+anchors and the previous reviewed code/configuration. Do not reset state or
+restore an old ledger to manufacture proof. Shared backup implementation
+remains owned by `cs-ai-lab-infra`; it is not part of this Wave 1 execution.
 
 **Real-world test / evidence:** Capture before/after hold, broker, ledger and
 risk state for an approved maintenance window. Show zero new entries under
@@ -263,6 +280,10 @@ respect the verifier's exact revision requirements and plan provenance once.
   under the previously approved temporary AUD 0.01 planned-loss cap, then
   restore Option B immediately. The earlier calculation-only refusal probe
   is supporting evidence, not proof of the complete listener refusal path.
+  Independently test all overlapping pause reasons against the real function
+  and isolated persistent integration state, including recovery/rollover.
+  Preserve manual latches through maintenance and restart. Synthetic equity
+  inputs are engineering fixtures, never fabricated broker evidence.
 
 Preserve Option B: lesser of AUD 100 and 0.10% policy equity per trade; daily
 0.50%, weekly 1.00%, peak adjusted-equity drawdown 2.00%; existing Auckland

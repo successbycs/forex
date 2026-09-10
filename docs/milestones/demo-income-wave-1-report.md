@@ -715,3 +715,439 @@ recommendation, external witness or M20 proof bundle.
 The maintenance hold and independent risk pause must remain. Database migration,
 reboot and other disruptive work remain blocked on current recovery evidence.
 Do not close Wave 1 or M20 from this code commit or the passing local checks.
+
+
+## 2026-09-10 operator amendment — core Demo function first
+
+The operator explicitly directed: “push it out, we WANT THE CORE FUNCTION
+WORKING FIRST.” Backup and isolated-restore evidence is therefore deferred
+to **W4.0, before funded operation**. This supersedes the backup-based blocking
+conditions in earlier checkpoints, including the preceding continuation.
+No backup or restore success is claimed.
+
+Wave 1 may proceed with reviewed Demo code deployment, migration 022 and
+otherwise authorised recovery drills without awaiting backup evidence.
+Existing Demo-only, Option B, maintenance-hold, fresh broker/audit flatness,
+state-preservation and execution-proof requirements remain. No destructive
+ledger reset or Live access is authorised by this amendment.
+
+Next execution priority: verify current exposure and hold; deploy the reviewed
+risk/diagnostic fixes with migration 022; diagnose and repair the listener exit;
+finish fee/accounting and risk-gate checks; then collect the required genuine
+Demo lifecycle/refusal/restart evidence. Do not resume the deferred backup
+programme as a prerequisite or automatically start Wave 4.
+
+## 2026-09-10 execution continuation — ledger repaired and candle feed recovered
+
+This checkpoint supersedes the operational blockers above where explicitly
+resolved below. **Wave 1 and M20 remain incomplete.** Backup/isolated restore
+remains deferred to W4.0; it was not used to block this deployment.
+
+### Changes and retained operating evidence
+
+Evidence root: `runs/evidence/M20/w1-resume-20260910/`. Original tool responses
+are retained under `raw/`; local tests and separate verification results are
+not substitutes for broker evidence.
+
+- Verified starting revisions `3472885` and `8076413` against current source.
+  Preserved the existing Wave/Research edits. Scoped commits this continuation:
+  `787a058` (fixed SCP release staging and retained-close reconciliation),
+  `dd4a5be` (unknown-account latch and exact refusal-lease restoration), and
+  `e16729b` (terminal history diagnostics and duplicate-terminal recovery).
+  No push, branch or next-wave execution occurred.
+- Initial fresh Demo observation: AUD balance/equity **100,994.79**, zero open
+  positions. The unresolved execution was attempt
+  `65915347-d4a1-53e2-94a2-dccfc41a164f`. Actual broker history identified order /
+  position **41782938**, entry deal **34524700**, stop-loss close **34525414**,
+  net **AUD -0.53**. Symbol, side, magic, protective prices and corrected broker
+  timestamps matched its unique retained proposal. See `raw/demo-history.json`
+  and `raw/reconciliation-context.json`.
+- Applied `sql/operations/w1_reconcile_attempt_65915347.sql` once under the risk
+  lock, appending the missing lifecycle events/outcome and adjusting expected
+  balance once. Original attempts, leases and capital anchors were preserved.
+  The operation rejects duplicate application. Reconstructed spread/slippage
+  estimates remain unknown rather than invented. Actual commission, fee and
+  swap on this close were zero. Post-baseline broker net **-0.72** reconciles
+  baseline **100,995.51** to **100,994.79** with no external-cash-flow rows in
+  the retained account window. Separate arithmetic/history verification:
+  `runs/verification/M20/w1-resume-20260910/cashflow-attribution.json`.
+- The operating unresolved-attempt query then returned an empty array. Applied
+  migration **022** with the legacy cash-flow pause backfilled into the
+  independent reason array. There was no ledger reset. Captured pre/post state
+  demonstrates unchanged baseline, weekly and peak anchors during migration.
+- The fully explained cash-flow pause was resumed through the audited fixed
+  operation, resume ID `22179ea4-b2b9-4d78-8a5f-0e5f0d056f5c`. This uses actual
+  attribution, not an extension of the operator's historical AUD -0.29 statement.
+  Fresh subsequent account enforcement consumed the review flag and reported
+  no active reasons. The daily anchor rolled normally to **100,994.79** for
+  Auckland **2026-09-10**; baseline, weekly and peak remain **100,995.51**.
+- Inline release transfer hit a Windows access-denied error before SSH on the
+  second segment. The fixed SCP path transferred all four complete payloads;
+  the existing prepare step verified their source hashes. Current deployed
+  code release is **c1985bc7637d8712**. After the adapter-only recovery commit,
+  prepare/configure rebound it to `e16729b` without replacing the lease or code.
+  One stale-binding configure attempt was correctly refused before this
+  successful prepare/configure sequence (`raw/bound-*.json`).
+- Added persistent `UNKNOWN_ACCOUNT_STATE` latching on invalid entry-account
+  observations. A later healthy observation does not clear this manual latch.
+  The real isolated PostgreSQL tests verify latch/anchor persistence and two
+  simultaneous reservation attempts across different leases: exactly one
+  reserves and the other is refused by global position serialization.
+  **25** real isolated-PostgreSQL tests passed; the final repository check
+  passed **297** tests (`final-repository-tests.txt`). These are engineering
+  checks, not proof of actual broker concurrency or funded suitability.
+
+### Terminal incident: supported diagnosis, recovery and limits
+
+The initial recurring listener exits had task result 1 and no retained Python
+exception frames. The deployed crash recorder retains safe exception type and
+bounded frames; no fresh equivalent crash has yet been captured. Do not claim
+the historical process-exit cause is proven.
+
+A separate concrete failure prevented assessments: both M1 and M5 bar requests
+returned `Terminal: Call failed` although quotes/account queries worked. The
+terminal log reported EURUSD history file-opening error **32**. Windows defines
+32 as a [file-sharing violation](https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-).
+There were two processes for the same configured terminal executable, in
+Session **0** and interactive Session **2**. With Demo freshly flat, no pending
+orders, listener stopped and maintenance hold present, the fixed recovery
+closed only the duplicate interactive process **17572**, preserving service
+process **16340**. M1 immediately returned **72** bars and M5 **5** bars, both
+successful, on the original Python API **5.0.6147**. See
+`raw/terminal-session-diagnostics.json`, `raw/close-duplicate-terminal.json`, and
+`raw/candles-after-duplicate-close.json`.
+
+An isolated, hash-pinned API **5.0.6180** test had reproduced the same failure
+before closing the duplicate. It was not promoted into the existing virtual
+environment. Its candidate requirements and raw result remain in this evidence
+root. No terminal history was deleted and no host reboot was performed.
+
+**Operational prevention:** do not open the same configured MT5 installation
+in an interactive RDP session while its autonomous Session 0 instance runs.
+Use the Forex status surface; any separate chart terminal needs an independently
+configured data directory. Recovery does not automatically kill terminals.
+Detached-T16 duration and a separate flat/no-logon reboot test remain unproven.
+
+### Entry boundary and remaining work
+
+The observed historical intraday deals have zero commission, fee and swap;
+that does not establish future financing terms. The forward cost model still
+hard-codes zero commission/financing allowance and does not impose a holding
+boundary before rollover. **Normal entry release remains held pending this
+qualification.** An operator holding-policy decision has been requested:
+intraday liquidation before broker rollover, or overnight holding with explicit
+swap allowances. Do not silently invent a new forced-close policy. Obtain the
+applicable account commission terms, then enforce the chosen financing boundary
+in both projected net returns and planned loss; recapture affected proof.
+
+Other outstanding Wave 1 criteria: genuine lifecycle on the final compatible
+release; genuine risk refusal on an eligible signal; protected-position restart;
+retained failure/recovery proof for the original recurring exit; detached/no-logon
+operation and applicable incident delivery; independent final bound review.
+No signals, fills, losses, fees or completion evidence may be manufactured.
+
+### Final checkpoint, 2026-09-10 12:43 NZST
+
+The second bounded refusal window, after history recovery, captured eight
+observations: normal broker-data `NO_TRADE` assessments plus one temporary
+fresh-quote wait that recovered. No eligible signal reached the planned-loss
+refusal path. This is **not refusal proof**. The collector restored the hold
+and the exact original lease in its finalization path; session ID remains
+`9673811b-0e23-47f9-b8e6-e0a86d1adf06`, maximum planned loss **AUD 100**.
+No order was manufactured to obtain evidence.
+
+Final retained observations show a fresh **MAINTENANCE_HOLD** heartbeat at
+`2026-09-10T00:43:21.741879Z`, task **Running**, listener processes in Session 0,
+and no new recorded crash. Fresh broker observation is Demo/AUD,
+balance=equity **100,994.79**, positions **AVAILABLE / 0**. Normal entries are
+**not enabled**. This is a point-in-time observation, not a 30-minute detached
+or reboot qualification.
+
+`raw/post-recovery-audit.json` reports the operating Demo ledger audit passed:
+Demo-only, caps, proposal-first, idempotency, immutable triggers, cost schema
+and fee-incomplete exclusion. This does not certify prospective fee estimates.
+Separate reproducible read-only checks and raw hashes are saved in
+`runs/verification/M20/w1-resume-20260910/verify-recovery.py` and
+`recovery-verification.json`; they explicitly leave lifecycle, genuine refusal
+and historical exit-cause proof false. The isolated local PostgreSQL test
+instance was stopped after testing; the operating database was not stopped.
+
+**Resume:** obtain the pending holding-policy decision and applicable broker
+commission/rollover terms; implement and verify fee-aware net/risk gates; then
+release normal Demo entry only when those prerequisites pass. Capture a natural
+eligible refusal in a bounded window with immediate Option B restoration,
+a genuine lifecycle and protected restart. Keep recording any real recurrence
+of the listener exit for a supported fix. Complete the remaining R5/R6 and bound
+review evidence within Wave 1. No backup evidence is a prerequisite.
+
+## 2026-09-10 swap-safeguard implementation checkpoint
+
+Operator instruction: “execute this change”, following incorporation of the
+swap-aware method into the waves. Executed the independent W1 calculator,
+entry/risk and audit changes. W2/W3 were not started. **This is partial Wave 1
+implementation and deployed engineering verification, not completion or proof
+of an overnight edge.**
+
+### Correction to the preceding holding-policy analysis
+
+Current code already enforces owner-specific time exits: Range 6 minutes,
+Compression 8 minutes, other M1 owners 10 minutes, plus existing protective
+SL/TP and invalidation rules. The earlier implication that normal holding was
+indefinite was incorrect. Rollover exposure can occur near the cutoff or when
+an exit fails. These existing exits remain unchanged; continuous lease duration
+is not unlimited position duration.
+
+### Implemented and deployed
+
+- `config/runtime.yaml` now holds a schema-validated financing mandate using
+  existing owner exits, a 10-second observation-age ceiling, explicit calendar
+  coverage/events and all-in round-trip commission/fee allowance per lot.
+  Unverified calendar and charge terms are **null**, not zero. No numerical
+  overnight holding rule or forced liquidation was invented.
+- Added one pure signed points-mode EURUSD calculator in the fixed runner.
+  It supports the observed USD-profit-currency mode, converts debits using
+  AUDUSD bid and credits using ask, applies explicit rollover multipliers,
+  retains source/capture/conversion timestamps and refuses unsupported,
+  missing, stale, non-finite or inconsistent inputs. Other modes remain
+  unqualified. Calendar completeness/holiday correctness requires broker
+  qualification; a source label alone is not proof.
+- Entry assessment uses the current maximum owner window (10 minutes,
+  conservative for shorter owners). Unknown financing makes the proposal
+  NO_TRADE. Known commission/fees and adverse swap enter planned loss at full
+  precision before reservation. Positive swap cannot enlarge Option B capacity.
+  Costs are refreshed before reservation; changed costs require reassessment.
+- The v2 projected cost convention includes financing debits and charges;
+  potential credits remain separately displayed and are not counted toward
+  entry feasibility pending qualification. This is conservative TP feasibility,
+  not calibrated expectancy. Actual broker net accounting remains unchanged.
+- Decision snapshots retain financing inputs/mandate and a deterministic
+  holding recommendation; the bridge accepts and checks the paired records.
+  The evaluator returns HOLD/CLOSE/REVIEW_REQUIRED but grants **no execution
+  authority**. With no W3 forecast it reports EVIDENCE_UNQUALIFIED. It does not
+  yet schedule position-specific rollover reviews or route a new close rule;
+  those dependent parts remain pending below, rather than being called complete.
+- Added fixed read-only swap-term capture and a deployed financing preview.
+  No order surface, lease replacement, risk-anchor reset or database migration
+  was added. Source commits: `c192cf9`, then `dba0a16` to shorten the preview
+  command after an actual Windows command-length failure. No push occurred.
+- Deployed release **9f4601f3fd269894** under the existing maintenance hold,
+  bound to `dba0a16`. All four payloads transferred by fixed SCP and passed the
+  existing prepare/hash checks. Existing approvals and unrelated work preserved.
+
+### Evidence and verification
+
+Raw directory: `runs/evidence/M20/w1-swap-20260910/raw/`.
+The broker capture reports points mode 1, long **-5.91**, short **+2.30**,
+Wednesday triple-rollover flag, EURUSD contract size 100,000, minimum .01 lots.
+These are observed terms, not proof of a posted charge or future rate stability.
+
+The deployed read-only preview at `2026-09-10T01:30:54Z` observed those rates and
+returned **UNKNOWN** for both sides because calendar/charge qualification is
+absent; no order was submitted. Its original Windows command failure is retained
+separately from the successful rebound result. Never replace this gap with an
+assumed zero-cost calendar.
+
+Repository verification passed **311 tests**, including **25** isolated real
+PostgreSQL tests. Fourteen new financing tests cover debit/credit conversion,
+triple treatment, boundary inclusion, missing/stale/future/invalid data,
+financing-inclusive planned loss, conservative holding recommendations and an
+actual assessment function refusing absent financing. The shortened adapter
+also passed its focused checks. These tests use labelled synthetic fixtures;
+they do not demonstrate broker swap settlement.
+
+Separate read-only verification and raw hashes:
+`runs/verification/M20/w1-swap-20260910/verify_preview.py` and `result.json`.
+Final captured state: listener **running / MAINTENANCE_HOLD**; fresh Demo balance
+and equity **100,994.79**, positions **AVAILABLE / 0**. No normal entry release,
+new overnight authority or swap-posting reconciliation is claimed.
+
+### Exact remaining dependencies and next action
+
+1. Identify the actual Demo pricing arrangement and verify applicable commission/
+   fee terms. Asked the operator whether it is Standard, GO Plus+ or another
+   arrangement. Prior zero-charge closes alone do not establish future terms.
+2. Qualify a timestamped broker rollover/calendar window, including applicable
+   DST/holiday and daily multipliers; populate canonical fields from that source.
+   The window must cover the intended position horizon; expiry refuses entries.
+3. Prepare the exact approved cutoff/fallback and contract amendment before
+   adding execution-influencing rollover exits (M20.13 currently analysis-only).
+   Wire position-level scheduled/material-change reviews and their durable
+   decisions through existing protection/recovery, without widening owner exits.
+4. Capture genuine authorised Demo rollover postings and reconcile predictions
+   within a predeclared rounding tolerance. Do not open or extend a position
+   merely to produce proof. Scope intraday versus overnight qualification in the
+   amendment; missing overnight cases are not a claim of intraday failure.
+5. Finish the previously pending lifecycle/refusal/protected-restart and W1.R
+   proof. W3, not this calculator, will establish a calibrated holding advantage.
+
+Backup/isolated restore remains deferred to W4.0. No completion timestamps,
+review recommendations or historical broker evidence were fabricated.
+
+## 2026-09-10 continuation checkpoint — current release and pricing qualification
+
+**Wave 1 and M20 remain incomplete.** This checkpoint records a fresh,
+read-only operating observation after the execution brief was resumed. It does
+not release normal entry authority, alter a lease, restart the service, or
+claim a broker lifecycle.
+
+Raw observations are retained in
+`runs/evidence/M20/w1-continuation-20260910/raw/`. Their separate offline
+verifier is `runs/verification/M20/w1-continuation-20260910/verify_current_state.py`.
+It passed with marker `FOREX_M20_W1_CONTINUATION_VERIFIED` and checks the
+captured hashes without contacting T480 or the broker.
+
+- At 2026-09-10 03:12 UTC, the T480 Scheduled Task and its Session 0 listener
+  were running on release `9f4601f3fd269894` under the existing maintenance
+  hold. The retained account observation is `GOMarketsMU-Demo`, AUD,
+  balance/equity AUD 100,994.79, with `AVAILABLE` positions and zero open
+  positions. The historical ticket 41760154 remains explicitly labelled
+  `LAST_KNOWN_UNVERIFIED`; it is not presented as live protection.
+- The fresh fixed symbol observation remains EURUSD points swap mode 1: long
+  -5.91, short +2.30, contract size 100,000 and Wednesday triple-rollover flag.
+  This is a broker observation, not a qualified calendar, future quote, or
+  posted-swap proof.
+- The hash-bound deployed financing preview made no order and granted no
+  holding authority. It returned `UNKNOWN` for both sides because the canonical
+  policy has no verified calendar window or fee schedule. This is the intended
+  fail-closed result, not a fault to bypass.
+- Revalidated commits `c192cf9` and `dba0a16` against current source and ran
+  the financing, T480 adapter and persistent-risk suites successfully (81
+  passed; 25 PostgreSQL-dependent cases skipped because no isolated test
+  database was started for this read-only checkpoint). The tests are labelled
+  engineering evidence, not broker proof.
+
+### Broker-source qualification result
+
+GO Markets' Mauritius disclosure statement says Standard accounts have no
+monetary commission and Plus+ accounts charge AUD 3 per side per 100,000 FX
+units (AUD 6 round turn); it also says swap is charged or credited for a
+position held at the close of the trading day, 23:59 platform time. The public
+terms do **not** identify this specific Demo account's pricing arrangement,
+account-specific concessions, server timezone/DST calendar, or future fee
+schedule. Historical zero-charge intraday rows cannot prove those facts.
+
+Before populating `financing_policy`, obtain the account's actual arrangement
+(Standard, Plus+, or another documented arrangement) from its account record or
+GO Markets, plus a timestamped rollover schedule that covers the intended
+intraday horizon and identifies holiday/triple-day treatment. Then an exact
+approved intraday cutoff/fallback and the M20.13 contract amendment are needed
+before any execution-influencing exit change. Keep the existing 6–10 minute
+owner exits unchanged until then.
+
+### Proposed M20.13 amendment for operator review — not enacted
+
+For this system's current intraday-only owner contracts, the conservative
+proposal is: reject a new EURUSD entry when the next **broker-qualified**
+rollover is less than 15 minutes away. Fifteen minutes comprises the longest
+existing owner exit (10 minutes) and a five-minute execution/recovery buffer;
+it is an operational margin, not an expectancy claim. Do not open a new
+position over a weekend or public-holiday rollover window until a later,
+separately qualified holding policy authorises it.
+
+No existing position's stop, target, strategy-owned exit, or maximum duration
+is widened by this amendment. If an existing position reaches rollover because
+of a failed or uncertain exit, retain broker-side protection, record the
+incident, and block dependent entries; never assume it closed or force a blind
+flattening from stale data. The cutoff becomes effective only after the
+operator approves this exact text, the M20 contract is amended, and the
+calendar/fee inputs are qualified and deployed under maintenance hold.
+
+The required Astra pre-entry review has **not** been performed in this
+continuation: this execution used the available implementation model and no
+model switch is implicit. Its narrow future input is the exact diff/configuration
+for `c192cf9`/`dba0a16`, the broker-source qualification above, the deployment
+rollback plan, and the retained raw/verification paths. It cannot substitute
+for the repository's final Triad-plus-domain review or operator decisions.
+
+## 2026-09-10 current-release W1.4 refusal drill
+
+The operator's earlier approval of a temporary AUD 0.01 maximum planned-loss
+limit was exercised on the current release `9f4601f3fd269894`, while the
+listener was already in maintenance hold and the Demo account was flat. This
+is a calculation-only drill; it did not manufacture a signal, submit an order,
+or create a loss.
+
+Raw operations are retained at
+`runs/evidence/M20/w1-refusal-final-20260910/raw/`; the separate no-network
+verifier is `runs/verification/M20/w1-refusal-final-20260910/verify_refusal.py`.
+It verifies the captured configuration fingerprint, before/after flat account,
+release, hold, exact lease identity, temporary cap and restoration.
+
+- Temporary lease activation retained session
+  `9673811b-0e23-47f9-b8e6-e0a86d1adf06` and preserved its original copy.
+- Live GOMarketsMU-Demo EURUSD metadata reported minimum volume 0.01 and a
+  minimum price-increment loss of **AUD 0.013851**, greater than the temporary
+  AUD 0.01 cap. The fixed risk function returned
+  `FOREX_M20_DEMO_RISK_REFUSAL_DRILL_OK`, with no order submitted.
+- Restoration immediately returned the exact same session to the approved
+  AUD 100 maximum planned-loss limit. Fresh observations after restoration
+  show listener `MAINTENANCE_HOLD`, release `9f4601f3fd269894`, and a flat,
+  available GOMarketsMU-Demo AUD account.
+
+This replaces prior-release calculation-only refusal evidence for the current
+release. It is still not evidence of a normal eligible-signal refusal, a
+protected-position restart, broker lifecycle, fee qualification, or Wave 1/M20
+completion.
+
+## 2026-09-10 isolated PostgreSQL W1.4 refresh
+
+Refreshed the durable risk and reservation checks without accessing the
+operating database. The dedicated local PostgreSQL 16 instance used only
+`127.0.0.1:55481/forex_w1_test`; it was stopped immediately after the run.
+The current bridge passed **25** real PostgreSQL tests in
+`tests/milestones/test_m20_risk_policy_persistence.py`, including independent
+daily/weekly/drawdown/cash-flow/unknown-account latches, permitted resume
+behaviour, minimum remaining headroom and two concurrent reservations across
+different leases yielding exactly one reservation.
+
+Raw test output is retained at
+`runs/evidence/M20/w1-postgres-refresh-20260910/raw/risk-persistence-tests-rerun.txt`.
+The initial connection attempt used a non-existent local `postgres` role and
+failed before any test setup; it remains retained as diagnostic context. The
+rerun used the instance's existing `chris` role and passed. These are isolated
+engineering checks, not broker concurrency, fee, lifecycle or profitability
+proof.
+
+## 2026-09-10 03:25 UTC continuation checkpoint
+
+**Status: Wave 1 remains in progress; normal Demo entry remains disabled.**
+This is a new bounded read-only observation of the existing deployment, not a
+restart, lease change, migration, entry release or broker-order drill.
+
+Raw evidence is retained in
+`runs/evidence/M20/w1-continuation-20260910/raw/` under the `20260910T0324_*`
+and `20260910T0325_*` names. The offline verifier
+`runs/verification/M20/w1-continuation-20260910/verify_0325_checkpoint.py`
+checks captured hashes and declared state without contacting T480 or the
+broker; its result is `0325-result.json` with marker
+`FOREX_M20_W1_CONTINUATION_0325_VERIFIED`.
+
+- The fixed Demo listener was running in `MAINTENANCE_HOLD`, release
+  `9f4601f3fd269894`, with a fresh heartbeat. Its Windows task was `Running`
+  as the S4U principal in Session 0, with no recorded current Python failure.
+  Its preserved ticket `41760154` is still `LAST_KNOWN_UNVERIFIED`; this
+  historical durable record is not asserted to be a current position.
+- The independent MT5 account query returned `GOMarketsMU-Demo`, AUD,
+  balance/equity AUD 100,994.79, zero open positions and an `AVAILABLE`
+  position observation. The bounded unresolved-history query returned only
+  historical September deals; it does not replace current broker lifecycle
+  proof bound to this release.
+- The deployed calculator observed EURUSD points-mode swap terms (long -5.91,
+  short +2.30), minimum volume 0.01, Wednesday triple flag and fresh AUDUSD
+  conversion quotes. Both BUY and SELL projections were `UNKNOWN`, with no
+  submitted order or holding authority, because `financing_policy` still has
+  null fee and calendar qualifications. This fail-closed outcome is correct.
+- Current focused engineering verification passed: the financing and T480
+  adapter suites (81 tests) and milestone governance validation. These checks
+  do not establish actual commission, rollover schedule, posted financing,
+  normal eligible-signal refusal, protected-position restart, or M20 proof.
+
+**Activity plan and resumption conditions:** W1.1/W1.3 configuration remains
+pending the exact account fee arrangement and a broker-qualified rollover
+calendar; W1.2 needs a genuine lifecycle/protected restart during ordinary
+authorised Demo activity; W1.4 has current refusal and isolated-persistence
+engineering evidence but remains short of all broker proof. Once the operator
+supplies documented account pricing and rollover/DST/holiday rules, prepare the
+exact M20.13 cutoff amendment for approval, obtain the required read-only
+pre-entry review, deploy under the hold and then reassess release eligibility.
+Until then, maintenance hold is retained and no fallback assumes zero costs.
