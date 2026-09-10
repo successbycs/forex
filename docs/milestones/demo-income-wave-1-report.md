@@ -1174,3 +1174,54 @@ inputs and the existing entry gates.
 
 The exact minimum source fields and safe redaction guidance are in
 [W1 operator inputs for entry release](../reviews/w1-operator-inputs-for-entry-release.md).
+
+## 2026-09-10 operator-authorised broker-blocker resolution
+
+The latest instruction explicitly authorises resolution using other sources
+and inference. The prior demand for operator-supplied account pricing and a
+full holiday calendar is superseded **for temporary intraday Demo operation**.
+See [source analysis and limitations](../../Research/2026-09-10-w1-broker-blocker-resolution.md).
+Actual account fees and overnight/holiday settlement remain unqualified.
+
+Implemented `DEMO_ESTIMATE`: reserve the public Plus+ AUD 6/lot round-turn
+allowance (AUD .06 at .01 lots); allow weekday entries from 06:00 UTC only if
+the existing maximum ten-minute horizon ends strictly before 18:00 UTC.
+This wider exclusion replaces the proposed 15-minute rollover cutoff.
+The policy expires at 2026-09-17 00:00 UTC. Stale quotes, expired coverage,
+weekends, longer holds and unsupported inputs still refuse. Estimated fees
+are separate from actual broker accounting; the holding evaluator does not
+accept `DEMO_ESTIMATE` as overnight evidence. No Option B thresholds change.
+
+Implementation commit `352ee84`; Windows command-length correction `d681d05`.
+Release **2329eea2d53bba6d** was transferred, hash-checked, configured and installed
+under maintenance hold. Configuration fingerprint:
+`sha256:16abde21dc56729b2418f9c48d7091362a3c7622f976e3bb36e49f8492e0fb67`.
+The first configure command was too long; retained failure output shows it
+failed before applying configuration. The previous listener was recovered
+under hold, source descriptions were shortened to Research references, and
+the successful retry is retained separately.
+
+Raw: `runs/evidence/M20/w1-broker-resolution-20260910/raw/`.
+Offline semantic verifier and hash inventory:
+`runs/verification/M20/w1-broker-resolution-20260910/verify.py` and `result.json`.
+Marker: `FOREX_W1_BROKER_RESOLUTION_DEPLOYMENT_VERIFIED`.
+Observed 03:40 UTC: current release running in `MAINTENANCE_HOLD`; Demo AUD
+account AVAILABLE/flat, balance/equity 100994.79. Unresolved attempts were empty
+before deployment; retained risk-state/anchor/resume snapshots match exactly
+before and after. No lease activation/reset or schema migration was performed.
+Deployed preview reads the new policy and refuses both sides because it is
+outside the intraday window. In-window broker acceptance is not yet observed.
+
+Validation: targeted financing/adapter/M20/config tests passed (128 cases).
+Full `scripts/verify_project.sh` passed; its 25 isolated PostgreSQL cases were
+skipped without their fixture. Earlier persistence results remain separate.
+Final shortened configuration and milestone governance validation passed.
+
+Remaining action: review the exact new code/configuration before removing
+maintenance hold, then collect ordinary eligible Demo lifecycle and protected
+restart evidence. This change is implementation/source analysis, not an
+independent final review. The old review packet's revision binding is stale.
+No further operator broker questionnaire or numerical-cutoff approval is needed
+for this dated temporary policy. Real broker fee proof, independent review,
+applicable Wave 1 proof and formal M20 closeout remain outstanding. No completion
+or normal-entry release is claimed. No push occurred.
