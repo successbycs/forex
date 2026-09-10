@@ -1,5 +1,12 @@
 # Wave 1 progress and proposed risk policy
 
+## 2026-09-10 natural position close and restart attempt
+
+A naturally eligible Demo BUY (`42232651`, 0.01 lot) opened at 08:25:08 UTC with recorded broker protection: entry 1.16382, SL 1.16355 and TP 1.16422. The protected-restart drill began only after a current status observation, but broker history and matched PostgreSQL lineage show that the position had already closed at 08:28:05 UTC through its configured `COMPRESSION_BREAKOUT_M1_TWO_OPPOSITE_CLOSED_CANDLES` owner exit. The exact broker deals show a AUD -0.14 gross/net result with zero broker commission, fee and swap. The balance bridge moved from AUD 100993.78 to AUD 100993.64 and the current expected balance matches it.
+
+The fixed `m20_listener_recover` action then restarted only the Session-0 `Forex-M20-Demo-Listener` Scheduled Task. A fresh RUNNING heartbeat and IDLE broker monitor followed, with no unresolved attempt or current account exposure. This is valid listener-restart and clean-lifecycle evidence, but **not** protected-open-position recovery evidence: the listener did not recover an open position because the broker close preceded the restart. Do not present it as satisfying W1.2/W1.4 restart proof. Retained raw evidence is under `runs/evidence/M20/w1-protected-restart-20260910/raw/`. No trade was forced, no Live surface was accessed, and no configuration or risk limits changed.
+
+
 ## 2026-09-10 ordinary assessment checkpoint after reviewed resume
 
 A single current-state observation at 08:24:45–08:24:49 UTC confirms the approved `97d2bf75679b5ee4` listener is RUNNING on `GOMarketsMU-Demo`, with a fresh heartbeat and an IDLE monitor recovery result. The Demo account is AVAILABLE and flat at AUD 100993.78. Option B has no pause reasons, retains the same anchors and expected balance, and the unresolved-attempt summary is empty.
