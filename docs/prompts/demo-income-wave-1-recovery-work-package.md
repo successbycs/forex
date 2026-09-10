@@ -200,6 +200,12 @@ entry hold and use a reviewed forward correction.
 
 ## R5 — Prove T480 continuity and unattended recovery
 
+The approved automation design is the
+[autonomous continuity and alert protocol](../protocols/w1-autonomous-continuity-and-alert-protocol.md).
+It replaces manual RDP-disconnection and operator-timed test steps with a
+fixed T480-local, non-trading protocol. Implement and review that fixed
+operation before treating its proposed acceptance window as demonstrated.
+
 **Change / why:** Resolve the lab's SYSTEM-versus-S4U design discrepancy against
 the current contract. Validate access to the existing WSL distribution, local
 DSN, MT5 Demo terminal and protected settings under the intended account before
@@ -229,6 +235,10 @@ the unmet platform dependency explicit. Do not switch principals blindly or
 weaken secret protection to make the test pass.
 
 ## R6 — Retain incidents and deliver bounded alerts
+
+Use the same autonomous protocol for the retained drill incident, delivery
+state and recovery notification. A configured webhook, a dashboard message, or
+an operator's manual observation is not delivery proof.
 
 **Change / why:** Add small T480-local records for failure/recovery transitions
 and notification delivery, using the existing status and SuccessByCS Discord
