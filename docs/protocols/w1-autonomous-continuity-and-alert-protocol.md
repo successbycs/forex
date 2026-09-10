@@ -61,10 +61,13 @@ network connection.
 5. **Incident and recovery alert.** The operation records a bounded drill
    incident before the handoff and sends one marked drill notification. After
    recovery, it records and sends one recovery notification. It stores only
-   message identifiers, delivery state and timestamps; webhook secrets and
+   delivery state and timestamps; webhook secrets and
    message content stay local/redacted. A notification failure is recorded as
-   `PENDING` or `FAILED` and retried within the fixed bound without delaying
-   monitoring or recovery.
+   `PENDING` or `FAILED`. If the initial marked incident cannot be delivered,
+   the operation ends `INCONCLUSIVE` before requesting a handoff; it does not
+   consume a continuity window or disturb a healthy worker. A delivered
+   incident proceeds to the full interval; a recovery-delivery failure is
+   retained after the handoff without changing broker protection.
 6. **Postflight.** Make one fresh broker account, risk, unresolved-attempt,
    deployment and task observation. Require the original lease/risk anchors,
    Option B configuration and account scope to match the baseline. Preserve
