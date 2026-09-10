@@ -350,6 +350,17 @@ def _m20_listener_continuity_status_command() -> str:
     )
 
 
+def _m20_listener_cancel_continuity_protocol_command() -> str:
+    """Stop only the non-trading continuity task and retain its cancellation."""
+    return (
+        "$ErrorActionPreference='Stop';$s='C:\\ProgramData\\ForexListener\\state';$h=Join-Path $s 'm20_demo_maintenance_hold.local.json';"
+        "if(!(Test-Path -LiteralPath $h)){throw 'Continuity cancellation requires maintenance hold'};$n='Forex-M20-Continuity-Protocol';$t=Get-ScheduledTask -TaskName $n -ErrorAction Stop;"
+        "if($t.State -eq 'Running'){Stop-ScheduledTask -TaskName $n -ErrorAction Stop};$p=Join-Path $s 'm20_demo_continuity_protocol.local.json';"
+        "if(Test-Path -LiteralPath $p){$r=gc -Raw $p|ConvertFrom-Json;if($r.state -eq 'ARMED'){$r.state='INCONCLUSIVE';$r.completed_at_utc=(Get-Date).ToUniversalTime().ToString('o');$r.failure_reason='OPERATOR_CANCELLED_BEFORE_INTERVAL';$r.recovery_delivery=[ordered]@{state='NOT_ATTEMPTED'};$tmp=$p+'.tmp';[IO.File]::WriteAllText($tmp,($r|ConvertTo-Json -Compress -Depth 12),(New-Object Text.UTF8Encoding($false)));Move-Item -LiteralPath $tmp -Destination $p -Force}};"
+        "[pscustomobject]@{cancelled=$true;task=$n;maintenance_hold=$true;broker_mutation='NONE'}|ConvertTo-Json -Compress"
+    )
+
+
 def _m20_listener_recover_command() -> str:
     """Restart only the fixed listener Scheduled Task; no trading/order surface."""
     return (
@@ -794,6 +805,11 @@ OPERATIONS: dict[str, Operation] = {
         "m20_listener_continuity_status",
         "Read retained T480-local continuity protocol state and task identity without recovery or broker access.",
         powershell_command=_m20_listener_continuity_status_command(),
+    ),
+    "m20_listener_cancel_continuity_protocol": Operation(
+        "m20_listener_cancel_continuity_protocol",
+        "Stop only the active held-only continuity task and retain an inconclusive cancellation result.",
+        powershell_command=_m20_listener_cancel_continuity_protocol_command(),
     ),
     "m20_listener_status": Operation(
         "m20_listener_status",

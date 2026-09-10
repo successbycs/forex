@@ -362,6 +362,14 @@ def test_m20_continuity_status_is_fixed_read_only_and_short():
     assert "order_send" not in command and "GOMarketsMU-Live" not in command
 
 
+def test_m20_continuity_cancellation_is_held_only_and_has_no_order_surface():
+    command = t480_adapter.OPERATIONS["m20_listener_cancel_continuity_protocol"].powershell_command or ""
+    assert "m20_demo_maintenance_hold.local.json" in command
+    assert "Forex-M20-Continuity-Protocol" in command
+    assert "OPERATOR_CANCELLED_BEFORE_INTERVAL" in command
+    assert "order_send" not in command and "GOMarketsMU-Live" not in command
+
+
 def test_m20_listener_install_is_hash_checked_and_fixed():
     command = t480_adapter.OPERATIONS["m20_listener_install"].powershell_command
     assert "Forex-M20-Demo-Listener" in command

@@ -98,6 +98,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_cancel_continuity_protocol",
+      "purpose": "Stop only the active held-only continuity task and retain an inconclusive cancellation result.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_status",
       "purpose": "Inspect the permanent M20 Demo listener heartbeat without changing its task; use the explicit recovery operation to restart it.",
       "approval_required": false
