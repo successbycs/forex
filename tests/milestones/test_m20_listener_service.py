@@ -492,6 +492,23 @@ def test_completed_continuity_protocol_is_archived_without_overwrite(tmp_path, m
     assert not active.exists() and len(archived) == 1 and archived[0].read_bytes() == original
 
 
+def test_unavailable_incident_alert_finishes_without_worker_handoff(tmp_path, monkeypatch):
+    service = _crash_test_service()
+    marker = tmp_path / "continuity.json"
+    monkeypatch.setattr(service, "CONTINUITY_PROTOCOL_PATH", marker)
+    monkeypatch.setattr(service, "CONTINUITY_PROTOCOL_LOG_PATH", tmp_path / "continuity.jsonl")
+    monkeypatch.setattr(service, "_load_environment", lambda: {"python_path": "python"})
+    monkeypatch.setattr(service, "_notify_continuity", lambda run_id, event: {"state": "FAILED", "reason": "HTTP_401"})
+    monkeypatch.setattr(service, "_continuity_worker_handoff", lambda: (_ for _ in ()).throw(AssertionError("handoff")))
+    marker.write_text(json.dumps({"schema_version": "forex.m20.continuity-protocol.v1", "run_id": "run", "release_id": "release",
+                                  "started_at_utc": "2026-09-10T00:00:00Z", "state": "ARMED", "baseline": {}, "samples": [],
+                                  "incident_delivery": {"state": "PENDING"}}), encoding="utf-8")
+    assert service.run_continuity_protocol() == 0
+    record = json.loads(marker.read_text())
+    assert record["state"] == "INCONCLUSIVE" and record["failure_reason"] == "INCIDENT_ALERT_UNAVAILABLE"
+    assert record["recovery_delivery"] == {"state": "NOT_ATTEMPTED"}
+
+
 def test_corrupt_restart_drill_marker_blocks_assessment_but_not_monitoring(tmp_path, monkeypatch):
     service = _crash_test_service()
     marker = tmp_path / "restart-drill.json"

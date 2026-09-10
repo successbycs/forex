@@ -903,6 +903,18 @@ def run_continuity_protocol() -> int:
     record = _load_continuity_protocol()
     _append_continuity_event({"run_id": record["run_id"], "event": "STARTED", "captured_at_utc": _utc_now()})
     record["incident_delivery"] = _notify_continuity(record["run_id"], "INCIDENT")
+    if record["incident_delivery"].get("state") == "FAILED":
+        # Do not consume a full continuity window or restart a healthy worker
+        # when the mandatory first alert cannot leave T480.  This is a genuine
+        # inconclusive alert-path outcome, retained separately from any proof.
+        record.update({"state": "INCONCLUSIVE", "completed_at_utc": _utc_now(),
+                       "failure_reason": "INCIDENT_ALERT_UNAVAILABLE",
+                       "recovery_delivery": {"state": "NOT_ATTEMPTED"}})
+        _write_continuity_protocol(record)
+        _append_continuity_event({"run_id": record["run_id"], "event": "INCONCLUSIVE",
+                                  "captured_at_utc": record["completed_at_utc"],
+                                  "reason": record["failure_reason"]})
+        return 0
     deadline = time.monotonic() + CONTINUITY_WINDOW_SECONDS
     handoff_at = time.monotonic() + min(30, max(5, CONTINUITY_WINDOW_SECONDS / 2))
     handoff_done = False
