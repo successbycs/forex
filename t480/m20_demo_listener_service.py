@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 import subprocess
@@ -42,6 +43,8 @@ MAINTENANCE_HOLD_PATH = STATE_ROOT / "m20_demo_maintenance_hold.local.json"
 # restarts the listener through its Scheduled Task, then startup recovery must
 # reclaim the same durable position. The terminal record prevents any repeat.
 PROTECTED_RESTART_DRILL_PATH = STATE_ROOT / "m20_demo_protected_restart_drill.local.json"
+CONTINUITY_PROTOCOL_PATH = STATE_ROOT / "m20_demo_continuity_protocol.local.json"
+CONTINUITY_PROTOCOL_LOG_PATH = STATE_ROOT / "m20_demo_continuity_protocol.local.jsonl"
 # Windows endpoint protection can block newly-created executable script
 # extensions under ProgramData.  Python executes this immutable hash-checked
 # payload explicitly, so the deployment artifact intentionally has no .py
@@ -51,6 +54,10 @@ POLL_SECONDS = 1
 ASSESSMENT_INTERVAL_SECONDS = 5
 MONITOR_RETRY_SECONDS = 10
 RESTART_DRILL_OBSERVATION = "NOT_CHECKED"
+CONTINUITY_WINDOW_SECONDS = 30 * 60
+CONTINUITY_SAMPLE_SECONDS = 5
+CONTINUITY_MAX_HEARTBEAT_AGE_SECONDS = 30
+CONTINUITY_RECOVERY_DEADLINE_SECONDS = 5 * 60
 
 
 class ProtectedRestartDrillRequested(RuntimeError):
@@ -671,7 +678,146 @@ def run_guarded() -> None:
             raise
 
 
+def _load_continuity_protocol() -> dict[str, Any]:
+    """Load the fixed T480-local protocol record without repairing it."""
+    try:
+        value = json.loads(CONTINUITY_PROTOCOL_PATH.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SystemExit("M20 continuity protocol record is unavailable") from error
+    required = {"schema_version", "run_id", "release_id", "started_at_utc", "state",
+                "baseline", "samples", "incident_delivery"}
+    if (not isinstance(value, dict) or set(value) != required
+            or value.get("schema_version") != "forex.m20.continuity-protocol.v1"
+            or value.get("state") != "ARMED" or not isinstance(value.get("run_id"), str)
+            or not isinstance(value.get("baseline"), dict) or not isinstance(value.get("samples"), list)
+            or not isinstance(value.get("incident_delivery"), dict)):
+        raise SystemExit("M20 continuity protocol record is invalid")
+    return value
+
+
+def _write_continuity_protocol(value: dict[str, Any]) -> None:
+    temporary = CONTINUITY_PROTOCOL_PATH.with_suffix(".tmp")
+    temporary.write_text(json.dumps(value, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+    temporary.replace(CONTINUITY_PROTOCOL_PATH)
+
+
+def _append_continuity_event(value: dict[str, Any]) -> None:
+    """Append redacted local evidence; failure never changes listener safety."""
+    try:
+        with CONTINUITY_PROTOCOL_LOG_PATH.open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n")
+    except OSError:
+        pass
+
+
+def _continuity_sample(release_id: str) -> dict[str, Any]:
+    try:
+        status = json.loads(STATUS_PATH.read_text(encoding="utf-8-sig"))
+        heartbeat = str(status["heartbeat_at_utc"])
+        parsed = datetime.fromisoformat(heartbeat.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            raise ValueError("heartbeat lacks timezone")
+        age = (datetime.now(timezone.utc) - parsed.astimezone(timezone.utc)).total_seconds()
+        valid = (status.get("release_id") == release_id and status.get("state") == "MAINTENANCE_HOLD"
+                 and 0 <= age < CONTINUITY_MAX_HEARTBEAT_AGE_SECONDS)
+        return {"captured_at_utc": _utc_now(), "heartbeat_at_utc": heartbeat,
+                "heartbeat_age_seconds": round(age, 3), "state": status.get("state"),
+                "release_id": status.get("release_id"), "valid": valid}
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return {"captured_at_utc": _utc_now(), "valid": False, "reason": "STATUS_UNAVAILABLE"}
+
+
+def _continuity_worker_handoff() -> bool:
+    """Request exactly one local listener task restart; it cannot trade."""
+    command = (
+        "$ErrorActionPreference='Stop';$n='Forex-M20-Demo-Listener';"
+        "$t=Get-ScheduledTask -TaskName $n -ErrorAction Stop;"
+        "if($t.Principal.LogonType.ToString() -ne 'S4U'){throw 'listener task is not S4U'};"
+        "if($t.State -eq 'Running'){Stop-ScheduledTask -TaskName $n -ErrorAction Stop};"
+        "Start-ScheduledTask -TaskName $n -ErrorAction Stop"
+    )
+    completed = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command],
+                               text=True, capture_output=True, check=False, timeout=30)
+    return completed.returncode == 0
+
+
+def _notify_continuity(run_id: str, event: str) -> dict[str, Any]:
+    """Deliver a redacted best-effort drill marker without affecting recovery."""
+    notifier = ROOT / "m20_discord_trade_notification.payload"
+    values = _load_environment()
+    if not notifier.is_file():
+        return {"state": "FAILED", "reason": "NOTIFIER_PAYLOAD_ABSENT"}
+    try:
+        completed = subprocess.run(
+            [str(values["python_path"]), str(notifier)],
+            input=json.dumps({"run_id": run_id, "event": event, "captured_at_utc": _utc_now()}),
+            text=True, capture_output=True, check=False, env=os.environ.copy(), timeout=5,
+        )
+        response = json.loads(completed.stdout)
+        if completed.returncode == 0 and isinstance(response, dict) and response.get("delivery") in {"SENT", "DISABLED"}:
+            return {"state": response["delivery"]}
+    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError, KeyError, TypeError):
+        pass
+    return {"state": "FAILED", "reason": "DELIVERY_FAILED"}
+
+
+def run_continuity_protocol() -> int:
+    """Run the self-contained held-only continuity proof on T480.
+
+    It intentionally observes the local listener rather than market activity;
+    neither this process nor its recovery handoff calls MT5 order APIs.
+    """
+    _load_environment()
+    record = _load_continuity_protocol()
+    _append_continuity_event({"run_id": record["run_id"], "event": "STARTED", "captured_at_utc": _utc_now()})
+    record["incident_delivery"] = _notify_continuity(record["run_id"], "INCIDENT")
+    deadline = time.monotonic() + CONTINUITY_WINDOW_SECONDS
+    handoff_at = time.monotonic() + min(30, max(5, CONTINUITY_WINDOW_SECONDS / 2))
+    handoff_done = False
+    failed_reason: str | None = None
+    while time.monotonic() < deadline:
+        sample = _continuity_sample(record["release_id"])
+        record["samples"].append(sample)
+        if not sample.get("valid"):
+            failed_reason = str(sample.get("reason", "HEARTBEAT_OR_HOLD_INVALID"))
+            break
+        if not handoff_done and time.monotonic() >= handoff_at:
+            if not _continuity_worker_handoff():
+                failed_reason = "WORKER_HANDOFF_REQUEST_FAILED"
+                break
+            handoff_done = True
+            recovery_deadline = time.monotonic() + CONTINUITY_RECOVERY_DEADLINE_SECONDS
+            while time.monotonic() < recovery_deadline:
+                recovered = _continuity_sample(record["release_id"])
+                record["samples"].append(recovered)
+                if recovered.get("valid"):
+                    break
+                time.sleep(CONTINUITY_SAMPLE_SECONDS)
+            else:
+                failed_reason = "WORKER_HANDOFF_RECOVERY_TIMEOUT"
+                break
+        _write_continuity_protocol(record)
+        time.sleep(CONTINUITY_SAMPLE_SECONDS)
+    final = _continuity_sample(record["release_id"])
+    record["samples"].append(final)
+    if not final.get("valid") and failed_reason is None:
+        failed_reason = str(final.get("reason", "POSTFLIGHT_INVALID"))
+    if not handoff_done and failed_reason is None:
+        failed_reason = "WORKER_HANDOFF_NOT_REACHED"
+    record["state"] = "PASS" if handoff_done and failed_reason is None else "FAIL"
+    record["completed_at_utc"] = _utc_now()
+    record["failure_reason"] = failed_reason
+    record["recovery_delivery"] = _notify_continuity(record["run_id"], "RECOVERED")
+    _write_continuity_protocol(record)
+    _append_continuity_event({"run_id": record["run_id"], "event": record["state"],
+                              "captured_at_utc": record["completed_at_utc"], "reason": failed_reason})
+    return 0 if record["state"] == "PASS" else 2
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 1:
-        raise SystemExit("M20 listener service accepts no arguments")
-    run_guarded()
+    if len(sys.argv) == 1:
+        run_guarded()
+    elif len(sys.argv) == 2 and sys.argv[1] == "--continuity-protocol":
+        raise SystemExit(run_continuity_protocol())
+    else:
+        raise SystemExit("M20 listener service accepts no arguments or --continuity-protocol")

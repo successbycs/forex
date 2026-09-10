@@ -143,6 +143,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_run_continuity_protocol",
+      "purpose": "Arm the fixed held-only T480-local continuity and alert protocol without an order surface.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_repair_permissions",
       "purpose": "Repair current-user Modify access only for the fixed Forex listener deployment directory.",
       "approval_required": false
@@ -240,6 +245,26 @@
     {
       "id": "m20_listener_stage_15",
       "purpose": "Stage and verify fixed M20 listener payload part 15.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_16",
+      "purpose": "Stage fixed M20 listener payload part 16.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_17",
+      "purpose": "Stage and verify fixed M20 listener payload part 17.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_18",
+      "purpose": "Stage fixed M20 listener payload part 18.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_19",
+      "purpose": "Stage and verify fixed M20 listener payload part 19.",
       "approval_required": false
     },
     {

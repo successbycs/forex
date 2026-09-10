@@ -449,6 +449,30 @@ def test_restart_wait_error_keeps_parent_inert_until_child_exit_is_known(tmp_pat
     assert service._restart_drill_state()["failure_reason"] == "CHILD_EXIT_NONZERO"
 
 
+def test_autonomous_continuity_protocol_fails_closed_when_handoff_is_not_reached(tmp_path, monkeypatch):
+    service = _crash_test_service()
+    monkeypatch.setattr(service, "CONTINUITY_PROTOCOL_PATH", tmp_path / "continuity.json")
+    monkeypatch.setattr(service, "CONTINUITY_PROTOCOL_LOG_PATH", tmp_path / "continuity.jsonl")
+    monkeypatch.setattr(service, "CONTINUITY_WINDOW_SECONDS", 0)
+    monkeypatch.setattr(service, "_load_environment", lambda: {"python_path": "python"})
+    monkeypatch.setattr(service, "_continuity_sample", lambda release: {
+        "captured_at_utc": "2026-09-10T00:00:00Z", "heartbeat_at_utc": "2026-09-10T00:00:00Z",
+        "heartbeat_age_seconds": 0, "state": "MAINTENANCE_HOLD", "release_id": release, "valid": True,
+    })
+    handoffs = []
+    monkeypatch.setattr(service, "_continuity_worker_handoff", lambda: handoffs.append(True) or True)
+    monkeypatch.setattr(service, "_notify_continuity", lambda run_id, event: {"state": "SENT", "event": event})
+    service.CONTINUITY_PROTOCOL_PATH.write_text(json.dumps({
+        "schema_version": "forex.m20.continuity-protocol.v1", "run_id": "run", "release_id": "release",
+        "started_at_utc": "2026-09-10T00:00:00Z", "state": "ARMED", "baseline": {}, "samples": [],
+        "incident_delivery": {"state": "PENDING"},
+    }), encoding="utf-8")
+    assert service.run_continuity_protocol() == 2  # zero window cannot exercise the mandatory handoff
+    result = json.loads(service.CONTINUITY_PROTOCOL_PATH.read_text())
+    assert result["state"] == "FAIL" and result["failure_reason"] == "WORKER_HANDOFF_NOT_REACHED"
+    assert handoffs == []
+
+
 def test_corrupt_restart_drill_marker_blocks_assessment_but_not_monitoring(tmp_path, monkeypatch):
     service = _crash_test_service()
     marker = tmp_path / "restart-drill.json"

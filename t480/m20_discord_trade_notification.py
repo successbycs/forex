@@ -135,12 +135,23 @@ def notify_open(payload: dict[str, Any]) -> dict[str, Any]:
     return _notify(payload, render_open(payload))
 
 
+def notify_continuity_drill(payload: dict[str, Any]) -> dict[str, Any]:
+    """Send a bounded, clearly marked non-trading continuity notification."""
+    if set(payload) != {"run_id", "event", "captured_at_utc"} or payload["event"] not in {"INCIDENT", "RECOVERED"}:
+        raise ValueError("Discord continuity drill payload is invalid")
+    if not all(isinstance(payload[key], str) and payload[key] for key in payload):
+        raise ValueError("Discord continuity drill identity is invalid")
+    result = _notify({"proposal_id": payload["run_id"]}, "**W1_CONTINUITY_DRILL " + payload["event"] + "**\n"
+                     + "T480-local non-trading continuity protocol | " + payload["captured_at_utc"])
+    return {"ok": result["ok"], "delivery": result["delivery"], "run_id": payload["run_id"]}
+
+
 def main() -> int:
     try:
         value = json.load(sys.stdin)
         if not isinstance(value, dict):
             raise ValueError("Discord sale notification requires an object")
-        print(json.dumps(notify_sale(value), separators=(",", ":")))
+        print(json.dumps(notify_continuity_drill(value) if "event" in value else notify_sale(value), separators=(",", ":")))
         return 0
     except (json.JSONDecodeError, ValueError) as error:
         print(json.dumps({"ok": False, "delivery": "INVALID", "detail": str(error)}), file=sys.stderr)

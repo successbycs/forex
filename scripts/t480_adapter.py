@@ -474,6 +474,30 @@ def _m20_listener_retire_legacy_restart_drill_command() -> str:
     )
 
 
+def _m20_listener_run_continuity_protocol_command() -> str:
+    """Arm the fixed held-only autonomous T480 continuity protocol."""
+    service = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
+    runner = (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()
+    bridge = (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()
+    discord = (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()
+    release_id = hashlib.sha256(service + runner + bridge + discord).hexdigest()[:16]
+    service_digest = hashlib.sha256(service).hexdigest()
+    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    fingerprint = project_configuration_fingerprint()
+    account_code = "import json,sys;import MetaTrader5 as m;p=sys.argv[1];ok=m.initialize(path=p);a=m.account_info() if ok else None;ps=m.positions_get() if a else None;r={'server':getattr(a,'server',None),'currency':getattr(a,'currency',None),'position_observation':'AVAILABLE' if ps is not None else 'UNAVAILABLE','open_positions':len(ps) if ps is not None else None};print(json.dumps(r,separators=(',',':')));m.shutdown() if ok else None;sys.exit(0 if r['server']=='GOMarketsMU-Demo' and r['currency']=='AUD' and r['position_observation']=='AVAILABLE' and r['open_positions']==0 else 3)"
+    return (
+        "$ErrorActionPreference='Stop';$b='C:\\ProgramData\\ForexListener';$s=Join-Path $b 'state';$task='Forex-M20-Demo-Listener';$protocolTask='Forex-M20-Continuity-Protocol';"
+        "$hold=Join-Path $s 'm20_demo_maintenance_hold.local.json';if(!(Test-Path -LiteralPath $hold)){throw 'Continuity protocol requires maintenance hold'};"
+        "$h=gc -Raw (Join-Path $s 'm20_demo_listener_status.local.json')|ConvertFrom-Json;$c=gc -Raw (Join-Path $s 'm20_demo_listener_service.local.json')|ConvertFrom-Json;"
+        "if($h.release_id -ne '" + release_id + "' -or $h.state -ne 'MAINTENANCE_HOLD' -or $c.FOREX_M20_APPLICATION_REVISION -ne '" + revision + "' -or $c.FOREX_M20_CONFIGURATION_FINGERPRINT -ne '" + fingerprint + "'){throw 'Continuity protocol requires the exact held release binding'};"
+        "$root=Join-Path $b ('releases\\'+$h.release_id);$service=Join-Path $root 'm20_demo_listener_service.payload';if(!(Test-Path -LiteralPath $service)-or (Get-FileHash $service -Algorithm SHA256).Hash.ToLower() -ne '" + service_digest + "'){throw 'Continuity protocol service payload hash differs'};"
+        "$t=Get-ScheduledTask -TaskName $task -ErrorAction Stop;if($t.Principal.LogonType.ToString() -ne 'S4U'){throw 'Continuity protocol requires listener S4U task identity'};"
+        "$account=& $c.python_path -c '" + account_code.replace("'", "''") + "' $c.terminal_path;if($LASTEXITCODE -ne 0){throw 'Continuity protocol requires flat available Demo account'};$a=$account|ConvertFrom-Json;"
+        "$p=Join-Path $s 'm20_demo_continuity_protocol.local.json';if(Test-Path -LiteralPath $p){throw 'Continuity protocol record already exists'};$run=[guid]::NewGuid().ToString();$baseline=[ordered]@{release_id=$h.release_id;application_revision=$c.FOREX_M20_APPLICATION_REVISION;configuration_fingerprint=$c.FOREX_M20_CONFIGURATION_FINGERPRINT;listener_logon_type=$t.Principal.LogonType.ToString();account=$a};$record=[ordered]@{schema_version='forex.m20.continuity-protocol.v1';run_id=$run;release_id=$h.release_id;started_at_utc=(Get-Date).ToUniversalTime().ToString('o');state='ARMED';baseline=$baseline;samples=@();incident_delivery=@{state='PENDING'}};$tmp=$p+'.tmp';[IO.File]::WriteAllText($tmp,($record|ConvertTo-Json -Compress -Depth 8),(New-Object Text.UTF8Encoding($false)));Move-Item $tmp $p -Force;"
+        "$action=New-ScheduledTaskAction -Execute $c.python_path -Argument ('\"'+$service+'\" --continuity-protocol');$principal=New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U -RunLevel Highest;$settings=New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero);Register-ScheduledTask -TaskName $protocolTask -Action $action -Principal $principal -Settings $settings -Force|Out-Null;Start-ScheduledTask -TaskName $protocolTask;[pscustomobject]@{armed=$true;run_id=$run;task=$protocolTask;maintenance_hold=$true;broker_mutation='NONE'}|ConvertTo-Json -Compress"
+    )
+
+
 def _m20_listener_repair_permissions_command() -> str:
     service = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
     runner = (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()
@@ -560,10 +584,10 @@ def _m20_listener_stage_command(index: int) -> str:
     source = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
     release_id = hashlib.sha256(source + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes() + (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()).hexdigest()[:16]
     # Raw Base64 decoding is accepted by the T480 endpoint; in-process gzip
-    # expansion is not.  Fifteen bounded fixed fragments stay below its command
+    # expansion is not.  Nineteen bounded fixed fragments stay below its command
     # cap and match the catalogued release protocol.
     encoded = base64.b64encode(source).decode("ascii")
-    chunk_size = ((len(encoded) + (15 * 4) - 1) // (15 * 4)) * 4
+    chunk_size = ((len(encoded) + (19 * 4) - 1) // (19 * 4)) * 4
     chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
     if index not in range(1, len(chunks) + 1):
         raise ValueError("M20 listener stage index is invalid")
@@ -815,6 +839,11 @@ OPERATIONS: dict[str, Operation] = {
         "Archive only the exact failed pre-repair protected-restart marker while the listener is held.",
         powershell_command=_m20_listener_retire_legacy_restart_drill_command(),
     ),
+    "m20_listener_run_continuity_protocol": Operation(
+        "m20_listener_run_continuity_protocol",
+        "Arm the fixed held-only T480-local continuity and alert protocol; it cannot submit an order.",
+        powershell_command=_m20_listener_run_continuity_protocol_command(),
+    ),
     "m20_listener_repair_permissions": Operation("m20_listener_repair_permissions", "Repair current-user Modify access only for the fixed Forex listener deployment directory.", powershell_command=_m20_listener_repair_permissions_command()),
     "m20_listener_prepare": Operation(
         "m20_listener_prepare",
@@ -846,10 +875,10 @@ OPERATIONS: dict[str, Operation] = {
     "m20_listener_stage_5": Operation("m20_listener_stage_5", "Stage fixed M20 listener payload part five.", powershell_command=_m20_listener_stage_command(5)),
 }
 
-for _index in range(6, 16):
+for _index in range(6, 20):
     OPERATIONS[f"m20_listener_stage_{_index}"] = Operation(
         f"m20_listener_stage_{_index}",
-        ("Stage and verify" if _index == 15 else "Stage") + f" fixed M20 listener payload part {_index}.",
+        ("Stage and verify" if _index == 19 else "Stage") + f" fixed M20 listener payload part {_index}.",
         powershell_command=_m20_listener_stage_command(_index),
     )
 
