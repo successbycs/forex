@@ -158,6 +158,24 @@ def _m20_unresolved_history_probe_command() -> str:
     return "$ErrorActionPreference='Stop'; $s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json; if ([string]::IsNullOrWhiteSpace($s.python_path) -or !(Test-Path -LiteralPath $s.python_path)) { throw 'M20 configured Python interpreter is absent' }; & $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path; exit $LASTEXITCODE"
 
 
+def _m20_wave1_history_command() -> str:
+    """Fixed read-only account history covering the current reconciliation gap."""
+    code = (
+        "import json,sys;from datetime import datetime,timezone;import MetaTrader5 as m;"
+        "ok=m.initialize(path=sys.argv[1]);a=m.account_info() if ok else None;"
+        "valid=bool(a) and a.server=='GOMarketsMU-Demo' and a.currency=='AUD';"
+        "start=datetime(2026,9,7,tzinfo=timezone.utc);end=datetime(2026,9,11,tzinfo=timezone.utc);"
+        "d=m.history_deals_get(start,end) if valid else None;o=m.history_orders_get(start,end) if valid else None;"
+        "bounded=d is not None and o is not None and len(d)<=200 and len(o)<=200;"
+        "dk='ticket order time time_msc type entry magic position_id reason volume price commission swap profit fee symbol comment'.split();"
+        "okeys='ticket time_setup time_setup_msc time_done time_done_msc type state magic position_id reason volume_initial volume_current price_open sl tp symbol comment'.split();"
+        "rows=lambda values,keys:[{k:getattr(x,k,None) for k in keys} for x in values];"
+        "print(json.dumps({'ok':valid and bounded,'captured_at_utc':datetime.now(timezone.utc).isoformat(),'server':getattr(a,'server',None),'currency':getattr(a,'currency',None),'broker_timestamp_offset_seconds':10800,'deals':rows(d,dk) if bounded else None,'orders':rows(o,okeys) if bounded else None,'error':None if bounded else 'History unavailable or exceeds fixed 200-row bound'}));"
+        "m.shutdown() if ok else None;sys.exit(0 if valid and bounded else 3)"
+    )
+    return "$ErrorActionPreference='Stop'; $s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json; & $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path; exit $LASTEXITCODE"
+
+
 def _m3_mt5_history_depth_probe_command() -> str:
     """Return the fixed read-only M3 history-depth command for Windows."""
     source = (ROOT / "t480" / "m3_mt5_history_depth_probe.py").read_bytes()
@@ -623,6 +641,7 @@ OPERATIONS: dict[str, Operation] = {
         timeout_seconds=60,
     ),
     "m20_demo_account_liquidity": Operation("m20_demo_account_liquidity", "Read fixed GOMarketsMU-Demo account liquidity fields without trading.", powershell_command=_m20_demo_account_liquidity_command()),
+    "m20_wave1_history": Operation("m20_wave1_history", "Read the fixed September 2026 Wave 1 Demo account deal/order reconciliation window.", powershell_command=_m20_wave1_history_command(), timeout_seconds=60),
     "m20_unresolved_history_probe": Operation(
         "m20_unresolved_history_probe",
         "Read only the fixed GOMarketsMU-Demo EURUSD broker-deal window for unresolved M20 attempts.",

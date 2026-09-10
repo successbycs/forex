@@ -37,7 +37,7 @@ TARGET = resolve_ssh_target(
 )
 REMOTE_LAB = "/home/chris/projects/cs-ai-lab-infra"
 REMOTE_FOREX = "/home/chris/projects/forex"
-ASSETS = {
+ASSETS = {"m20_wave1_gap_reconciliation": "sql/operations/w1_reconcile_attempt_65915347.sql",
     "schema": "sql/migrations/001_m2_historical_data.sql",
     "sealed_provenance": "sql/migrations/002_m2_sealed_provenance.sql",
     "gdelt_schema": "sql/migrations/003_m11_gdelt_h1_aggregate.sql",
@@ -73,8 +73,8 @@ ASSETS = {
 }
 M2_SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
 M2_SNAPSHOT_ARTIFACT_SHA256 = "sha256:dc5384732d71091aa2279aaf6d92e8e1780c8021eacde948432ad7bc68fdabaa"
-READ_ONLY = {"preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour", "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-lineage-verify", "forex-m20-audit-verify", "forex-m20-rejection-summary", "forex-m20-lifecycle-summary", "forex-m20-unresolved-attempt-summary", "forex-m20-strategy-trial-summary", "forex-m20-mtf-context-verify", "forex-m20-mtf-context-summary", "forex-m20-risk-policy-summary"}
-MUTATING = {"forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema", "forex-m20-stage-cost-ledger-schema", "forex-m20-apply-cost-ledger-schema", "forex-m20-stage-open-position-schema", "forex-m20-apply-open-position-schema", "forex-m20-stage-continuous-lease-schema", "forex-m20-apply-continuous-lease-schema", "forex-m20-stage-outcome-reconciliation-schema", "forex-m20-apply-outcome-reconciliation-schema", "forex-m20-stage-regime-strategy-schema", "forex-m20-apply-regime-strategy-schema", "forex-m20-stage-projected-cost-schema", "forex-m20-apply-projected-cost-schema", "forex-m20-stage-mtf-context-schema", "forex-m20-apply-mtf-context-schema", "forex-m20-stage-remove-trade-count-cap-schema", "forex-m20-apply-remove-trade-count-cap-schema", "forex-m20-stage-unresolved-execution-schema", "forex-m20-apply-unresolved-execution-schema", "forex-m20-stage-broker-fee-ledger-schema", "forex-m20-apply-broker-fee-ledger-schema", "forex-m20-stage-persistent-risk-policy-schema", "forex-m20-apply-persistent-risk-policy-schema", "forex-m20-stage-risk-resume-audit-schema", "forex-m20-apply-risk-resume-audit-schema", "forex-m20-stage-fee-complete-reconciliation-ledger-schema", "forex-m20-apply-fee-complete-reconciliation-ledger-schema", "forex-m20-stage-strategy-trial-query", "forex-m20-stage-independent-risk-pauses-schema", "forex-m20-apply-independent-risk-pauses-schema"}
+READ_ONLY = {"forex-m20-wave1-reconciliation-context","preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour", "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-lineage-verify", "forex-m20-audit-verify", "forex-m20-rejection-summary", "forex-m20-lifecycle-summary", "forex-m20-unresolved-attempt-summary", "forex-m20-strategy-trial-summary", "forex-m20-mtf-context-verify", "forex-m20-mtf-context-summary", "forex-m20-risk-policy-summary"}
+MUTATING = {"forex-m20-stage-wave1-gap-reconciliation", "forex-m20-apply-wave1-gap-reconciliation","forex-m20-stage-listener-release","forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema", "forex-m20-stage-cost-ledger-schema", "forex-m20-apply-cost-ledger-schema", "forex-m20-stage-open-position-schema", "forex-m20-apply-open-position-schema", "forex-m20-stage-continuous-lease-schema", "forex-m20-apply-continuous-lease-schema", "forex-m20-stage-outcome-reconciliation-schema", "forex-m20-apply-outcome-reconciliation-schema", "forex-m20-stage-regime-strategy-schema", "forex-m20-apply-regime-strategy-schema", "forex-m20-stage-projected-cost-schema", "forex-m20-apply-projected-cost-schema", "forex-m20-stage-mtf-context-schema", "forex-m20-apply-mtf-context-schema", "forex-m20-stage-remove-trade-count-cap-schema", "forex-m20-apply-remove-trade-count-cap-schema", "forex-m20-stage-unresolved-execution-schema", "forex-m20-apply-unresolved-execution-schema", "forex-m20-stage-broker-fee-ledger-schema", "forex-m20-apply-broker-fee-ledger-schema", "forex-m20-stage-persistent-risk-policy-schema", "forex-m20-apply-persistent-risk-policy-schema", "forex-m20-stage-risk-resume-audit-schema", "forex-m20-apply-risk-resume-audit-schema", "forex-m20-stage-fee-complete-reconciliation-ledger-schema", "forex-m20-apply-fee-complete-reconciliation-ledger-schema", "forex-m20-stage-strategy-trial-query", "forex-m20-stage-independent-risk-pauses-schema", "forex-m20-apply-independent-risk-pauses-schema"}
 
 
 def remote(body: str) -> dict:
@@ -842,6 +842,28 @@ docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "
     return wrap("forex_m20_apply_risk_resume_audit_schema", remote(body), digest)
 
 
+def stage_m20_listener_release() -> dict:
+    """Copy only the four fixed payloads; prepare/install verify hashes separately.
+
+    Reuse the Windows SCP staging path used for Forex migrations. Long inline
+    Base64 payloads can be rejected before ssh.exe starts on the T16.
+    """
+    names = ("m20_demo_listener_service", "m20_demo_trading_session", "m20_postgres_audit_bridge", "m20_discord_trade_notification")
+    sources = [ROOT / "t480" / (name + ".py") for name in names]
+    release_id = hashlib.sha256(b"".join(path.read_bytes() for path in sources)).hexdigest()[:16]
+    quote = lambda value: "'" + value.replace("'", "''") + "'"
+    transfers = []
+    for name, path in zip(names, sources):
+        source = subprocess.run(["wslpath", "-w", str(path)], text=True, capture_output=True, check=True).stdout.strip()
+        destination = TARGET + ":C:/ProgramData/ForexListener/releases/" + release_id + "/" + name + ".payload"
+        command = "$ErrorActionPreference='Stop'; & scp.exe -B -o BatchMode=yes -o StrictHostKeyChecking=yes -- " + quote(source) + " " + quote(destination) + "; exit $LASTEXITCODE"
+        transfer = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", base64.b64encode(command.encode("utf-16-le")).decode("ascii")], text=True, capture_output=True, check=False)
+        transfers.append({"payload": name, "exit_code": transfer.returncode})
+        if transfer.returncode:
+            return wrap("forex_m20_stage_listener_release", {"exit_code": transfer.returncode, "stdout": json.dumps(transfers), "stderr": transfer.stderr, "ok": False})
+    return wrap("forex_m20_stage_listener_release", {"exit_code": 0, "stdout": json.dumps({"release_id": release_id, "transfers": transfers, "hash_verification": "REQUIRED_BEFORE_INSTALL"}), "stderr": "", "ok": True})
+
+
 def stage_m20_independent_risk_pauses_schema() -> dict:
     """Stage the hash-bound independent-pause migration without applying it."""
     relative, digest = asset("m20_independent_risk_pauses_schema")
@@ -867,6 +889,32 @@ docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "
     return wrap("forex_m20_apply_independent_risk_pauses_schema", remote(body), digest)
 
 
+def stage_m20_wave1_gap_reconciliation() -> dict:
+    """Stage the hash-bound independent-pause migration without applying it."""
+    relative, digest = asset("m20_wave1_gap_reconciliation")
+    source = subprocess.run(["wslpath", "-w", str(ROOT / relative)], text=True, capture_output=True, check=True).stdout.strip()
+    staged = r"C:\\Users\\chris\\Documents\\Code\\forex-m1-probe\\w1_reconcile_attempt_65915347.sql"
+    quote = lambda value: "'" + value.replace("'", "''") + "'"
+    command = "$ErrorActionPreference='Stop'; & scp.exe -B -o BatchMode=yes -o StrictHostKeyChecking=yes -- " + quote(source) + " " + quote(TARGET + ":" + staged) + "; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+    transfer = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", base64.b64encode(command.encode("utf-16-le")).decode("ascii")], text=True, capture_output=True, check=False)
+    if transfer.returncode:
+        return wrap("forex_m20_stage_wave1_gap_reconciliation", {"exit_code": transfer.returncode, "stdout": transfer.stdout, "stderr": transfer.stderr, "ok": False}, digest)
+    body = f'''file="{REMOTE_FOREX}/{relative}"
+mkdir -p "$(dirname "$file")"
+test -f /mnt/c/Users/chris/Documents/Code/forex-m1-probe/w1_reconcile_attempt_65915347.sql
+install -m 0644 /mnt/c/Users/chris/Documents/Code/forex-m1-probe/w1_reconcile_attempt_65915347.sql "$file"
+[[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]'''
+    return wrap("forex_m20_stage_wave1_gap_reconciliation", remote(body), digest)
+
+
+def apply_m20_wave1_gap_reconciliation() -> dict:
+    relative, digest = asset("m20_wave1_gap_reconciliation")
+    body = f'''file="{REMOTE_FOREX}/{relative}"
+test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$file"'''
+    return wrap("forex_m20_apply_wave1_gap_reconciliation", remote(body), digest)
+
+
 def stage_m20_fee_complete_reconciliation_ledger_schema() -> dict:
     """Stage the hash-bound append-only fee-complete reconciliation ledger migration only."""
     relative, digest = asset("m20_fee_complete_reconciliation_ledger_schema")
@@ -890,6 +938,11 @@ def apply_m20_fee_complete_reconciliation_ledger_schema() -> dict:
 test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
 docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$file"'''
     return wrap("forex_m20_apply_fee_complete_reconciliation_ledger_schema", remote(body), digest)
+
+
+def m20_wave1_reconciliation_context() -> dict:
+    body = """docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT json_build_object('attempt',(SELECT row_to_json(a) FROM forex.demo_execution_attempt a WHERE attempt_id='65915347-d4a1-53e2-94a2-dccfc41a164f'),'proposal',(SELECT row_to_json(p) FROM forex.demo_trade_proposal p WHERE proposal_id='a8eca0f8-7f7b-5198-8154-bcdfcb328147'),'selection',(SELECT row_to_json(s) FROM forex.demo_strategy_selection s WHERE proposal_id='a8eca0f8-7f7b-5198-8154-bcdfcb328147'),'risk',(SELECT row_to_json(r) FROM forex.demo_risk_policy_state r),'open_states',(SELECT COALESCE(json_agg(row_to_json(o)),'[]'::json) FROM forex.demo_open_position_state o),'outcomes',(SELECT COALESCE(json_agg(row_to_json(o)),'[]'::json) FROM forex.demo_trade_outcome o WHERE closed_at_utc >= '2026-09-07T00:00:00Z'));" </dev/null"""
+    return wrap("forex_m20_wave1_reconciliation_context", remote(body))
 
 
 def m20_risk_policy_summary() -> dict:
@@ -1062,8 +1115,12 @@ def main(argv: list[str] | None = None) -> int:
     actions["forex-m20-apply-persistent-risk-policy-schema"] = apply_m20_persistent_risk_policy_schema
     actions["forex-m20-stage-risk-resume-audit-schema"] = stage_m20_risk_resume_audit_schema
     actions["forex-m20-apply-risk-resume-audit-schema"] = apply_m20_risk_resume_audit_schema
+    actions["forex-m20-stage-wave1-gap-reconciliation"] = stage_m20_wave1_gap_reconciliation
+    actions["forex-m20-apply-wave1-gap-reconciliation"] = apply_m20_wave1_gap_reconciliation
+    actions["forex-m20-stage-listener-release"] = stage_m20_listener_release
     actions["forex-m20-stage-independent-risk-pauses-schema"] = stage_m20_independent_risk_pauses_schema
     actions["forex-m20-apply-independent-risk-pauses-schema"] = apply_m20_independent_risk_pauses_schema
+    actions["forex-m20-wave1-reconciliation-context"] = m20_wave1_reconciliation_context
     actions["forex-m20-risk-policy-summary"] = m20_risk_policy_summary
     actions["forex-m20-stage-fee-complete-reconciliation-ledger-schema"] = stage_m20_fee_complete_reconciliation_ledger_schema
     actions["forex-m20-apply-fee-complete-reconciliation-ledger-schema"] = apply_m20_fee_complete_reconciliation_ledger_schema

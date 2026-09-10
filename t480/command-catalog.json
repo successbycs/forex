@@ -756,6 +756,11 @@
       "id": "m20_listener_bridge_stage_32",
       "purpose": "Stage and verify fixed M20 listener PostgreSQL bridge payload part 32.",
       "approval_required": false
+    },
+    {
+      "id": "m20_wave1_history",
+      "purpose": "Read the fixed September 2026 Wave 1 Demo account deal/order reconciliation window.",
+      "approval_required": false
     }
   ]
 }
