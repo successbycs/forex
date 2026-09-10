@@ -469,6 +469,49 @@ def test_m20_selected_strategy_without_a_valid_plan_is_not_execution_authority(m
     assert selection["selection_status"] == "SELECTED_EXECUTABLE"
 
 
+def test_m20_entry_m1_history_requires_a_current_contiguous_closed_window(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    boundary = datetime(2026, 9, 10, 4, 0, tzinfo=timezone.utc)
+
+    def rows(*, latest_closed: datetime = boundary, gap_at: int | None = None):
+        result = []
+        for index in range(probe.CLOSED_BAR_COUNT):
+            opened = latest_closed - timedelta(minutes=probe.CLOSED_BAR_COUNT - index)
+            if gap_at is not None and index >= gap_at:
+                opened += timedelta(minutes=1)
+            result.append({
+                "opened_at_utc": probe.utc(opened), "closed_at_utc": probe.utc(opened + timedelta(minutes=1)),
+                "open": 1.1, "high": 1.1001, "low": 1.0999, "close": 1.1, "volume": 10,
+            })
+        return result
+
+    assert probe._entry_m1_history_is_synchronized(rows=rows(), observed_at=boundary + timedelta(seconds=48))
+    assert not probe._entry_m1_history_is_synchronized(
+        rows=rows(latest_closed=boundary - timedelta(minutes=1)), observed_at=boundary + timedelta(seconds=48)
+    )
+    assert not probe._entry_m1_history_is_synchronized(rows=rows(gap_at=32), observed_at=boundary + timedelta(seconds=48))
+    assert not probe._entry_m1_history_is_synchronized(
+        rows=rows(latest_closed=boundary + timedelta(minutes=1)), observed_at=boundary + timedelta(seconds=48)
+    )
+
+
+def test_m20_stale_entry_history_does_not_change_closed_bar_monitor_input(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    boundary = datetime(2026, 9, 10, 4, 0, tzinfo=timezone.utc)
+    stale_closed = boundary - timedelta(minutes=90)
+    rates = []
+    for index in range(probe.CLOSED_BAR_COUNT):
+        opened = stale_closed - timedelta(minutes=probe.CLOSED_BAR_COUNT - index)
+        rates.append({"time": int(opened.timestamp()), "open": 1.1, "high": 1.1001,
+                      "low": 1.0999, "close": 1.1, "tick_volume": 10})
+    # _bar_rows remains usable by the position monitor; the separate entry
+    # gate alone rejects this old, otherwise well-formed window.
+    parsed, _ = probe._bar_rows(rates, timeframe_name="M1", seconds=60,
+                                cutoff=int(boundary.timestamp()), timestamp_offset_seconds=0)
+    assert len(parsed) == probe.CLOSED_BAR_COUNT
+    assert not probe._entry_m1_history_is_synchronized(rows=parsed, observed_at=boundary + timedelta(seconds=48))
+
+
 def test_m20_cost_gate_requires_projected_net_profit_above_the_fixed_floor(monkeypatch):
     probe = _m20_probe_module(monkeypatch)
     risk = {"volume": 0.01, "tick_size": 0.00001, "tick_value_loss": 1.395, "observed_spread": 0.00010}

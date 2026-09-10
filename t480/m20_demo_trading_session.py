@@ -267,6 +267,31 @@ def _bar_rows(rates: Any, *, timeframe_name: str, seconds: int, cutoff: int, tim
     return rows, hashlib.sha256(raw).hexdigest()
 
 
+def _entry_m1_history_is_synchronized(*, rows: list[dict[str, Any]], observed_at: datetime) -> bool:
+    """Accept an entry window only when it ends at the observed M1 boundary.
+
+    This is deliberately an entry-data gate.  Position monitoring keeps using
+    its existing closed-bar reader so a terminal-history delay cannot suppress
+    broker SL/TP, owner wall-clock exits, or other protective management.
+    """
+    if len(rows) != CLOSED_BAR_COUNT:
+        return False
+    boundary = int(observed_at.timestamp()) // 60 * 60
+    previous_closed_at: int | None = None
+    for row in rows:
+        try:
+            opened_at = int(parse_utc(row["opened_at_utc"], "M1 opened_at_utc").timestamp())
+            closed_at = int(parse_utc(row["closed_at_utc"], "M1 closed_at_utc").timestamp())
+        except (KeyError, TypeError, ValueError, SystemExit):
+            return False
+        if closed_at - opened_at != 60 or closed_at > boundary:
+            return False
+        if previous_closed_at is not None and opened_at != previous_closed_at:
+            return False
+        previous_closed_at = closed_at
+    return previous_closed_at == boundary
+
+
 def _shadow_context_rows(*, timeframe_name: str, timeframe: Any, seconds: int, observed_at: datetime, timestamp_offset_seconds: int) -> tuple[list[dict[str, Any]], str | None]:
     """Read fixed native closed context candles without blocking M1 execution.
 
@@ -1698,6 +1723,9 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                     timeframe_name=name, timeframe=timeframe, seconds=seconds,
                     observed_at=observed_at, timestamp_offset_seconds=offset_seconds,
                 )
+        entry_m1_synchronized = _entry_m1_history_is_synchronized(
+            rows=raw_bars["M1"], observed_at=observed_at
+        )
         session = _session(lease)
         risk_policy = persistent_risk_policy()
         risk_gate = _bridge(
@@ -1724,7 +1752,12 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         visible_positions = _positions_or_fail(context="assessment", symbol=SYMBOL)
         safety_gates = {
             "fresh_quote": int(freshness_seconds) <= MAX_TICK_AGE_SECONDS,
-            "completed_m1": len(raw_bars["M1"]) >= 12,
+            # Count alone is insufficient: a reconnect can return an old,
+            # internally plausible M1 window alongside a fresh quote.  Entry
+            # requires 64 consecutive completed bars ending at this quote's
+            # current minute boundary.  A failed gate remains auditable as a
+            # persisted NO_TRADE assessment.
+            "completed_m1": entry_m1_synchronized,
             "normal_spread": tick_record["spread_points"] <= 12.0,
             "no_existing_position": len(visible_positions) == 0,
             "demo_lease_active": True,
