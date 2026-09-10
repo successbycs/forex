@@ -292,14 +292,8 @@ def _m20_demo_trading_session_command() -> str:
         "if (!(Test-Path -LiteralPath $bridge)) { throw 'M20 fixed ProgramData PostgreSQL audit bridge is absent' }; "
         "if ((Get-FileHash -LiteralPath $bridge -Algorithm SHA256).Hash.ToLower() -ne '" + bridge_digest + "') { throw 'M20 fixed PostgreSQL audit bridge hash does not match the committed source' }; "
         "$lease=Join-Path $state 'm20_demo_session.local.json'; "
-        "$env:FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + digest + "'; "
-        "$env:FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "'; "
-        "$env:FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "'; "
-        "$env:FOREX_M20_TICK_TIME_OFFSET_SECONDS='" + str(tick_offset_seconds) + "'; "
-        "$env:FOREX_M20_MINIMUM_NET_PROFIT_AUD='" + str(minimum_net_profit) + "'; "
-        "$env:FOREX_M20_FINANCING_POLICY='" + financing.replace("'", "''") + "'; "
-        "$env:FOREX_M20_PERSISTENT_RISK_POLICY='" + risk_policy.replace("'", "''") + "'; "
-        "$env:FOREX_M20_APPLICATION_REVISION='" + revision + "'; & $c.python_path $p $c.terminal_path $lease; exit $LASTEXITCODE"
+        "foreach($k in @('FOREX_M20_DEMO_TRADING_SESSION_SHA256','FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256','FOREX_M20_CONFIGURATION_FINGERPRINT','FOREX_M20_TICK_TIME_OFFSET_SECONDS','FOREX_M20_MINIMUM_NET_PROFIT_AUD','FOREX_M20_FINANCING_POLICY','FOREX_M20_PERSISTENT_RISK_POLICY','FOREX_M20_APPLICATION_REVISION')){[Environment]::SetEnvironmentVariable($k,[string]$c.$k,'Process')}; "
+        "& $c.python_path $p $c.terminal_path $lease; exit $LASTEXITCODE"
     )
 
 
