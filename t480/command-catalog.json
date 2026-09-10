@@ -766,6 +766,21 @@
       "id": "m20_listener_restore_refusal_lease",
       "purpose": "Restore the exact original Demo lease after the fixed refusal drill.",
       "approval_required": false
+    },
+    {
+      "id": "m20_wave1_candles",
+      "purpose": "Inspect fixed Demo M1 candle availability and the terminal error without trading.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_terminal_history_diagnostics",
+      "purpose": "Inspect bounded terminal history error lines and Demo exposure without trading.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_close_duplicate_terminal",
+      "purpose": "Close duplicate interactive configured MT5 instances only while Demo is flat and the listener is held and stopped.",
+      "approval_required": false
     }
   ]
 }

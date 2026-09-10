@@ -158,6 +158,46 @@ def _m20_unresolved_history_probe_command() -> str:
     return "$ErrorActionPreference='Stop'; $s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json; if ([string]::IsNullOrWhiteSpace($s.python_path) -or !(Test-Path -LiteralPath $s.python_path)) { throw 'M20 configured Python interpreter is absent' }; & $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path; exit $LASTEXITCODE"
 
 
+def _m20_wave1_candles_command() -> str:
+    code = ("import json,sys;import MetaTrader5 as m;ok=m.initialize(path=sys.argv[1]);a=m.account_info() if ok else None;"
+            "valid=bool(a) and a.server=='GOMarketsMU-Demo' and a.currency=='AUD';s=m.symbol_info('EURUSD') if valid else None;t=m.terminal_info() if valid else None;"
+            "r=m.copy_rates_from_pos('EURUSD',m.TIMEFRAME_M1,1,72) if valid else None;e=m.last_error();r5=m.copy_rates_from_pos('EURUSD',m.TIMEFRAME_M5,1,5) if valid else None;e5=m.last_error();"
+            "print(json.dumps({'ok':valid,'server':getattr(a,'server',None),'terminal_build':getattr(t,'build',None),'maxbars':getattr(t,'maxbars',None),'connected':getattr(t,'connected',None),'api_version':m.__version__,'symbol_visible':getattr(s,'visible',None),'symbol_selected':getattr(s,'select',None),'rates_count':len(r) if r is not None else None,'rates_error':e,'m5_count':len(r5) if r5 is not None else None,'m5_error':e5,'last_bar_time':int(r[-1]['time']) if r is not None and len(r) else None}));m.shutdown() if ok else None")
+    return "$ErrorActionPreference='Stop';$s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json;& $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path;exit $LASTEXITCODE"
+
+
+def _m20_terminal_history_diagnostics_command() -> str:
+    code = r"""import json,sys,re,pathlib,datetime
+import MetaTrader5 as m
+ok=m.initialize(path=sys.argv[1]);a=m.account_info() if ok else None
+if not a or a.server!='GOMarketsMU-Demo' or a.currency!='AUD': raise SystemExit('Demo account required')
+t=m.terminal_info();root=pathlib.Path(t.data_path);files=[]
+for p in sorted((root/'logs').glob('[0-9]'*8+'.log'))[-2:]:
+ text=p.read_bytes()[-100000:].decode('utf-16-le',errors='replace')
+ lines=[re.sub(r'\b\d{6,}\b','[number]',x) for x in text.splitlines() if any(k in x.lower() for k in ['history','error','failed','synchron','update','crash'])][-35:]
+ files.append({'file':p.name,'lines':lines})
+print(json.dumps({'logs':files,'positions_count':None if m.positions_get() is None else len(m.positions_get()),'orders_count':None if m.orders_get() is None else len(m.orders_get())}));m.shutdown()
+"""
+    return "$ErrorActionPreference='Stop';$s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json;$ps=@(Get-CimInstance Win32_Process -Filter \"Name='terminal64.exe'\" | Select-Object ProcessId,SessionId,@{Name='matches_configured_path';Expression={$_.ExecutablePath -eq $s.terminal_path}});$ps|ConvertTo-Json -Compress;& $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path;exit $LASTEXITCODE"
+
+
+def _m20_close_duplicate_terminal_command() -> str:
+    # Narrow recovery: only duplicate interactive instances of the configured
+    # terminal; the Session 0 terminal and listener state are preserved.
+    code = "import MetaTrader5 as m,sys;ok=m.initialize(path=sys.argv[1]);a=m.account_info() if ok else None;p=m.positions_get() if a else None;o=m.orders_get() if a else None;valid=bool(a) and a.server=='GOMarketsMU-Demo' and a.currency=='AUD' and p is not None and len(p)==0 and o is not None and len(o)==0;m.shutdown() if ok else None;sys.exit(0 if valid else 3)"
+    return (
+        "$ErrorActionPreference='Stop';$state='C:\\ProgramData\\ForexListener\\state';"
+        "if(!(Test-Path (Join-Path $state 'm20_demo_maintenance_hold.local.json'))){throw 'Recovery requires maintenance hold'};"
+        "if((Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener').State -eq 'Running'){throw 'Stop listener before terminal recovery'};"
+        "$s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json;"
+        "& $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path;if($LASTEXITCODE -ne 0){throw 'Fresh Demo flatness not established'};"
+        "$ps=@(Get-CimInstance Win32_Process -Filter \"Name='terminal64.exe'\" | Where-Object {$_.ExecutablePath -eq $s.terminal_path});"
+        "if(@($ps|Where-Object {$_.SessionId -eq 0}).Count -ne 1){throw 'Expected one service-session terminal'};"
+        "$closed=@();foreach($p in @($ps|Where-Object {$_.SessionId -ne 0})){Stop-Process -Id $p.ProcessId -Force -ErrorAction Stop;$closed+=$p.ProcessId};"
+        "[pscustomobject]@{closed_duplicate_process_ids=$closed;service_terminal_preserved=$true;maintenance_hold=$true}|ConvertTo-Json -Compress"
+    )
+
+
 def _m20_wave1_history_command() -> str:
     """Fixed read-only account history covering the current reconciliation gap."""
     code = (
@@ -386,7 +426,7 @@ def _m20_listener_stop_command() -> str:
         "$ErrorActionPreference='Stop'; "
         "$task=Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop; "
         "if ($task.State -eq 'Running') { Stop-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop }; "
-        "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like '*\\ProgramData\\ForexListener\\releases\\*m20_demo_listener_service.payload*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop }; "
+        "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like '*\\ProgramData\\ForexListener\\releases\\*m20_demo_listener_service.payload*' } | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch { if ($_.FullyQualifiedErrorId -notlike 'NoProcessFoundForGivenId,*') { throw } } }; "
         "[pscustomobject]@{stopped=$true;task='Forex-M20-Demo-Listener'}|ConvertTo-Json -Compress"
     )
 
@@ -658,6 +698,9 @@ OPERATIONS: dict[str, Operation] = {
         timeout_seconds=60,
     ),
     "m20_demo_account_liquidity": Operation("m20_demo_account_liquidity", "Read fixed GOMarketsMU-Demo account liquidity fields without trading.", powershell_command=_m20_demo_account_liquidity_command()),
+    "m20_terminal_history_diagnostics": Operation("m20_terminal_history_diagnostics", "Inspect bounded terminal history error lines and Demo exposure without trading.", powershell_command=_m20_terminal_history_diagnostics_command(), timeout_seconds=60),
+    "m20_close_duplicate_terminal": Operation("m20_close_duplicate_terminal", "Close duplicate interactive configured MT5 instances only while Demo is flat and the listener is held and stopped.", powershell_command=_m20_close_duplicate_terminal_command(), timeout_seconds=60),
+    "m20_wave1_candles": Operation("m20_wave1_candles", "Inspect fixed Demo M1 candle availability and the terminal error without trading.", powershell_command=_m20_wave1_candles_command(), timeout_seconds=60),
     "m20_wave1_history": Operation("m20_wave1_history", "Read the fixed September 2026 Wave 1 Demo account deal/order reconciliation window.", powershell_command=_m20_wave1_history_command(), timeout_seconds=60),
     "m20_unresolved_history_probe": Operation(
         "m20_unresolved_history_probe",
