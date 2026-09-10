@@ -93,6 +93,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_continuity_status",
+      "purpose": "Read retained T480-local continuity protocol state and task identity without recovery or broker access.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_status",
       "purpose": "Inspect the permanent M20 Demo listener heartbeat without changing its task; use the explicit recovery operation to restart it.",
       "approval_required": false
@@ -269,7 +274,17 @@
     },
     {
       "id": "m20_listener_stage_20",
-      "purpose": "Stage and verify fixed M20 listener payload part 20.",
+      "purpose": "Stage fixed M20 listener payload part 20.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_21",
+      "purpose": "Stage fixed M20 listener payload part 21.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_22",
+      "purpose": "Stage and verify fixed M20 listener payload part 22.",
       "approval_required": false
     },
     {

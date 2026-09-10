@@ -459,6 +459,12 @@ def test_autonomous_continuity_protocol_fails_closed_when_handoff_is_not_reached
         "captured_at_utc": "2026-09-10T00:00:00Z", "heartbeat_at_utc": "2026-09-10T00:00:00Z",
         "heartbeat_age_seconds": 0, "state": "MAINTENANCE_HOLD", "release_id": release, "valid": True,
     })
+    monkeypatch.setattr(service, "_continuity_observation", lambda values, release: {
+        "valid": True,
+        "heartbeat": {"captured_at_utc": "2026-09-10T00:00:00Z", "heartbeat_at_utc": "2026-09-10T00:00:00Z",
+                      "heartbeat_age_seconds": 0, "state": "MAINTENANCE_HOLD", "release_id": release, "valid": True},
+        "account": {}, "deployment": {},
+    })
     handoffs = []
     monkeypatch.setattr(service, "_continuity_worker_handoff", lambda: handoffs.append(True) or True)
     monkeypatch.setattr(service, "_notify_continuity", lambda run_id, event: {"state": "SENT", "event": event})
@@ -471,6 +477,19 @@ def test_autonomous_continuity_protocol_fails_closed_when_handoff_is_not_reached
     result = json.loads(service.CONTINUITY_PROTOCOL_PATH.read_text())
     assert result["state"] == "FAIL" and result["failure_reason"] == "WORKER_HANDOFF_NOT_REACHED"
     assert handoffs == []
+
+
+def test_completed_continuity_protocol_is_archived_without_overwrite(tmp_path, monkeypatch):
+    service = _crash_test_service()
+    active = tmp_path / "continuity.json"
+    monkeypatch.setattr(service, "CONTINUITY_PROTOCOL_PATH", active)
+    run_id = "a" * 24
+    active.write_text(json.dumps({"schema_version": "forex.m20.continuity-protocol.v1", "run_id": run_id,
+                                  "state": "INCONCLUSIVE"}), encoding="utf-8")
+    original = active.read_bytes()
+    service._archive_completed_continuity_protocol()
+    archived = list(tmp_path.glob(f"m20_demo_continuity_protocol.{run_id}.*.json"))
+    assert not active.exists() and len(archived) == 1 and archived[0].read_bytes() == original
 
 
 def test_corrupt_restart_drill_marker_blocks_assessment_but_not_monitoring(tmp_path, monkeypatch):

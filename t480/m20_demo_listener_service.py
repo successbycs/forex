@@ -58,6 +58,7 @@ CONTINUITY_WINDOW_SECONDS = 30 * 60
 CONTINUITY_SAMPLE_SECONDS = 5
 CONTINUITY_MAX_HEARTBEAT_AGE_SECONDS = 30
 CONTINUITY_RECOVERY_DEADLINE_SECONDS = 5 * 60
+CONTINUITY_TERMINAL_STATES = {"PASS", "FAIL", "INCONCLUSIVE"}
 
 
 class ProtectedRestartDrillRequested(RuntimeError):
@@ -695,6 +696,36 @@ def _load_continuity_protocol() -> dict[str, Any]:
     return value
 
 
+def _archive_completed_continuity_protocol() -> None:
+    """Retain a terminal protocol record before a distinct later run is armed.
+
+    A flat held account may be tested more than once.  Replacing a record would
+    destroy evidence, while refusing forever would make the fixed protocol
+    unusable after one inconclusive run.  Only a complete terminal record is
+    moved to a run-id-addressed immutable filename; an armed record blocks a
+    second handoff.
+    """
+    if not CONTINUITY_PROTOCOL_PATH.exists():
+        return
+    try:
+        record = json.loads(CONTINUITY_PROTOCOL_PATH.read_text(encoding="utf-8-sig"))
+        run_id = record.get("run_id")
+        state = record.get("state")
+        if (not isinstance(run_id, str) or len(run_id) != 24 or
+                any(char not in "0123456789abcdef" for char in run_id) or
+                state not in CONTINUITY_TERMINAL_STATES):
+            raise ValueError("record is not terminal")
+        digest = hashlib.sha256(CONTINUITY_PROTOCOL_PATH.read_bytes()).hexdigest()[:16]
+        archived = CONTINUITY_PROTOCOL_PATH.with_name(
+            f"m20_demo_continuity_protocol.{run_id}.{digest}.json"
+        )
+        if archived.exists():
+            raise ValueError("terminal record archive already exists")
+        CONTINUITY_PROTOCOL_PATH.replace(archived)
+    except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
+        raise SystemExit("M20 continuity protocol has an unfinished or invalid retained record") from error
+
+
 def _write_continuity_protocol(value: dict[str, Any]) -> None:
     temporary = CONTINUITY_PROTOCOL_PATH.with_suffix(".tmp")
     temporary.write_text(json.dumps(value, sort_keys=True, separators=(",", ":")), encoding="utf-8")
@@ -727,6 +758,60 @@ def _continuity_sample(release_id: str) -> dict[str, Any]:
         return {"captured_at_utc": _utc_now(), "valid": False, "reason": "STATUS_UNAVAILABLE"}
 
 
+def _continuity_observation(values: dict[str, Any], release_id: str) -> dict[str, Any]:
+    """Take one bounded non-trading baseline or postflight observation.
+
+    The listener's most recent monitor result is the durable unresolved-
+    execution view.  MT5 supplies the separate account/exposure observation.
+    Both must be available and consistent; unknown state never becomes a pass.
+    """
+    sample = _continuity_sample(release_id)
+    try:
+        status = json.loads(STATUS_PATH.read_text(encoding="utf-8-sig"))
+        monitor = status.get("monitor")
+        recovered = monitor.get("result", {}).get("recovered") if isinstance(monitor, dict) else None
+        unresolved_clear = isinstance(monitor, dict) and monitor.get("state") == "IDLE" and recovered == []
+        lease = json.loads(LEASE_PATH.read_text(encoding="utf-8-sig"))
+        config = json.loads(CONFIG_PATH.read_text(encoding="utf-8-sig"))
+        payload_hashes = {}
+        for name in ("m20_demo_listener_service.payload", "m20_demo_trading_session.payload",
+                     "m20_postgres_audit_bridge.payload", "m20_discord_trade_notification.payload"):
+            path = ROOT / name
+            if not path.is_file():
+                raise ValueError("payload absent")
+            payload_hashes[name] = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+        initialized = False
+        try:
+            import MetaTrader5 as mt5
+            initialized = mt5.initialize(path=str(values["terminal_path"]))
+            account = mt5.account_info() if initialized else None
+            positions = mt5.positions_get() if account is not None else None
+        finally:
+            if initialized:
+                mt5.shutdown()
+        account_observation = {
+            "server": getattr(account, "server", None), "currency": getattr(account, "currency", None),
+            "balance": getattr(account, "balance", None), "equity": getattr(account, "equity", None),
+            "position_observation": "AVAILABLE" if positions is not None else "UNAVAILABLE",
+            "open_positions": len(positions) if positions is not None else None,
+        }
+        return {
+            "valid": bool(sample.get("valid")) and unresolved_clear and
+                     account_observation == {**account_observation, "server": "GOMarketsMU-Demo", "currency": "AUD", "position_observation": "AVAILABLE", "open_positions": 0},
+            "heartbeat": sample, "account": account_observation,
+            "unresolved_execution": {"state": "CLEAR" if unresolved_clear else "UNKNOWN_OR_OPEN", "monitor": monitor},
+            "deployment": {"release_id": release_id,
+                           "application_revision": config.get("FOREX_M20_APPLICATION_REVISION"),
+                           "configuration_fingerprint": config.get("FOREX_M20_CONFIGURATION_FINGERPRINT"),
+                           "payload_sha256": payload_hashes,
+                           "lease": lease,
+                           "persistent_risk_policy": config.get("FOREX_M20_PERSISTENT_RISK_POLICY"),
+                           "financing_policy": config.get("FOREX_M20_FINANCING_POLICY")},
+        }
+    except (OSError, TypeError, ValueError, KeyError, json.JSONDecodeError):
+        return {"valid": False, "reason": "PREFLIGHT_OR_POSTFLIGHT_UNAVAILABLE", "heartbeat": sample}
+
+
 def _continuity_worker_handoff() -> bool:
     """Request exactly one local listener task restart; it cannot trade."""
     command = (
@@ -756,33 +841,25 @@ def _notify_continuity(run_id: str, event: str) -> dict[str, Any]:
         response = json.loads(completed.stdout)
         if completed.returncode == 0 and isinstance(response, dict) and response.get("delivery") in {"SENT", "DISABLED"}:
             return {"state": response["delivery"]}
-    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError, KeyError, TypeError):
-        pass
-    return {"state": "FAILED", "reason": "DELIVERY_FAILED"}
+        if isinstance(response, dict) and response.get("delivery") in {"FAILED", "INVALID"}:
+            detail = str(response.get("detail", "DELIVERY_FAILED"))
+            return {"state": "FAILED", "reason": detail[:160]}
+        return {"state": "FAILED", "reason": f"NOTIFIER_EXIT_{completed.returncode}"}
+    except subprocess.TimeoutExpired:
+        return {"state": "FAILED", "reason": "NOTIFIER_TIMEOUT"}
+    except (OSError, json.JSONDecodeError, KeyError, TypeError):
+        return {"state": "FAILED", "reason": "NOTIFIER_UNAVAILABLE"}
 
 
 def arm_continuity_protocol() -> int:
     """Preflight and schedule the non-trading protocol entirely on T480."""
-    if CONTINUITY_PROTOCOL_PATH.exists():
-        raise SystemExit("M20 continuity protocol record already exists")
+    _archive_completed_continuity_protocol()
     if not _maintenance_hold()["active"]:
         raise SystemExit("M20 continuity protocol requires maintenance hold")
     values = _load_environment()
-    sample = _continuity_sample(ROOT.name)
-    if not sample.get("valid"):
-        raise SystemExit("M20 continuity protocol requires fresh held listener heartbeat")
-    try:
-        import MetaTrader5 as mt5
-        initialized = mt5.initialize(path=str(values["terminal_path"]))
-        account = mt5.account_info() if initialized else None
-        positions = mt5.positions_get() if account is not None else None
-        valid_account = (account is not None and account.server == "GOMarketsMU-Demo"
-                         and account.currency == "AUD" and positions is not None and len(positions) == 0)
-    finally:
-        if "initialized" in locals() and initialized:
-            mt5.shutdown()
-    if not valid_account:
-        raise SystemExit("M20 continuity protocol requires flat available Demo account")
+    baseline = _continuity_observation(values, ROOT.name)
+    if not baseline.get("valid"):
+        raise SystemExit("M20 continuity protocol requires a fresh held, flat, reconciled Demo baseline")
     task_check = subprocess.run(
         ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
          "$t=Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction Stop;"
@@ -792,9 +869,7 @@ def arm_continuity_protocol() -> int:
     if task_check.returncode != 0:
         raise SystemExit("M20 continuity protocol requires listener S4U task identity")
     run_id = hashlib.sha256((ROOT.name + _utc_now()).encode("utf-8")).hexdigest()[:24]
-    baseline = {"release_id": ROOT.name, "listener_logon_type": "S4U",
-                "account": {"server": account.server, "currency": account.currency,
-                            "position_observation": "AVAILABLE", "open_positions": 0}}
+    baseline["listener_logon_type"] = "S4U"
     record = {"schema_version": "forex.m20.continuity-protocol.v1", "run_id": run_id,
               "release_id": ROOT.name, "started_at_utc": _utc_now(), "state": "ARMED",
               "baseline": baseline, "samples": [], "incident_delivery": {"state": "PENDING"}}
@@ -839,7 +914,9 @@ def run_continuity_protocol() -> int:
             failed_reason = str(sample.get("reason", "HEARTBEAT_OR_HOLD_INVALID"))
             break
         if not handoff_done and time.monotonic() >= handoff_at:
+            record["handoff"] = {"requested_at_utc": _utc_now(), "state": "REQUESTED"}
             if not _continuity_worker_handoff():
+                record["handoff"]["state"] = "FAILED"
                 failed_reason = "WORKER_HANDOFF_REQUEST_FAILED"
                 break
             handoff_done = True
@@ -848,6 +925,8 @@ def run_continuity_protocol() -> int:
                 recovered = _continuity_sample(record["release_id"])
                 record["samples"].append(recovered)
                 if recovered.get("valid"):
+                    record["handoff"] = {"requested_at_utc": record["handoff"]["requested_at_utc"],
+                                         "recovered_at_utc": _utc_now(), "state": "RECOVERED"}
                     break
                 time.sleep(CONTINUITY_SAMPLE_SECONDS)
             else:
@@ -855,16 +934,30 @@ def run_continuity_protocol() -> int:
                 break
         _write_continuity_protocol(record)
         time.sleep(CONTINUITY_SAMPLE_SECONDS)
-    final = _continuity_sample(record["release_id"])
+    postflight = _continuity_observation(_load_environment(), record["release_id"])
+    final = postflight.get("heartbeat", _continuity_sample(record["release_id"]))
     record["samples"].append(final)
-    if not final.get("valid") and failed_reason is None:
-        failed_reason = str(final.get("reason", "POSTFLIGHT_INVALID"))
+    if not postflight.get("valid") and failed_reason is None:
+        failed_reason = str(postflight.get("reason", "POSTFLIGHT_INVALID"))
     if not handoff_done and failed_reason is None:
         failed_reason = "WORKER_HANDOFF_NOT_REACHED"
-    record["state"] = "PASS" if handoff_done and failed_reason is None else "FAIL"
+    if postflight.get("valid") and postflight.get("deployment") != record["baseline"].get("deployment") and failed_reason is None:
+        failed_reason = "DEPLOYMENT_OR_RISK_BINDING_CHANGED"
+    if postflight.get("valid") and postflight.get("account") != record["baseline"].get("account") and failed_reason is None:
+        failed_reason = "ACCOUNT_OR_EXPOSURE_CHANGED"
+    delivery_failed = (record.get("incident_delivery", {}).get("state") == "FAILED")
+    if handoff_done and failed_reason is None and delivery_failed:
+        record["state"] = "INCONCLUSIVE"
+        failed_reason = "INCIDENT_ALERT_UNAVAILABLE"
+    else:
+        record["state"] = "PASS" if handoff_done and failed_reason is None else "FAIL"
     record["completed_at_utc"] = _utc_now()
     record["failure_reason"] = failed_reason
+    record["postflight"] = postflight
     record["recovery_delivery"] = _notify_continuity(record["run_id"], "RECOVERED")
+    if record["state"] == "PASS" and record["recovery_delivery"].get("state") == "FAILED":
+        record["state"] = "INCONCLUSIVE"
+        record["failure_reason"] = "RECOVERY_ALERT_UNAVAILABLE"
     _write_continuity_protocol(record)
     _append_continuity_event({"run_id": record["run_id"], "event": record["state"],
                               "captured_at_utc": record["completed_at_utc"], "reason": failed_reason})

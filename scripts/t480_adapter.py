@@ -340,6 +340,16 @@ def _m20_listener_diagnostics_command() -> str:
     )
 
 
+def _m20_listener_continuity_status_command() -> str:
+    """Read retained continuity evidence and its fixed task identity only."""
+    return (
+        "$ErrorActionPreference='Stop';$s='C:\\ProgramData\\ForexListener\\state';$p=Join-Path $s 'm20_demo_continuity_protocol.local.json';"
+        "$l=Join-Path $s 'm20_demo_continuity_protocol.local.jsonl';$t=Get-ScheduledTask -TaskName 'Forex-M20-Continuity-Protocol' -ErrorAction SilentlyContinue;$i=if($t){Get-ScheduledTaskInfo -TaskName $t.TaskName}else{$null};"
+        "$r=$null;$o='ABSENT';if(Test-Path -LiteralPath $p){try{$r=gc -Raw $p|ConvertFrom-Json;$o='AVAILABLE'}catch{$o='UNREADABLE'}};"
+        "[pscustomobject]@{captured_at_utc=(Get-Date).ToUniversalTime().ToString('o');observation=$o;record=$r;event_log_sha256=if(Test-Path -LiteralPath $l){'sha256:'+(Get-FileHash -LiteralPath $l -Algorithm SHA256).Hash.ToLower()}else{$null};task_state=if($t){$t.State.ToString()}else{'ABSENT'};logon_type=if($t){$t.Principal.LogonType.ToString()}else{$null};last_result=if($i){$i.LastTaskResult}else{$null};last_run_utc=if($i){$i.LastRunTime.ToUniversalTime().ToString('o')}else{$null}}|ConvertTo-Json -Compress -Depth 10"
+    )
+
+
 def _m20_listener_recover_command() -> str:
     """Restart only the fixed listener Scheduled Task; no trading/order surface."""
     return (
@@ -576,10 +586,10 @@ def _m20_listener_stage_command(index: int) -> str:
     source = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
     release_id = hashlib.sha256(source + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes() + (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()).hexdigest()[:16]
     # Raw Base64 decoding is accepted by the T480 endpoint; in-process gzip
-    # expansion is not.  Twenty bounded fixed fragments stay below its command
+    # expansion is not.  Twenty-two bounded fixed fragments stay below its command
     # cap and match the catalogued release protocol.
     encoded = base64.b64encode(source).decode("ascii")
-    chunk_size = ((len(encoded) + (20 * 4) - 1) // (20 * 4)) * 4
+    chunk_size = ((len(encoded) + (22 * 4) - 1) // (22 * 4)) * 4
     chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
     if index not in range(1, len(chunks) + 1):
         raise ValueError("M20 listener stage index is invalid")
@@ -780,6 +790,11 @@ OPERATIONS: dict[str, Operation] = {
         "Read the fixed Forex listener task and process identities without restart or broker access.",
         powershell_command=_m20_listener_diagnostics_command(),
     ),
+    "m20_listener_continuity_status": Operation(
+        "m20_listener_continuity_status",
+        "Read retained T480-local continuity protocol state and task identity without recovery or broker access.",
+        powershell_command=_m20_listener_continuity_status_command(),
+    ),
     "m20_listener_status": Operation(
         "m20_listener_status",
         "Inspect the permanent M20 Demo listener heartbeat and recover its fixed task when the heartbeat is stale.",
@@ -867,10 +882,10 @@ OPERATIONS: dict[str, Operation] = {
     "m20_listener_stage_5": Operation("m20_listener_stage_5", "Stage fixed M20 listener payload part five.", powershell_command=_m20_listener_stage_command(5)),
 }
 
-for _index in range(6, 21):
+for _index in range(6, 23):
     OPERATIONS[f"m20_listener_stage_{_index}"] = Operation(
         f"m20_listener_stage_{_index}",
-        ("Stage and verify" if _index == 20 else "Stage") + f" fixed M20 listener payload part {_index}.",
+        ("Stage and verify" if _index == 22 else "Stage") + f" fixed M20 listener payload part {_index}.",
         powershell_command=_m20_listener_stage_command(_index),
     )
 

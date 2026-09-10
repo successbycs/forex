@@ -354,6 +354,14 @@ def test_m20_continuity_protocol_is_fixed_held_only_and_has_no_order_surface():
     assert "order_send" not in command and "GOMarketsMU-Live" not in command
 
 
+def test_m20_continuity_status_is_fixed_read_only_and_short():
+    command = t480_adapter.OPERATIONS["m20_listener_continuity_status"].powershell_command or ""
+    assert "m20_demo_continuity_protocol.local.json" in command
+    assert "Forex-M20-Continuity-Protocol" in command
+    assert len(command) < 4000
+    assert "order_send" not in command and "GOMarketsMU-Live" not in command
+
+
 def test_m20_listener_install_is_hash_checked_and_fixed():
     command = t480_adapter.OPERATIONS["m20_listener_install"].powershell_command
     assert "Forex-M20-Demo-Listener" in command
@@ -403,7 +411,7 @@ def test_m20_listener_prepare_verifies_all_payloads_before_activation():
 
 def test_m20_listener_staging_is_split_and_hash_checked():
     first = t480_adapter.OPERATIONS["m20_listener_stage_1"].powershell_command
-    final = t480_adapter.OPERATIONS["m20_listener_stage_20"].powershell_command
+    final = t480_adapter.OPERATIONS["m20_listener_stage_22"].powershell_command
     assert len(first) < 4000 and len(final) < 4000
     assert "WriteAllBytes" in first
     assert "[IO.File]::Open" in final and "Get-FileHash" in final
