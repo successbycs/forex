@@ -1225,3 +1225,35 @@ No further operator broker questionnaire or numerical-cutoff approval is needed
 for this dated temporary policy. Real broker fee proof, independent review,
 applicable Wave 1 proof and formal M20 closeout remain outstanding. No completion
 or normal-entry release is claimed. No push occurred.
+
+## 2026-09-10 Astra pre-entry review and ordinary assessment
+
+Read-only source review of `352ee84`/`d681d05` and release
+`2329eea2d53bba6d` found no critical issue in the approved temporary financing
+delta. Current Demo exposure and unresolved-attempt checks were empty, Option B
+had no active pauses, and M19 remained PROVEN. Focused tests passed. The
+maintenance hold was removed under the explicit continuation authority.
+
+**Final review disposition: BLOCK_ENTRY.** The first ordinary assessment
+exposed a missing M1 freshness check: at 03:44:48 UTC its newest M1 close was
+01:12 UTC (9,168 seconds old). No order was submitted. Maintenance hold was
+restored immediately. Later history caught up (03:45 close in the 03:45:18
+assessment), but the entry check still accepts stale histories by count alone.
+An isolated actual-parser reproduction accepted 64 bars with newest close
+6,960 seconds old. This is labelled engineering evidence.
+
+Final 03:47 observation: release unchanged, running/MAINTENANCE_HOLD, Demo
+AUD account AVAILABLE/flat, balance/equity 100994.79. No lease/risk reset,
+forced trade, host restart or implementation edit was made. The original
+assessment and its later recovery are retained separately.
+
+Review and Terra handover:
+`docs/reviews/w1-pre-entry-astra-20260910.md`.
+Raw: `runs/evidence/M20/w1-pre-entry-20260910/raw/`.
+Implement the explicit entry freshness gate and review its interaction with
+reversal monitoring while preserving broker protection/time exits. Test the
+fresh-quote/stale-history case, then deploy under hold and request affected-area
+review. The operator's model assignment requires Terra for this implementation;
+the current Astra turn stops at the concrete review finding and safe handover.
+Genuine lifecycle/accounting/protected-restart evidence and final M20 gates
+remain pending; NO_TRADE_RECONCILED is operational evidence only.
