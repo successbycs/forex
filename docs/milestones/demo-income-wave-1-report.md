@@ -1171,3 +1171,6 @@ a dated broker-qualified rollover/DST/holiday calendar, and operator approval
 of the amendment text (or a recorded variant). The requested Astra review then
 assesses the concrete changes. Maintenance hold remains in force pending those
 inputs and the existing entry gates.
+
+The exact minimum source fields and safe redaction guidance are in
+[W1 operator inputs for entry release](../reviews/w1-operator-inputs-for-entry-release.md).
