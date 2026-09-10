@@ -853,6 +853,13 @@ def stage_m20_listener_release() -> dict:
     sources = [ROOT / "t480" / (name + ".py") for name in names]
     release_id = hashlib.sha256(b"".join(path.read_bytes() for path in sources)).hexdigest()[:16]
     quote = lambda value: "'" + value.replace("'", "''") + "'"
+    release_directory = r"C:\ProgramData\ForexListener\releases\" + release_id
+    mkdir = subprocess.run(
+        build_ssh_command(TARGET, "$ErrorActionPreference='Stop'; New-Item -ItemType Directory -Force -Path " + quote(release_directory) + " | Out-Null", SETTINGS),
+        text=True, capture_output=True, check=False,
+    )
+    if mkdir.returncode:
+        return wrap("forex_m20_stage_listener_release", {"exit_code": mkdir.returncode, "stdout": "", "stderr": mkdir.stderr, "ok": False})
     transfers = []
     for name, path in zip(names, sources):
         source = subprocess.run(["wslpath", "-w", str(path)], text=True, capture_output=True, check=True).stdout.strip()
