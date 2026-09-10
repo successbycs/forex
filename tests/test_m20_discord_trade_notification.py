@@ -81,6 +81,14 @@ def test_open_notification_refuses_live_or_unprotected_payloads():
         raise AssertionError("unprotected open notification payload was accepted")
 
 
+def test_continuity_failure_keeps_only_safe_delivery_detail(monkeypatch):
+    monkeypatch.setattr(discord, "_notify", lambda payload, message: {
+        "ok": False, "delivery": "FAILED", "proposal_id": payload["proposal_id"], "detail": "HTTP_401",
+    })
+    result = discord.notify_continuity_drill({"run_id": "a" * 24, "event": "INCIDENT", "captured_at_utc": "2026-09-10T10:00:00Z"})
+    assert result == {"ok": False, "delivery": "FAILED", "run_id": "a" * 24, "detail": "HTTP_401"}
+
+
 def test_accepts_the_legacy_discordapp_webhook_endpoint(monkeypatch):
     legacy = "https://discordapp.com/api/webhooks/123/token"
     monkeypatch.setenv("FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED", "true")

@@ -120,8 +120,12 @@ def _notify(payload: dict[str, Any], message: str) -> dict[str, Any]:
         with urlopen(request, timeout=3) as response:
             if not 200 <= response.status < 300:
                 return {"ok": False, "delivery": "FAILED", "proposal_id": payload["proposal_id"], "detail": f"Discord HTTP {response.status}"}
-    except (HTTPError, URLError, TimeoutError, OSError) as error:
-        return {"ok": False, "delivery": "FAILED", "proposal_id": payload["proposal_id"], "detail": str(error)[:160]}
+    except HTTPError as error:
+        return {"ok": False, "delivery": "FAILED", "proposal_id": payload["proposal_id"], "detail": f"HTTP_{error.code}"}
+    except TimeoutError:
+        return {"ok": False, "delivery": "FAILED", "proposal_id": payload["proposal_id"], "detail": "TIMEOUT"}
+    except (URLError, OSError):
+        return {"ok": False, "delivery": "FAILED", "proposal_id": payload["proposal_id"], "detail": "NETWORK_UNAVAILABLE"}
     return {"ok": True, "delivery": "SENT", "proposal_id": payload["proposal_id"]}
 
 
@@ -143,7 +147,10 @@ def notify_continuity_drill(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("Discord continuity drill identity is invalid")
     result = _notify({"proposal_id": payload["run_id"]}, "**W1_CONTINUITY_DRILL " + payload["event"] + "**\n"
                      + "T480-local non-trading continuity protocol | " + payload["captured_at_utc"])
-    return {"ok": result["ok"], "delivery": result["delivery"], "run_id": payload["run_id"]}
+    response = {"ok": result["ok"], "delivery": result["delivery"], "run_id": payload["run_id"]}
+    if result.get("delivery") == "FAILED":
+        response["detail"] = result.get("detail", "DELIVERY_FAILED")
+    return response
 
 
 def main() -> int:
