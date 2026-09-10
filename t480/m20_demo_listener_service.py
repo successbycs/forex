@@ -38,6 +38,10 @@ ASSESSMENT_GATE_PATH = STATE_ROOT / "m20_demo_assessment_gate.local.json"
 # maintenance. A malformed record fails closed: monitoring remains available
 # for an existing position but entry processing stays disabled.
 MAINTENANCE_HOLD_PATH = STATE_ROOT / "m20_demo_maintenance_hold.local.json"
+# One bounded Wave 1 drill: the first naturally accepted protected Demo position
+# restarts the listener through its Scheduled Task, then startup recovery must
+# reclaim the same durable position. The terminal record prevents any repeat.
+PROTECTED_RESTART_DRILL_PATH = STATE_ROOT / "m20_demo_protected_restart_drill.local.json"
 # Windows endpoint protection can block newly-created executable script
 # extensions under ProgramData.  Python executes this immutable hash-checked
 # payload explicitly, so the deployment artifact intentionally has no .py
@@ -46,6 +50,71 @@ RUNNER_PATH = ROOT / "m20_demo_trading_session.payload"
 POLL_SECONDS = 1
 ASSESSMENT_INTERVAL_SECONDS = 5
 MONITOR_RETRY_SECONDS = 10
+
+
+class ProtectedRestartDrillRequested(RuntimeError):
+    """Intentional one-shot task exit after durable broker protection exists."""
+
+
+def _restart_drill_state() -> dict[str, Any]:
+    """Load or atomically arm the one-shot protected-position restart drill."""
+    if not PROTECTED_RESTART_DRILL_PATH.exists():
+        state = {"schema_version": "forex.m20.protected-restart-drill.v1", "state": "ARMED"}
+        temporary = PROTECTED_RESTART_DRILL_PATH.with_suffix(".tmp")
+        temporary.write_text(json.dumps(state, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+        temporary.replace(PROTECTED_RESTART_DRILL_PATH)
+        return state
+    try:
+        state = json.loads(PROTECTED_RESTART_DRILL_PATH.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SystemExit("M20 protected restart drill state is unreadable") from error
+    if not isinstance(state, dict) or state.get("schema_version") != "forex.m20.protected-restart-drill.v1" or state.get("state") not in {"ARMED", "RESTART_REQUESTED", "RECOVERED", "CLOSED_BEFORE_RECOVERY"}:
+        raise SystemExit("M20 protected restart drill state is invalid")
+    return state
+
+
+def _write_restart_drill_state(state: dict[str, Any]) -> None:
+    temporary = PROTECTED_RESTART_DRILL_PATH.with_suffix(".tmp")
+    temporary.write_text(json.dumps(state, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+    temporary.replace(PROTECTED_RESTART_DRILL_PATH)
+
+
+def _request_protected_restart(output: dict[str, Any]) -> None:
+    """Request exactly one restart after a durable broker-protected acceptance."""
+    state = _restart_drill_state()
+    execution = output.get("execution")
+    reconciliation = output.get("reconciliation")
+    if state.get("state") != "ARMED" or not isinstance(execution, dict) or not isinstance(reconciliation, dict):
+        return
+    if execution.get("status") != "ACCEPTED" or execution.get("monitor_job_scheduled") is not True or reconciliation.get("status") != "OPEN_MONITORING":
+        return
+    ticket = reconciliation.get("position_ticket")
+    attempt_id = execution.get("attempt_id")
+    if not isinstance(ticket, int) or ticket <= 0 or not isinstance(attempt_id, str):
+        raise SystemExit("M20 protected restart drill cannot bind accepted position")
+    _write_restart_drill_state({"schema_version": "forex.m20.protected-restart-drill.v1", "state": "RESTART_REQUESTED", "attempt_id": attempt_id, "position_ticket": ticket, "requested_at_utc": _utc_now()})
+    raise ProtectedRestartDrillRequested("M20 protected restart drill requested")
+
+
+def _record_protected_restart_recovery(monitor: dict[str, Any]) -> None:
+    """Close the one-shot drill only after startup sees the bound durable state."""
+    state = _restart_drill_state()
+    if state.get("state") != "RESTART_REQUESTED":
+        return
+    recovered = monitor.get("result", {}).get("recovered") if isinstance(monitor.get("result"), dict) else None
+    if not isinstance(recovered, list):
+        return
+    ticket = state.get("position_ticket")
+    for item in recovered:
+        if not isinstance(item, dict) or item.get("position_ticket") != ticket:
+            continue
+        reconciliation = item.get("reconciliation")
+        status = reconciliation.get("status") if isinstance(reconciliation, dict) else None
+        if status == "OPEN_MONITORING":
+            _write_restart_drill_state({**state, "state": "RECOVERED", "recovered_at_utc": _utc_now()})
+        elif status == "MATCHED":
+            _write_restart_drill_state({**state, "state": "CLOSED_BEFORE_RECOVERY", "observed_at_utc": _utc_now()})
+        return
 
 
 def _utc_now() -> str:
@@ -372,6 +441,7 @@ def run() -> None:
                 time.sleep(POLL_SECONDS)
                 continue
             monitor_initialized = True
+            _record_protected_restart_recovery(monitor_state)
         if now < next_assessment_at:
             # A bounded monitor pass belongs in the idle period.  It must not
             # delay an eligible fresh-quote assessment and its trade decision.
@@ -435,6 +505,7 @@ def run() -> None:
             proposal = output.get("proposal", {})
             last_result = {key: output.get(key) for key in ("marker", "server", "symbol", "captured_at_utc", "proposal", "strategy_selection", "strategy_assessments", "multi_timeframe_context", "execution", "reconciliation")}
             last_result["assessment_metrics"] = _assessment_metrics(output.get("decision_snapshot", {}), proposal)
+            _request_protected_restart(output)
         except json.JSONDecodeError:
             last_result = {"error": completed.stderr.strip() or completed.stdout.strip(), "exit_code": completed.returncode}
         _write_status({"state": "RUNNING" if completed.returncode == 0 else "LAST_ASSESSMENT_FAILED",
@@ -453,6 +524,8 @@ def run_guarded() -> None:
     try:
         run()
     except (Exception, SystemExit) as error:
+        if isinstance(error, ProtectedRestartDrillRequested):
+            raise
         if isinstance(error, SystemExit) and error.code in (None, 0):
             raise
         # Never retain exception messages, source lines, locals or environment:

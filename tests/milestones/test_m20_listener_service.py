@@ -294,3 +294,29 @@ def test_listener_retries_transient_status_replacement_but_bounds_persistent_fai
     with pytest.raises(PermissionError):
         service._write_status({'state': 'MAINTENANCE_HOLD'})
     assert len(attempts) == 3
+
+def test_one_shot_protected_restart_drill_requests_only_after_durable_accepted_open(tmp_path, monkeypatch):
+    import pytest
+    service = _crash_test_service()
+    monkeypatch.setattr(service, "PROTECTED_RESTART_DRILL_PATH", tmp_path / "restart-drill.json")
+    assert service._restart_drill_state()["state"] == "ARMED"
+    with pytest.raises(service.ProtectedRestartDrillRequested):
+        service._request_protected_restart({
+            "execution": {"status": "ACCEPTED", "monitor_job_scheduled": True, "attempt_id": "attempt"},
+            "reconciliation": {"status": "OPEN_MONITORING", "position_ticket": 42},
+        })
+    state = service._restart_drill_state()
+    assert state["state"] == "RESTART_REQUESTED" and state["position_ticket"] == 42
+    service._request_protected_restart({
+        "execution": {"status": "ACCEPTED", "monitor_job_scheduled": True, "attempt_id": "attempt"},
+        "reconciliation": {"status": "OPEN_MONITORING", "position_ticket": 42},
+    })
+    assert service._restart_drill_state()["state"] == "RESTART_REQUESTED"
+
+
+def test_one_shot_protected_restart_drill_records_recovery_or_prior_close(tmp_path, monkeypatch):
+    service = _crash_test_service()
+    monkeypatch.setattr(service, "PROTECTED_RESTART_DRILL_PATH", tmp_path / "restart-drill.json")
+    service._write_restart_drill_state({"schema_version": "forex.m20.protected-restart-drill.v1", "state": "RESTART_REQUESTED", "attempt_id": "attempt", "position_ticket": 42, "requested_at_utc": "2026-09-10T00:00:00Z"})
+    service._record_protected_restart_recovery({"result": {"recovered": [{"position_ticket": 42, "reconciliation": {"status": "OPEN_MONITORING"}}]}})
+    assert service._restart_drill_state()["state"] == "RECOVERED"
