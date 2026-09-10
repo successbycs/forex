@@ -1,5 +1,14 @@
 # Wave 1 progress and proposed risk policy
 
+## 2026-09-10 automated protected-restart trigger deployed
+
+The operator authorised removal of the manual restart dependency. Commit `d897484` adds a T480-local one-shot trigger: after the first naturally accepted full Demo position has a durable `OPEN_MONITORING` record and broker SL/TP, it atomically records the bound attempt/ticket, exits the Scheduled Task once, and relies on the existing bounded task restart. Startup recovery records either `RECOVERED` for that exact open ticket or `CLOSED_BEFORE_RECOVERY`; terminal state prevents repetition. It never creates an order or changes broker protection. The focused listener and T480 adapter tests passed (95 tests total). The trigger is installed in release `fde38161fecebeae`.
+
+During deployment a naturally open protected BUY `42234057` was present. A maintenance hold blocked new entries while preserving monitoring. The old listener was replaced through the hash-checked release path and the new release recovered the exact durable attempt `6170b7e5-bf55-5363-ab5f-160f6201fdf1` and ticket `42234057` as `OPEN_MONITORING`, with the original entry 1.16389, SL 1.16355 and TP 1.16445. A current broker account observation still reported one open position, and the new listener’s post-install monitor independently recovered the same ticket. This is genuine protected-position restart/recovery evidence with no duplicate entry. The maintenance hold was then removed; a fresh RUNNING heartbeat confirms ordinary Demo assessment resumed. Raw evidence is retained at `runs/evidence/M20/w1-automated-restart-20260910/raw/`.
+
+The trigger was not exercised by this already-open position because it was installed after that entry. It is armed implicitly on the next newly accepted full protected Demo position and will execute exactly once without human action. Independent Astra evidence review remains required before treating W1.2/W1.4 restart proof as passed.
+
+
 ## 2026-09-10 natural position close and restart attempt
 
 A naturally eligible Demo BUY (`42232651`, 0.01 lot) opened at 08:25:08 UTC with recorded broker protection: entry 1.16382, SL 1.16355 and TP 1.16422. The protected-restart drill began only after a current status observation, but broker history and matched PostgreSQL lineage show that the position had already closed at 08:28:05 UTC through its configured `COMPRESSION_BREAKOUT_M1_TWO_OPPOSITE_CLOSED_CANDLES` owner exit. The exact broker deals show a AUD -0.14 gross/net result with zero broker commission, fee and swap. The balance bridge moved from AUD 100993.78 to AUD 100993.64 and the current expected balance matches it.
