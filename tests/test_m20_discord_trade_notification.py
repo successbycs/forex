@@ -89,6 +89,25 @@ def test_continuity_failure_keeps_only_safe_delivery_detail(monkeypatch):
     assert result == {"ok": False, "delivery": "FAILED", "run_id": "a" * 24, "detail": "HTTP_401"}
 
 
+def test_notify_uses_the_required_discord_user_agent(monkeypatch):
+    monkeypatch.setenv("FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED", "true")
+    monkeypatch.setenv("FOREX_M20_DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/123/token")
+    seen = {}
+
+    class Response:
+        status = 204
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+
+    def send(request, timeout):
+        seen["user_agent"] = request.get_header("User-agent")
+        return Response()
+
+    monkeypatch.setattr(discord, "urlopen", send)
+    assert discord._notify({"proposal_id": "p"}, "test")["delivery"] == "SENT"
+    assert seen["user_agent"] == "DiscordBot (https://github.com/successbycs/forex, 1.0)"
+
+
 def test_accepts_the_legacy_discordapp_webhook_endpoint(monkeypatch):
     legacy = "https://discordapp.com/api/webhooks/123/token"
     monkeypatch.setenv("FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED", "true")

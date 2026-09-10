@@ -115,13 +115,26 @@ def _notify(payload: dict[str, Any], message: str) -> dict[str, Any]:
     url = _webhook_url()
     if not url:
         return {"ok": True, "delivery": "DISABLED", "proposal_id": payload["proposal_id"]}
-    request = Request(url, data=json.dumps({"content": message}, separators=(",", ":")).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
+    request = Request(
+        url,
+        data=json.dumps({"content": message}, separators=(",", ":")).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Accept": "application/json",
+                 "User-Agent": "DiscordBot (https://github.com/successbycs/forex, 1.0)"},
+        method="POST",
+    )
     try:
         with urlopen(request, timeout=3) as response:
             if not 200 <= response.status < 300:
                 return {"ok": False, "delivery": "FAILED", "proposal_id": payload["proposal_id"], "detail": f"Discord HTTP {response.status}"}
     except HTTPError as error:
-        return {"ok": False, "delivery": "FAILED", "proposal_id": payload["proposal_id"], "detail": f"HTTP_{error.code}"}
+        detail = f"HTTP_{error.code}"
+        try:
+            body = json.loads(error.read().decode("utf-8"))
+            if isinstance(body, dict) and isinstance(body.get("code"), int):
+                detail += f"_DISCORD_{body['code']}"
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            pass
+        return {"ok": False, "delivery": "FAILED", "proposal_id": payload["proposal_id"], "detail": detail}
     except TimeoutError:
         return {"ok": False, "delivery": "FAILED", "proposal_id": payload["proposal_id"], "detail": "TIMEOUT"}
     except (URLError, OSError):
