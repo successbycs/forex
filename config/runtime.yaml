@@ -42,7 +42,7 @@ financing_policy:
   maximum_quote_age_seconds: 10
   calendar_valid_from_utc: '2026-09-10T00:00:00Z'
   calendar_valid_until_utc: '2026-09-17T00:00:00Z'
-  calendar_source: 'https://www.gomarkets.com/en/faqs; observed 2026-09-10; weekday 06-18 UTC excludes rollover under either published UTC+2/+3 offset; no holiday settlement qualification'
+  calendar_source: 'Research/2026-09-10-w1-broker-blocker-resolution.md#sources-and-conclusions'
   rollovers: []
   round_trip_charge_aud_per_lot: 6.0
-  charge_source: 'https://www.gomarkets.com/en/accounts-and-pricing/spreads-and-fees; public Plus+ allowance AUD3 per side; conservative Demo estimate, account tariff unknown; operator inference authority 2026-09-10'
+  charge_source: 'Research/2026-09-10-w1-broker-blocker-resolution.md#implemented-resolution'
