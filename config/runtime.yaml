@@ -35,11 +35,14 @@ demo_session_limits:
 # block entries; this mandate does not enable overnight holding or new exits.
 financing_policy:
   policy_version: forex.m20.financing.v1
+  qualification_basis: DEMO_CONSERVATIVE_INTRADAY
+  entry_start_hour_utc: 6
+  exit_by_hour_utc: 18
   exit_mode: EXISTING_OWNER_EXITS
   maximum_quote_age_seconds: 10
-  calendar_valid_from_utc: null
-  calendar_valid_until_utc: null
-  calendar_source: null
+  calendar_valid_from_utc: '2026-09-10T00:00:00Z'
+  calendar_valid_until_utc: '2026-09-17T00:00:00Z'
+  calendar_source: 'https://www.gomarkets.com/en/faqs; observed 2026-09-10; weekday 06-18 UTC excludes rollover under either published UTC+2/+3 offset; no holiday settlement qualification'
   rollovers: []
-  round_trip_charge_aud_per_lot: null
-  charge_source: null
+  round_trip_charge_aud_per_lot: 6.0
+  charge_source: 'https://www.gomarkets.com/en/accounts-and-pricing/spreads-and-fees; public Plus+ allowance AUD3 per side; conservative Demo estimate, account tariff unknown; operator inference authority 2026-09-10'

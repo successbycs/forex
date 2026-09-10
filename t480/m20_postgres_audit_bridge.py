@@ -80,7 +80,7 @@ def _snapshot(payload: dict[str, Any], proposal: dict[str, Any]) -> dict[str, An
         required |= financing_fields
         if not all(isinstance(value.get(key), dict) for key in financing_fields):
             raise SystemExit("M20 financing snapshot fields are invalid")
-        if proposal.get("action") in {"BUY", "SELL"} and value["financing"].get("status") != "QUALIFIED_INPUTS":
+        if proposal.get("action") in {"BUY", "SELL"} and value["financing"].get("status") not in {"QUALIFIED_INPUTS", "DEMO_ESTIMATE"}:
             raise SystemExit("M20 actionable proposal has unqualified financing")
     gates = value.get("safety_gates")
     expected_gates = {"fresh_quote", "completed_m1", "normal_spread", "no_existing_position", "demo_lease_active", "news_blackout_inactive", "abnormal_volatility_inactive"}

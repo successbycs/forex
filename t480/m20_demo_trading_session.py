@@ -615,6 +615,30 @@ def project_financing(*, terms: dict[str, Any], action: str, volume: float,
             raise ValueError('unqualified rollover calendar coverage')
         fee_per_lot = finite(policy['round_trip_charge_aud_per_lot'])
         if fee_per_lot < 0 or not policy['charge_source']: raise ValueError('unqualified commission/fee terms')
+        basis = policy.get('qualification_basis', 'BROKER_CALENDAR')
+        if basis not in {'BROKER_CALENDAR', 'DEMO_CONSERVATIVE_INTRADAY'}:
+            raise ValueError('unsupported qualification basis')
+        if basis == 'DEMO_CONSERVATIVE_INTRADAY':
+            # Temporary operator-authorised estimate, never account tariff proof.
+            # Both endpoints must be inside one weekday window; no rollover
+            # calendar or holiday multiplier is invented for excluded hours.
+            opening = finite(policy['entry_start_hour_utc'])
+            closing = finite(policy['exit_by_hour_utc'])
+            now = now.astimezone(timezone.utc)
+            horizon = horizon.astimezone(timezone.utc)
+            if not (6 <= opening < closing <= 18) or fee_per_lot < 6:
+                raise ValueError('invalid conservative Demo bounds')
+            if (now.weekday() >= 5 or now.date() != horizon.date()
+                    or now.hour + now.minute / 60 < opening
+                    or horizon.hour + horizon.minute / 60 + horizon.second / 3600 >= closing
+                    or (horizon - now).total_seconds() > max(OWNER_MAX_HOLD_SECONDS.values())):
+                raise ValueError('outside conservative Demo intraday window')
+            result.update(status='DEMO_ESTIMATE', expected_swap_aud=0.0,
+                          commission_allowance_aud=fee_per_lot * volume,
+                          adverse_financing_aud=0.0, multiplier=0,
+                          reason='PUBLIC_TERMS_INTRADAY_ESTIMATE_NOT_ACCOUNT_FEE_PROOF',
+                          calendar_source=policy['calendar_source'], charge_source=policy['charge_source'])
+            return result
         swap_points = finite(terms['swap_long'] if action == 'BUY' else terms['swap_short'])
         per_day_usd = swap_points * finite(terms['point'], True) * finite(terms['contract_size'], True) * volume
         multipliers = 0.0
@@ -705,7 +729,7 @@ def _project_cost_coverage(*, action: str, entry: float, take_profit: float, ris
     exit_spread = spread * EXPECTED_EXIT_SPREAD_MULTIPLIER * value_per_price
     slippage = spread * EXPECTED_SLIPPAGE_SPREAD_MULTIPLIER * value_per_price
     financing = risk.get("financing", {})
-    if financing.get("status") != "QUALIFIED_INPUTS":
+    if financing.get("status") not in {"QUALIFIED_INPUTS", "DEMO_ESTIMATE"}:
         return {**_project_cost_coverage(action="NO_TRADE", entry=entry, take_profit=take_profit, risk=risk), "cost_coverage_status": "NOT_FEASIBLE"}
     commission = float(financing["commission_allowance_aud"])
     signed_swap = float(financing["expected_swap_aud"])
@@ -803,7 +827,7 @@ def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, l
     candidate_side = signals.get(executable_strategy_id, "NO_TRADE")
     financing = risk.get("financing_by_side", {}).get(candidate_side, {"status": "UNKNOWN"})
     risk = {**risk, "financing": financing}
-    financing_allowed = financing.get("status") == "QUALIFIED_INPUTS"
+    financing_allowed = financing.get("status") in {"QUALIFIED_INPUTS", "DEMO_ESTIMATE"}
     if not financing_allowed:
         executable_strategy_id = None
     action, entry, stop, take, notional, reason = _strategy_trade_plan(
@@ -1773,7 +1797,7 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
             fresh_terms = _financing_terms(mt5.symbol_info(SYMBOL), datetime.now(timezone.utc))
             fresh_now = datetime.now(timezone.utc)
             fresh_financing = project_financing(terms=fresh_terms, action=proposal["action"], volume=risk["volume"], now=fresh_now, horizon=fresh_now + timedelta(seconds=max(OWNER_MAX_HOLD_SECONDS.values())), policy=mandate)
-            if fresh_financing.get("status") != "QUALIFIED_INPUTS" or any(fresh_financing[k] != financing[k] for k in ("expected_swap_aud", "commission_allowance_aud", "adverse_financing_aud")):
+            if fresh_financing.get("status") not in {"QUALIFIED_INPUTS", "DEMO_ESTIMATE"} or any(fresh_financing[k] != financing[k] for k in ("status", "expected_swap_aud", "commission_allowance_aud", "adverse_financing_aud")):
                 raise SystemExit("M20 financing changed before reservation; fresh assessment required")
             planned_loss = _planned_stop_loss(float(proposal["proposed_entry"]), float(proposal["stop_loss"]), {**risk, "observed_spread": float(tick_record["ask"]) - float(tick_record["bid"])})
             submitted_at = utc(datetime.now(timezone.utc))

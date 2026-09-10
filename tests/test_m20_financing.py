@@ -82,3 +82,44 @@ def test_assessment_records_and_refuses_missing_financing(runner,monkeypatch):
     assert proposal['rationale'].startswith('FINANCING_UNQUALIFIED')
     assert snapshot['holding_review']['decision']=='REVIEW_REQUIRED'
     assert snapshot['financing']['status']=='UNKNOWN'
+
+@pytest.mark.parametrize('stamp,allowed', [
+    ('2026-09-10T05:59:00+00:00', False),
+    ('2026-09-10T06:00:00+00:00', True),
+    ('2026-09-10T17:49:59+00:00', True),
+    ('2026-09-10T17:50:00+00:00', False),
+    ('2026-09-11T12:00:00+00:00', True),
+    ('2026-09-12T12:00:00+00:00', False),
+    ('2026-09-13T12:00:00+00:00', False),
+])
+def test_demo_estimate_window_and_provenance(runner, inputs, stamp, allowed):
+    now = datetime.fromisoformat(stamp)
+    inputs.update(now=now, horizon=now+timedelta(minutes=10))
+    inputs['terms'].update(captured_at_utc=stamp, conversion_at_utc=stamp)
+    inputs['policy'].update(qualification_basis='DEMO_CONSERVATIVE_INTRADAY',
+        entry_start_hour_utc=6, exit_by_hour_utc=18, round_trip_charge_aud_per_lot=6,
+        calendar_valid_until_utc='2026-09-17T00:00:00Z', rollovers=[])
+    result = runner.project_financing(**inputs)
+    assert result['status'] == ('DEMO_ESTIMATE' if allowed else 'UNKNOWN')
+    if allowed:
+        assert result['commission_allowance_aud'] == pytest.approx(.06)
+        assert result['expected_swap_aud'] == 0
+        assert runner.review_holding(financing=result, forecast_qualified=True,
+            forecast_lower_bound_aud=100, benefit_buffer_aud=0,
+            risk_allowed=True)['decision'] == 'REVIEW_REQUIRED'
+
+@pytest.mark.parametrize('change', ['expired', 'stale', 'missing_fee', 'cheap_fee', 'wider_hours', 'long_hold', 'unknown_basis'])
+def test_demo_estimate_never_waives_missing_inputs(runner, inputs, change):
+    now = inputs['now'] + timedelta(hours=12)
+    inputs.update(now=now, horizon=now+timedelta(minutes=10))
+    inputs['terms'].update(captured_at_utc=now.isoformat(), conversion_at_utc=now.isoformat())
+    inputs['policy'].update(qualification_basis='DEMO_CONSERVATIVE_INTRADAY',
+        entry_start_hour_utc=6, exit_by_hour_utc=18, round_trip_charge_aud_per_lot=6)
+    if change == 'expired': inputs['policy']['calendar_valid_until_utc'] = now.isoformat()
+    if change == 'stale': inputs['terms']['conversion_at_utc'] = (now-timedelta(seconds=11)).isoformat()
+    if change == 'missing_fee': inputs['policy']['round_trip_charge_aud_per_lot'] = None
+    if change == 'cheap_fee': inputs['policy']['round_trip_charge_aud_per_lot'] = 0
+    if change == 'wider_hours': inputs['policy']['exit_by_hour_utc'] = 23
+    if change == 'long_hold': inputs['horizon'] += timedelta(seconds=1)
+    if change == 'unknown_basis': inputs['policy']['qualification_basis'] = 'GUESS'
+    assert runner.project_financing(**inputs)['status'] == 'UNKNOWN'

@@ -2472,6 +2472,7 @@
       "to_state": "Continuous cap-constrained automated GOMarketsMU-Demo trading MVP proven",
       "scope": [
         "Use an adaptive fixed Demo-only EUR/USD M1 live-price listener that retains no tick stream and captures only the decision tick plus closed M1 candles through a fixed adapter.",
+        "Operator amendment 2026-09-10: permit an explicitly labelled DEMO_ESTIMATE using the published AUD 6 round-turn per-lot commission allowance, valid only for weekday UTC 06:00 entries whose existing maximum ten-minute owner horizon ends strictly before 18:00, and only within the dated canonical source-validity window. This replaces the proposed 15-minute cutoff with a wider rollover exclusion under both published UTC+2/+3 offsets. Account tariff and holiday settlement remain unqualified; no overnight authority or actual-cost proof is inferred. Existing Option B, owner exits, protection, unresolved-execution and reconciliation gates remain mandatory.",
         "Operate the fixed listener as a permanent T480 Scheduled Task with a redacted heartbeat and a read-only T16 dashboard showing its latest five-second assessment.",
         "Provide a separate read-only T16 terminal dashboard that shows the latest Demo BUY/SELL lifecycle, monitoring or sold state, and broker-reconciled realised P&L without an order-control surface.",
         "Publish compact, human-readable candle and spread metrics with each read-only assessment status so a NO_TRADE conclusion is inspectable.",

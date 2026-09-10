@@ -1,5 +1,12 @@
 # Wave 1 pre-entry review packet
 
+This packet's revision/configuration binding is now historical. Review the
+10 September [broker-blocker resolution](../../Research/2026-09-10-w1-broker-blocker-resolution.md)
+and its final code/configuration before entry release. A fresh lifecycle and
+protected-position restart are post-enable evidence requirements, not
+prerequisites that must precede the first eligible Demo trade. The temporary
+estimate does not qualify overnight costs or actual account tariffs.
+
 Prepared 2026-09-10. **Request for a narrow, read-only Astra review.** This is
 not an approval, an entry release, or M20 closeout evidence.
 

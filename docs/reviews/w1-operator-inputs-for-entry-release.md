@@ -1,5 +1,11 @@
 # Wave 1 operator inputs for fee and rollover qualification
 
+Superseded for temporary intraday Demo entry by the operator's 10 September
+instruction to resolve using public sources/inference and the implemented
+[resolution](../../Research/2026-09-10-w1-broker-blocker-resolution.md).
+The following facts are still useful for actual fee/overnight qualification;
+the operator need not obtain them to implement that temporary Demo policy.
+
 Prepared 2026-09-10. This is a fact-collection form, not a request to enable
 entries. Leave the listener in maintenance hold while it is completed.
 

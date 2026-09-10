@@ -1,5 +1,15 @@
 # Wave 1: Trustworthy Demo execution
 
+## Operator resolution — 2026-09-10
+
+The instruction to resolve the blocked broker facts using sources/inference
+authorises the [temporary Demo estimate policy](../../Research/2026-09-10-w1-broker-blocker-resolution.md).
+It supersedes mandatory account-tariff/holiday-calendar input before intraday
+Demo work: use the labelled AUD 6/lot allowance and the bounded weekday window
+in canonical configuration. Exact broker fee and rollover settlement proof
+remain unqualified, especially overnight. Read the latest handover for deployed
+identity and review state. No Wave 1 or M20 completion is implied.
+
 ## Operator priority amendment — 2026-09-10
 
 Get core Demo execution working first. Backup and isolated-restore proof is
