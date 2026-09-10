@@ -1,5 +1,16 @@
 # Wave 1 progress and proposed risk policy
 
+## 2026-09-10 broker lifecycle reconciliation and reviewed Option B resume
+
+A fixed bounded read-only adapter, `forex-m20-current-lineage-summary`, was added because the existing all-history lifecycle report exceeded the Windows command-line limit. It returns only the fixed 10 September 2026 UTC window and binds the original lease, proposal, decision snapshot, attempt, position events, matched outcome and persistent balance state. It performs no broker, database, risk-policy or deployment mutation. The focused adapter suite passed (18 tests); the adapter and T480 suites passed together (94 tests); `git diff --check` passed.
+
+The retained broker history at `runs/evidence/M20/w1-resume-20260910/raw/current-wave1-history.json` and database lineage at `runs/evidence/M20/w1-resume-20260910/raw/current-lineage-summary.json` independently identify three ordinary GOMarketsMU-Demo EURUSD 0.01-lot positions under original lease `9673811b-0e23-47f9-b8e6-e0a86d1adf06`: `42217856` BUY, AUD -0.33; `42220054` SELL, AUD -0.32; and `42220632` BUY, AUD -0.36. Each had a paired opening/closing broker deal, a broker stop-loss close, zero broker commission/fee/swap, and PostgreSQL `OPENED` then `CLOSED` / `MATCHED` evidence. Their AUD -1.01 net exactly explains the balance change from AUD 100994.79 to AUD 100993.78. The current expected balance and independently observed broker balance both equal AUD 100993.78. This is explained broker price P&L, not an inferred external cash flow.
+
+Astra separately reviewed the raw evidence and source. It accepted the bounded report and supported the authorised fixed risk-resume flow, while explicitly retaining the distinction between exact broker close timestamps and PostgreSQL observations 2–3 seconds later. The fixed resume operation recorded `0549ee05-cb28-40b8-b965-bf44d4704398` at 08:12:41 UTC. The next account check was AVAILABLE/flat at AUD 100993.78; `pause_reasons` is now empty, `cash_flow_review_approved` is false, and the Option B baseline, peak, daily and weekly anchors and original lease are unchanged. Raw post-resume proof is retained in `runs/evidence/M20/w1-resume-20260910/raw/risk-resume-after-reconciliation.json`, `risk-policy-after-reviewed-resume.json` and `account-after-reviewed-resume.json`. No order was forced, no Live surface was accessed, and no release was deployed.
+
+**Wave 1 remains incomplete.** The listener can make ordinary Demo assessments within the existing temporary intraday policy, which expires at 2026-09-17T00:00:00Z. Remaining real-world proof is a naturally occurring protected open-position interruption/restart with recovered ownership/protection; a genuine eligible-signal restrictive-risk refusal; observed nonzero charges and partial fills if the broker produces them; and tariff/overnight-calendar qualification. The final current configuration/effective-limit binding, complete evidence bundle, independent verification and bound Triad recommendation also remain required. Do not force a signal, cash-flow adjustment, trade, overnight hold, or broker condition to satisfy these criteria.
+
+
 ## 2026-09-10 M1 repair complete and ordinary Demo assessments resumed
 
 The three remaining M1 requirements are implemented in

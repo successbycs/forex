@@ -33,6 +33,7 @@ def test_adapter_exposes_only_fixed_forex_operations():
         "forex-m20-stage-not-submitted-execution-schema",
         "forex-m20-apply-not-submitted-execution-schema",
     })
+    expected.add("forex-m20-current-lineage-summary")
     assert postgres_pgvector_adapter.READ_ONLY | postgres_pgvector_adapter.MUTATING == expected
 
 
@@ -168,6 +169,22 @@ def test_m20_lifecycle_summary_is_fixed_read_only_and_marks_open_or_terminal_sta
     for required in ("demo_execution_attempt", "demo_position_event", "demo_trade_ledger", "demo_open_position_state", "session_id", "actual_entry_price", "CLOSED_MATCHED", "CLOSED_RECONCILIATION_ERROR", "TERMINAL_REJECTED", "PENDING"):
         assert required in query
     assert "password" not in query.lower()
+
+
+def test_m20_current_lineage_summary_is_fixed_bounded_and_read_only():
+    with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+        assert postgres_pgvector_adapter.m20_current_lineage_summary()["ok"]
+    query = remote.call_args.args[0]
+    for required in ("2026-09-10T06:00:00Z", "2026-09-11T00:00:00Z", "p.action<>'NO_TRADE' OR a.attempt_id IS NOT NULL", "starts_at_utc", "expires_at_utc", "demo_trade_session", "demo_decision_snapshot", "demo_execution_attempt", "demo_position_event", "demo_trade_outcome", "demo_risk_policy_state"):
+        assert required in query
+    assert "password" not in query.lower()
+    script = f"set -euo pipefail\ncd {postgres_pgvector_adapter.REMOTE_LAB}\ntest -f .env\nset -a\nsource .env\nset +a\n{query}\n"
+    command = postgres_pgvector_adapter.build_ssh_command(
+        postgres_pgvector_adapter.TARGET,
+        postgres_pgvector_adapter.build_wsl_powershell_command(script, postgres_pgvector_adapter.SETTINGS),
+        postgres_pgvector_adapter.SETTINGS,
+    )
+    assert len(command[-1]) < 8191
 
 
 def test_m20_unresolved_attempt_summary_is_fixed_and_excludes_rejected_attempts():
