@@ -1,5 +1,53 @@
 # Wave 1 progress and proposed risk policy
 
+## 2026-09-10 M1 synchronization repair — deployment blocked, listener restored
+
+Terra implemented the entry-only repair in commit `d44fee90bf25135b831fa2bd310a44d397d36751`.
+It replaces the insufficient M1 count test with a fixed, fail-closed input
+contract: exactly 64 chronological, contiguous one-minute candles must end at
+the current observed quote's minute boundary. A stale, gapped, duplicate,
+out-of-order, malformed, or future M1 entry window therefore records the
+existing `completed_m1=false` safety gate and becomes a persisted non-actionable
+assessment. No candle is filled or inferred.
+
+The repair deliberately does **not** alter `_bar_rows()` or
+`_closed_m1_bars_for_monitor()`. Existing broker SL/TP, owner wall-clock time
+exits, and the monitor's protective exit path remain available even while entry
+history is delayed. Option B and the W1.R maintenance hold are unchanged.
+
+Focused tests passed: fresh current-boundary history, one-minute stale history,
+a gap, a future window, and the separate monitor parser (`pytest -q
+tests/test_t480_adapter.py`, 69 passed). `python3 -m py_compile
+t480/m20_demo_trading_session.py` and `git diff --check` also passed before the
+commit. This is engineering verification, not broker proof.
+
+The hash-bound release deployment was attempted only after a current
+`GOMarketsMU-Demo` account observation confirmed AUD 100,994.79 balance/equity,
+zero available open positions, and no unresolved execution. The maintenance
+hold was written again, the listener was stopped, and listener staging parts
+1–3 succeeded. Part 4 then failed twice before reaching T480 execution:
+`Program 'ssh.exe' failed to run: Access is denied`. The deployment was not
+prepared, configured, or installed. The recovery operation restored the prior
+release `2329eea2d53bba6d`, which then produced a fresh
+`MAINTENANCE_HOLD` heartbeat and an empty monitor recovery result. No assessment
+or Demo order occurred during this work.
+
+Raw adapter results are retained in
+`runs/evidence/M20/w1-m1-synchronization-20260910/raw/`, including the fresh
+Demo candle query, flat-account query, restored-held-listener query, successful
+staging fragments, and the retained failed fragment-4 response. The adapter's
+append-only execution log retains both failed attempts. The candle query
+returned 72 M1 rates with `last_bar_time=1789023060`; it is a fresh terminal
+history observation, not evidence that `d44fee9` is deployed.
+
+**Astra hand-back status: deployment blocked.** Review the source change in
+`d44fee9` now if useful, but do not issue an effective-release or entry
+recommendation until T480 can run the fixed staging operation, the new release
+is hash-bound and installed under hold, and a current held status confirms its
+release ID. The exact resumption condition is repair of the T480/remote-executor
+ability to launch `ssh.exe` for the fixed staging command; do not remove the
+hold or retry entry while this condition persists.
+
 ## 2026-09-10 continuation checkpoint — inspection only, budget stop
 
 **Wave 1 remains incomplete. No implementation, deployment, restart, risk
