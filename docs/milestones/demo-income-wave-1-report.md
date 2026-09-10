@@ -1,5 +1,34 @@
 # Wave 1 progress and proposed risk policy
 
+## 2026-09-10 autonomous continuity protocol: retained alert-path failures
+
+The first T480-local autonomous continuity run (`e8d63f0c006bcebcf43a4efd`)
+finished at 10:32:54 UTC under maintenance hold. It retained 362 fresh,
+release-bound held heartbeats and completed one controlled listener-worker
+handoff. The account began flat and available on `GOMarketsMU-Demo`; no order
+was submitted. Both marked Discord drill deliveries returned `FAILED`.
+Therefore the run is retained as an **inconclusive alert-path result**, not as
+passing R5/R6 proof. Raw terminal observations are retained under
+`runs/evidence/M20/w1-autonomous-continuity-20260910/raw/`.
+
+Release `3c849d6ae161e792` was then prepared, hash-verified, configured and
+installed under the same maintenance hold. It binds application revision
+`80205609cce3f447682672bcaf09dd9545445e60` and governed configuration
+fingerprint `sha256:cb3a904c2d19ae7a3084ed49e84e48fd42901ebb93ad2a64d3a8fa522e31ec76`.
+The repeat run `96fe551548327893a189f8e2` was armed at 10:34:53 UTC after a
+fresh flat Demo account observation. Its controlled handoff recovered at
+10:35:24 UTC, but its incident delivery also returned `FAILED`; it remains
+running only to retain its complete local continuity record. The fixed
+secret-preserving T480 operation confirms an approved local Discord webhook
+is configured. That is not evidence that Discord accepted a notification.
+
+Commit `9b243cb` makes the next release retain only a safe external delivery
+reason (`HTTP_<status>`, `TIMEOUT`, or `NETWORK_UNAVAILABLE`). Do not release
+maintenance hold, treat either current run as passing alert proof, or replace
+the existing webhook without an approved machine-local source. The remaining
+blocker is genuine T480-to-Discord delivery, not listener continuity, broker
+exposure, lease, Option B, or RDP/T16 availability.
+
 ## 2026-09-10 supervised protected-restart proof captured; closeout remains pending
 
 A naturally accepted `GOMarketsMU-Demo` EURUSD BUY, ticket `42239799`, provides
