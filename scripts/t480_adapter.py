@@ -461,6 +461,19 @@ def _m20_listener_disable_maintenance_hold_command() -> str:
     )
 
 
+def _m20_listener_retire_legacy_restart_drill_command() -> str:
+    """Archive only the known failed pre-repair drill marker under a hold."""
+    return (
+        "$ErrorActionPreference='Stop';$s='C:\\ProgramData\\ForexListener\\state';"
+        "if(!(Test-Path (Join-Path $s 'm20_demo_maintenance_hold.local.json'))){throw 'Legacy drill retirement requires maintenance hold'};"
+        "$p=Join-Path $s 'm20_demo_protected_restart_drill.local.json';$a=Join-Path $s 'm20_demo_protected_restart_drill.legacy-42235606.json';"
+        "if(Test-Path $a){throw 'Legacy drill archive already exists'};if(!(Test-Path $p)){throw 'Legacy drill marker is absent'};"
+        "$d=gc -Raw $p|ConvertFrom-Json;if($d.schema_version -ne 'forex.m20.protected-restart-drill.v1'-or $d.state -ne 'RESTART_REQUESTED'-or $d.attempt_id -ne '47433bf8-565d-5f24-9550-ddeea4124cd3'-or $d.position_ticket -ne 42235606){throw 'Marker is not the exact failed pre-repair drill'};"
+        "Move-Item -LiteralPath $p -Destination $a -ErrorAction Stop;"
+        "[pscustomobject]@{retired=$true;archive='m20_demo_protected_restart_drill.legacy-42235606.json';attempt_id=$d.attempt_id;position_ticket=$d.position_ticket;original_marker_preserved=$true}|ConvertTo-Json -Compress"
+    )
+
+
 def _m20_listener_repair_permissions_command() -> str:
     service = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
     runner = (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()
@@ -796,6 +809,11 @@ OPERATIONS: dict[str, Operation] = {
         "m20_listener_disable_maintenance_hold",
         "Remove only the fixed W1.R maintenance hold after verified maintenance.",
         powershell_command=_m20_listener_disable_maintenance_hold_command(),
+    ),
+    "m20_listener_retire_legacy_restart_drill": Operation(
+        "m20_listener_retire_legacy_restart_drill",
+        "Archive only the exact failed pre-repair protected-restart marker while the listener is held.",
+        powershell_command=_m20_listener_retire_legacy_restart_drill_command(),
     ),
     "m20_listener_repair_permissions": Operation("m20_listener_repair_permissions", "Repair current-user Modify access only for the fixed Forex listener deployment directory.", powershell_command=_m20_listener_repair_permissions_command()),
     "m20_listener_prepare": Operation(

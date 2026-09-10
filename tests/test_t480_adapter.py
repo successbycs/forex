@@ -334,6 +334,18 @@ def test_m20_listener_maintenance_hold_actions_are_fixed_and_have_no_order_surfa
     assert "GOMarketsMU-Live" not in enable + disable
 
 
+def test_m20_listener_retires_only_the_known_legacy_restart_marker_under_hold():
+    command = t480_adapter.OPERATIONS["m20_listener_retire_legacy_restart_drill"].powershell_command or ""
+    assert "m20_demo_maintenance_hold.local.json" in command
+    assert "m20_demo_protected_restart_drill.legacy-42235606.json" in command
+    assert "47433bf8-565d-5f24-9550-ddeea4124cd3" in command
+    assert "42235606" in command
+    assert "Move-Item" in command
+    assert "Remove-Item" not in command
+    assert "order_send" not in command
+    assert "GOMarketsMU-Live" not in command
+
+
 def test_m20_listener_install_is_hash_checked_and_fixed():
     command = t480_adapter.OPERATIONS["m20_listener_install"].powershell_command
     assert "Forex-M20-Demo-Listener" in command

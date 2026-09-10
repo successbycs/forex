@@ -138,6 +138,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_retire_legacy_restart_drill",
+      "purpose": "Archive only the exact failed pre-repair protected-restart marker while the listener is held.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_repair_permissions",
       "purpose": "Repair current-user Modify access only for the fixed Forex listener deployment directory.",
       "approval_required": false
