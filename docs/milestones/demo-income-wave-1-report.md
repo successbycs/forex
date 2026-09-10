@@ -1,5 +1,38 @@
 # Wave 1 progress and proposed risk policy
 
+## 2026-09-10 final held deployment and ordinary operation resumed
+
+Commit `7c2c1d1687ac9efc3b98be134f3c0ccb2992809f` was independently reviewed,
+then deployed under maintenance hold as release `6097225ef545ea46`. The fixed
+T480 diagnostic readback retained all four deployed payload hashes, the exact
+application revision/configuration fingerprint, the original continuous Demo
+lease, unlimited development trade count, one-position and notional caps,
+Option B, and the temporary intraday financing mandate. The held listener was
+fresh and broker account was AVAILABLE and flat at AUD 100992.55.
+
+The corrected real-broker-input calculation-only refusal drill then used a
+fresh EURUSD quote (8.024 seconds old), a valid minimum technical stop and the
+same planned-stop-loss predicate used by ordinary strategy planning. It
+calculated AUD 0.069326 at 0.01 lot, refused the authorised AUD 0.01 temporary
+cap, submitted no order, and restored the exact original lease and AUD 100
+Option B limit immediately. Post-drill account remained flat and risk summary
+has no pause reason or unresolved execution. Raw evidence is under
+`runs/evidence/M20/w1-final-20260910/raw/`.
+
+Maintenance hold was released only after those checks. At 09:09:50 UTC the
+new release was RUNNING with a fresh heartbeat and an ordinary `NO_TRADE`
+assessment. The previous pre-repair restart marker remains explicitly
+`LEGACY_UNVERIFIED`; it is not rearmed or presented as a successful automatic
+handoff. The new supervised worker handoff therefore still needs one naturally
+accepted protected Demo position and its exact recovery record before it can
+be claimed on the Windows surface. No trade is forced to obtain it.
+
+**Wave 1 remains incomplete** pending that real supervised-handoff evidence,
+its independent evidence review, and the required final current bound
+recommendation. Partial fills, nonzero posted charges and overnight/special-day
+tariffs remain explicitly unobserved qualifications rather than reasons to
+manufacture trades or extend exposure.
+
 ## 2026-09-10 closeout review and automatic-restart failure repair in progress
 
 Astra independently accepted the captured protected listener recovery and later exact broker closure of BUY 42234057: AUD -0.47, broker stop-loss close at 08:43:50 UTC, PostgreSQL observation one second later, original proposal/attempt/lease retained. Six closed trades net AUD -1.98 and exactly bridge 100994.79 to 100992.81. Raw: `runs/evidence/M20/w1-closeout-20260910T084421Z/raw/`. Separate verification: `runs/verification/M20/w1-closeout-20260910/verify_retained.py` and `result.json`. Review: `docs/reviews/w1-closeout-astra-20260910.md`.
