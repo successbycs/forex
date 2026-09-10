@@ -223,3 +223,59 @@ def test_funded_reservation_reaches_session_gate_with_real_session_shape(databas
             'attempt_id': 'test', 'idempotency_key': 'test', 'submitted_at_utc': '2026-09-10T00:00:00Z',
             'redacted_result': 'test', 'broker_open_positions': 0,
             'account_scope_sha256': 'a' * 64, 'planned_loss_aud': 1}})
+
+
+def test_unknown_account_pause_survives_recovery_without_resetting_anchors(database):
+    b = load_bridge(); observe(b); observe(b, equity=97500)
+    before = state(database)
+    b.pause_unknown_account_state({})
+    result = observe(load_bridge(), equity=99900, day='2026-09-11')
+    assert not result['entry_allowed']
+    assert set(result['pause_reasons']) == {'UNKNOWN_ACCOUNT_STATE', 'WEEKLY_LOSS', 'PEAK_DRAWDOWN'}
+    assert state(database)['baseline_balance'] == before['baseline_balance']
+    b.resume_risk_policy({})
+    assert 'UNKNOWN_ACCOUNT_STATE' not in state(database)['pause_reasons']
+    assert set(state(database)['pause_reasons']) == {'WEEKLY_LOSS', 'PEAK_DRAWDOWN'}
+
+
+def test_concurrent_reservations_across_leases_allow_only_one(database, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    from datetime import datetime, timezone
+    import psycopg
+    b = load_bridge(); observe(b)
+    now = datetime.now(timezone.utc)
+    start, end = now - timedelta(minutes=1), now + timedelta(hours=1)
+    with psycopg.connect(database) as c:
+        for path in sorted((ROOT / 'sql/migrations').glob('*.sql')):
+            if 6 <= int(path.name[:3]) <= 18 or path.name.startswith('021_'):
+                c.execute(path.read_text())
+        for key in ('one', 'two'):
+            c.execute("INSERT INTO forex.demo_trade_session(session_id,operator_label,server,instrument,starts_at_utc,expires_at_utc,max_trades,max_notional_usd,max_cumulative_notional_usd,max_open_positions,status,strategy_version,application_revision,configuration_fingerprint) VALUES (%s,'test','GOMarketsMU-Demo','EURUSD',%s,%s,NULL,10000,100000,1,'ACTIVE','test','test',%s)", (key,start,end,'sha256:'+'a'*64))
+            c.execute("INSERT INTO forex.demo_trade_proposal(proposal_id,session_id,decision_at_utc,expires_at_utc,selected_timeframe,action,proposed_entry,stop_loss,take_profit,notional_usd,confidence,rationale,decision_snapshot_sha256,strategy_version,application_revision,configuration_fingerprint) VALUES (%s,%s,%s,%s,'M1','BUY',1.16,1.159,1.162,1160,70,'test',%s,'test','test',%s)", (key,key,now,end,'sha256:'+'a'*64,'sha256:'+'a'*64))
+            c.execute("INSERT INTO forex.demo_decision_snapshot(snapshot_id,proposal_id,observed_at_utc,captured_at_utc,bid,ask,spread_points,m1_closed_bars,m5_closed_bars,freshness_seconds,payload_sha256) VALUES (%s,%s,%s,%s,1.1599,1.16,10,'[]','[]',0,%s)", (key,key,now,now,'sha256:'+'a'*64))
+            c.execute("INSERT INTO forex.demo_strategy_selection(proposal_id,market_regime,market_regime_reason,selected_strategy_id,strategy_rule_version,selection_status,trade_owner_id,trade_owner_strategy_id,cost_coverage_status,estimated_round_trip_cost_aud,minimum_net_profit_aud,expected_net_profit_at_take_profit_aud,entry_spread_cost_aud,expected_exit_spread_cost_aud,commission_allowance_aud,slippage_allowance_aud,expected_swap_aud,projected_gross_profit_at_take_profit_aud) VALUES (%s,'MOMENTUM_BREAKOUT','test','momentum_breakout','test','SELECTED_EXECUTABLE',%s,'momentum_breakout','FEASIBLE',0.2,0.1,0.8,0.1,0.1,0,0,0,1)", (key,key))
+    # Exercise the actual complete SQL reservation transaction concurrently;
+    # proposal/snapshot serializers are covered by separate tests.
+    for name, key in (('_session','session'),('_proposal','proposal')):
+        monkeypatch.setattr(b, name, lambda p, key=key: p[key])
+    monkeypatch.setattr(b, '_snapshot', lambda *a: None)
+    monkeypatch.setattr(b, '_strategy_selection', lambda *a: None)
+    monkeypatch.setattr(b, '_strategy_assessments', lambda *a: None)
+    barrier = Barrier(2)
+    def reserve(key):
+        payload = {'session': {'session_id':key,'starts_at_utc':start,'expires_at_utc':end,'max_trades':None,'max_notional_per_trade_usd':10000,'max_cumulative_notional_usd':100000},
+            'proposal': {'proposal_id':key,'snapshot_id':key,'action':'BUY','notional_usd':1160},
+            'reservation': {'attempt_id':key,'idempotency_key':key,'submitted_at_utc':now.isoformat(),'redacted_result':'test','broker_open_positions':0,'account_scope_sha256':'a'*64,'planned_loss_aud':1}}
+        barrier.wait()
+        try:
+            b.reserve_execution(payload)
+            return 'RESERVED'
+        except SystemExit as error:
+            assert 'global one-position limit' in str(error)
+            return 'REFUSED'
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(reserve, ('one','two')))
+    assert sorted(results) == ['REFUSED','RESERVED']
+    with psycopg.connect(database) as c:
+        assert c.execute('SELECT count(*) FROM forex.demo_execution_attempt').fetchone()[0] == 1

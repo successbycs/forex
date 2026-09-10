@@ -135,6 +135,14 @@ def risk_account_snapshot(account: Any, captured_at: datetime) -> dict[str, Any]
     return {"balance": balance, "equity": equity, "account_scope_sha256": scope, "auckland_date": local.date().isoformat(), "auckland_week_start": (local.date() - timedelta(days=local.weekday())).isoformat()}
 
 
+def _entry_risk_snapshot(account: Any, captured_at: datetime) -> dict[str, Any]:
+    try:
+        return risk_account_snapshot(account, captured_at)
+    except (SystemExit, TypeError, ValueError):
+        _bridge({}, "pause-unknown-account-state")
+        raise
+
+
 def utc(value: datetime) -> str:
     return value.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
@@ -1483,12 +1491,15 @@ def recover_open_positions(terminal_path: str) -> dict[str, Any]:
 def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int | None = None) -> dict[str, Any]:
     lease = load_session_lease(session_path, datetime.now(timezone.utc))
     if not mt5.initialize(path=terminal_path):
-        raise SystemExit(mt5.last_error())
+        _bridge({}, "pause-unknown-account-state")
+        raise SystemExit("Demo terminal account observation unavailable")
     try:
         account = mt5.account_info()
         if not account or account.server != SERVER:
+            _bridge({}, "pause-unknown-account-state")
             raise SystemExit("MT5 is not connected to GOMarketsMU-Demo")
         if getattr(account, "currency", "") != "AUD":
+            _bridge({}, "pause-unknown-account-state")
             raise SystemExit("M20 AUD loss-cap executor requires an AUD Demo account")
         symbol = mt5.symbol_info(SYMBOL)
         if not symbol or symbol.name != SYMBOL or float(symbol.point) <= 0:
@@ -1529,7 +1540,7 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         session = _session(lease)
         risk_policy = persistent_risk_policy()
         risk_gate = _bridge(
-            {"policy": risk_policy, "account": risk_account_snapshot(account, captured_at)},
+            {"policy": risk_policy, "account": _entry_risk_snapshot(account, captured_at)},
             "enforce-risk-policy",
         )["risk"]
         if not isinstance(risk_gate, dict) or not isinstance(risk_gate.get("entry_allowed"), bool):
@@ -1614,7 +1625,7 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         bridge_payload["multi_timeframe_context"] = multi_timeframe_context
         persisted = _bridge(bridge_payload, "persist-proposal")
         if proposal["action"] != "NO_TRADE":
-            fresh_account = risk_account_snapshot(mt5.account_info(), datetime.now(timezone.utc))
+            fresh_account = _entry_risk_snapshot(mt5.account_info(), datetime.now(timezone.utc))
             _bridge({"policy": risk_policy, "account": fresh_account}, "enforce-risk-policy")
             planned_loss = _planned_stop_loss(float(proposal["proposed_entry"]), float(proposal["stop_loss"]), {**risk, "observed_spread": float(tick_record["ask"]) - float(tick_record["bid"])})
             submitted_at = utc(datetime.now(timezone.utc))

@@ -311,12 +311,29 @@ def _m20_listener_activate_demo_lease_command() -> str:
 
 
 def _m20_listener_activate_refusal_drill_lease_command() -> str:
-    """Create the exact short-lived AUD 0.01 W1.4 refusal-drill lease."""
+    """Reduce only planned loss on the existing lease; preserve cumulative caps."""
     return (
-        "$ErrorActionPreference='Stop'; $state='C:\\ProgramData\\ForexListener\\state'; New-Item -ItemType Directory -Force $state|Out-Null; "
-        "$now=(Get-Date).ToUniversalTime(); $lease=[ordered]@{schema_version='forex.m20.demo-session-lease.v1';session_id=([guid]::NewGuid().ToString());enabled=$true;server='GOMarketsMU-Demo';symbol='EURUSD';starts_at_utc=$now.ToString('o');expires_at_utc=$now.AddMinutes(5).ToString('o');maximum_trades=$null;maximum_duration_minutes=5;maximum_open_positions=1;maximum_notional_per_trade_usd=10000;maximum_cumulative_notional_usd=100000;maximum_loss_per_trade_aud=0.01;audit_prerequisites=[ordered]@{postgres_audit_schema='READY';proposal_persistence='READY';idempotency_store='READY'}}; "
-        "$tmp=Join-Path $state 'm20_demo_session.local.json.tmp'; [IO.File]::WriteAllText($tmp,($lease|ConvertTo-Json -Compress -Depth 4),(New-Object Text.UTF8Encoding($false))); Move-Item -LiteralPath $tmp -Destination (Join-Path $state 'm20_demo_session.local.json') -Force; "
-        "[pscustomobject]@{activated=$true;drill='AUD_0.01_MINIMUM_INCREMENT_REFUSAL';server=$lease.server;symbol=$lease.symbol;session_id=$lease.session_id;starts_at_utc=$lease.starts_at_utc;expires_at_utc=$lease.expires_at_utc;maximum_loss_per_trade_aud=$lease.maximum_loss_per_trade_aud}|ConvertTo-Json -Compress"
+        "$ErrorActionPreference='Stop';$s='C:\\ProgramData\\ForexListener\\state';"
+        "if(!(Test-Path (Join-Path $s 'm20_demo_maintenance_hold.local.json'))){throw 'Refusal setup requires maintenance hold'};"
+        "$p=Join-Path $s 'm20_demo_session.local.json';$b=Join-Path $s 'm20_demo_refusal_original_lease.local.json';"
+        "if(Test-Path $b){throw 'An unfinished refusal drill already exists'};$l=gc -Raw $p|ConvertFrom-Json;"
+        "if($l.server -ne 'GOMarketsMU-Demo'-or $l.symbol -ne 'EURUSD'-or $l.maximum_loss_per_trade_aud -ne 100){throw 'Expected approved Demo lease'};"
+        "Copy-Item -LiteralPath $p -Destination $b;$l.maximum_loss_per_trade_aud=0.01;$t=$p+'.tmp';"
+        "[IO.File]::WriteAllText($t,($l|ConvertTo-Json -Compress -Depth 5),(New-Object Text.UTF8Encoding($false)));Move-Item $t $p -Force;"
+        "[pscustomobject]@{activated=$true;session_id=$l.session_id;maximum_loss_per_trade_aud=$l.maximum_loss_per_trade_aud;original_lease_preserved=$true}|ConvertTo-Json -Compress"
+    )
+
+
+def _m20_listener_restore_refusal_lease_command() -> str:
+    return (
+        "$ErrorActionPreference='Stop';$s='C:\\ProgramData\\ForexListener\\state';"
+        "if(!(Test-Path (Join-Path $s 'm20_demo_maintenance_hold.local.json'))){throw 'Refusal restoration requires maintenance hold'};"
+        "$p=Join-Path $s 'm20_demo_session.local.json';$b=Join-Path $s 'm20_demo_refusal_original_lease.local.json';"
+        "$l=gc -Raw $p|ConvertFrom-Json;$o=gc -Raw $b|ConvertFrom-Json;"
+        "if($o.maximum_loss_per_trade_aud -ne 100-or $l.maximum_loss_per_trade_aud -ne 0.01){throw 'Unexpected refusal limits'};"
+        "$l.maximum_loss_per_trade_aud=100;"
+        "if(($l|ConvertTo-Json -Compress -Depth 5) -ne ($o|ConvertTo-Json -Compress -Depth 5)){throw 'Lease changed during refusal drill'};"
+        "Move-Item -LiteralPath $b -Destination $p -Force;[pscustomobject]@{restored=$true;session_id=$o.session_id;maximum_loss_per_trade_aud=100}|ConvertTo-Json -Compress"
     )
 
 
@@ -697,6 +714,7 @@ OPERATIONS: dict[str, Operation] = {
         "Create only the fixed five-minute AUD 0.01 W1.4 Demo refusal-drill lease.",
         powershell_command=_m20_listener_activate_refusal_drill_lease_command(),
     ),
+    "m20_listener_restore_refusal_lease": Operation("m20_listener_restore_refusal_lease", "Restore the exact original Demo lease after the fixed refusal drill.", powershell_command=_m20_listener_restore_refusal_lease_command()),
     "m20_listener_refusal_drill": Operation(
         "m20_listener_refusal_drill",
         "Run only the hash-bound calculation-only EURUSD minimum-increment refusal drill on GOMarketsMU-Demo.",

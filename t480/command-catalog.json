@@ -761,6 +761,11 @@
       "id": "m20_wave1_history",
       "purpose": "Read the fixed September 2026 Wave 1 Demo account deal/order reconciliation window.",
       "approval_required": false
+    },
+    {
+      "id": "m20_listener_restore_refusal_lease",
+      "purpose": "Restore the exact original Demo lease after the fixed refusal drill.",
+      "approval_required": false
     }
   ]
 }

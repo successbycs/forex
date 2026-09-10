@@ -231,7 +231,9 @@ def test_m20_refusal_drill_is_fixed_to_aud_cent_and_cannot_submit_an_order():
     drill_command = t480_adapter.OPERATIONS["m20_listener_refusal_drill"].powershell_command
     assert "GOMarketsMU-Demo" in lease_command
     assert "maximum_loss_per_trade_aud=0.01" in lease_command
-    assert "$now.AddMinutes(5)" in lease_command
+    assert "NewGuid" not in lease_command
+    assert "m20_demo_refusal_original_lease.local.json" in lease_command
+    assert "Refusal setup requires maintenance hold" in lease_command
     assert "--risk-refusal-drill" in drill_command
     assert "m20_demo_trading_session.payload" in drill_command
     assert "order_send" not in lease_command
@@ -1070,3 +1072,15 @@ def test_m20_minimum_lot_refused_without_tightening_technical_stop(monkeypatch, 
     assert refused[0] == 'NO_TRADE'
     assert refused[1:5] == (None, None, None, None)
     assert 'technical stop' in refused[5]
+
+
+
+def test_unknown_entry_account_is_latched_before_entry_error(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    calls = []
+    monkeypatch.setattr(probe, 'persistent_risk_policy', _option_b_policy)
+    monkeypatch.setattr(probe, '_bridge', lambda payload, action: calls.append((payload, action)))
+    account = types.SimpleNamespace(balance=float('nan'), equity=100000, server='GOMarketsMU-Demo', currency='AUD', login=123)
+    with pytest.raises(SystemExit):
+        probe._entry_risk_snapshot(account, datetime.now(timezone.utc))
+    assert calls == [({}, 'pause-unknown-account-state')]

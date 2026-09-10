@@ -402,6 +402,21 @@ def enforce_risk_policy(payload: dict[str, Any]) -> dict[str, Any]:
     return _risk_response(equity, peak, daily_anchor, weekly_anchor, reasons)
 
 
+def pause_unknown_account_state(payload: dict[str, Any]) -> dict[str, Any]:
+    """Latch unavailable account state without inventing equity or anchors."""
+    if payload:
+        raise SystemExit("M20 unknown-account pause accepts no caller-controlled fields")
+    with _connection() as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended('forex.m20.conservative-risk.v1', 0))")
+        cursor.execute("SELECT pause_reasons FROM forex.demo_risk_policy_state WHERE policy_version='forex.m20.conservative-risk.v1' FOR UPDATE")
+        row = cursor.fetchone()
+        if row is None:
+            raise SystemExit("M20 cannot initialise risk anchors from unknown account state")
+        reasons = _ordered_risk_pauses(set(row[0]) | {"UNKNOWN_ACCOUNT_STATE"})
+        cursor.execute("UPDATE forex.demo_risk_policy_state SET pause_reason=%s,pause_reasons=%s,risk_observed_at_utc=NULL,updated_at_utc=now() WHERE policy_version='forex.m20.conservative-risk.v1'", (reasons[0], reasons))
+    return {"ok": True, "entry_allowed": False, "pause_reasons": reasons}
+
+
 def resume_risk_policy(payload: dict[str, Any]) -> dict[str, Any]:
     """Record a fixed operator resume request without overriding a current limit."""
     if payload:
@@ -669,7 +684,7 @@ def reconcile(payload: dict[str, Any]) -> dict[str, Any]:
 
 def main() -> int:
     command = sys.argv[1] if len(sys.argv) == 2 else ""
-    actions = {"persist-proposal": persist_proposal, "reserve-execution": reserve_execution, "enforce-risk-policy": enforce_risk_policy, "resume-risk-policy": resume_risk_policy, "record-result": record_result, "record-open-position": record_open_position, "update-open-position": update_open_position, "record-closed-outcome": record_closed_outcome, "record-historical-reconciliation": record_historical_reconciliation, "load-open-positions": load_open_positions, "reconcile": reconcile}
+    actions = {"persist-proposal": persist_proposal, "reserve-execution": reserve_execution, "enforce-risk-policy": enforce_risk_policy, "resume-risk-policy": resume_risk_policy, "pause-unknown-account-state": pause_unknown_account_state, "record-result": record_result, "record-open-position": record_open_position, "update-open-position": update_open_position, "record-closed-outcome": record_closed_outcome, "record-historical-reconciliation": record_historical_reconciliation, "load-open-positions": load_open_positions, "reconcile": reconcile}
     if command not in actions:
         raise SystemExit("M20 audit bridge command is not fixed")
     print(json.dumps(actions[command](_payload()), separators=(",", ":")))
