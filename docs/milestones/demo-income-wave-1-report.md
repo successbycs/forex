@@ -2,6 +2,25 @@
 
 ## 2026-09-10 final held deployment and ordinary operation resumed
 
+### Legacy restart marker retired and current proof path armed
+
+The old pre-repair marker was the only condition preventing the new supervised
+worker proof from running. Commit `4883b89777937b28159bcf136bc6eeacbd337e08`
+adds a fixed T480 operation that requires maintenance hold and can archive only
+attempt `47433bf8-565d-5f24-9550-ddeea4124cd3` / ticket `42235606`; it cannot
+remove any other marker and retains the original as
+`m20_demo_protected_restart_drill.legacy-42235606.json`.
+
+At 09:13 UTC, broker account observation was AVAILABLE and flat at AUD
+100992.55 with no unresolved execution. The operation archived the exact known
+legacy marker under hold, then ordinary operation resumed. A fresh listener
+heartbeat at 09:13:40 UTC records `protected_restart_drill` as `ARMED` on
+release `6097225ef545ea46`. The next naturally accepted, full,
+broker-protected Demo position is therefore able to trigger the supervised
+worker handoff and retain its bound recovery evidence. Raw evidence is under
+`runs/evidence/M20/w1-rearm-20260910/raw/`. No order was created by retirement
+or re-arming.
+
 Commit `7c2c1d1687ac9efc3b98be134f3c0ccb2992809f` was independently reviewed,
 then deployed under maintenance hold as release `6097225ef545ea46`. The fixed
 T480 diagnostic readback retained all four deployed payload hashes, the exact
