@@ -1151,3 +1151,23 @@ supplies documented account pricing and rollover/DST/holiday rules, prepare the
 exact M20.13 cutoff amendment for approval, obtain the required read-only
 pre-entry review, deploy under the hold and then reassess release eligibility.
 Until then, maintenance hold is retained and no fallback assumes zero costs.
+
+## 2026-09-10 review and amendment handover
+
+Prepared two bounded, review-only artefacts without changing M20, runtime
+configuration or the deployed release:
+
+- [W1 pre-entry review packet](../reviews/w1-pre-entry-review-packet.md),
+  committed as `63d8c17`, binds the required Astra review to deployed release
+  `9f4601f3fd269894`, its code revisions, configuration fingerprint, raw
+  captures and exact safety questions.
+- [Proposed M20.13 rollover amendment](../reviews/w1-m20.13-rollover-amendment-proposal.md),
+  committed as `ac81f02`, supplies the exact 15-minute pre-rollover intraday
+  entry cutoff and failed-exit fallback for operator review. It is explicitly
+  not applied to the contract and grants no new exit or overnight authority.
+
+The next dependent action requires the account-specific commission arrangement,
+a dated broker-qualified rollover/DST/holiday calendar, and operator approval
+of the amendment text (or a recorded variant). The requested Astra review then
+assesses the concrete changes. Maintenance hold remains in force pending those
+inputs and the existing entry gates.
