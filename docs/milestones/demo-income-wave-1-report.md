@@ -1,5 +1,99 @@
 # Wave 1 progress and proposed risk policy
 
+## 2026-09-10 M1 repair complete and ordinary Demo assessments resumed
+
+The three remaining M1 requirements are implemented in
+`01c7546369e48912f36fa4f72cc25e1b156b97af` and deployed as
+`97d2bf75679b5ee4`. Migration 023 was applied through its fixed hash-bound
+operation under maintenance hold, preserving existing ledger records. All four
+payload hashes passed prepare; configure/install produced a fresh held heartbeat.
+
+Terra implemented current-UTC checks after blocking reads and immediately after
+reservation, with original decision-minute and candle-digest binding. Invalid
+history records NO_TRADE without invented bars. A refused reserved order records
+terminal NOT_SUBMITTED and reconciles without phantom exposure; it still counts
+toward cumulative notional. Reversal exits require fresh synchronized inputs,
+while broker SL/TP and owner wall-clock exits remain available.
+
+Final targeted validation passed 102 tests, including actual capture with the
+real recheck, minute crossings during reservation and history reads, changed
+history, valid submission controls, stale post-entry reversal versus fresh
+controls, owner time exits, and real isolated PostgreSQL event/reconciliation
+tests. Full repository verification then passed with the isolated PostgreSQL
+fixture enabled. The isolated test server was stopped afterward. Synthetic tests
+remain engineering evidence, separate from the operating account.
+
+Astra's separate read-only source/test review passed. Its final deployed-evidence
+review returned **ENTRY_RELEASE_ALLOWED** for ordinary assessments and only
+otherwise-eligible Demo trades. See
+`docs/reviews/w1-m1-synchronization-review-20260910.md`. Raw capture is under
+`runs/evidence/M20/w1-m1-final-20260910/raw/`; the separate offline deployment
+verifier and test output are under
+`runs/verification/M20/w1-m1-final-20260910/`.
+
+Under the existing operator authority, maintenance hold was removed only after
+that review. At 04:28:06 UTC, the listener was RUNNING on the new release, with
+an ordinary completed assessment at 04:28:03. The observed M1 close was 04:28:00,
+not stale cached history; outcome was NO_TRADE / NOT_SUBMITTED /
+NO_TRADE_RECONCILED. Proposal `766f5469-228e-593c-a740-69ca83bff833` retained the
+original lease `9673811b-0e23-47f9-b8e6-e0a86d1adf06`. The before/after deployment
+risk state and anchors matched exactly; Demo was AVAILABLE/flat at AUD 100994.79
+with no unresolved attempts. No risk resume, lease replacement or forced trade
+occurred. The configuration fingerprint remains
+`sha256:16abde21dc56729b2418f9c48d7091362a3c7622f976e3bb36e49f8492e0fb67`.
+
+**Wave 1 remains incomplete.** The listener may now run continuously and assess
+normally; before 06:00 UTC (18:00 NZST) financing refuses entries. Later trades
+still require every data, strategy, cost, lease and Option B gate. The temporary
+intraday policy expires at 2026-09-17T00:00:00Z and is not extended.
+The next evidence opportunity is an ordinary eligible Demo lifecycle, actual
+broker accounting and a protected-position restart; eligible-signal refusal and
+other unobserved contract cases remain explicitly unproven. Collect evidence
+when that external opportunity exists; do not force signals or wait in an AI
+market-polling loop. Backups remain deferred to W4.0. This scoped Astra review
+does not replace final bound Triad/M20 proof and grants no Live authority.
+
+The existing goal record was inspected and still reported blocked with aggregate
+usage but no numeric remaining-budget field. No replacement goal or budget
+increase was created. This checkpoint records authorized resumed work, not
+goal completion or a change to its controller state. No push occurred.
+
+## 2026-09-10 deployment recovery — installed under hold; entry review still blocked
+
+The transfer blocker is resolved. The existing fixed operation
+`python3 scripts/postgres_pgvector_adapter.py forex-m20-stage-listener-release --approve`
+successfully transferred all four payloads using SCP. It already documents the
+Windows inline Base64/ssh launch failure encountered by the older fragment
+path. No host permission, antivirus, SSH configuration or shared transport
+change was needed. Use this operation for release transfer, with the release
+directory established by the fixed first staging operation when necessary;
+then require prepare/hash verification before stopping the held listener,
+configuring and installing. Avoid repeating long inline fragment transfers.
+
+Source `d44fee9` (application binding `cd91ed0`, a documentation-only descendant)
+is now installed as release `e0fcf2590a81cd2e`. All four staged hashes passed
+prepare. Configure and install succeeded; the 03:58:29 UTC heartbeat confirms
+the new release running in `MAINTENANCE_HOLD`, successful empty monitor recovery,
+and assessment total unchanged at 5853. The governed fingerprint remains
+`sha256:16abde21dc56729b2418f9c48d7091362a3c7622f976e3bb36e49f8492e0fb67`.
+No lease activation, risk resume, database migration or hold release occurred.
+
+Raw before/after broker, risk, unresolved-attempt and deployment observations
+are retained separately under
+`runs/evidence/M20/w1-deploy-recovery-20260910/raw/`; offline verification is in
+`runs/verification/M20/w1-deploy-recovery-20260910/`.
+
+**Source review remains BLOCK_ENTRY.** This deployment resolves the requested
+transport/install failure, but the previous repair did not satisfy the complete
+Astra brief. `_entry_m1_history_is_synchronized` checks the captured window
+against the original quote, without a new check before submission. The reversal
+monitor remains capable of acting on old bars because its reader and predicate
+were intentionally unchanged. Malformed/insufficient bar parsing still raises
+before proposal persistence. The earlier claim that all such inputs become a
+persisted non-actionable assessment is therefore too broad. These remaining
+requirements must be repaired and tested before entry release. Neither this
+operational recovery nor the earlier 69 tests establishes Wave 1 completion.
+
 ## 2026-09-10 M1 synchronization repair — deployment blocked, listener restored
 
 Terra implemented the entry-only repair in commit `d44fee90bf25135b831fa2bd310a44d397d36751`.
