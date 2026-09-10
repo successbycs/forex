@@ -1,5 +1,14 @@
 # Wave 1 progress and proposed risk policy
 
+## 2026-09-10 ordinary assessment checkpoint after reviewed resume
+
+A single current-state observation at 08:24:45–08:24:49 UTC confirms the approved `97d2bf75679b5ee4` listener is RUNNING on `GOMarketsMU-Demo`, with a fresh heartbeat and an IDLE monitor recovery result. The Demo account is AVAILABLE and flat at AUD 100993.78. Option B has no pause reasons, retains the same anchors and expected balance, and the unresolved-attempt summary is empty.
+
+The listener's most recent ordinary assessment was persisted and reconciled as `NO_TRADE` / `NOT_SUBMITTED` / `NO_TRADE_RECONCILED`: each of the five fixed M1 strategies returned no actionable signal. It neither submitted nor fabricated an order. The status retains ticket `42220632` as historical `LAST_KNOWN_UNVERIFIED` protection context; the separately retained broker/ledger reconciliation above establishes that it is a matched broker-side closure, while this flat account observation establishes no current exposure.
+
+No eligible position exists for the protected-restart criterion. Continue ordinary listener operation without polling from Codex; resume evidence work when the listener naturally produces an attributable protected open position or a real eligible restrictive-risk refusal. Raw governed operation records are retained by the adapter execution log. No code, deployment, risk mutation, trade, Live access or push occurred in this checkpoint.
+
+
 ## 2026-09-10 broker lifecycle reconciliation and reviewed Option B resume
 
 A fixed bounded read-only adapter, `forex-m20-current-lineage-summary`, was added because the existing all-history lifecycle report exceeded the Windows command-line limit. It returns only the fixed 10 September 2026 UTC window and binds the original lease, proposal, decision snapshot, attempt, position events, matched outcome and persistent balance state. It performs no broker, database, risk-policy or deployment mutation. The focused adapter suite passed (18 tests); the adapter and T480 suites passed together (94 tests); `git diff --check` passed.
