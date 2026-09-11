@@ -14,5 +14,6 @@ def test_m27_verifier_binds_tick_proof_to_raw_read_only_listener_response():
         "result['execution']['status']=='NOT_SUBMITTED'",
         "t['assessment_captured_at_utc']==result['captured_at_utc']",
         "t['quote_server']==(None if quote is None else quote['server'])",
+        "(bundle_capture-assessment).total_seconds()<=15",
     ):
         assert requirement in verifier
