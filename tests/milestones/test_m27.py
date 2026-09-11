@@ -12,6 +12,7 @@ def test_m27_verifier_binds_tick_proof_to_raw_read_only_listener_response():
         "outer['operation']=='m27_demo_tick'",
         "outer['approval_required'] is False",
         "tick['bid']>0 and tick['ask']>=tick['bid']",
+        "tick['broker_timestamp_offset_seconds']==10800",
         "t['tick_time_msc']==tick['tick_time_msc']",
         "(bundle_capture-tick_at).total_seconds()<=15",
     ):
