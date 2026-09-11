@@ -12271,6 +12271,28 @@
         "from": "READY",
         "to": "IN_PROGRESS"
       }
+    },
+    {
+      "event_id": "E000782",
+      "timestamp": "2026-09-11T22:19:00Z",
+      "milestone_id": "M27",
+      "action": "INVALIDATE",
+      "detail": {
+        "from": "PROVEN",
+        "to": "NEEDS_REVALIDATION",
+        "reason": "M27 Demo tick freshness now derives bounded GO Markets UTC+2/UTC+3 server offset rather than a fixed UTC+3 assumption."
+      }
+    },
+    {
+      "event_id": "E000783",
+      "timestamp": "2026-09-11T22:19:00Z",
+      "milestone_id": "M28",
+      "action": "INVALIDATE",
+      "detail": {
+        "from": "PROVEN",
+        "to": "NEEDS_REVALIDATION",
+        "reason": "M28 consumes the M27 Demo tick surface whose timestamp-normalization contract changed."
+      }
     }
   ]
 }
