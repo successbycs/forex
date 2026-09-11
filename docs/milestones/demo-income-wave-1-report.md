@@ -1711,3 +1711,21 @@ This repair changes neither listener execution nor broker/ledger data. It makes
 the existing natural-lifecycle proof path usable; a naturally accepted protected
 Demo position, its close and broker accounting reconciliation remain required for
 Wave 1 completion.
+
+## 2026-09-11 ordinary no-trade checkpoint and resumption condition
+
+At 03:30:59 UTC the released T480 listener was running with a fresh heartbeat
+and persistent assessment total 8770. The S4U watchdog was installed and
+successful. Maintenance hold was absent; the monitor was IDLE; the authoritative
+unresolved-attempt summary was empty; and the Option B risk summary had no
+pause reason. The ordinary assessment correctly retained `NO_TRADE` /
+`NOT_SUBMITTED` because no M1 strategy was selected as actionable. This was
+outside the approved 06:00–18:00 UTC intraday entry window.
+
+Raw status, unresolved-attempt, and risk responses are retained under
+`runs/evidence/M20/w1-ordinary-no-trade-20260911T033059Z/`. The exact
+resumption condition is a naturally selected executable BUY or SELL inside the
+approved window after its existing freshness, cost, risk, lease and broker gates
+pass. The unattended listener must then capture the accepted protected position,
+its monitoring and close, and broker-history/ledger reconciliation. No manual
+order or repeated polling is authorised or required.
