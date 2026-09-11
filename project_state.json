@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "M20_DEMO_TRADING_MVP",
-  "last_proven_milestone": "M21",
-  "current_milestone": "M22",
+  "last_proven_milestone": "M22",
+  "current_milestone": null,
   "next_milestone": "M23",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -40,7 +40,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-11T10:41:01Z",
+  "last_updated_at": "2026-09-11T10:44:03Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -3006,23 +3006,91 @@
       "blockers": []
     },
     "M22": {
-      "status": "IN_PROGRESS",
+      "status": "PROVEN",
       "started_at": "2026-09-11T10:41:01Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
+      "implementation_finished_at": "2026-09-11T10:44:03Z",
+      "verification_passed_at": "2026-09-11T10:44:02Z",
+      "real_world_proof_captured_at": "2026-09-11T10:44:01.953278Z",
       "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
+      "first_proven_at": "2026-09-11T10:44:03Z",
+      "proven_at": "2026-09-11T10:44:03Z",
+      "last_validated_at": "2026-09-11T10:44:03Z",
+      "checks": {
+        "M22-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:44:02Z",
+          "evidence": "runs/evidence/M22/20260911T104401Z/manifest.json",
+          "note": "The fixed offline drill enforces one-position, strict cutoff, planned-loss, spread, and qualified-event blackout refusals."
+        },
+        "M22-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:44:03Z",
+          "evidence": "runs/evidence/M22/20260911T104401Z/manifest.json",
+          "note": "Focused tests, governance validation, and repository verification passed on the bound revision."
+        },
+        "M22-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:44:03Z",
+          "evidence": "runs/evidence/M22/20260911T104401Z/manifest.json",
+          "note": "The verified manifest binds the fixed operational drill, policy hash, Git revision, configuration fingerprint, and artifact hashes."
+        },
+        "M22-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:44:03Z",
+          "evidence": "runs/evidence/M22/20260911T104401Z/manifest.json",
+          "note": "The engine is structurally simulation-only, accepts qualified event context only, and exposes no broker or order path."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M22/20260911T104401Z/manifest.json",
+          "manifest_sha256": "b7dc34f1d72bfe7f656d260d992e2c7caacefdc318aff5aaa1be4685a24a3cbb",
+          "captured_at": "2026-09-11T10:44:01.953278Z",
+          "recorded_at": "2026-09-11T10:44:02Z",
+          "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+          "git_revision": "1afefe4b45e17d68d0346bfd822b230e254aab19",
+          "summary": "FOREX_M22_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-11T10:44:02Z",
+        "git_revision": "1afefe4b45e17d68d0346bfd822b230e254aab19",
+        "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M22/20260911T104402Z/governance.stdout.txt",
+            "stderr": "runs/verification/M22/20260911T104402Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m22.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M22/20260911T104402Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M22/20260911T104402Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
       "human_signoff": null,
       "blockers": []
     },
     "M23": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,
