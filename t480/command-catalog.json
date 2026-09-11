@@ -838,6 +838,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_all_demo_history_export",
+      "purpose": "Export complete bounded GOMarketsMU-Demo account deal/order history without trading.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_restore_refusal_lease",
       "purpose": "Restore the exact original Demo lease after the fixed refusal drill.",
       "approval_required": false

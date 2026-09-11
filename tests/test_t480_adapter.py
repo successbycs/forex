@@ -924,14 +924,6 @@ def test_m20_audit_bridge_is_fixed_and_fails_closed_without_local_deployment():
     assert "record-result" in bridge
     assert "record-closed-outcome" in bridge
     assert "estimated_total_cost_account" in bridge
-
-
-def test_m20_risk_pause_can_persist_a_no_trade_assessment_but_never_reserve_an_entry():
-    bridge = (t480_adapter.ROOT / "t480" / "m20_postgres_audit_bridge.py").read_text(encoding="utf-8")
-    persisted = bridge[bridge.index("def persist_proposal"):bridge.index("def reserve_execution")]
-    reserved = bridge[bridge.index("def reserve_execution"):bridge.index("def _risk_response")]
-    assert "M20 reservation requires checked, unpaused persistent risk state" not in persisted
-    assert "M20 reservation requires fresh, unpaused, account-bound risk state" in reserved
     assert "reconcile" in bridge
     assert "pg_advisory_xact_lock" in bridge
     assert "FOR UPDATE SKIP LOCKED" in bridge
@@ -942,6 +934,24 @@ def test_m20_risk_pause_can_persist_a_no_trade_assessment_but_never_reserve_an_e
     assert "sys.argv[1] if len(sys.argv) == 2" in bridge
     assert "M20 audit bridge command is not fixed" in bridge
     assert "trade_owner_strategy_id=selection.selected_strategy_id" in bridge
+
+
+def test_m20_risk_pause_can_persist_a_no_trade_assessment_but_never_reserve_an_entry():
+    bridge = (t480_adapter.ROOT / "t480" / "m20_postgres_audit_bridge.py").read_text(encoding="utf-8")
+    persisted = bridge[bridge.index("def persist_proposal"):bridge.index("def reserve_execution")]
+    reserved = bridge[bridge.index("def reserve_execution"):bridge.index("def _risk_response")]
+    assert "M20 reservation requires checked, unpaused persistent risk state" not in persisted
+    assert "M20 reservation requires fresh, unpaused, account-bound risk state" in reserved
+
+
+def test_m20_all_demo_history_export_is_fixed_complete_and_read_only():
+    command = t480_adapter._m20_all_demo_history_export_command()
+    assert "GOMarketsMU-Demo" in command and "a.currency==''AUD''" in command
+    assert "datetime(2000,1,1,tzinfo=timezone.utc)" in command
+    assert "len(d)<=10000 and len(o)<=10000" in command
+    assert "''complete'':valid and bounded" in command
+    assert "account_scope_sha256" in command
+    assert "order_send" not in command
 
 
 def _option_b_policy() -> dict:

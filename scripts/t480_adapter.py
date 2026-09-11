@@ -231,6 +231,25 @@ def _m20_wave1_history_command() -> str:
     return "$ErrorActionPreference='Stop'; $s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json; & $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path; exit $LASTEXITCODE"
 
 
+def _m20_all_demo_history_export_command() -> str:
+    """Export the complete bounded Demo account deal/order history, read-only."""
+    code = (
+        "import hashlib,json,sys;from datetime import datetime,timezone;import MetaTrader5 as m;"
+        "ok=m.initialize(path=sys.argv[1]);a=m.account_info() if ok else None;"
+        "valid=bool(a) and a.server=='GOMarketsMU-Demo' and a.currency=='AUD';"
+        "start=datetime(2000,1,1,tzinfo=timezone.utc);end=datetime.now(timezone.utc);"
+        "d=m.history_deals_get(start,end) if valid else None;o=m.history_orders_get(start,end) if valid else None;"
+        "bounded=d is not None and o is not None and len(d)<=10000 and len(o)<=10000;"
+        "dk='ticket order time time_msc type entry magic position_id reason volume price commission swap profit fee symbol comment external_id'.split();"
+        "okeys='ticket time_setup time_setup_msc time_done time_done_msc type state magic position_id reason volume_initial volume_current price_open sl tp symbol comment external_id'.split();"
+        "rows=lambda values,keys:[{k:getattr(x,k,None) for k in keys} for x in values];"
+        "scope=hashlib.sha256((a.server+':'+str(int(a.login))).encode()).hexdigest() if valid else None;"
+        "result={'ok':valid and bounded,'complete':valid and bounded,'captured_at_utc':end.isoformat().replace('+00:00','Z'),'from_utc':'2000-01-01T00:00:00Z','server':getattr(a,'server',None),'currency':getattr(a,'currency',None),'account_scope_sha256':scope,'broker_timestamp_offset_seconds':10800,'deal_count':len(d) if d is not None else None,'order_count':len(o) if o is not None else None,'deals':rows(d,dk) if bounded else None,'orders':rows(o,okeys) if bounded else None,'error':None if valid and bounded else 'History unavailable, non-Demo account, or exceeds fixed 10000-row bound'};"
+        "print(json.dumps(result,separators=(',',':')));m.shutdown() if ok else None;sys.exit(0 if result['ok'] else 3)"
+    )
+    return "$ErrorActionPreference='Stop'; $s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json; & $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path; exit $LASTEXITCODE"
+
+
 def _m3_mt5_history_depth_probe_command() -> str:
     """Return the fixed read-only M3 history-depth command for Windows."""
     source = (ROOT / "t480" / "m3_mt5_history_depth_probe.py").read_bytes()
@@ -811,6 +830,7 @@ OPERATIONS: dict[str, Operation] = {
     "m20_swap_terms": Operation("m20_swap_terms", "Read fixed Demo EURUSD financing terms and AUDUSD conversion quotes without trading.", powershell_command=_m20_swap_terms_command(), timeout_seconds=60),
     "m20_wave1_candles": Operation("m20_wave1_candles", "Inspect fixed Demo M1 candle availability and the terminal error without trading.", powershell_command=_m20_wave1_candles_command(), timeout_seconds=60),
     "m20_wave1_history": Operation("m20_wave1_history", "Read the fixed September 2026 Wave 1 Demo account deal/order reconciliation window.", powershell_command=_m20_wave1_history_command(), timeout_seconds=60),
+    "m20_all_demo_history_export": Operation("m20_all_demo_history_export", "Export complete bounded GOMarketsMU-Demo account deal/order history without trading.", powershell_command=_m20_all_demo_history_export_command(), timeout_seconds=120),
     "m20_unresolved_history_probe": Operation(
         "m20_unresolved_history_probe",
         "Read only the fixed GOMarketsMU-Demo EURUSD broker-deal window for unresolved M20 attempts.",
