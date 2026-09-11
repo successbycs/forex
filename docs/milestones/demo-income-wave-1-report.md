@@ -1763,3 +1763,25 @@ pre-funded W4.1 readiness. This does not disable the fixed protocol or waive
 incident retention/delivery requirements. It lets Wave 1 be assessed on the
 working core without making its completion a claim about external notification
 delivery or a market event.
+
+## 2026-09-11 scoped Wave 1 core completion recommendation
+
+Astra's read-only affected-area completion audit at commit `d5b577d` returns
+**RECOMMEND_COMPLETE** for the amended Wave 1 core scope. The accepted core
+evidence covers effective Demo deployment identity and limits, Option B
+persistence and refusal, execution/reconciliation corrections, the hash-bound
+lifecycle query, ordinary NO_TRADE operation, S4U watchdog operation, and the
+qualified held reboot recovery.
+
+This is a Wave 1 execution-group recommendation only. It does **not** mark M20
+proven, establish profitable trading, qualify Live/funded operation, or erase
+limitations of prior failed/cancelled observations. Final M20 closeout and
+pre-funded W4.1 still require a fresh final-release broker-matched lifecycle
+and accounting record, protected-restart evidence where applicable, nonzero
+charge qualification, a successful retained 30-minute continuity plus
+incident/recovery-alert bundle, independent verification, and all bound final
+review gates.
+
+No further implementation or repeated market polling is justified solely for
+amended Wave 1 core closeout. Preserve the listener, original lease, Option B,
+temporary intraday policy expiry, and all deferred-evidence boundaries.
