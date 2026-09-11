@@ -1688,3 +1688,26 @@ review accepts this as genuine maintenance-release and ordinary assessment
 evidence. It does not prove a fresh accepted lifecycle, nonzero broker charge,
 profitability, or Wave 1/M20 completion. The listener remains authorised to
 collect a naturally eligible intraday Demo lifecycle without forced orders.
+
+## 2026-09-11 lifecycle evidence query transport repair
+
+The fixed PostgreSQL lifecycle summary previously exceeded the Windows command-line
+limit when its full evidence payload was passed inline. The summary now reads a
+hash-bound, staged read-only SQL file. It retains the existing output fields for
+entry/exit, broker protection, strategy owner, reconciliation, gross P&L,
+commission, fee, swap, estimated costs, and rejection context. Its `events`
+field is deliberately emitted as a JSON-encoded string because the independent
+M20 evidence verifier consumes that established wire format.
+
+T480 staged and verified query
+`sha256:30144419df4e42c3bdc73c7866002aa14b7e1b85b031dd2f23a728bd0b408470`.
+The real read returned 52 rows, the read-only trade-ledger dashboard completed
+within its eight-second limit, and the full repository test suite passed. Astra
+accepted the affected-area review, including direct adapter-to-evidence-validator
+coverage. Retained raw stage/read/dashboard output and verification note are in
+`runs/evidence/M20/w1-lifecycle-query-transport-20260911T033000Z/`.
+
+This repair changes neither listener execution nor broker/ledger data. It makes
+the existing natural-lifecycle proof path usable; a naturally accepted protected
+Demo position, its close and broker accounting reconciliation remain required for
+Wave 1 completion.

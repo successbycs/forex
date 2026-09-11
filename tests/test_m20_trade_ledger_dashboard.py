@@ -1,3 +1,4 @@
+import json
 import subprocess
 from datetime import date
 from unittest import mock
@@ -90,3 +91,26 @@ def test_ledger_shows_every_opened_trade_for_the_selected_nz_day_not_only_ten():
     assert "12 verified/open trades" in screen
     assert "04/09 00:00:00" in screen
     assert "04/09 11:00:00" in screen
+
+def test_lifecycle_adapter_output_keeps_dashboard_trade_context(monkeypatch):
+    from scripts import postgres_pgvector_adapter
+
+    payload = '[{"session_id":"s","proposal_id":"p","attempt_id":"a","action":"BUY","status":"SUBMITTED","submitted_at_utc":"2026-09-11T06:00:00Z","proposed_entry":1.16,"stop_loss":1.159,"take_profit":1.161,"actual_entry_price":"1.16001","volume_lots":"0.01","selected_strategy_id":"compression_breakout","trade_owner_strategy_id":"compression_breakout","closed_at_utc":"2026-09-11T06:05:00Z","exit_price":1.16021,"gross_price_pnl_account":0.26,"commission_account":0.01,"fee_account":0.02,"swap_account":0.03,"estimated_spread_cost_account":0.08,"slippage_cost_account":0.02,"estimated_total_cost_account":0.10,"realized_pnl_account":0.20,"account_currency":"AUD","close_reason":"TAKE_PROFIT","reconciliation_status":"MATCHED","reconciliation_disposition":null,"reconciliation_reason":null,"rejection_context":null,"events":"[\\"OPENED\\",\\"CLOSED\\"]","lifecycle":"CLOSED_MATCHED"}]'
+    monkeypatch.setattr(postgres_pgvector_adapter, "remote", lambda _: {"ok": True, "exit_code": 0, "stdout": payload, "stderr": ""})
+    rows = json.loads(postgres_pgvector_adapter.m20_lifecycle_summary()["result"]["stdout"])
+    screen = render(rows, nz_day=date(2026, 9, 11))
+    assert "Compression" in screen
+    assert "0.01" in screen
+    assert "1.159" in screen and "1.161" in screen
+    assert "+0.26" in screen and "+0.20 AUD" in screen
+
+
+def test_lifecycle_adapter_output_preserves_evidence_validator_wire_format(monkeypatch):
+    from scripts import postgres_pgvector_adapter
+    from scripts.m20_demo_evidence_contract import validate_broker_matched_lifecycle
+
+    payload = '[{"session_id":"lease","proposal_id":"p","attempt_id":"a","action":"BUY","submitted_at_utc":"2026-09-11T06:00:00Z","actual_entry_price":"1.16001","exit_price":1.16021,"realized_pnl_account":0.20,"account_currency":"AUD","reconciliation_status":"MATCHED","events":"[\\"OPENED\\",\\"CLOSED\\"]","lifecycle":"CLOSED_MATCHED"}]'
+    monkeypatch.setattr(postgres_pgvector_adapter, "remote", lambda _: {"ok": True, "exit_code": 0, "stdout": payload, "stderr": ""})
+    wrapper = postgres_pgvector_adapter.m20_lifecycle_summary()
+    row = validate_broker_matched_lifecycle(wrapper, {"session_id": "lease"})
+    assert row["attempt_id"] == "a"

@@ -14,7 +14,7 @@ def test_adapter_exposes_only_fixed_forex_operations():
         "forex-m20-stage-projected-cost-schema", "forex-m20-apply-projected-cost-schema",
         "forex-m20-strategy-trial-summary", "forex-m20-stage-mtf-context-schema",
         "forex-m20-apply-mtf-context-schema", "forex-m20-mtf-context-verify",
-        "forex-m20-mtf-context-summary", "forex-m20-stage-strategy-trial-query",
+        "forex-m20-mtf-context-summary", "forex-m20-stage-strategy-trial-query", "forex-m20-stage-lifecycle-summary-query",
         "forex-m20-stage-remove-trade-count-cap-schema",
         "forex-m20-apply-remove-trade-count-cap-schema",
         "forex-m20-stage-unresolved-execution-schema",
@@ -162,14 +162,36 @@ def test_m20_rejection_summary_is_read_only_and_returns_only_audited_fields():
     assert "password" not in query.lower()
 
 
-def test_m20_lifecycle_summary_is_fixed_read_only_and_marks_open_or_terminal_state():
-    with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True, "stdout": "[]", "stderr": ""}) as remote:
+def test_m20_lifecycle_summary_is_hash_bound_read_only_and_keeps_lifecycle_states():
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=("sql/m20_lifecycle_summary.sql", "a" * 64)), mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True, "stdout": "[]", "stderr": ""}) as remote:
         assert postgres_pgvector_adapter.m20_lifecycle_summary()["ok"]
-    query = "\n".join(call.args[0] for call in remote.call_args_list)
-    for required in ("demo_execution_attempt", "demo_position_event", "demo_trade_ledger", "demo_open_position_state", "session_id", "actual_entry_price", "CLOSED_MATCHED", "CLOSED_RECONCILIATION_ERROR", "TERMINAL_REJECTED", "PENDING"):
-        assert required in query
-    assert "password" not in query.lower()
+    query = remote.call_args.args[0]
+    source = (postgres_pgvector_adapter.ROOT / "sql/m20_lifecycle_summary.sql").read_text()
+    for required in ("demo_execution_attempt", "demo_position_event", "demo_trade_ledger", "demo_open_position_state", "session_id", "actual_entry_price", "CLOSED_MATCHED", "CLOSED_RECONCILIATION_ERROR", "TERMINAL_REJECTED", "PENDING", "rejection_context", "gross_price_pnl_account"):
+        assert required in source
+    assert "m20_lifecycle_summary.sql" in query
+    assert "INSERT" not in query and "password" not in query.lower()
+    script = f"set -euo pipefail\ncd {postgres_pgvector_adapter.REMOTE_LAB}\ntest -f .env\nset -a\nsource .env\nset +a\n{query}\n"
+    command = postgres_pgvector_adapter.build_ssh_command(
+        postgres_pgvector_adapter.TARGET,
+        postgres_pgvector_adapter.build_wsl_powershell_command(script, postgres_pgvector_adapter.SETTINGS),
+        postgres_pgvector_adapter.SETTINGS,
+    )
+    assert len(command[-1]) < 8191
 
+
+def test_m20_lifecycle_summary_query_staging_is_hash_bound():
+    source = "sql/m20_lifecycle_summary.sql"
+    conversion = mock.Mock(stdout=r"\\wsl.localhost\Ubuntu\home\chris\projects\forex\sql\m20_lifecycle_summary.sql\n")
+    mkdir = mock.Mock(returncode=0, stdout="", stderr="")
+    transfer = mock.Mock(returncode=0, stdout="", stderr="")
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=(source, "b" * 64)), mock.patch.object(postgres_pgvector_adapter, "subprocess") as process, mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True, "stdout": "", "stderr": ""}) as remote:
+        process.run.side_effect = [conversion, mkdir, transfer]
+        assert postgres_pgvector_adapter.stage_m20_lifecycle_summary_query()["ok"]
+    staged = remote.call_args.args[0]
+    assert "m20_lifecycle_summary.sql" in staged
+    assert "sha256sum" in staged and "install -m 0644" in staged
+    assert "FOREX_M20_LIFECYCLE_SUMMARY_QUERY_STAGED" in staged
 
 def test_m20_current_lineage_summary_is_fixed_bounded_and_read_only():
     with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
