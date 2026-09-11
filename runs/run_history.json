@@ -11848,6 +11848,89 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000758",
+      "timestamp": "2026-09-11T11:16:52Z",
+      "milestone_id": "M27",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M27/20260911T111639Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000759",
+      "timestamp": "2026-09-11T11:16:54Z",
+      "milestone_id": "M27",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M27/20260911T111652Z/governance.stdout.txt",
+            "stderr": "runs/verification/M27/20260911T111652Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m27.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M27/20260911T111652Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M27/20260911T111652Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000760",
+      "timestamp": "2026-09-11T11:22:09Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+        "current": "sha256:8e240bd87c2d23d017021e34df2150b73c953120bdddbc138dfefca428295b44",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19",
+          "M21",
+          "M22",
+          "M23",
+          "M24",
+          "M25",
+          "M26"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
     }
   ]
 }
