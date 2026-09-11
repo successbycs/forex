@@ -1,0 +1,7 @@
+schema_version: forex.m22.risk.v1
+policy_version: forex.m22.simulated-risk.v1
+canonical_instrument: EUR/USD
+maximum_open_positions: 1
+maximum_planned_loss_aud: 100.00
+maximum_spread_points: 12.0
+event_blackout_minutes: 30

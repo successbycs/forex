@@ -1,0 +1,4 @@
+schema_version: forex.m22.execution.v1
+mode: SIMULATION_ONLY
+mandatory_flat_by_hour_utc: 18
+allow_order_submission: false
