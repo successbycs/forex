@@ -1746,3 +1746,20 @@ recovery, risk, configuration, accounting-path, and unattended-operation work.
 M20 remains unproven until its current M20-C3 broker-matched lifecycle proof,
 independent verification, and bound review gates are satisfied on the final
 release.
+
+
+## 2026-09-11 operator final-observation sequencing amendment
+
+The operator further directed that R5/R6's final 30-minute autonomous
+continuity plus incident/recovery Discord delivery package move out of the Wave
+1 progress blocker list. Existing S4U watchdog checks and the held, flat-host
+reboot/no-sign-in recovery proof remain Wave 1 evidence. The earlier continuity
+runs with failed delivery and the cancelled interval remain retained as
+inconclusive; they are not passing alert proof.
+
+A successful retained protocol bundle, offline verification and current final
+Demo lifecycle/accounting proof are deferred together to final M20 closeout and
+pre-funded W4.1 readiness. This does not disable the fixed protocol or waive
+incident retention/delivery requirements. It lets Wave 1 be assessed on the
+working core without making its completion a claim about external notification
+delivery or a market event.

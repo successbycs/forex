@@ -1,18 +1,22 @@
 ## Operator closeout sequencing amendment — 2026-09-11
 
 The human operator directs that a newly observed natural protected Demo
-entry-to-close lifecycle, protected-position restart, and nonzero broker-charge
-observation are **deferred from Wave 1 progress closeout**. The unattended
-listener must continue to collect them without forced orders. They remain
-mandatory evidence for the final M20 contract closeout and before any funded
-pilot; this is a sequencing change, not a waiver, proof substitution, risk
-change, or Live authority.
+entry-to-close lifecycle, protected-position restart, nonzero broker-charge
+observation, and the final 30-minute autonomous continuity plus
+incident/recovery-alert delivery package are **deferred from Wave 1 progress
+closeout**. The unattended listener must continue to collect market evidence
+without forced orders. The continuity/alert protocol remains available as a
+fixed held-only operation; do not represent its earlier failed or cancelled
+runs as passing proof.
 
-Wave 1 may finish its core deployment, operating-safety, configuration,
-accounting-path and no-trade/risk evidence without waiting on a market signal.
-Do not state M20 as proven, or use a historical lifecycle as current final
-proof, until the active M20-C3 evidence and its required verification/review
-are fresh and bound to the final release.
+All deferred observations remain mandatory evidence for final M20 contract
+closeout and before any funded pilot. This is a sequencing change, not a waiver,
+proof substitution, risk change, or Live authority. Wave 1 may finish its core
+deployment, operating-safety, configuration, accounting-path, no-trade/risk,
+S4U watchdog, and host-reboot recovery evidence without waiting on those final
+observation packages. Do not state M20 as proven, or use historical lifecycle
+or alert records as current final proof, until active M20-C3 and all required
+final verification/review gates are fresh and bound to the final release.
 
 # Goal prompt: Resume Wave 1 within 25,000 tokens
 
