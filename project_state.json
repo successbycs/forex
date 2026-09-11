@@ -5,8 +5,8 @@
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "M20_DEMO_TRADING_MVP",
   "last_proven_milestone": "M19",
-  "current_milestone": "M20",
-  "next_milestone": "M21",
+  "current_milestone": "M21",
+  "next_milestone": "M22",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
   "broker": "GO Markets Mauritius",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "NEEDS_FIX",
+  "implementation_status": "IN_PROGRESS",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -33,14 +33,14 @@
     "config/t480.json",
     "t480/command-catalog.json"
   ],
-  "configuration_fingerprint": "sha256:496678422569df187e21d4719dfa93d4a620bd6d79cca23492471bb37567f57b",
+  "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
   "important_architectural_decisions": [
     "Shared T480 transport belongs to cs-ai-lab-infra; Forex owns its catalog and adapter.",
     "Mutable execution state is separate from the declarative milestone registry.",
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-11T02:54:35Z",
+  "last_updated_at": "2026-09-11T10:34:26Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2659,11 +2659,11 @@
       "blockers": []
     },
     "M20": {
-      "status": "NEEDS_FIX",
-      "started_at": "2026-09-03T06:19:52Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": "2026-09-04T04:23:23Z",
-      "real_world_proof_captured_at": "2026-09-03T07:49:02.979885Z",
+      "status": "HUMAN_REVALIDATION_EXCEPTION",
+      "started_at": "2026-09-11T06:21:46Z",
+      "implementation_finished_at": "2026-09-11T06:22:16Z",
+      "verification_passed_at": "2026-09-11T09:50:28Z",
+      "real_world_proof_captured_at": "2026-09-11T09:43:02.560390Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
@@ -2671,33 +2671,33 @@
       "checks": {
         "M20-C1": {
           "result": "PASS",
-          "recorded_at": "2026-09-03T07:49:11Z",
-          "evidence": "runs/evidence/M20/20260903T074856Z/manifest.json",
-          "note": "Verified fresh bounded Demo-only operation recorded a fresh assessment and reconciled terminal outcome."
+          "recorded_at": "2026-09-11T07:26:36Z",
+          "evidence": "runs/evidence/M20/20260911T072528Z/manifest.json",
+          "note": "Fresh GOMarketsMU-Demo EUR/USD M1 evidence on 2c1e329 records bounded receipt-qualified assessments and continuous Demo operation."
         },
         "M20-C2": {
           "result": "PASS",
-          "recorded_at": "2026-09-03T07:49:11Z",
-          "evidence": "runs/evidence/M20/20260903T074856Z/manifest.json",
-          "note": "Milestone tests, governance validation, and independent evidence verifier passed."
+          "recorded_at": "2026-09-11T07:26:36Z",
+          "evidence": "runs/evidence/M20/20260911T072528Z/manifest.json",
+          "note": "Fresh bundle retains passing M20 tests, governance validation, and repository-wide verification with the success marker."
         },
         "M20-C3": {
-          "result": "FAIL",
-          "recorded_at": "2026-09-03T07:54:11Z",
-          "evidence": "runs/evidence/M20/20260903T074856Z/manifest.json",
-          "note": "Independent review found the evidence verifier does not require configuration.json fingerprint equality with the manifest binding."
+          "result": "PASS",
+          "recorded_at": "2026-09-11T07:26:36Z",
+          "evidence": "runs/evidence/M20/20260911T072528Z/manifest.json",
+          "note": "Current 2c1e329 evidence binds the exact Demo lease, receipt-qualified snapshot, proposal, execution, broker-matched OPENED-to-CLOSED lifecycle and broker-derived AUD P&L."
         },
         "M20-C4": {
-          "result": "FAIL",
-          "recorded_at": "2026-09-03T07:54:11Z",
-          "evidence": "runs/evidence/M20/20260903T074856Z/manifest.json",
-          "note": "Independent review found non-conservative loss sizing can exceed the AUD 100 hard cap and the governed cap documentation is inconsistent."
+          "result": "PASS",
+          "recorded_at": "2026-09-11T07:26:36Z",
+          "evidence": "runs/evidence/M20/20260911T072528Z/manifest.json",
+          "note": "Fresh fixed Demo-only evidence confirms proposal-first, M1 receipt availability, cap, one-position, idempotency, monitoring, and no-unresolved-execution boundaries."
         },
         "M20-C5": {
-          "result": "FAIL",
-          "recorded_at": "2026-09-03T07:54:11Z",
-          "evidence": "runs/evidence/M20/20260903T074856Z/manifest.json",
-          "note": "Independent review found accepted Demo orders are not monitored to a CLOSED event and immutable P&L outcome before reconciliation."
+          "result": "PASS",
+          "recorded_at": "2026-09-11T07:26:36Z",
+          "evidence": "runs/evidence/M20/20260911T072528Z/manifest.json",
+          "note": "Fresh broker-matched lifecycle retains linked proposal, receipt-qualified snapshot, execution, open/close events, broker deals, and reconciled AUD outcome."
         }
       },
       "evidence": [
@@ -2745,13 +2745,67 @@
           "configuration_fingerprint": "sha256:7fd175cf9a6821b79d916bca41fef0f616baa39ec37cf46f0fe8e0a50faf140e",
           "git_revision": "c3567c94b3a99cd4465f349d08c47cbfc7c69345",
           "summary": "FOREX_M20_DEMO_TRADING_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M20/20260911T062024Z/manifest.json",
+          "manifest_sha256": "6949ae874a6ded4ce8c3c1a770892cd0f48c1c34a312123d4befd29b397c23f8",
+          "captured_at": "2026-09-11T06:20:42.079472Z",
+          "recorded_at": "2026-09-11T06:21:47Z",
+          "configuration_fingerprint": "sha256:496678422569df187e21d4719dfa93d4a620bd6d79cca23492471bb37567f57b",
+          "git_revision": "a2d42296ec6c40dde2bed1977129c3cef03db599",
+          "summary": "FOREX_M20_DEMO_TRADING_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M20/20260911T065015Z/manifest.json",
+          "manifest_sha256": "c1b1208d7270396d6df42fb4e70712d386727eb909f35a4a2a85536ca696e2b5",
+          "captured_at": "2026-09-11T06:50:50.574667Z",
+          "recorded_at": "2026-09-11T06:51:13Z",
+          "configuration_fingerprint": "sha256:496678422569df187e21d4719dfa93d4a620bd6d79cca23492471bb37567f57b",
+          "git_revision": "f43ceb630683398b3f96a1c6fe3e095f7ce47f8f",
+          "summary": "FOREX_M20_DEMO_TRADING_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M20/20260911T072528Z/manifest.json",
+          "manifest_sha256": "2e1e6dfb89a94dc4172f673d4a97df760063fdba96c5b62c20725cafb67f163d",
+          "captured_at": "2026-09-11T07:26:01.299135Z",
+          "recorded_at": "2026-09-11T07:26:36Z",
+          "configuration_fingerprint": "sha256:496678422569df187e21d4719dfa93d4a620bd6d79cca23492471bb37567f57b",
+          "git_revision": "2c1e329039c80a4ffdb9b6d1f9592ff6c8fc5bc2",
+          "summary": "FOREX_M20_DEMO_TRADING_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M20/20260911T084133Z/manifest.json",
+          "manifest_sha256": "213dd2dca73957f277dcca0e04151411a99a5934f0f4a1e133893a1b672f2d57",
+          "captured_at": "2026-09-11T08:42:32.152518Z",
+          "recorded_at": "2026-09-11T08:42:42Z",
+          "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+          "git_revision": "80dc27505fbf6ece6d397fda87bc2f674d13f31e",
+          "summary": "FOREX_M20_DEMO_TRADING_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M20/20260911T093615Z/manifest.json",
+          "manifest_sha256": "df128d61c4e09c00b98e06b2c40a4712aa01bb6e99a28bfbbc55898974fe136a",
+          "captured_at": "2026-09-11T09:36:52.677689Z",
+          "recorded_at": "2026-09-11T09:36:59Z",
+          "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+          "git_revision": "e6f6916a8ecf2bf5c0d3cd7ec80d085c8f999f98",
+          "summary": "FOREX_M20_DEMO_TRADING_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M20/20260911T094157Z/manifest.json",
+          "manifest_sha256": "5d5988e72fd07a727ab6560e99907596f9e1b3d26bca1026dddb12b801642f60",
+          "captured_at": "2026-09-11T09:43:02.560390Z",
+          "recorded_at": "2026-09-11T09:43:16Z",
+          "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+          "git_revision": "4c853960bbd04e859ce0602fd1c4e2216e3f0a6b",
+          "summary": "FOREX_M20_DEMO_TRADING_PROOF_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-04T04:23:23Z",
-        "git_revision": "5d30be2b91e9a1bac03586195341fcd3cbf629a8",
-        "configuration_fingerprint": "sha256:d100145fc7c73b3db69d81d51f5909d998b5b9a3baf92418e026cdbf252b175f",
+        "recorded_at": "2026-09-11T09:50:28Z",
+        "git_revision": "ff6e12bec471a62551d06a2b999d7cc73a3fa228",
+        "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
         "commands": [
           {
             "id": "governance",
@@ -2762,8 +2816,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M20/20260904T042322Z/governance.stdout.txt",
-            "stderr": "runs/verification/M20/20260904T042322Z/governance.stderr.txt"
+            "stdout": "runs/verification/M20/20260911T095028Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T095028Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -2776,16 +2830,16 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M20/20260904T042322Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M20/20260904T042322Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M20/20260911T095028Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T095028Z/milestone-tests.stderr.txt"
           }
         ]
       },
       "human_signoff": null,
       "blockers": [
         {
-          "reason": "Independent M20 reviews identified proof-binding, hard-loss sizing, and accepted-order lifecycle reconciliation defects; remediate and recapture before completion.",
-          "recorded_at": "2026-09-03T07:54:11Z"
+          "reason": "Triad review automation failed after three bounded SOLUTION_ARCHITECT attempts: isolated read-only Codex sessions could read the bound packet but timed out after reviewer-sandbox unified-exec process creation failures; raw attempts retained at runs/triad/M20/M20-20260911T084313Z-80dc2750/review-runner-attempts.json.",
+          "recorded_at": "2026-09-11T08:50:11Z"
         }
       ],
       "work_packages": {
@@ -2810,9 +2864,9 @@
           "verified_at": "2026-09-03T07:50:01Z"
         },
         "M20.5": {
-          "status": "IN_PROGRESS",
+          "status": "VERIFIED",
           "started_at": "2026-09-03T07:50:01Z",
-          "verified_at": null
+          "verified_at": "2026-09-11T06:22:04Z"
         },
         "M20.6": {
           "status": "VERIFIED",
@@ -2820,50 +2874,56 @@
           "verified_at": "2026-09-03T07:49:12Z"
         },
         "M20.7": {
-          "status": "PLANNED",
-          "started_at": null,
-          "verified_at": null
+          "status": "VERIFIED",
+          "started_at": "2026-09-11T06:22:05Z",
+          "verified_at": "2026-09-11T06:22:05Z"
         },
         "M20.8": {
-          "status": "PLANNED",
-          "started_at": null,
-          "verified_at": null
+          "status": "VERIFIED",
+          "started_at": "2026-09-11T06:22:06Z",
+          "verified_at": "2026-09-11T06:22:06Z"
         },
         "M20.9": {
-          "status": "PLANNED",
-          "started_at": null,
-          "verified_at": null
+          "status": "VERIFIED",
+          "started_at": "2026-09-11T06:22:07Z",
+          "verified_at": "2026-09-11T06:22:07Z"
         },
         "M20.10": {
-          "status": "PLANNED",
-          "started_at": null,
-          "verified_at": null
+          "status": "VERIFIED",
+          "started_at": "2026-09-11T06:22:08Z",
+          "verified_at": "2026-09-11T06:22:08Z"
         },
         "M20.11": {
-          "status": "IN_PROGRESS",
+          "status": "VERIFIED",
           "started_at": "2026-09-04T00:57:45Z",
-          "verified_at": null
+          "verified_at": "2026-09-11T06:22:09Z"
         },
         "M20.12": {
-          "status": "IN_PROGRESS",
+          "status": "VERIFIED",
           "started_at": "2026-09-04T03:00:56Z",
-          "verified_at": null
+          "verified_at": "2026-09-11T06:22:09Z"
         },
         "M20.13": {
-          "status": "PLANNED",
-          "started_at": null,
-          "verified_at": null
+          "status": "VERIFIED",
+          "started_at": "2026-09-11T06:22:10Z",
+          "verified_at": "2026-09-11T06:22:10Z"
         },
         "M20.14": {
-          "status": "PLANNED",
-          "started_at": null,
-          "verified_at": null
+          "status": "VERIFIED",
+          "started_at": "2026-09-11T06:22:11Z",
+          "verified_at": "2026-09-11T06:22:11Z"
         }
+      },
+      "revalidation_exception": {
+        "operator": "Chris",
+        "reason": "Operator-authorized reassessment: natural Demo lifecycle wait is not productive; park M20 unproven while continuing the dependent Demo-only roadmap. The pending evidence requirement and all safety boundaries remain in force.",
+        "revalidation_count": 0,
+        "reassessed_at": "2026-09-11T10:34:00Z"
       }
     },
     "M21": {
-      "status": "PLANNED",
-      "started_at": null,
+      "status": "IN_PROGRESS",
+      "started_at": "2026-09-11T10:34:26Z",
       "implementation_finished_at": null,
       "verification_passed_at": null,
       "real_world_proof_captured_at": null,

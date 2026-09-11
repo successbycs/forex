@@ -9917,6 +9917,987 @@
         ],
         "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
       }
+    },
+    {
+      "event_id": "E000630",
+      "timestamp": "2026-09-11T05:01:24Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T050123Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T050123Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T050123Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T050123Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000631",
+      "timestamp": "2026-09-11T06:00:36Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T060034Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T060034Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T060034Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T060034Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000632",
+      "timestamp": "2026-09-11T06:00:46Z",
+      "milestone_id": "M20",
+      "action": "MILESTONE_READY",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "READY"
+      }
+    },
+    {
+      "event_id": "E000633",
+      "timestamp": "2026-09-11T06:21:46Z",
+      "milestone_id": "M20",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
+    },
+    {
+      "event_id": "E000634",
+      "timestamp": "2026-09-11T06:21:47Z",
+      "milestone_id": "M20",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M20/20260911T062024Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000635",
+      "timestamp": "2026-09-11T06:21:48Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000636",
+      "timestamp": "2026-09-11T06:21:48Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000637",
+      "timestamp": "2026-09-11T06:21:49Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000638",
+      "timestamp": "2026-09-11T06:21:49Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000639",
+      "timestamp": "2026-09-11T06:21:50Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C5",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000640",
+      "timestamp": "2026-09-11T06:22:04Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M20.5"
+      }
+    },
+    {
+      "event_id": "E000641",
+      "timestamp": "2026-09-11T06:22:05Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_STARTED",
+      "detail": {
+        "work_package_id": "M20.7"
+      }
+    },
+    {
+      "event_id": "E000642",
+      "timestamp": "2026-09-11T06:22:05Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M20.7"
+      }
+    },
+    {
+      "event_id": "E000643",
+      "timestamp": "2026-09-11T06:22:06Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_STARTED",
+      "detail": {
+        "work_package_id": "M20.8"
+      }
+    },
+    {
+      "event_id": "E000644",
+      "timestamp": "2026-09-11T06:22:06Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M20.8"
+      }
+    },
+    {
+      "event_id": "E000645",
+      "timestamp": "2026-09-11T06:22:07Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_STARTED",
+      "detail": {
+        "work_package_id": "M20.9"
+      }
+    },
+    {
+      "event_id": "E000646",
+      "timestamp": "2026-09-11T06:22:07Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M20.9"
+      }
+    },
+    {
+      "event_id": "E000647",
+      "timestamp": "2026-09-11T06:22:08Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_STARTED",
+      "detail": {
+        "work_package_id": "M20.10"
+      }
+    },
+    {
+      "event_id": "E000648",
+      "timestamp": "2026-09-11T06:22:08Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M20.10"
+      }
+    },
+    {
+      "event_id": "E000649",
+      "timestamp": "2026-09-11T06:22:09Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M20.11"
+      }
+    },
+    {
+      "event_id": "E000650",
+      "timestamp": "2026-09-11T06:22:09Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M20.12"
+      }
+    },
+    {
+      "event_id": "E000651",
+      "timestamp": "2026-09-11T06:22:10Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_STARTED",
+      "detail": {
+        "work_package_id": "M20.13"
+      }
+    },
+    {
+      "event_id": "E000652",
+      "timestamp": "2026-09-11T06:22:10Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M20.13"
+      }
+    },
+    {
+      "event_id": "E000653",
+      "timestamp": "2026-09-11T06:22:11Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_STARTED",
+      "detail": {
+        "work_package_id": "M20.14"
+      }
+    },
+    {
+      "event_id": "E000654",
+      "timestamp": "2026-09-11T06:22:11Z",
+      "milestone_id": "M20",
+      "action": "WORK_PACKAGE_VERIFIED",
+      "detail": {
+        "work_package_id": "M20.14"
+      }
+    },
+    {
+      "event_id": "E000655",
+      "timestamp": "2026-09-11T06:22:16Z",
+      "milestone_id": "M20",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "IN_PROGRESS",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
+    },
+    {
+      "event_id": "E000656",
+      "timestamp": "2026-09-11T06:22:18Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T062217Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T062217Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T062217Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T062217Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000657",
+      "timestamp": "2026-09-11T06:51:12Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T065112Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T065112Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T065112Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T065112Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000658",
+      "timestamp": "2026-09-11T06:51:13Z",
+      "milestone_id": "M20",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M20/20260911T065015Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000659",
+      "timestamp": "2026-09-11T06:51:13Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000660",
+      "timestamp": "2026-09-11T06:51:13Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000661",
+      "timestamp": "2026-09-11T06:51:13Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000662",
+      "timestamp": "2026-09-11T06:51:14Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000663",
+      "timestamp": "2026-09-11T06:51:14Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C5",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000664",
+      "timestamp": "2026-09-11T07:26:36Z",
+      "milestone_id": "M20",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M20/20260911T072528Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000665",
+      "timestamp": "2026-09-11T07:26:36Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000666",
+      "timestamp": "2026-09-11T07:26:36Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000667",
+      "timestamp": "2026-09-11T07:26:36Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000668",
+      "timestamp": "2026-09-11T07:26:36Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000669",
+      "timestamp": "2026-09-11T07:26:36Z",
+      "milestone_id": "M20",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M20-C5",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000670",
+      "timestamp": "2026-09-11T07:26:37Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T072637Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T072637Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T072637Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T072637Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000671",
+      "timestamp": "2026-09-11T07:47:36Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:496678422569df187e21d4719dfa93d4a620bd6d79cca23492471bb37567f57b",
+        "current": "sha256:bd0164ff93ec228fed01c6a04142af6498d56486cb1dd70bdbfd48dcab49c7bf",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
+    },
+    {
+      "event_id": "E000672",
+      "timestamp": "2026-09-11T07:53:16Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T075315Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T075315Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T075315Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T075315Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000673",
+      "timestamp": "2026-09-11T08:04:05Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:bd0164ff93ec228fed01c6a04142af6498d56486cb1dd70bdbfd48dcab49c7bf",
+        "current": "sha256:870f099f092871d911f7fdef8c6ba375aef4f4c598a128a85e7c9d23fd21a9be",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
+    },
+    {
+      "event_id": "E000674",
+      "timestamp": "2026-09-11T08:25:09Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:870f099f092871d911f7fdef8c6ba375aef4f4c598a128a85e7c9d23fd21a9be",
+        "current": "sha256:509dfb6e059753e65bbfa488705e247a10c9f495ffd830802cc2300d300fcf03",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
+    },
+    {
+      "event_id": "E000675",
+      "timestamp": "2026-09-11T08:28:20Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:509dfb6e059753e65bbfa488705e247a10c9f495ffd830802cc2300d300fcf03",
+        "current": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
+    },
+    {
+      "event_id": "E000676",
+      "timestamp": "2026-09-11T08:42:42Z",
+      "milestone_id": "M20",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M20/20260911T084133Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000677",
+      "timestamp": "2026-09-11T08:42:42Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T084242Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T084242Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T084242Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T084242Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000678",
+      "timestamp": "2026-09-11T08:50:11Z",
+      "milestone_id": "M20",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "AWAITING_REAL_WORLD_PROOF",
+        "to": "NEEDS_FIX",
+        "reason": "Triad review automation failed after three bounded SOLUTION_ARCHITECT attempts: isolated read-only Codex sessions could read the bound packet but timed out after reviewer-sandbox unified-exec process creation failures; raw attempts retained at runs/triad/M20/M20-20260911T084313Z-80dc2750/review-runner-attempts.json."
+      }
+    },
+    {
+      "event_id": "E000679",
+      "timestamp": "2026-09-11T09:13:53Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T091350Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T091350Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T091350Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T091350Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000680",
+      "timestamp": "2026-09-11T09:36:59Z",
+      "milestone_id": "M20",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M20/20260911T093615Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000681",
+      "timestamp": "2026-09-11T09:37:00Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T093659Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T093659Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T093659Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T093659Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000682",
+      "timestamp": "2026-09-11T09:37:52Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T093751Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T093751Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T093751Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T093751Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000683",
+      "timestamp": "2026-09-11T09:43:16Z",
+      "milestone_id": "M20",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M20/20260911T094157Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000684",
+      "timestamp": "2026-09-11T09:43:17Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T094316Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T094316Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T094316Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T094316Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000685",
+      "timestamp": "2026-09-11T09:50:28Z",
+      "milestone_id": "M20",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T095028Z/governance.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T095028Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m20_demo_trading.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M20/20260911T095028Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M20/20260911T095028Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000686",
+      "timestamp": "2026-09-11T10:34:00Z",
+      "milestone_id": "M20",
+      "action": "HUMAN_REVALIDATION_EXCEPTION_RECORDED",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "HUMAN_REVALIDATION_EXCEPTION",
+        "operator": "Chris",
+        "reason": "Operator-authorized reassessment: natural Demo lifecycle wait is not productive; park M20 unproven while continuing the dependent Demo-only roadmap. The pending evidence requirement and all safety boundaries remain in force.",
+        "revalidation_count": 0
+      }
+    },
+    {
+      "event_id": "E000687",
+      "timestamp": "2026-09-11T10:34:26Z",
+      "milestone_id": "M21",
+      "action": "MILESTONE_READY",
+      "detail": {
+        "from": "PLANNED",
+        "to": "READY"
+      }
+    },
+    {
+      "event_id": "E000688",
+      "timestamp": "2026-09-11T10:34:26Z",
+      "milestone_id": "M21",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
     }
   ]
 }
