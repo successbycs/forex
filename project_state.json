@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "M20_DEMO_TRADING_MVP",
-  "last_proven_milestone": "M19",
-  "current_milestone": "M21",
+  "last_proven_milestone": "M21",
+  "current_milestone": null,
   "next_milestone": "M22",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -40,7 +40,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-11T10:34:26Z",
+  "last_updated_at": "2026-09-11T10:40:46Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -2922,23 +2922,91 @@
       }
     },
     "M21": {
-      "status": "IN_PROGRESS",
+      "status": "PROVEN",
       "started_at": "2026-09-11T10:34:26Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
+      "implementation_finished_at": "2026-09-11T10:40:46Z",
+      "verification_passed_at": "2026-09-11T10:40:32Z",
+      "real_world_proof_captured_at": "2026-09-11T10:40:25.397545Z",
       "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
+      "first_proven_at": "2026-09-11T10:40:46Z",
+      "proven_at": "2026-09-11T10:40:46Z",
+      "last_validated_at": "2026-09-11T10:40:46Z",
+      "checks": {
+        "M21-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:40:45Z",
+          "evidence": "runs/evidence/M21/20260911T104024Z/manifest.json",
+          "note": "The retained drill deterministically accepts only the newest usable exact-time revision and quarantines cancellation, date-only, lookahead, DST-gap, and superseded records."
+        },
+        "M21-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:40:45Z",
+          "evidence": "runs/evidence/M21/20260911T104024Z/manifest.json",
+          "note": "The M21 test suite, governance validation, and repository verification passed on the bound revision."
+        },
+        "M21-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:40:45Z",
+          "evidence": "runs/evidence/M21/20260911T104024Z/manifest.json",
+          "note": "The verified manifest binds the source-labelled drill, Git revision, configuration fingerprint, timestamps, and SHA-256 artifact hashes."
+        },
+        "M21-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:40:45Z",
+          "evidence": "runs/evidence/M21/20260911T104024Z/manifest.json",
+          "note": "The pipeline fails closed on missing provenance, unsafe time precision, future availability, cancellation, malformed local time, DST ambiguity, and DST gaps."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M21/20260911T104024Z/manifest.json",
+          "manifest_sha256": "513d100a76c15e8c90d572149ae22d774055eaf9753b6dcc949e0fe153dcf8f9",
+          "captured_at": "2026-09-11T10:40:25.397545Z",
+          "recorded_at": "2026-09-11T10:40:32Z",
+          "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+          "git_revision": "e1ffc6e14d51b704ec8b42e71fdfccbd26471fb1",
+          "summary": "FOREX_M21_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-11T10:40:32Z",
+        "git_revision": "e1ffc6e14d51b704ec8b42e71fdfccbd26471fb1",
+        "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M21/20260911T104032Z/governance.stdout.txt",
+            "stderr": "runs/verification/M21/20260911T104032Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m21.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M21/20260911T104032Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M21/20260911T104032Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
       "human_signoff": null,
       "blockers": []
     },
     "M22": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,
