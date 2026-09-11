@@ -75,3 +75,35 @@ def test_reviewer_uses_clean_bound_snapshot_and_compact_failure_logs(monkeypatch
         assert not cwd.exists()
     finally:
         shutil.rmtree(cycle)
+
+
+def test_attempt_is_validated_only_after_canonical_staging(monkeypatch) -> None:
+    runner = _runner_module()
+    cycle = _cycle(ROOT)
+    real_run = runner.subprocess.run
+    validated: list[Path] = []
+
+    def fake_subprocess(command, **kwargs):
+        if command[0] == "git":
+            return real_run(command, **kwargs)
+        output = Path(command[command.index("-o") + 1])
+        output.write_text("{}\n", encoding="utf-8")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    def fake_validation(argv):
+        review = Path(argv[argv.index("--review") + 1])
+        validated.append(review)
+        assert review.name == "ai_engineer.json"
+        assert review.is_file()
+        return subprocess.CompletedProcess(argv, 0, "valid", "")
+
+    monkeypatch.setattr(runner.subprocess, "run", fake_subprocess)
+    monkeypatch.setattr(runner, "run", fake_validation)
+    try:
+        ok, events = runner.review_role(cycle, "AI_ENGINEER", 1)
+        assert ok
+        assert len(validated) == 1
+        assert events[0]["validation"] == "valid"
+        assert (cycle / "submissions/ai_engineer.json").is_file()
+    finally:
+        shutil.rmtree(cycle)

@@ -181,13 +181,18 @@ def review_role(cycle: Path, role: str, attempts: int) -> tuple[bool, list[dict[
             events.append(event)
             continue
         if result.returncode == 0 and raw.is_file():
-            validation = run([*TRIAD, "validate-review", "--cycle", str(cycle), "--review", str(raw)])
+            # The schema validator deliberately accepts only the role's
+            # canonical submission path.  Stage the untrusted raw response
+            # there only for validation, then remove it again on any failure.
+            candidate = submissions / role_filename(role)
+            shutil.copyfile(raw, candidate)
+            validation = run([*TRIAD, "validate-review", "--cycle", str(cycle), "--review", str(candidate)])
             event["validation"] = validation.stdout.strip() or validation.stderr.strip()
             if validation.returncode == 0:
-                shutil.copyfile(raw, submissions / role_filename(role))
                 events.append(event)
                 shutil.rmtree(workspace)
                 return True, events
+            candidate.unlink(missing_ok=True)
         events.append(event)
     shutil.rmtree(workspace)
     return False, events
