@@ -8,6 +8,14 @@ FROM (
     p.proposal_id,
     a.attempt_id,
     p.action,
+    p.application_revision,
+    p.configuration_fingerprint,
+    p.decision_at_utc,
+    p.expires_at_utc AS proposal_expires_at_utc,
+    p.decision_snapshot_sha256,
+    snapshot.snapshot_id,
+    snapshot.payload_sha256 AS snapshot_payload_sha256,
+    snapshot.captured_at_utc AS snapshot_captured_at_utc,
     a.status,
     a.submitted_at_utc,
     p.proposed_entry,
@@ -15,6 +23,8 @@ FROM (
     p.take_profit,
     opening.payload->>'actual_entry_price' AS actual_entry_price,
     opening.payload->>'volume' AS volume_lots,
+    opening.payload AS opening_context,
+    closing.payload AS closing_context,
     selection.selected_strategy_id,
     selection.trade_owner_strategy_id,
     ledger.closed_at_utc,
@@ -45,6 +55,7 @@ FROM (
     END AS lifecycle
   FROM forex.demo_execution_attempt a
   JOIN forex.demo_trade_proposal p ON p.proposal_id = a.proposal_id
+  LEFT JOIN forex.demo_decision_snapshot snapshot ON snapshot.proposal_id = p.proposal_id
   LEFT JOIN forex.demo_trade_ledger ledger ON ledger.proposal_id = p.proposal_id
   LEFT JOIN forex.demo_open_position_state open_state ON open_state.attempt_id = a.attempt_id
   LEFT JOIN forex.demo_strategy_selection selection ON selection.proposal_id = p.proposal_id
@@ -55,6 +66,13 @@ FROM (
     ORDER BY e.observed_at_utc, e.event_id
     LIMIT 1
   ) opening ON true
+  LEFT JOIN LATERAL (
+    SELECT e.payload
+    FROM forex.demo_position_event e
+    WHERE e.attempt_id = a.attempt_id AND e.event_type = 'CLOSED'
+    ORDER BY e.observed_at_utc, e.event_id
+    LIMIT 1
+  ) closing ON true
   LEFT JOIN LATERAL (
     SELECT e.attempt_id, e.payload
     FROM forex.demo_position_event e

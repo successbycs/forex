@@ -1119,7 +1119,7 @@ def _wait_until_closed(ticket: int) -> None:
     raise SystemExit("M20 fixed EURUSD position did not close before close timeout")
 
 
-def _closed_position_costs(*, position: Any, submitted_at: datetime, proposed_entry: float, entry_spread: float, risk: dict[str, float], expected_exit_price: float | None) -> tuple[float, dict[str, float]]:
+def _closed_position_costs(*, position: Any, submitted_at: datetime, proposed_entry: float, entry_spread: float, risk: dict[str, float], expected_exit_price: float | None) -> tuple[float, dict[str, Any]]:
     """Read the terminal's immutable deal history for one closed position.
 
     This is used for both a discretionary monitor exit and a broker-side
@@ -1216,10 +1216,20 @@ def _closed_position_costs(*, position: Any, submitted_at: datetime, proposed_en
         "estimated_total_cost_account": round(total_cost, 2),
         "realized_pnl_account": round(realized_pnl, 2),
     }
+    # Retain the same broker rows used above, not a later re-query or a
+    # reconstructed ledger. The CLOSED event preserves these immutable facts
+    # so an offline verifier can independently recompute exit and actual costs.
+    broker_deals = [_historical_deal_row(deal, tick_time_offset_seconds()) for deal in ordered]
+    costs["broker_history"] = {
+        "server": SERVER, "symbol": SYMBOL, "account_currency": "AUD",
+        "position_identifier": position_identifier,
+        "broker_deals": broker_deals,
+        "broker_deals_sha256": "sha256:" + hashlib.sha256(json.dumps(broker_deals, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+    }
     return exit_price, costs
 
 
-def _close_accepted_position(*, position: Any, submitted_at: datetime, proposed_entry: float, entry_spread: float, risk: dict[str, float]) -> tuple[str, float, dict[str, float]]:
+def _close_accepted_position(*, position: Any, submitted_at: datetime, proposed_entry: float, entry_spread: float, risk: dict[str, float]) -> tuple[str, float, dict[str, Any]]:
     """Close one monitor-owned position and derive its MT5-backed P&L."""
     ticket = int(getattr(position, "ticket", 0))
     volume = float(getattr(position, "volume", 0))
@@ -1463,7 +1473,7 @@ def _notify_reconciled_sale(*, proposal: dict[str, Any], position: Any, outcome:
         print(f"M20 Discord sale notification unavailable after reconciliation: {error}", file=sys.stderr)
 
 
-def _record_closed_monitor_outcome(*, proposal: dict[str, Any], attempt_id: str, position: Any, submitted_at: datetime, entry_spread: float, risk: dict[str, float], close_reason: str, broker_order_reference: str, expected_exit_price: float | None, closed_costs: dict[str, float] | None = None) -> dict[str, Any]:
+def _record_closed_monitor_outcome(*, proposal: dict[str, Any], attempt_id: str, position: Any, submitted_at: datetime, entry_spread: float, risk: dict[str, float], close_reason: str, broker_order_reference: str, expected_exit_price: float | None, closed_costs: dict[str, Any] | None = None) -> dict[str, Any]:
     """Write the final lifecycle event and immutable AUD outcome once."""
     if closed_costs is None:
         exit_price, costs = _closed_position_costs(
@@ -1479,14 +1489,25 @@ def _record_closed_monitor_outcome(*, proposal: dict[str, Any], attempt_id: str,
             raise SystemExit("M20 monitor close is missing its recorded exit price")
         exit_price, costs = expected_exit_price, closed_costs
     closed_at = utc(datetime.now(timezone.utc))
+    broker_history = costs.get("broker_history")
+    if not isinstance(broker_history, dict):
+        raise SystemExit("M20 close is missing retained broker deal history")
+    costs = {key: value for key, value in costs.items() if key != "broker_history"}
+    closed_payload = {
+        "close_reason": close_reason,
+        "position_ticket": int(getattr(position, "ticket", 0)),
+        "position_identifier": int(getattr(position, "identifier", 0) or 0),
+        "closed_volume": float(getattr(position, "volume", 0)),
+        "broker_history": broker_history,
+    }
     result = {
         "event_id": str(uuid5(NAMESPACE_URL, f"{attempt_id}:closed")),
         "attempt_id": attempt_id,
         "event_type": "CLOSED",
         "observed_at_utc": closed_at,
         "broker_order_reference": broker_order_reference,
-        "payload_sha256": "sha256:" + hashlib.sha256(json.dumps({"close_reason": close_reason, "position_ticket": int(getattr(position, "ticket", 0)), "position_identifier": int(getattr(position, "identifier", 0) or 0), "closed_volume": float(getattr(position, "volume", 0))}, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
-        "payload": {"close_reason": close_reason, "position_ticket": int(getattr(position, "ticket", 0)), "position_identifier": int(getattr(position, "identifier", 0) or 0), "closed_volume": float(getattr(position, "volume", 0))},
+        "payload_sha256": "sha256:" + hashlib.sha256(json.dumps(closed_payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+        "payload": closed_payload,
     }
     outcome = {
         "proposal_id": proposal["proposal_id"],

@@ -387,11 +387,8 @@ def test_m20_listener_install_is_hash_checked_and_fixed():
     assert "M20 deployment rolled back" in command
     assert "-RestartCount 3" in command
     assert "-ExecutionTimeLimit ([TimeSpan]::Zero)" in command
-    assert "Forex-M20-Listener-Watchdog" in command
-    assert "-RepetitionInterval (New-TimeSpan -Minutes 2)" in command
-    assert "schtasks.exe" in command
-    assert "/run /tn \"Forex-M20-Demo-Listener\"" in command
-    assert "-MultipleInstances IgnoreNew" in command
+    assert "Forex-M20-Listener-Watchdog" not in command
+    assert len(command) < 3000
     assert "FOREX_M20_POSTGRES_DSN" not in command
     assert "FOREX_M20_DISCORD_WEBHOOK_URL" not in command
 
@@ -1279,6 +1276,7 @@ def test_m20_partial_order_result_is_not_classified_as_rejected(monkeypatch):
 
 def test_m20_close_reconciliation_requires_broker_matched_entry_and_exit_deals(monkeypatch):
     probe = _m20_probe_module(monkeypatch)
+    monkeypatch.setattr(probe, "tick_time_offset_seconds", lambda: 0)
     calls = []
     deals = (
         types.SimpleNamespace(ticket=1, position_id=99, entry=0, type=0, volume=.01, price=1.1000, profit=0.0, commission=-.10, fee=-.02, swap=0.0, time_msc=1),
@@ -1302,6 +1300,24 @@ def test_m20_close_reconciliation_requires_broker_matched_entry_and_exit_deals(m
     assert costs["swap_account"] == -.05
     assert costs["realized_pnl_account"] == 9.70
     assert costs["estimated_total_cost_account"] == costs["estimated_spread_cost_account"]
+    history = costs["broker_history"]
+    assert history["position_identifier"] == 99
+    assert [deal["ticket"] for deal in history["broker_deals"]] == [1, 2]
+    assert history["broker_deals_sha256"] == "sha256:" + hashlib.sha256(json.dumps(history["broker_deals"], sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+    recorded = []
+    monkeypatch.setattr(probe, "_bridge", lambda payload, command: recorded.append((command, payload)) or {"reconciliation": {"status": "MATCHED"}})
+    monkeypatch.setattr(probe, "_notify_reconciled_sale", lambda **_: None)
+    probe._record_closed_monitor_outcome(
+        proposal={"proposal_id": "proposal-1"}, attempt_id="attempt-1", position=position,
+        submitted_at=datetime(2026, 9, 3, tzinfo=timezone.utc), entry_spread=.0001,
+        risk={}, close_reason="BROKER_SIDE_CLOSE", broker_order_reference="2",
+        expected_exit_price=exit_price, closed_costs=costs,
+    )
+    event = recorded[0][1]
+    assert event["result"]["payload"]["broker_history"] == history
+    assert "broker_history" not in event["outcome"]
+    assert event["outcome"]["realized_pnl_account"] == 9.70
 
     probe.mt5.history_deals_get = lambda *, position: deals[:1]
     with pytest.raises(SystemExit, match="opening or closing"):

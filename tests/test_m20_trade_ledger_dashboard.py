@@ -1,7 +1,9 @@
 import json
 import subprocess
-from datetime import date
+from datetime import date, datetime, timezone
 from unittest import mock
+
+import pytest
 
 from scripts.m20_trade_ledger_dashboard import render, trade_rows
 
@@ -105,12 +107,12 @@ def test_lifecycle_adapter_output_keeps_dashboard_trade_context(monkeypatch):
     assert "+0.26" in screen and "+0.20 AUD" in screen
 
 
-def test_lifecycle_adapter_output_preserves_evidence_validator_wire_format(monkeypatch):
+def test_lifecycle_adapter_does_not_promote_unbound_legacy_rows_to_current_proof(monkeypatch):
     from scripts import postgres_pgvector_adapter
-    from scripts.m20_demo_evidence_contract import validate_broker_matched_lifecycle
+    from scripts.m20_demo_evidence_contract import VerificationError, validate_broker_matched_lifecycle
 
     payload = '[{"session_id":"lease","proposal_id":"p","attempt_id":"a","action":"BUY","submitted_at_utc":"2026-09-11T06:00:00Z","actual_entry_price":"1.16001","exit_price":1.16021,"realized_pnl_account":0.20,"account_currency":"AUD","reconciliation_status":"MATCHED","events":"[\\"OPENED\\",\\"CLOSED\\"]","lifecycle":"CLOSED_MATCHED"}]'
     monkeypatch.setattr(postgres_pgvector_adapter, "remote", lambda _: {"ok": True, "exit_code": 0, "stdout": payload, "stderr": ""})
     wrapper = postgres_pgvector_adapter.m20_lifecycle_summary()
-    row = validate_broker_matched_lifecycle(wrapper, {"session_id": "lease"})
-    assert row["attempt_id"] == "a"
+    with pytest.raises(VerificationError, match="revision, and configuration"):
+        validate_broker_matched_lifecycle(wrapper, {"session_id": "lease"}, "a" * 40, "sha256:" + "b" * 64, datetime.now(timezone.utc))

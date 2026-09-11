@@ -63,6 +63,17 @@ lifecycle and broker-derived AUD P&L, an independent verifier, and the current
 Triad-plus-domain recommendation required by `AGENTS.md`. `NO_TRADE` is a
 truthful assessment outcome, but cannot alone close M20.
 
+The proof verifier requires the closed trade's own proposal revision and
+configuration to match the manifest; sharing an old continuous lease is not
+sufficient. The fixed monitor retains the exact position-specific broker deal
+rows used for cost calculation in its immutable CLOSED event. The offline
+verifier recomputes matched volume, entry/exit prices, commission, fee, swap,
+and net AUD P&L from those rows. It also checks fresh listener status and
+deployment diagnostics against the current four payload hashes and lease caps.
+Older outcomes without retained broker rows remain historical ledger records,
+not substitute proof for a new release. Capture refuses an existing bundle
+directory, including an incomplete or failed prior capture.
+
 ## Operator dashboard
 
 On the T16 machine running VS Code, use the read-only live terminal view:

@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import re
 import subprocess
@@ -34,10 +35,13 @@ REQUIRED_ARTIFACTS = {
     "configuration.json",
     "demo-trading-operation.json",
     "lifecycle-summary.json",
+    "listener-diagnostics.json",
+    "listener-status.json",
     "session-audit.json",
     "revision.txt",
     "summary.txt",
 }
+M20_EVIDENCE_SURFACE = "continuous cap-constrained automated GOMarketsMU-Demo EUR/USD M1 trading session"
 
 
 def require(condition: bool, message: str) -> None:
@@ -126,6 +130,8 @@ def validate_session(payload: dict[str, Any]) -> dict[str, Any]:
         value = session.get(field)
         require(isinstance(value, (int, float)) and 0 < value <= maximum, f"session {field} exceeds M20 cap")
     require(session.get("max_open_positions") == 1, "session must enforce one open position")
+    loss_cap = session.get("maximum_loss_per_trade_aud")
+    require(type(loss_cap) in (int, float) and math.isfinite(loss_cap) and 0 < loss_cap <= 100, "session AUD loss cap is invalid")
     require(session.get("status") in {"ACTIVE", "CLOSED", "EXPIRED"}, "session has an invalid audit status")
     return session
 
@@ -270,8 +276,81 @@ def validate_execution_and_reconciliation(payload: dict[str, Any], session: dict
     string(outcome.get("close_reason"), "outcome.close_reason")
 
 
-def validate_broker_matched_lifecycle(wrapper: dict[str, Any], session: dict[str, Any]) -> dict[str, Any]:
-    """Require one fresh broker-matched opened-to-closed trade for this lease."""
+def finite_number(value: Any, field: str, *, positive: bool = False) -> float:
+    require(type(value) in (int, float, str), f"{field} must be numeric")
+    try:
+        number = float(value)
+    except ValueError as error:
+        raise VerificationError(f"{field} must be numeric") from error
+    require(math.isfinite(number) and (not positive or number > 0), f"{field} is invalid")
+    return number
+
+
+def validate_closed_trade(row: dict[str, Any], session: dict[str, Any], captured: datetime) -> None:
+    """Recompute a current lifecycle from retained, position-specific MT5 rows."""
+    submitted = utc(row.get("submitted_at_utc"), "lifecycle.submitted_at_utc")
+    closed = utc(row.get("closed_at_utc"), "lifecycle.closed_at_utc")
+    decision = utc(row.get("decision_at_utc"), "lifecycle.decision_at_utc")
+    snapshot_at = utc(row.get("snapshot_captured_at_utc"), "lifecycle.snapshot_captured_at_utc")
+    expires = utc(row.get("proposal_expires_at_utc"), "lifecycle.proposal_expires_at_utc")
+    require(captured - timedelta(hours=168) <= decision <= snapshot_at <= submitted <= closed <= captured,
+            "lifecycle is stale, future-dated, or not proposal-first")
+    require(submitted <= expires <= decision + MAX_PROPOSAL_AGE, "lifecycle submission exceeds proposal validity")
+    require(utc(session["starts_at_utc"], "session.starts_at_utc") <= decision and closed <= utc(session["expires_at_utc"], "session.expires_at_utc"), "lifecycle exceeds its lease")
+    string(row.get("proposal_id"), "lifecycle.proposal_id")
+    string(row.get("attempt_id"), "lifecycle.attempt_id")
+    string(row.get("snapshot_id"), "lifecycle.snapshot_id")
+    require(sha256(row.get("decision_snapshot_sha256"), "lifecycle.decision_snapshot_sha256") == row.get("snapshot_payload_sha256"), "lifecycle snapshot digest mismatch")
+    require(row.get("action") in {"BUY", "SELL"}, "lifecycle action is invalid")
+    require(row.get("selected_strategy_id") in {"momentum_breakout", "compression_breakout", "trend_pullback", "range_reversion", "session_breakout"}
+            and row.get("trade_owner_strategy_id") == row["selected_strategy_id"], "lifecycle strategy ownership mismatch")
+    opening = object_field(row, "opening_context")
+    closing = object_field(row, "closing_context")
+    history = object_field(closing, "broker_history")
+    require(history.get("server") == "GOMarketsMU-Demo" and history.get("symbol") == "EURUSD" and history.get("account_currency") == "AUD", "broker history surface mismatch")
+    position = history.get("position_identifier")
+    require(type(position) is int and position > 0 and opening.get("position_identifier") == position and closing.get("position_identifier") == position, "broker history position mismatch")
+    deals = history.get("broker_deals")
+    require(isinstance(deals, list) and len(deals) >= 2, "broker history requires opening and closing deals")
+    digest = "sha256:" + hashlib.sha256(json.dumps(deals, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    require(history.get("broker_deals_sha256") == digest, "broker history digest mismatch")
+    tickets: set[int] = set()
+    entries, exits = [], []
+    previous_time = None
+    for deal in deals:
+        require(isinstance(deal, dict) and deal.get("position_identifier") == position, "broker deal position mismatch")
+        ticket = deal.get("ticket")
+        require(type(ticket) is int and ticket > 0 and ticket not in tickets, "broker deal ticket is invalid or duplicated")
+        tickets.add(ticket)
+        at = utc(deal.get("time_utc"), "broker deal.time_utc")
+        require(submitted <= at <= closed and (previous_time is None or previous_time <= at), "broker deal timestamp mismatch")
+        previous_time = at
+        for key in ("profit", "commission", "fee", "swap", "price", "volume"):
+            require(type(deal.get(key)) in (int, float), f"broker deal.{key} must be a JSON number")
+            finite_number(deal.get(key), f"broker deal.{key}")
+        if deal["volume"] > 0:
+            require(deal.get("symbol") == "EURUSD" and deal["price"] > 0 and deal.get("entry") in {0, 1, 3}, "broker market deal is invalid")
+            is_open = deal["entry"] == 0
+            require(deal.get("type") == ((0 if row["action"] == "BUY" else 1) if is_open else (1 if row["action"] == "BUY" else 0)), "broker deal side mismatch")
+            (entries if is_open else exits).append(deal)
+    require(bool(entries) and bool(exits), "broker history lacks opening or closing market deals")
+    opened_volume = sum(d["volume"] for d in entries)
+    closed_volume = sum(d["volume"] for d in exits)
+    require(math.isclose(opened_volume, closed_volume, abs_tol=1e-9, rel_tol=0), "broker opening and closing volume mismatch")
+    require(math.isclose(opened_volume, finite_number(opening.get("broker_filled_volume"), "opening volume", positive=True), abs_tol=1e-9, rel_tol=0), "broker fill volume mismatch")
+    for field, rows in (("actual_entry_price", entries), ("exit_price", exits)):
+        price = sum(d["price"] * d["volume"] for d in rows) / sum(d["volume"] for d in rows)
+        require(math.isclose(price, finite_number(row.get(field), field, positive=True), rel_tol=0, abs_tol=1e-8), f"broker-derived {field} mismatch")
+    totals = {}
+    for source, field in (("profit", "gross_price_pnl_account"), ("commission", "commission_account"), ("fee", "fee_account"), ("swap", "swap_account")):
+        totals[source] = sum(d[source] for d in deals)
+        require(math.isclose(round(totals[source], 2), finite_number(row.get(field), field), rel_tol=0, abs_tol=1e-8), f"broker-derived {field} mismatch")
+    require(row.get("account_currency") == "AUD" and math.isclose(round(sum(totals.values()), 2), finite_number(row.get("realized_pnl_account"), "realized P&L"), rel_tol=0, abs_tol=1e-8), "broker-derived AUD P&L mismatch")
+
+
+def validate_broker_matched_lifecycle(wrapper: dict[str, Any], session: dict[str, Any], revision: str, fingerprint: str, captured: datetime) -> dict[str, Any]:
+    """Require a fresh trade from this exact release, not an older lease trade."""
+    ensure_no_live_reference(wrapper)
     require(wrapper.get("tool_id") == "forex_postgres_pgvector_t480", "lifecycle summary must use the PostgreSQL adapter")
     require(wrapper.get("operation") == "forex_m20_lifecycle_summary", "lifecycle summary operation mismatch")
     result = object_field(wrapper, "result")
@@ -281,20 +360,20 @@ def validate_broker_matched_lifecycle(wrapper: dict[str, Any], session: dict[str
     except json.JSONDecodeError as error:
         raise VerificationError("lifecycle summary stdout is not JSON") from error
     require(isinstance(rows, list), "lifecycle summary must be a list")
-    for row in rows:
-        if not isinstance(row, dict) or row.get("session_id") != session["session_id"]:
+    for row in reversed(rows):
+        if (not isinstance(row, dict) or row.get("session_id") != session["session_id"]
+                or row.get("application_revision") != revision or row.get("configuration_fingerprint") != fingerprint):
             continue
         try:
             events = json.loads(row.get("events") or "[]")
         except (TypeError, json.JSONDecodeError):
             continue
-        if (row.get("lifecycle") == "CLOSED_MATCHED" and row.get("reconciliation_status") in {"MATCHED", "REPAIRED"}
+        if (row.get("lifecycle") == "CLOSED_MATCHED" and row.get("reconciliation_status") == "MATCHED"
                 and isinstance(events, list) and "OPENED" in events and "CLOSED" in events
-                and isinstance(row.get("actual_entry_price"), (int, float, str)) and float(row["actual_entry_price"]) > 0
-                and isinstance(row.get("exit_price"), (int, float)) and row["exit_price"] > 0
-                and isinstance(row.get("realized_pnl_account"), (int, float)) and row.get("account_currency") == "AUD"):
+                and events.index("OPENED") < events.index("CLOSED")):
+            validate_closed_trade(row, session, captured)
             return row
-    raise VerificationError("no broker-matched OPENED to CLOSED Demo trade exists for the captured lease")
+    raise VerificationError("no broker-matched OPENED to CLOSED Demo trade exists for the captured lease, revision, and configuration")
 
 
 def validate_payload(payload: dict[str, Any], expected_fingerprint: str | None = None) -> None:
@@ -305,6 +384,40 @@ def validate_payload(payload: dict[str, Any], expected_fingerprint: str | None =
     proposal = validate_proposal(payload, session, snapshot)
     validate_strategy_selection(payload, snapshot, proposal)
     validate_execution_and_reconciliation(payload, session, snapshot, proposal)
+
+
+def validate_listener(bundle: Path, root: Path, revision: str, fingerprint: str, session: dict[str, Any], captured: datetime) -> None:
+    observations = {}
+    for name, operation in (("listener-diagnostics.json", "m20_listener_diagnostics"), ("listener-status.json", "m20_listener_status")):
+        wrapper = read_json(bundle / name)
+        ensure_no_live_reference(wrapper)
+        require(wrapper.get("tool_id") == "forex_t480" and wrapper.get("operation") == operation and wrapper.get("ok") is True, "listener adapter binding mismatch")
+        require(wrapper.get("configuration_fingerprint") == fingerprint, "listener adapter configuration mismatch")
+        result = object_field(wrapper, "result")
+        require(result.get("ok") is True and result.get("exit_code") == 0, "listener observation failed")
+        try:
+            value = json.loads(string(result.get("stdout"), "listener stdout"))
+        except json.JSONDecodeError as error:
+            raise VerificationError("listener stdout is not JSON") from error
+        require(isinstance(value, dict), "listener observation must be an object")
+        observations[operation] = value
+    diagnostics, status = observations["m20_listener_diagnostics"], observations["m20_listener_status"]
+    require(diagnostics.get("task_state") == "Running" and diagnostics.get("logon_type") == "S4U" and diagnostics.get("maintenance_hold_present") is False, "permanent listener is not running unheld under S4U")
+    require(status.get("running") is True and status.get("state") in {"RUNNING", "WAITING_FOR_FRESH_MT5_QUOTE"}, "listener is unhealthy")
+    require(object_field(status, "monitor").get("state") in {"IDLE", "RUNNING"}, "listener monitoring is unhealthy")
+    heartbeat = utc(status.get("heartbeat_at_utc"), "listener heartbeat")
+    observed = utc(diagnostics.get("captured_at_utc"), "listener diagnostics timestamp")
+    require(captured - timedelta(seconds=30) <= heartbeat <= captured and captured - timedelta(seconds=60) <= observed <= captured, "listener observation is stale or future-dated")
+    binding = object_field(diagnostics, "deployment_binding")
+    require(binding.get("observation") == "VALID" and binding.get("application_revision") == revision and binding.get("configuration_fingerprint") == fingerprint, "deployed revision/configuration mismatch")
+    payload_hashes = object_field(binding, "payload_sha256")
+    for name in ("m20_demo_listener_service", "m20_demo_trading_session", "m20_postgres_audit_bridge", "m20_discord_trade_notification"):
+        expected = "sha256:" + hashlib.sha256((root / "t480" / f"{name}.py").read_bytes()).hexdigest()
+        require(payload_hashes.get(f"{name}.payload") == expected, "deployed payload hash mismatch")
+    lease = object_field(binding, "lease")
+    require(lease.get("session_id") == session["session_id"] and lease.get("server") == "GOMarketsMU-Demo" and lease.get("symbol") == "EURUSD", "deployed lease surface mismatch")
+    for key, expected in (("maximum_trades", None), ("maximum_duration_minutes", 0), ("maximum_open_positions", 1), ("maximum_notional_per_trade_usd", 10000), ("maximum_cumulative_notional_usd", 100000), ("maximum_loss_per_trade_aud", 100)):
+        require(key in lease and lease[key] == expected, f"deployed lease {key} mismatch")
 
 
 def project_fingerprint(root: Path) -> str:
@@ -338,7 +451,10 @@ def capture(bundle: Path, root: Path) -> None:
     fingerprint = project_fingerprint(root)
     payload = parse_operation(wrapper, fingerprint)
     validate_payload(payload, fingerprint)
-    lifecycle = validate_broker_matched_lifecycle(read_json(bundle / "lifecycle-summary.json"), payload["session"])
+    revision = (bundle / "revision.txt").read_text(encoding="utf-8").strip()
+    captured = datetime.now(timezone.utc)
+    lifecycle = validate_broker_matched_lifecycle(read_json(bundle / "lifecycle-summary.json"), payload["session"], revision, fingerprint, captured)
+    validate_listener(bundle, root, revision, fingerprint, payload["session"], captured)
     session_audit = {
         "schema_version": "forex.m20.demo-trading-evidence.v1",
         "operation_marker": payload["marker"],
@@ -360,11 +476,11 @@ def capture(bundle: Path, root: Path) -> None:
     manifest = {
         "schema_version": "1.0.0",
         "milestone_id": "M20",
-        "captured_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "captured_at": captured.isoformat().replace("+00:00", "Z"),
         "git_revision": revision,
         "dirty_worktree": False,
         "configuration_fingerprint": fingerprint,
-        "surface": "bounded automated GOMarketsMU-Demo EUR/USD trading session",
+        "surface": M20_EVIDENCE_SURFACE,
         "operation": "fixed T480 m20_demo_trading_session operation",
         "expected_result": "fresh Demo EUR/USD data is assessed, recorded, bounded, and reconciled",
         "observed_result": "FOREX_M20_DEMO_TRADING_PROOF_OK",
@@ -383,14 +499,14 @@ def verify(bundle: Path, root: Path) -> None:
     require(manifest.get("schema_version") == "1.0.0", "manifest schema version mismatch")
     require(manifest.get("milestone_id") == "M20", "manifest milestone is not M20")
     require(manifest.get("dirty_worktree") is False, "manifest records a dirty worktree")
-    require(manifest.get("surface") == "bounded automated GOMarketsMU-Demo EUR/USD trading session", "manifest surface mismatch")
+    require(manifest.get("surface") == M20_EVIDENCE_SURFACE, "manifest surface mismatch")
     require(manifest.get("operation") == "fixed T480 m20_demo_trading_session operation", "manifest operation mismatch")
     require(manifest.get("observed_result") == "FOREX_M20_DEMO_TRADING_PROOF_OK", "manifest result marker mismatch")
     require(manifest.get("summary") == "FOREX_M20_DEMO_TRADING_PROOF_OK", "manifest summary marker mismatch")
     ensure_no_live_reference(manifest)
     require(manifest.get("git_revision") == subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip(), "manifest revision does not match HEAD")
     captured = utc(manifest.get("captured_at"), "manifest.captured_at")
-    require(datetime.now(timezone.utc) - captured < timedelta(hours=168), "evidence is stale")
+    require(timedelta(0) <= datetime.now(timezone.utc) - captured < timedelta(hours=168), "evidence is stale or future-dated")
     fingerprint = project_fingerprint(root)
     require(manifest.get("configuration_fingerprint") == fingerprint, "manifest fingerprint does not match current configuration")
     artifacts = manifest.get("artifacts")
@@ -420,7 +536,8 @@ def verify(bundle: Path, root: Path) -> None:
     wrapper = read_json(bundle / "demo-trading-operation.json")
     payload = parse_operation(wrapper, fingerprint)
     validate_payload(payload, fingerprint)
-    lifecycle = validate_broker_matched_lifecycle(read_json(bundle / "lifecycle-summary.json"), payload["session"])
+    lifecycle = validate_broker_matched_lifecycle(read_json(bundle / "lifecycle-summary.json"), payload["session"], manifest["git_revision"], fingerprint, captured)
+    validate_listener(bundle, root, manifest["git_revision"], fingerprint, payload["session"], captured)
     audit = read_json(bundle / "session-audit.json")
     require(audit.get("schema_version") == "forex.m20.demo-trading-evidence.v1", "session audit schema mismatch")
     require(audit.get("configuration_fingerprint") == fingerprint, "session audit fingerprint mismatch")

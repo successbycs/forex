@@ -5,7 +5,9 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 export PYTHONPATH="$root/src${PYTHONPATH:+:$PYTHONPATH}"
 bundle="${1:-runs/evidence/M20/$(date -u +%Y%m%dT%H%M%SZ)}"
-mkdir -p "$bundle"
+mkdir -p "$(dirname "$bundle")"
+# Captured bytes are immutable, including failed or incomplete captures.
+mkdir "$bundle"
 
 # A clean implementation/configuration revision is required before the only
 # broker-facing command below.  Mutable governance state and append-only run
@@ -39,6 +41,8 @@ PY
 # proposal-first rule, and bounded execution contract.
 python3 scripts/t480_adapter.py execute --operation m20_demo_trading_session >"$bundle/demo-trading-operation.json"
 python3 scripts/postgres_pgvector_adapter.py forex-m20-lifecycle-summary >"$bundle/lifecycle-summary.json"
+python3 scripts/t480_adapter.py execute --operation m20_listener_diagnostics >"$bundle/listener-diagnostics.json"
+python3 scripts/t480_adapter.py execute --operation m20_listener_status >"$bundle/listener-status.json"
 git rev-parse HEAD >"$bundle/revision.txt"
 python3 scripts/m20_demo_evidence_contract.py capture --root "$root" --bundle "$bundle"
 
