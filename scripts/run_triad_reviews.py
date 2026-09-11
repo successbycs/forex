@@ -143,7 +143,8 @@ def prompt(workspace: Path, role: str) -> str:
         f"You are the independent read-only {role} reviewer. This is a clean snapshot of the exact bound revision. "
         f"Read {packet}, {template}, and {request}. Inspect only the bound evidence directory, milestone_registry.json, "
         "project_state.json, runs/run_history.json, and the verifier files named by the request. Do not run git diff, search historical runs, inspect the "
-        "parent repository, edit, commit, deploy, sign off, prove, or read another review. Return only a completed "
+        "parent repository, edit, commit, deploy, sign off, prove, or read another review. In evidence_refs, cite only existing repository-relative paths "
+        "without .triad-review prefixes or line-number suffixes. Return only a completed "
         "JSON object that exactly follows the supplied template and output schema."
     )
 
