@@ -951,6 +951,7 @@ def test_m20_all_demo_history_export_is_fixed_complete_and_read_only():
     assert "len(d)<=10000 and len(o)<=10000" in command
     assert "''complete'':valid and bounded" in command
     assert "account_scope_sha256" in command
+    assert "''balance'':getattr(a,''balance'',None)" in command
     assert "order_send" not in command
 
 
