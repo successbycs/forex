@@ -1,19 +1,18 @@
-def test_m27_uses_only_the_fixed_read_only_demo_listener_status_surface():
+def test_m27_uses_only_the_fixed_read_only_demo_tick_surface():
     source=open('scripts/t480_adapter.py').read()
     assert 'm20_listener_status' in source and 'GOMarketsMU-Live' in source
     capture=open('scripts/capture_m27_evidence.sh').read()
-    assert 'm20_listener_status' in capture
-    assert 'position-protection identifiers and prices' in capture
+    assert 'm27_demo_tick' in capture
+    assert 'EURUSD bid/ask' in capture
 
 
 def test_m27_verifier_binds_tick_proof_to_raw_read_only_listener_response():
     verifier=open('scripts/verify_m27_evidence.sh').read()
     for requirement in (
-        "outer['operation']=='m20_listener_status'",
+        "outer['operation']=='m27_demo_tick'",
         "outer['approval_required'] is False",
-        "result['execution']['status']=='NOT_SUBMITTED'",
-        "t['assessment_captured_at_utc']==result['captured_at_utc']",
-        "t['quote_server']==(None if quote is None else quote['server'])",
-        "(bundle_capture-assessment).total_seconds()<=15",
+        "tick['bid']>0 and tick['ask']>=tick['bid']",
+        "t['tick_time_msc']==tick['tick_time_msc']",
+        "(bundle_capture-tick_at).total_seconds()<=15",
     ):
         assert requirement in verifier

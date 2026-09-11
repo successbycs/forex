@@ -923,6 +923,11 @@
       "approval_required": false
     },
     {
+      "id": "m27_demo_tick",
+      "purpose": "Read one fixed fresh EURUSD bid/ask tick from GOMarketsMU-Demo without trading.",
+      "approval_required": false
+    },
+    {
       "id": "m20_financing_preview",
       "purpose": "Run the hash-bound deployed Demo financing calculator without placing orders.",
       "approval_required": false

@@ -173,6 +173,18 @@ finally:m.shutdown()
     return "$ErrorActionPreference='Stop';$s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json;& $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path;exit $LASTEXITCODE"
 
 
+def _m27_demo_tick_command() -> str:
+    """Read one fixed EURUSD tick from the configured Demo terminal."""
+    code = (
+        "import json,sys;from datetime import datetime,timezone;import MetaTrader5 as m;"
+        "ok=m.initialize(path=sys.argv[1]);a=m.account_info() if ok else None;q=m.symbol_info_tick('EURUSD') if a and a.server=='GOMarketsMU-Demo' else None;"
+        "valid=bool(a) and a.server=='GOMarketsMU-Demo' and q is not None and getattr(q,'bid',0)>0 and getattr(q,'ask',0)>0 and getattr(q,'time_msc',0)>0;"
+        "print(json.dumps({'ok':valid,'captured_at_utc':datetime.now(timezone.utc).isoformat().replace('+00:00','Z'),'server':getattr(a,'server',None),'symbol':'EURUSD','bid':getattr(q,'bid',None),'ask':getattr(q,'ask',None),'tick_time_msc':getattr(q,'time_msc',None)}));"
+        "m.shutdown() if ok else None;sys.exit(0 if valid else 3)"
+    )
+    return "$ErrorActionPreference='Stop';$s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json;& $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path;exit $LASTEXITCODE"
+
+
 def _m20_wave1_candles_command() -> str:
     code = ("import json,sys;import MetaTrader5 as m;ok=m.initialize(path=sys.argv[1]);a=m.account_info() if ok else None;"
             "valid=bool(a) and a.server=='GOMarketsMU-Demo' and a.currency=='AUD';s=m.symbol_info('EURUSD') if valid else None;t=m.terminal_info() if valid else None;"
@@ -830,6 +842,7 @@ OPERATIONS: dict[str, Operation] = {
     "m20_close_duplicate_terminal": Operation("m20_close_duplicate_terminal", "Close duplicate interactive configured MT5 instances only while Demo is flat and the listener is held and stopped.", powershell_command=_m20_close_duplicate_terminal_command(), timeout_seconds=60),
     "m20_financing_preview": Operation("m20_financing_preview", "Run the hash-bound deployed Demo financing calculator without placing orders.", powershell_command=_m20_demo_trading_session_command().replace("$c.terminal_path $lease;", "$c.terminal_path $lease --financing-preview;"), timeout_seconds=60),
     "m20_swap_terms": Operation("m20_swap_terms", "Read fixed Demo EURUSD financing terms and AUDUSD conversion quotes without trading.", powershell_command=_m20_swap_terms_command(), timeout_seconds=60),
+    "m27_demo_tick": Operation("m27_demo_tick", "Read one fixed fresh EURUSD bid/ask tick from GOMarketsMU-Demo without trading.", powershell_command=_m27_demo_tick_command(), timeout_seconds=60),
     "m20_wave1_candles": Operation("m20_wave1_candles", "Inspect fixed Demo M1 candle availability and the terminal error without trading.", powershell_command=_m20_wave1_candles_command(), timeout_seconds=60),
     "m20_wave1_history": Operation("m20_wave1_history", "Read the fixed September 2026 Wave 1 Demo account deal/order reconciliation window.", powershell_command=_m20_wave1_history_command(), timeout_seconds=60),
     "m20_all_demo_history_export": Operation("m20_all_demo_history_export", "Export complete bounded GOMarketsMU-Demo account deal/order history without trading.", powershell_command=_m20_all_demo_history_export_command(), timeout_seconds=120),
