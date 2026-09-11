@@ -424,7 +424,12 @@ def test_m20_reboot_recovery_protocol_is_fixed_held_only_and_has_no_order_surfac
     assert "New-ScheduledTaskTrigger -AtStartup" in command
     assert "shutdown.exe" in command
     assert "broker_mutation='NONE'" in command
+    assert "one-shot reboot used; authoritative unresolved-attempt gate required for reuse" in command
+    assert "held idle monitor required" in command
+    assert "flat available Demo account required" in command
+    assert "positions_get" in command
     assert "order_send" not in command and "GOMarketsMU-Live" not in command
+    assert len(command) < 3200
 
 
 def test_m20_reboot_recovery_status_is_read_only():

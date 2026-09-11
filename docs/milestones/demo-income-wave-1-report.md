@@ -1604,12 +1604,15 @@ claimed. No Live access, forced order, hold release, or push occurred.
 ## 2026-09-11 autonomous T480 reboot and no-sign-in recovery proof
 
 A held, flat-account reboot protocol was committed in `1bbcc9c` and executed
-on T480 without using T16, RDP, a browser, or an interactive Windows sign-in.
+on T480 without using T16, RDP, a browser, or Codex to start the post-boot
+recovery worker.
 The first two request mechanisms did not change the Windows boot time and are
 retained as failed protocol attempts. The final fixed Session-0 reboot task
-requested a forced restart only after current GOMarketsMU-Demo account evidence
-confirmed zero open positions and the listener/watchdog were S4U with a fresh
-held heartbeat.
+requested a forced restart after the then-current GOMarketsMU-Demo observation
+reported zero open positions and the listener/watchdog were S4U with a fresh
+held heartbeat. That earlier operation did not independently query the global
+unresolved-attempt ledger; the historical reboot record must not be read as
+proving that separate condition.
 
 T480 reported a new uptime start of `2026-09-11T02:55:49.5000000Z`. Its
 post-boot S4U verifier waited 75 seconds and wrote the retained record for run
@@ -1630,3 +1633,33 @@ does not replace the separate 30-minute worker/alert continuity protocol,
 broker lifecycle/accounting qualifications, or final independent Wave 1/M20
 review gates. Maintenance hold remains active; no Demo order, Live access, or
 hold release occurred.
+
+
+## 2026-09-11 reboot-evidence verifier correction
+
+A read-only Astra review found that the first offline reboot verifier did not
+validate the operation envelopes, AVAILABLE broker observations, preflight hold,
+actual boot chronology, watchdog S4U execution, or Session-0 listener identity.
+It is superseded by `scripts/verify_w1_reboot_recovery.py` and retained only as
+an historical artifact. The strengthened verifier succeeds against the unchanged
+raw broker, host, listener, watchdog, record, and diagnostics captures in
+`runs/evidence/M20/w1-reboot-recovery-20260911-attempt3/`; it rejects a negative
+control with a falsified boot timestamp.
+
+The new reusable reboot request guard also requires an available flat
+GOMarketsMU-Demo account, `MAINTENANCE_HOLD`, an IDLE monitor with no recovered
+position, fresh heartbeat, and S4U listener/watchdog identities before it can
+request a restart. This guard was implemented after attempt3 and was therefore
+not exercised by that historical run. The global PostgreSQL unresolved-attempt
+summary is a separate authoritative gate. Attempt3 does not prove its state at
+the exact reboot instant, and the Session-0 diagnostic proves scheduled-task
+identity rather than proving that no person signed in anywhere on Windows during
+the interval. The reboot operation is now one-shot and refuses reuse while its
+retained record exists; a future reboot requires a reviewed version that embeds
+the authoritative PostgreSQL unresolved-attempt check. These are explicit
+limitations, not passed criteria.
+
+The observed reboot still demonstrates that the T480 listener and watchdog
+recovered under maintenance hold without an order, T16, RDP, browser, or Codex
+being used to start the post-boot worker. Wave 1 remains open for its separate
+completion gates.
