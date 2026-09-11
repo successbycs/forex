@@ -133,3 +133,28 @@ owner-exit parity with the deployed source, plus explicit refusal of incomplete
 clocks/gates and unverified provenance. The acceptance is limited to
 source-level characterization; it does not qualify replay data, approve
 integration or deployment, or complete Wave 2 or M20.
+
+## 2026-09-11 broker-cost accounting slice
+
+`src/forex/m20_cost_accounting.py` adds an offline M20 outcome classifier. For
+each already matched AUD broker outcome, it separately retains gross price P&L,
+actual commission/fee/swap, estimated spread/slippage figures, and realised
+broker P&L. It checks the broker arithmetic only when all actual cost fields
+are present; absent values remain `INCOMPLETE`/`UNKNOWN`, never zero. Estimated
+execution costs are reported separately and are never subtracted from broker
+realised P&L a second time. The aggregate reports evidence coverage only and
+always returns `NOT_EVALUATED` for profitability and no execution authority.
+
+This is not connected to a database query, listener, broker operation, or
+release. Read-only processing of already retained M20 outcomes remains within
+this slice. Additional collection, changed retention, execution influence, or a
+fee-gate change require separately scoped M20 approval and affected-proof
+revalidation. The AUD 0.005 amount-level arithmetic tolerance is only a
+rounding consistency check; it is not a 20-close acceptance policy.
+
+### Astra affected-area review — broker-cost accounting
+
+On 2026-09-11, Astra accepted the offline accounting slice after read-only
+review. Acceptance covers amount-level consistency only: it is not independent
+proof of broker provenance, charge completeness, profitability, deployment, or
+milestone completion.
