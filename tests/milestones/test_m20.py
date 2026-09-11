@@ -4,11 +4,14 @@ import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import subprocess
+import sys
 
 import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "src"))
+from forex.evidence_runner import generate_keypair, sign_bundle
 FINGERPRINT = "sha256:" + "a" * 64
 M20_EVIDENCE_SURFACE = "continuous cap-constrained automated GOMarketsMU-Demo EUR/USD M1 trading session"
 
@@ -125,6 +128,20 @@ def fixture(tmp_path: Path) -> tuple[Path, Path]:
     scripts.mkdir()
     for name in ("verify_m20_demo_evidence.sh", "m20_demo_evidence_contract.py"):
         (scripts / name).write_bytes((REPO_ROOT / "scripts" / name).read_bytes())
+    module = tmp_path / "src" / "forex" / "evidence_runner.py"
+    module.parent.mkdir(parents=True)
+    module.write_bytes((REPO_ROOT / "src" / "forex" / "evidence_runner.py").read_bytes())
+    (module.parent / "__init__.py").write_text("", encoding="utf-8")
+    config = tmp_path / "config"
+    config.mkdir()
+    write(config / "evidence_runner.json", {
+        "schema_version": "forex.evidence-runner.v1",
+        "runner_key_id": "fixture-runner",
+        "public_key_path": "config/evidence_runner_public.pem",
+        "allowed_jobs": ["m0-clean-environment-capture", "m20-demo-trading-capture"],
+    })
+    private_key = tmp_path / "fixture-runner-private.pem"
+    generate_keypair(private_key, config / "evidence_runner_public.pem")
     (scripts / "forex_milestones.py").write_text(
         "import json\nprint(json.dumps({'configuration_fingerprint': '" + FINGERPRINT + "'}))\n",
         encoding="utf-8",
@@ -237,6 +254,7 @@ def fixture(tmp_path: Path) -> tuple[Path, Path]:
         "summary": "FOREX_M20_DEMO_TRADING_PROOF_OK",
         "artifacts": artifacts,
     })
+    sign_bundle(tmp_path, bundle, private_key)
     return tmp_path, bundle
 
 
@@ -257,6 +275,8 @@ def update_artifact_digest(bundle: Path, name: str) -> None:
         if artifact["path"] == name:
             artifact["sha256"] = hashlib.sha256((bundle / name).read_bytes()).hexdigest()
     write(manifest_path, manifest)
+    root = bundle.parents[3]
+    sign_bundle(root, bundle, root / "fixture-runner-private.pem")
 
 
 def test_m20_demo_evidence_verifier_accepts_a_bound_assessment_with_a_matched_trade_lifecycle(tmp_path: Path):
@@ -372,6 +392,25 @@ def test_m20_demo_evidence_verifier_rejects_tampering_even_with_python_optimizat
     result = verify(root, bundle)
     assert result.returncode != 0
     assert "artifact digest mismatch" in result.stderr
+
+
+@pytest.mark.parametrize("mutation", ["missing", "signature", "manifest"])
+def test_m20_demo_evidence_verifier_rejects_missing_or_mismatched_runner_attestation(tmp_path: Path, mutation: str):
+    root, bundle = fixture(tmp_path)
+    attestation = bundle / "runner-attestation.json"
+    if mutation == "missing":
+        attestation.unlink()
+    elif mutation == "signature":
+        value = json.loads(attestation.read_text(encoding="utf-8"))
+        value["signature_base64"] = "AA=="
+        write(attestation, value)
+    else:
+        manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
+        manifest["redactions"].append("changed-after-signing")
+        write(bundle / "manifest.json", manifest)
+    result = verify(root, bundle)
+    assert result.returncode != 0
+    assert "runner attestation verification failed" in result.stderr
 
 
 def test_m20_demo_evidence_verifier_rejects_mismatched_configuration_fingerprint(tmp_path: Path):

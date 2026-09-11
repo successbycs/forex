@@ -46,5 +46,6 @@ python3 scripts/t480_adapter.py execute --operation m20_listener_diagnostics >"$
 python3 scripts/t480_adapter.py execute --operation m20_listener_status >"$bundle/listener-status.json"
 git rev-parse HEAD >"$bundle/revision.txt"
 python3 scripts/m20_demo_evidence_contract.py capture --root "$root" --bundle "$bundle"
+python3 scripts/forex_evidence_runner.py --root "$root" sign-m20 --bundle "$bundle"
 
 echo "$bundle"

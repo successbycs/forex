@@ -20,6 +20,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from forex.evidence_runner import EvidenceRunnerError, verify_bundle as verify_runner_bundle
+
 
 class VerificationError(RuntimeError):
     """Raised when evidence is incomplete, inconsistent, or unsafe."""
@@ -532,6 +535,10 @@ def verify(bundle: Path, root: Path) -> None:
         path = bundle / name
         require(path.is_file(), f"missing artifact: {name}")
         require(hashlib.sha256(path.read_bytes()).hexdigest() == digest, f"artifact digest mismatch: {name}")
+    try:
+        verify_runner_bundle(root, bundle)
+    except (EvidenceRunnerError, OSError, json.JSONDecodeError) as error:
+        raise VerificationError(f"runner attestation verification failed: {error}") from error
     require("passed" in (bundle / "tests.txt").read_text(encoding="utf-8").lower(), "milestone tests did not pass")
     require("milestone governance valid" in (bundle / "governance.txt").read_text(encoding="utf-8"), "governance validation did not pass")
     require(

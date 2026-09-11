@@ -13,7 +13,9 @@ import tempfile
 from typing import Any
 
 
-JOB_ID = "m0-clean-environment-capture"
+M0_JOB_ID = "m0-clean-environment-capture"
+M20_JOB_ID = "m20-demo-trading-capture"
+JOB_BY_MILESTONE = {"M0": M0_JOB_ID, "M20": M20_JOB_ID}
 ATTESTATION_NAME = "runner-attestation.json"
 
 
@@ -34,8 +36,9 @@ def load_config(root: Path) -> dict[str, Any]:
     required = {"schema_version", "runner_key_id", "public_key_path", "allowed_jobs"}
     if set(config) != required or config["schema_version"] != "forex.evidence-runner.v1":
         raise EvidenceRunnerError("invalid evidence-runner configuration")
-    if config["allowed_jobs"] != [JOB_ID]:
-        raise EvidenceRunnerError("evidence runner must expose only its fixed M0 job")
+    allowed_jobs = config["allowed_jobs"]
+    if not isinstance(allowed_jobs, list) or not allowed_jobs or set(allowed_jobs) - set(JOB_BY_MILESTONE.values()):
+        raise EvidenceRunnerError("evidence runner exposes an unsupported job")
     return config
 
 
@@ -55,9 +58,13 @@ def generate_keypair(private_key: Path, public_key: Path) -> None:
 
 def attestation_payload(root: Path, bundle: Path, config: dict[str, Any]) -> dict[str, str]:
     manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
+    milestone_id = manifest.get("milestone_id")
+    job_id = JOB_BY_MILESTONE.get(milestone_id)
+    if job_id is None or job_id not in config["allowed_jobs"]:
+        raise EvidenceRunnerError("evidence runner is not authorized for this milestone")
     return {
         "schema_version": "forex.evidence-runner-attestation.v1",
-        "job_id": JOB_ID,
+        "job_id": job_id,
         "runner_key_id": config["runner_key_id"],
         "bundle": str(bundle.relative_to(root)),
         "manifest_sha256": sha256_file(bundle / "manifest.json"),
@@ -106,7 +113,7 @@ def verify_bundle(root: Path, bundle: Path) -> None:
 
 def run_m0(root: Path, private_key: Path) -> Path:
     config = load_config(root)
-    if JOB_ID not in config["allowed_jobs"]:
+    if M0_JOB_ID not in config["allowed_jobs"]:
         raise EvidenceRunnerError("M0 capture job is not allowed")
     result = subprocess.run(["bash", "scripts/capture_m0_evidence.sh"], cwd=root, text=True, capture_output=True, check=False)
     if result.returncode:
@@ -114,6 +121,18 @@ def run_m0(root: Path, private_key: Path) -> Path:
     bundle = Path(result.stdout.strip().splitlines()[-1]).resolve()
     sign_bundle(root, bundle, private_key)
     return bundle
+
+
+def sign_m20(root: Path, bundle: Path, private_key: Path) -> Path:
+    """Sign only an already-captured M20 bundle under the fixed Demo evidence root."""
+    bundle = bundle.resolve()
+    evidence_root = (root / "runs" / "evidence" / "M20").resolve()
+    if not bundle.is_relative_to(evidence_root):
+        raise EvidenceRunnerError("M20 bundle is outside the fixed evidence root")
+    manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
+    if manifest.get("milestone_id") != "M20":
+        raise EvidenceRunnerError("sign-m20 accepts only an M20 manifest")
+    return sign_bundle(root, bundle, private_key)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -125,6 +144,9 @@ def main(argv: list[str] | None = None) -> int:
     generate.add_argument("--public-key", type=Path, required=True)
     run = commands.add_parser("run-m0")
     run.add_argument("--private-key", type=Path, default=Path(".evidence-runner/m0-runner-private.pem"))
+    sign = commands.add_parser("sign-m20")
+    sign.add_argument("--bundle", type=Path, required=True)
+    sign.add_argument("--private-key", type=Path, default=Path(".evidence-runner/m0-runner-private.pem"))
     verify = commands.add_parser("verify-m0")
     verify.add_argument("--bundle", type=Path, required=True)
     try:
@@ -135,6 +157,8 @@ def main(argv: list[str] | None = None) -> int:
             print(args.public_key.resolve())
         elif args.command == "run-m0":
             print(run_m0(root, args.private_key.resolve()))
+        elif args.command == "sign-m20":
+            print(sign_m20(root, args.bundle, args.private_key.resolve()))
         else:
             verify_bundle(root, args.bundle.resolve())
             print("FOREX_M0_RUNNER_ATTESTATION_VERIFIED")
