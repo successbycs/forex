@@ -669,13 +669,15 @@ def _m20_listener_stage_command(index: int) -> str:
     if index not in range(1, len(chunks) + 1):
         raise ValueError("M20 listener stage index is invalid")
     chunk = chunks[index - 1]
-    if index == 1:
-        write = "[IO.File]::WriteAllBytes($service,[Convert]::FromBase64String('" + chunk + "'));"
-    else:
-        write = "$bytes=[Convert]::FromBase64String('" + chunk + "'); $stream=[IO.File]::Open($service,[IO.FileMode]::Append,[IO.FileAccess]::Write,[IO.FileShare]::None); try {$stream.Write($bytes,0,$bytes.Length)} finally {$stream.Dispose()};"
-    if index == len(chunks):
-        write += " if ((Get-FileHash -LiteralPath $service -Algorithm SHA256).Hash.ToLower() -ne '" + hashlib.sha256(source).hexdigest() + "') { throw 'M20 listener staged source hash failed' };"
-    return "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; New-Item -ItemType Directory -Force $root|Out-Null; $service=Join-Path $root 'm20_demo_listener_service.payload'; " + write + " [pscustomobject]@{stage=" + str(index) + ";ok=$true}|ConvertTo-Json -Compress"
+    return (
+        "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; "
+        "$root=Join-Path $base 'releases\\" + release_id + "'; "
+        "New-Item -ItemType Directory -Force $root|Out-Null; "
+        "[IO.File]::WriteAllText((Join-Path $root 'm20_demo_listener_service.part"
+        + f"{index:02d}" + "'),'" + chunk
+        + "',(New-Object Text.UTF8Encoding($false))); "
+        "[pscustomobject]@{stage=" + str(index) + ";ok=$true}|ConvertTo-Json -Compress"
+    )
 
 
 def _m20_listener_dependency_stage_command(source_name: str, runtime_name: str, marker: str, index: int, *, parts: int | None = None, verify_final: bool = True) -> str:
@@ -989,6 +991,31 @@ for _index in range(6, 33):
         ("Stage and verify" if _index == 32 else "Stage") + f" fixed M20 listener payload part {_index}.",
         powershell_command=_m20_listener_stage_command(_index),
     )
+
+_listener_source = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
+_listener_source_digest = hashlib.sha256(_listener_source).hexdigest()
+_listener_release_id = hashlib.sha256(
+    _listener_source
+    + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()
+    + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()
+    + (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()
+).hexdigest()[:16]
+OPERATIONS["m20_listener_stage_verify"] = Operation(
+    "m20_listener_stage_verify",
+    "Assemble and hash-verify the fixed staged M20 listener payload.",
+    powershell_command=(
+        "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; "
+        "$root=Join-Path $base 'releases\\" + _listener_release_id + "'; "
+        "$file=Join-Path $root 'm20_demo_listener_service.payload'; "
+        "$fragments=@(Get-ChildItem -LiteralPath $root|Where-Object {$_.Name -match '^m20_demo_listener_service\\.part\\d{2}$'}|Sort-Object Name|ForEach-Object {$_.FullName}); "
+        "if ($fragments.Count -ne 32) { throw ('M20 listener fragments are incomplete: '+$fragments.Count) }; "
+        "$encoded=(($fragments|ForEach-Object {[IO.File]::ReadAllText($_)}) -join ''); "
+        "[IO.File]::WriteAllBytes($file,[Convert]::FromBase64String($encoded)); "
+        "if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -ne '" + _listener_source_digest + "') { throw 'M20 listener staged source hash failed' }; "
+        "$fragments|ForEach-Object { Remove-Item -LiteralPath $_ -Force }; "
+        "[pscustomobject]@{verified=$true}|ConvertTo-Json -Compress"
+    ),
+)
 
 def _m20_listener_runner_stage_command(index: int) -> str:
     """Stage runner fragments independently, then assemble and hash-check them.
