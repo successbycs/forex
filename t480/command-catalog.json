@@ -123,6 +123,16 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_run_reboot_recovery_protocol",
+      "purpose": "Arm the fixed held-only T480 post-boot verifier and request one controlled reboot; it cannot submit an order.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_reboot_recovery_status",
+      "purpose": "Read the retained fixed T480 reboot-recovery protocol record without starting or restarting a task.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_activate_demo_lease",
       "purpose": "Create a new continuous GOMarketsMU-Demo EURUSD M1 lease with the governed M20 caps.",
       "approval_required": false

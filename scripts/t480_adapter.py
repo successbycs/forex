@@ -396,6 +396,27 @@ def _m20_listener_watchdog_status_command() -> str:
     )
 
 
+def _m20_listener_run_reboot_recovery_protocol_command() -> str:
+    """Arm the fixed held-only post-boot verifier, then request a T480 reboot."""
+    return (
+        "$ErrorActionPreference='Stop';$s='C:\\ProgramData\\ForexListener\\state';if(!(Test-Path (Join-Path $s 'm20_demo_maintenance_hold.local.json'))){throw 'hold required'};$l=Get-ScheduledTask 'Forex-M20-Demo-Listener';$w=Get-ScheduledTask 'Forex-M20-Listener-Watchdog';if($l.Principal.LogonType -ne 'S4U'-or $w.Principal.LogonType -ne 'S4U'){throw 'S4U required'};$h=gc -Raw (Join-Path $s 'm20_demo_listener_status.local.json')|ConvertFrom-Json;if(((Get-Date).ToUniversalTime()-([datetime]::Parse($h.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds -ge 30){throw 'heartbeat stale'};"
+        r'''$p=Join-Path $s 'm20_demo_reboot_recovery.local.json';$o=[ordered]@{run_id=([guid]::NewGuid().ToString('N'));state='ARMED';listener_release_id=$h.release_id;broker_mutation='NONE'};[IO.File]::WriteAllText($p,($o|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false)));$f=Join-Path $s 'm20_demo_reboot_recovery_postboot.ps1';$x="Start-Sleep 75;`$s='C:\ProgramData\ForexListener\state';`$p=Join-Path `$s 'm20_demo_reboot_recovery.local.json';`$r=gc -Raw `$p|ConvertFrom-Json;`$l=Get-ScheduledTask 'Forex-M20-Demo-Listener';`$w=Get-ScheduledTask 'Forex-M20-Listener-Watchdog';`$h=gc -Raw (Join-Path `$s 'm20_demo_listener_status.local.json')|ConvertFrom-Json;`$r|Add-Member postboot_release_id `$h.release_id -Force;`$r|Add-Member listener_task_state `$l.State.ToString() -Force;`$r|Add-Member watchdog_task_state `$w.State.ToString() -Force;`$r|Add-Member postboot_heartbeat_at_utc `$h.heartbeat_at_utc -Force;`$r.state='POSTBOOT_CAPTURED';[IO.File]::WriteAllText(`$p,(`$r|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding(`$false)))";[IO.File]::WriteAllText($f,$x,(New-Object Text.UTF8Encoding($false)));'''
+        '''$t='Forex-M20-Reboot-Recovery-Verifier';$a=New-ScheduledTaskAction powershell.exe ('-NoProfile -NonInteractive -File '+$f);$g=New-ScheduledTaskTrigger -AtStartup;$q=New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U -RunLevel Highest;Register-ScheduledTask $t -Action $a -Trigger $g -Principal $q -Force|Out-Null;$z='Forex-M20-Reboot-Request';$ra=New-ScheduledTaskAction shutdown.exe '/r /f /t 5';Register-ScheduledTask $z -Action $ra -Principal $q -Force|Out-Null;Start-ScheduledTask $z;[pscustomobject]@{armed=$true;run_id=$o.run_id;broker_mutation='NONE'}|ConvertTo-Json -Compress'''
+
+
+
+    )
+
+
+def _m20_listener_reboot_recovery_status_command() -> str:
+    """Read only the retained reboot protocol record after T480 returns."""
+    return (
+        "$ErrorActionPreference='Stop';$p='C:\\ProgramData\\ForexListener\\state\\m20_demo_reboot_recovery.local.json';"
+        "if(!(Test-Path -LiteralPath $p)){[pscustomobject]@{observation='ABSENT'}|ConvertTo-Json -Compress;exit 0};$r=gc -Raw $p|ConvertFrom-Json;"
+        "[pscustomobject]@{observation='AVAILABLE';record=$r;sha256=('sha256:'+(Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLower())}|ConvertTo-Json -Compress -Depth 8"
+    )
+
+
 def _m20_listener_activate_demo_lease_command() -> str:
     """Create only the fixed, bounded M20 Demo lease for the listener."""
     return (
@@ -854,6 +875,16 @@ OPERATIONS: dict[str, Operation] = {
         "m20_listener_watchdog_status",
         "Read the fixed Session-0 listener watchdog task and schedule without starting either task.",
         powershell_command=_m20_listener_watchdog_status_command(),
+    ),
+    "m20_listener_run_reboot_recovery_protocol": Operation(
+        "m20_listener_run_reboot_recovery_protocol",
+        "Arm the fixed held-only T480 post-boot verifier and request one controlled reboot; it cannot submit an order.",
+        powershell_command=_m20_listener_run_reboot_recovery_protocol_command(),
+    ),
+    "m20_listener_reboot_recovery_status": Operation(
+        "m20_listener_reboot_recovery_status",
+        "Read the retained fixed T480 reboot-recovery protocol record without starting or restarting a task.",
+        powershell_command=_m20_listener_reboot_recovery_status_command(),
     ),
     "m20_listener_activate_demo_lease": Operation(
         "m20_listener_activate_demo_lease",

@@ -417,6 +417,22 @@ def test_m20_listener_watchdog_status_is_read_only():
     assert "order_send" not in command and "GOMarketsMU-Live" not in command
 
 
+def test_m20_reboot_recovery_protocol_is_fixed_held_only_and_has_no_order_surface():
+    command = t480_adapter.OPERATIONS["m20_listener_run_reboot_recovery_protocol"].powershell_command or ""
+    assert "m20_demo_maintenance_hold.local.json" in command
+    assert "Forex-M20-Reboot-Recovery-Verifier" in command
+    assert "New-ScheduledTaskTrigger -AtStartup" in command
+    assert "shutdown.exe" in command
+    assert "broker_mutation='NONE'" in command
+    assert "order_send" not in command and "GOMarketsMU-Live" not in command
+
+
+def test_m20_reboot_recovery_status_is_read_only():
+    command = t480_adapter.OPERATIONS["m20_listener_reboot_recovery_status"].powershell_command or ""
+    assert "m20_demo_reboot_recovery.local.json" in command
+    assert "Start-ScheduledTask" not in command and "shutdown.exe" not in command
+
+
 def test_m20_listener_release_includes_the_fixed_t480_discord_adapter_without_exposing_its_webhook():
     prepare = t480_adapter.OPERATIONS["m20_listener_prepare"].powershell_command or ""
     configure = t480_adapter.OPERATIONS["m20_listener_configure"].powershell_command or ""
