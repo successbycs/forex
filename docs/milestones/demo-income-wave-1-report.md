@@ -1600,3 +1600,33 @@ This confirms installed unattended scheduling, not an unattended reboot proof.
 A controlled reboot/no-sign-in test remains the real-world continuity criterion
 and must retain the task and listener recovery observations before it can be
 claimed. No Live access, forced order, hold release, or push occurred.
+
+## 2026-09-11 autonomous T480 reboot and no-sign-in recovery proof
+
+A held, flat-account reboot protocol was committed in `1bbcc9c` and executed
+on T480 without using T16, RDP, a browser, or an interactive Windows sign-in.
+The first two request mechanisms did not change the Windows boot time and are
+retained as failed protocol attempts. The final fixed Session-0 reboot task
+requested a forced restart only after current GOMarketsMU-Demo account evidence
+confirmed zero open positions and the listener/watchdog were S4U with a fresh
+held heartbeat.
+
+T480 reported a new uptime start of `2026-09-11T02:55:49.5000000Z`. Its
+post-boot S4U verifier waited 75 seconds and wrote the retained record for run
+`b29fb651ee1d4916b11522c7d1a18801`: listener task `Running`, watchdog task
+`Ready`, original release `8e6ee43f0b396b91` preserved, fresh post-boot
+heartbeat, and `broker_mutation: NONE`. Independent fixed reads then confirmed
+GOMarketsMU-Demo remained available and flat, the maintenance hold remained
+active, and the watchdog had completed successfully. The offline verifier
+returned `FOREX_W1_REBOOT_RECOVERY_PROOF_OK`.
+
+Raw evidence: `runs/evidence/M20/w1-reboot-recovery-20260911-attempt3/raw/`.
+Offline result: `runs/evidence/M20/w1-reboot-recovery-20260911-attempt3/verification/result.json`.
+The failed earlier attempts remain retained separately and are not represented as
+successful continuity proof.
+
+This establishes the requested unattended host reboot recovery criterion. It
+does not replace the separate 30-minute worker/alert continuity protocol,
+broker lifecycle/accounting qualifications, or final independent Wave 1/M20
+review gates. Maintenance hold remains active; no Demo order, Live access, or
+hold release occurred.
