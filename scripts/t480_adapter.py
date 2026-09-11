@@ -234,17 +234,17 @@ def _m20_wave1_history_command() -> str:
 def _m20_all_demo_history_export_command() -> str:
     """Export the complete bounded Demo account deal/order history, read-only."""
     code = (
-        "import hashlib,json,sys;from datetime import datetime,timezone;import MetaTrader5 as m;"
+        "import hashlib,json,sys;from datetime import datetime,timezone,timedelta;import MetaTrader5 as m;"
         "ok=m.initialize(path=sys.argv[1]);a=m.account_info() if ok else None;"
         "valid=bool(a) and a.server=='GOMarketsMU-Demo' and a.currency=='AUD';"
-        "start=datetime(2000,1,1,tzinfo=timezone.utc);end=datetime.now(timezone.utc);"
+        "start=datetime(2000,1,1,tzinfo=timezone.utc);captured_at=datetime.now(timezone.utc);broker_timestamp_offset_seconds=10800;end=captured_at+timedelta(seconds=broker_timestamp_offset_seconds);"
         "d=m.history_deals_get(start,end) if valid else None;o=m.history_orders_get(start,end) if valid else None;"
         "bounded=d is not None and o is not None and len(d)<=10000 and len(o)<=10000;"
         "dk='ticket order time time_msc type entry magic position_id reason volume price commission swap profit fee symbol comment external_id'.split();"
         "okeys='ticket time_setup time_setup_msc time_done time_done_msc type state magic position_id reason volume_initial volume_current price_open sl tp symbol comment external_id'.split();"
         "rows=lambda values,keys:[{k:getattr(x,k,None) for k in keys} for x in values];"
         "scope=hashlib.sha256((a.server+':'+str(int(a.login))).encode()).hexdigest() if valid else None;"
-        "result={'ok':valid and bounded,'complete':valid and bounded,'captured_at_utc':end.isoformat().replace('+00:00','Z'),'from_utc':'2000-01-01T00:00:00Z','server':getattr(a,'server',None),'currency':getattr(a,'currency',None),'account_scope_sha256':scope,'balance':getattr(a,'balance',None),'equity':getattr(a,'equity',None),'credit':getattr(a,'credit',None),'broker_timestamp_offset_seconds':10800,'deal_count':len(d) if d is not None else None,'order_count':len(o) if o is not None else None,'deals':rows(d,dk) if bounded else None,'orders':rows(o,okeys) if bounded else None,'error':None if valid and bounded else 'History unavailable, non-Demo account, or exceeds fixed 10000-row bound'};"
+        "result={'ok':valid and bounded,'complete':valid and bounded,'captured_at_utc':captured_at.isoformat().replace('+00:00','Z'),'from_utc':'2000-01-01T00:00:00Z','query_to_server_clock_utc':end.isoformat().replace('+00:00','Z'),'server':getattr(a,'server',None),'currency':getattr(a,'currency',None),'account_scope_sha256':scope,'balance':getattr(a,'balance',None),'equity':getattr(a,'equity',None),'credit':getattr(a,'credit',None),'broker_timestamp_offset_seconds':broker_timestamp_offset_seconds,'deal_count':len(d) if d is not None else None,'order_count':len(o) if o is not None else None,'deals':rows(d,dk) if bounded else None,'orders':rows(o,okeys) if bounded else None,'error':None if valid and bounded else 'History unavailable, non-Demo account, or exceeds fixed 10000-row bound'};"
         "print(json.dumps(result,separators=(',',':')));m.shutdown() if ok else None;sys.exit(0 if result['ok'] else 3)"
     )
     return "$ErrorActionPreference='Stop'; $s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json; & $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path; exit $LASTEXITCODE"

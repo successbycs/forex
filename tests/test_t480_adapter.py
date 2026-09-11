@@ -948,6 +948,8 @@ def test_m20_all_demo_history_export_is_fixed_complete_and_read_only():
     command = t480_adapter._m20_all_demo_history_export_command()
     assert "GOMarketsMU-Demo" in command and "a.currency==''AUD''" in command
     assert "datetime(2000,1,1,tzinfo=timezone.utc)" in command
+    assert "timedelta(seconds=broker_timestamp_offset_seconds)" in command
+    assert "query_to_server_clock_utc" in command
     assert "len(d)<=10000 and len(o)<=10000" in command
     assert "''complete'':valid and bounded" in command
     assert "account_scope_sha256" in command

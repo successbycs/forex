@@ -15,3 +15,12 @@ from deposits plus returned closed-deal P&L.
 This import is raw broker-returned evidence, not a risk-anchor reset, a
 cash-flow attribution, or approval to resume trading. The `EXTERNAL_CASH_FLOW`
 pause remains active until Chris completes its human review.
+
+## Superseded reconciliation interpretation
+
+The query endpoint in this snapshot used the host UTC clock, while this broker
+exposes its History-tab timestamps on a +03:00 server clock. It therefore
+omitted the final three broker-clock hours, including ten 11 September closed
+positions totalling AUD -1.07. The corrected complete import is in
+`../mt5-demo-history-20260911T0820Z/`; it reconciles exactly to the terminal
+balance.
