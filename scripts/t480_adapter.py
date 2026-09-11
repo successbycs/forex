@@ -179,7 +179,8 @@ def _m27_demo_tick_command() -> str:
         "import json,sys;from datetime import datetime,timezone;import MetaTrader5 as m;"
         "ok=m.initialize(path=sys.argv[1]);a=m.account_info() if ok else None;q=m.symbol_info_tick('EURUSD') if a and a.server=='GOMarketsMU-Demo' else None;"
         "valid=bool(a) and a.server=='GOMarketsMU-Demo' and q is not None and getattr(q,'bid',0)>0 and getattr(q,'ask',0)>0 and getattr(q,'time_msc',0)>0;"
-        "print(json.dumps({'ok':valid,'captured_at_utc':datetime.now(timezone.utc).isoformat().replace('+00:00','Z'),'server':getattr(a,'server',None),'symbol':'EURUSD','bid':getattr(q,'bid',None),'ask':getattr(q,'ask',None),'tick_time_msc':getattr(q,'time_msc',None),'broker_timestamp_offset_seconds':10800}));"
+        "now=datetime.now(timezone.utc);raw=getattr(q,'time_msc',0)/1000 if q is not None else 0;offset=min((7200,10800),key=lambda candidate:abs((now-datetime.fromtimestamp(raw-candidate,timezone.utc)).total_seconds())) if valid else None;"
+        "print(json.dumps({'ok':valid,'captured_at_utc':now.isoformat().replace('+00:00','Z'),'server':getattr(a,'server',None),'symbol':'EURUSD','bid':getattr(q,'bid',None),'ask':getattr(q,'ask',None),'tick_time_msc':getattr(q,'time_msc',None),'broker_timestamp_offset_seconds':offset,'broker_timestamp_offset_source':'nearest_declared_eet_offset'}));"
         "m.shutdown() if ok else None;sys.exit(0 if valid else 3)"
     )
     return "$ErrorActionPreference='Stop';$s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json;& $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path;exit $LASTEXITCODE"
