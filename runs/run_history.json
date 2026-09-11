@@ -12023,6 +12023,52 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000765",
+      "timestamp": "2026-09-11T11:35:22Z",
+      "milestone_id": "M27",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M27/20260911T113509Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000766",
+      "timestamp": "2026-09-11T11:35:25Z",
+      "milestone_id": "M27",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M27/20260911T113523Z/governance.stdout.txt",
+            "stderr": "runs/verification/M27/20260911T113523Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m27.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M27/20260911T113523Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M27/20260911T113523Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
     }
   ]
 }
