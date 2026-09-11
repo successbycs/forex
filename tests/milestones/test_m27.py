@@ -13,6 +13,6 @@ def test_m27_verifier_binds_tick_proof_to_raw_read_only_listener_response():
         "outer['approval_required'] is False",
         "result['execution']['status']=='NOT_SUBMITTED'",
         "t['assessment_captured_at_utc']==result['captured_at_utc']",
-        "t['quote_server']==quote['server']",
+        "t['quote_server']==(None if quote is None else quote['server'])",
     ):
         assert requirement in verifier
