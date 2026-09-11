@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "M20_DEMO_TRADING_MVP",
-  "last_proven_milestone": "M25",
-  "current_milestone": "M26",
+  "last_proven_milestone": "M26",
+  "current_milestone": null,
   "next_milestone": "M27",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -40,7 +40,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-11T10:53:45Z",
+  "last_updated_at": "2026-09-11T10:55:45Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -3353,23 +3353,102 @@
       "blockers": []
     },
     "M26": {
-      "status": "IN_PROGRESS",
+      "status": "PROVEN",
       "started_at": "2026-09-11T10:53:45Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
-      "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
-      "human_signoff": null,
+      "implementation_finished_at": "2026-09-11T10:55:45Z",
+      "verification_passed_at": "2026-09-11T10:55:33Z",
+      "real_world_proof_captured_at": "2026-09-11T10:55:33.101811Z",
+      "human_signed_off_at": "2026-09-11T10:55:45Z",
+      "first_proven_at": "2026-09-11T10:55:45Z",
+      "proven_at": "2026-09-11T10:55:45Z",
+      "last_validated_at": "2026-09-11T10:55:45Z",
+      "checks": {
+        "M26-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:55:44Z",
+          "evidence": "runs/evidence/M26/20260911T105532Z/manifest.json",
+          "note": "The fixed drill revalidates only current safe simulations and explicitly refuses stale, wide-spread, changed-state, or expired-approval inputs."
+        },
+        "M26-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:55:44Z",
+          "evidence": "runs/evidence/M26/20260911T105532Z/manifest.json",
+          "note": "Focused tests, governance validation, and repository verification passed."
+        },
+        "M26-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:55:44Z",
+          "evidence": "runs/evidence/M26/20260911T105532Z/manifest.json",
+          "note": "The verified manifest binds revision, configuration fingerprint, capture time, and artifact hashes."
+        },
+        "M26-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:55:45Z",
+          "evidence": "runs/evidence/M26/20260911T105532Z/manifest.json",
+          "note": "The revalidation model is offline and structurally disables order submission."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M26/20260911T105532Z/manifest.json",
+          "manifest_sha256": "eb7b39344b5616da98ebbe9708d5050c76fbb8a52c3801dbde4b86a87178cd5d",
+          "captured_at": "2026-09-11T10:55:33.101811Z",
+          "recorded_at": "2026-09-11T10:55:33Z",
+          "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+          "git_revision": "e0d12a417907fc1d66036343382f3297d5212273",
+          "summary": "FOREX_M26_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-11T10:55:33Z",
+        "git_revision": "e0d12a417907fc1d66036343382f3297d5212273",
+        "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M26/20260911T105533Z/governance.stdout.txt",
+            "stderr": "runs/verification/M26/20260911T105533Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m26.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M26/20260911T105533Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M26/20260911T105533Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
+      "human_signoff": {
+        "operator": "Chris",
+        "decision": "APPROVE",
+        "note": "Operator-authorized sign-off: reviewed the offline M26 revalidation workflow, verified evidence, and no-order safety boundary.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "e0d12a417907fc1d66036343382f3297d5212273",
+        "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+        "evidence_manifest_sha256": "eb7b39344b5616da98ebbe9708d5050c76fbb8a52c3801dbde4b86a87178cd5d",
+        "verification_recorded_at": "2026-09-11T10:55:33Z",
+        "recorded_at": "2026-09-11T10:55:45Z"
+      },
       "blockers": []
     },
     "M27": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,
