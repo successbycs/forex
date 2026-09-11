@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "M20_DEMO_TRADING_MVP",
-  "last_proven_milestone": "M24",
-  "current_milestone": "M25",
+  "last_proven_milestone": "M25",
+  "current_milestone": null,
   "next_milestone": "M26",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -40,7 +40,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-11T10:48:35Z",
+  "last_updated_at": "2026-09-11T10:53:39Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -3258,23 +3258,102 @@
       "blockers": []
     },
     "M25": {
-      "status": "IN_PROGRESS",
+      "status": "PROVEN",
       "started_at": "2026-09-11T10:48:35Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
-      "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
-      "human_signoff": null,
+      "implementation_finished_at": "2026-09-11T10:51:03Z",
+      "verification_passed_at": "2026-09-11T10:50:51Z",
+      "real_world_proof_captured_at": "2026-09-11T10:50:50.911088Z",
+      "human_signed_off_at": "2026-09-11T10:53:38Z",
+      "first_proven_at": "2026-09-11T10:53:39Z",
+      "proven_at": "2026-09-11T10:53:39Z",
+      "last_validated_at": "2026-09-11T10:53:39Z",
+      "checks": {
+        "M25-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:51:02Z",
+          "evidence": "runs/evidence/M25/20260911T105050Z/manifest.json",
+          "note": "The retained drill proves scoped acceptance and fail-closed rejection, expiry, and intent-mismatch outcomes."
+        },
+        "M25-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:51:02Z",
+          "evidence": "runs/evidence/M25/20260911T105050Z/manifest.json",
+          "note": "Focused tests, governance validation, and repository verification passed."
+        },
+        "M25-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:51:03Z",
+          "evidence": "runs/evidence/M25/20260911T105050Z/manifest.json",
+          "note": "The verified evidence binds revision, configuration fingerprint, capture time, and artifact hashes."
+        },
+        "M25-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:51:03Z",
+          "evidence": "runs/evidence/M25/20260911T105050Z/manifest.json",
+          "note": "Approval is intent-bound, expiring, fail-closed, and structurally has no order-submission surface."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M25/20260911T105050Z/manifest.json",
+          "manifest_sha256": "b7d421a5fd5ff1ffd3d6b762cbbfdb6b5968af4df2d81dbd9b6e5adb5b341ac5",
+          "captured_at": "2026-09-11T10:50:50.911088Z",
+          "recorded_at": "2026-09-11T10:50:51Z",
+          "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+          "git_revision": "b2c9a390d4f9090c40501f61b3b83636e479dede",
+          "summary": "FOREX_M25_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-11T10:50:51Z",
+        "git_revision": "b2c9a390d4f9090c40501f61b3b83636e479dede",
+        "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M25/20260911T105051Z/governance.stdout.txt",
+            "stderr": "runs/verification/M25/20260911T105051Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m25.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M25/20260911T105051Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M25/20260911T105051Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
+      "human_signoff": {
+        "operator": "Chris",
+        "decision": "APPROVE",
+        "note": "Operator-authorized sign-off: reviewed the scoped offline approval workflow, its verified evidence, and the Demo-only/no-order boundary.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "b2c9a390d4f9090c40501f61b3b83636e479dede",
+        "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+        "evidence_manifest_sha256": "b7d421a5fd5ff1ffd3d6b762cbbfdb6b5968af4df2d81dbd9b6e5adb5b341ac5",
+        "verification_recorded_at": "2026-09-11T10:50:51Z",
+        "recorded_at": "2026-09-11T10:53:38Z"
+      },
       "blockers": []
     },
     "M26": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,
