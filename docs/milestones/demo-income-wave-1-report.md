@@ -1664,3 +1664,27 @@ The observed reboot still demonstrates that the T480 listener and watchdog
 recovered under maintenance hold without an order, T16, RDP, browser, or Codex
 being used to start the post-boot worker. Wave 1 remains open for its separate
 completion gates.
+
+## 2026-09-11 ordinary Demo assessment resumed
+
+Under the existing GOMarketsMU-Demo authority, maintenance hold was removed at
+03:15:52–53 UTC after retained preflight evidence confirmed a healthy held
+listener and S4U watchdog, an AVAILABLE and flat AUD Demo account, empty
+unresolved-attempt summary, and no Option B pause. The released listener stayed
+on deployment `8e6ee43f0b396b91` / application revision `de17eba3903d6da5435ff980a04870548fa083cc` with its original unlimited-count lease and Option B limits.
+
+The listener then completed ordinary M1 assessments, increasing the persistent
+counter from 8612 to 8619. A 03:16 UTC assessment used 64 fresh M1 candles and
+recorded `NO_TRADE`, `NOT_SUBMITTED`, and `NO_TRADE_RECONCILED`; it was outside
+the liquid-session entry window. The subsequent Demo account remained AVAILABLE
+and flat at AUD 100991.90, and the authoritative unresolved-attempt result was
+empty. A post-release risk readback refreshed the daily anchor to 2026-09-11,
+reported no pause reasons, and retained all Option B anchors. The listener task
+remains S4U and running; maintenance hold is absent.
+
+Raw evidence is retained under
+`runs/evidence/M20/w1-entry-release-20260911T031541Z/raw/`. Astra's read-only
+review accepts this as genuine maintenance-release and ordinary assessment
+evidence. It does not prove a fresh accepted lifecycle, nonzero broker charge,
+profitability, or Wave 1/M20 completion. The listener remains authorised to
+collect a naturally eligible intraday Demo lifecycle without forced orders.
