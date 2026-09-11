@@ -59,6 +59,8 @@ def test_reviewer_uses_clean_bound_snapshot_and_compact_failure_logs(monkeypatch
         snapshot["no_git"] = not (cwd / ".git").exists()
         snapshot["handoff"] = (cwd / ".triad-review/request.json").is_file()
         snapshot["evidence"] = (cwd / "runs/evidence/M20/20260911T084133Z/manifest.json").is_file()
+        snapshot["current_state"] = (cwd / "project_state.json").read_bytes() == (ROOT / "project_state.json").read_bytes()
+        snapshot["current_history"] = (cwd / "runs/run_history.json").read_bytes() == (ROOT / "runs/run_history.json").read_bytes()
         return subprocess.CompletedProcess(command, 1, "ordinary output", "x" * 10000)
 
     monkeypatch.setattr(runner.subprocess, "run", fake_run)
@@ -68,7 +70,7 @@ def test_reviewer_uses_clean_bound_snapshot_and_compact_failure_logs(monkeypatch
         command, cwd = calls[0]
         assert command[command.index("-C") + 1] == str(cwd)
         assert cwd != ROOT
-        assert snapshot == {"no_git": True, "handoff": True, "evidence": True}
+        assert snapshot == {"no_git": True, "handoff": True, "evidence": True, "current_state": True, "current_history": True}
         assert events[0]["stderr"]["bytes"] == 10000
         assert "x" * 1000 not in json.dumps(events[0])
         assert Path(ROOT / events[0]["stderr"]["path"]).is_file()

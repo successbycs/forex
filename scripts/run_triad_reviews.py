@@ -77,8 +77,11 @@ def _safe_extract(archive: bytes, destination: Path) -> None:
 def create_review_workspace(cycle: Path, role: str) -> Path:
     """Make a minimal, clean snapshot bound to this cycle's Git revision.
 
-    It intentionally is not a worktree: no `.git`, mutable run state, prior
-    submissions, or desktop configuration can leak into an independent role.
+    It intentionally is not a worktree: no `.git`, prior submissions, or
+    desktop configuration can leak into an independent role.  The current
+    governed state is a deliberate exception: it records the evidence and
+    verification transition that the reviewer must assess, and is copied over
+    the archived revision after the archive is extracted.
     """
     request = json.loads((cycle / "request.json").read_text(encoding="utf-8"))
     workspace = cycle / "review-workspaces" / role.lower()
@@ -94,6 +97,17 @@ def create_review_workspace(cycle: Path, role: str) -> Path:
     if archive.returncode:
         raise RuntimeError(archive.stderr.decode("utf-8", errors="replace").strip() or "cannot archive bound revision")
     _safe_extract(archive.stdout, workspace)
+
+    # Evidence is recorded after capture and therefore normally leaves these
+    # mutable records ahead of the source commit.  Review the authoritative
+    # state that actually names the bound bundle, not its stale archived form.
+    for relative in ("project_state.json", "runs/run_history.json"):
+        source = ROOT / relative
+        destination = workspace / relative
+        if not source.is_file():
+            raise RuntimeError(f"governed review state is missing: {relative}")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
 
     live_manifest = ROOT / request["evidence_manifest_path"]
     if not live_manifest.is_file():
@@ -128,7 +142,7 @@ def prompt(workspace: Path, role: str) -> str:
     return (
         f"You are the independent read-only {role} reviewer. This is a clean snapshot of the exact bound revision. "
         f"Read {packet}, {template}, and {request}. Inspect only the bound evidence directory, milestone_registry.json, "
-        "project_state.json, and the verifier files named by the request. Do not run git diff, search historical runs, inspect the "
+        "project_state.json, runs/run_history.json, and the verifier files named by the request. Do not run git diff, search historical runs, inspect the "
         "parent repository, edit, commit, deploy, sign off, prove, or read another review. Return only a completed "
         "JSON object that exactly follows the supplied template and output schema."
     )
