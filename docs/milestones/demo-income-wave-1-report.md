@@ -1729,3 +1729,20 @@ approved window after its existing freshness, cost, risk, lease and broker gates
 pass. The unattended listener must then capture the accepted protected position,
 its monitoring and close, and broker-history/ledger reconciliation. No manual
 order or repeated polling is authorised or required.
+
+
+## 2026-09-11 operator closeout sequencing amendment
+
+The operator directed that the unobserved current-lease natural protected
+entry-to-close lifecycle, protected-position restart, and nonzero broker-charge
+observation move out of the Wave 1 progress blocker list. The T480 listener
+remains enabled to collect these observations naturally; no order will be
+forced. The evidence is deferred to final M20 closeout and the pre-funded Wave
+4.1 readiness gate. It is not waived, and it cannot be replaced with previous
+historical evidence, tests, a dashboard output, or a no-trade assessment.
+
+Wave 1 can proceed and be assessed against its completed core execution,
+recovery, risk, configuration, accounting-path, and unattended-operation work.
+M20 remains unproven until its current M20-C3 broker-matched lifecycle proof,
+independent verification, and bound review gates are satisfied on the final
+release.

@@ -1,3 +1,19 @@
+## Operator closeout sequencing amendment — 2026-09-11
+
+The human operator directs that a newly observed natural protected Demo
+entry-to-close lifecycle, protected-position restart, and nonzero broker-charge
+observation are **deferred from Wave 1 progress closeout**. The unattended
+listener must continue to collect them without forced orders. They remain
+mandatory evidence for the final M20 contract closeout and before any funded
+pilot; this is a sequencing change, not a waiver, proof substitution, risk
+change, or Live authority.
+
+Wave 1 may finish its core deployment, operating-safety, configuration,
+accounting-path and no-trade/risk evidence without waiting on a market signal.
+Do not state M20 as proven, or use a historical lifecycle as current final
+proof, until the active M20-C3 evidence and its required verification/review
+are fresh and bound to the final release.
+
 # Research-based trading waves: execution guide
 
 ## Operator priority amendment — 2026-09-10
