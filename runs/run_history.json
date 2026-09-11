@@ -12069,6 +12069,82 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000767",
+      "timestamp": "2026-09-11T11:42:36Z",
+      "milestone_id": "M27",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M27/20260911T114224Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000768",
+      "timestamp": "2026-09-11T11:42:37Z",
+      "milestone_id": "M27",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M27/20260911T114236Z/governance.stdout.txt",
+            "stderr": "runs/verification/M27/20260911T114236Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m27.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M27/20260911T114236Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M27/20260911T114236Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000769",
+      "timestamp": "2026-09-11T12:16:33Z",
+      "milestone_id": "M27",
+      "action": "TRIAD_RECOMMENDATION_RECORDED",
+      "detail": {
+        "path": "runs/triad/M27/M27-20260911T114245Z-fb18ded3/recommendation.json",
+        "recommendation": "RECOMMEND_COMPLETE"
+      }
+    },
+    {
+      "event_id": "E000770",
+      "timestamp": "2026-09-11T12:18:39Z",
+      "milestone_id": "M27",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris",
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "event_id": "E000771",
+      "timestamp": "2026-09-11T12:18:39Z",
+      "milestone_id": "M27",
+      "action": "MILESTONE_PROVEN",
+      "detail": {
+        "proven_at": "2026-09-11T12:18:39Z",
+        "next_milestone": "M28"
+      }
     }
   ]
 }
