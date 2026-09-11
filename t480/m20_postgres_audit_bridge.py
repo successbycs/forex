@@ -206,13 +206,12 @@ def persist_proposal(payload: dict[str, Any]) -> dict[str, Any]:
     context = _multi_timeframe_context(payload, proposal)
     revision, fingerprint = _metadata(payload)
     with _connection() as conn, conn.cursor() as cursor:
-        # All leases share one Demo risk/entry writer. A per-session lock did
-        # not serialize the global unresolved-exposure check across leases.
+        # Serialize proposal persistence with the shared entry writer, but do
+        # not turn a risk pause into a lost assessment.  The runner changes a
+        # paused candidate to NO_TRADE before this call; reserve_execution is
+        # the separate, authoritative gate that rejects every actual entry
+        # unless risk state is fresh and unpaused.
         cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended('forex.m20.conservative-risk.v1', 0))")
-        cursor.execute("SELECT pause_reasons,cash_flow_review_approved FROM forex.demo_risk_policy_state WHERE policy_version='forex.m20.conservative-risk.v1' FOR UPDATE")
-        risk_state = cursor.fetchone()
-        if risk_state is None or risk_state[0] or risk_state[1]:
-            raise SystemExit("M20 reservation requires checked, unpaused persistent risk state")
         cursor.execute(
             """INSERT INTO forex.demo_trade_session
                (session_id,operator_label,server,instrument,starts_at_utc,expires_at_utc,max_trades,max_notional_usd,max_cumulative_notional_usd,max_open_positions,status,strategy_version,application_revision,configuration_fingerprint)
