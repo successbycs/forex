@@ -12261,6 +12261,16 @@
         "proven_at": "2026-09-11T12:21:02Z",
         "next_milestone": "M29"
       }
+    },
+    {
+      "event_id": "E000781",
+      "timestamp": "2026-09-11T12:21:18Z",
+      "milestone_id": "M29",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
     }
   ]
 }

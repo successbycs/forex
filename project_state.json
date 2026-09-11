@@ -5,8 +5,8 @@
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "M20_DEMO_TRADING_MVP",
   "last_proven_milestone": "M28",
-  "current_milestone": null,
-  "next_milestone": "M29",
+  "current_milestone": "M29",
+  "next_milestone": "M30",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
   "broker": "GO Markets Mauritius",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "PROVEN",
+  "implementation_status": "IN_PROGRESS",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -40,7 +40,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-11T12:21:02Z",
+  "last_updated_at": "2026-09-11T12:21:18Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -3716,8 +3716,8 @@
       "blockers": []
     },
     "M29": {
-      "status": "READY",
-      "started_at": null,
+      "status": "IN_PROGRESS",
+      "started_at": "2026-09-11T12:21:18Z",
       "implementation_finished_at": null,
       "verification_passed_at": null,
       "real_world_proof_captured_at": null,
