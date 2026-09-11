@@ -1654,9 +1654,10 @@ not exercised by that historical run. The global PostgreSQL unresolved-attempt
 summary is a separate authoritative gate. Attempt3 does not prove its state at
 the exact reboot instant, and the Session-0 diagnostic proves scheduled-task
 identity rather than proving that no person signed in anywhere on Windows during
-the interval. The reboot operation is now one-shot and refuses reuse while its
-retained record exists; a future reboot requires a reviewed version that embeds
-the authoritative PostgreSQL unresolved-attempt check. These are explicit
+the interval. The operator deferred the authoritative PostgreSQL
+unresolved-attempt preflight for repeat reboot drills to W3.2 on 11 September.
+It is not a Wave 1 blocker. Repeat drills retain the existing held, available
+flat-Demo, IDLE-monitor, fresh-heartbeat and S4U safeguards. These are explicit
 limitations, not passed criteria.
 
 The observed reboot still demonstrates that the T480 listener and watchdog

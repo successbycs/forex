@@ -104,8 +104,10 @@ separate fixed `m20_listener_run_reboot_recovery_protocol` only after the
 current protocol passes and the T480 startup dependency is reviewed. It must
 schedule its own post-boot verifier before rebooting, require a flat held Demo
 account, wait five minutes for WSL/PostgreSQL/MT5/listener recovery without
-interactive sign-in, then retain 30 minutes of local continuity. It must never
-reboot when exposure is open or unresolved.
+interactive sign-in, then retain 30 minutes of local continuity. Wave 1 repeat
+drills require the fixed flat-Demo, held, IDLE-monitor, fresh-heartbeat and S4U
+checks. Embedding the authoritative PostgreSQL unresolved-attempt query in that
+reusable operation is deferred to W3.2; it does not block this Wave 1 proof.
 
 ## Evidence and review
 
