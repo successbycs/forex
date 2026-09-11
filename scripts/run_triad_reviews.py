@@ -98,14 +98,12 @@ def create_review_workspace(cycle: Path, role: str) -> Path:
     live_manifest = ROOT / request["evidence_manifest_path"]
     if not live_manifest.is_file():
         raise RuntimeError("bound evidence manifest is missing")
-    from forex.milestones import sha256_file
-
-    if sha256_file(live_manifest) != request["evidence_manifest_sha256"]:
+    if hashlib.sha256(live_manifest.read_bytes()).hexdigest() != request["evidence_manifest_sha256"]:
         raise RuntimeError("bound evidence manifest hash does not match the review request")
     evidence_destination = workspace / request["evidence_manifest_path"]
     evidence_destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(live_manifest.parent, evidence_destination.parent, dirs_exist_ok=True)
-    if sha256_file(evidence_destination) != request["evidence_manifest_sha256"]:
+    if hashlib.sha256(evidence_destination.read_bytes()).hexdigest() != request["evidence_manifest_sha256"]:
         raise RuntimeError("copied evidence manifest hash does not match the review request")
 
     handoff = workspace / ".triad-review"
