@@ -17,6 +17,7 @@ material_changes="$(git status --porcelain --untracked-files=all | awk 'substr($
 test -z "$material_changes"
 python3 -m pytest tests/milestones/test_m20_demo_trading.py >"$bundle/tests.txt" 2>&1
 python3 scripts/forex_milestones.py validate >"$bundle/governance.txt" 2>&1
+bash scripts/verify_project.sh >"$bundle/repository-verification.txt" 2>&1
 python3 scripts/validate_config.py --root "$root" --json >"$bundle/configuration.json"
 # The runtime-config digest is useful context, but evidence must bind the
 # complete governed configuration set used by the adapter and milestone state.

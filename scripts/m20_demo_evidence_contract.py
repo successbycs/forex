@@ -32,6 +32,7 @@ MAX_PROPOSAL_AGE = timedelta(minutes=5)
 REQUIRED_ARTIFACTS = {
     "tests.txt",
     "governance.txt",
+    "repository-verification.txt",
     "configuration.json",
     "demo-trading-operation.json",
     "lifecycle-summary.json",
@@ -524,6 +525,10 @@ def verify(bundle: Path, root: Path) -> None:
         require(hashlib.sha256(path.read_bytes()).hexdigest() == digest, f"artifact digest mismatch: {name}")
     require("passed" in (bundle / "tests.txt").read_text(encoding="utf-8").lower(), "milestone tests did not pass")
     require("milestone governance valid" in (bundle / "governance.txt").read_text(encoding="utf-8"), "governance validation did not pass")
+    require(
+        "FOREX_REPOSITORY_VERIFICATION_OK" in (bundle / "repository-verification.txt").read_text(encoding="utf-8"),
+        "repository verification did not pass",
+    )
     configuration = read_json(bundle / "configuration.json")
     require(configuration.get("runtime_mode") == "DEMO_TRADING", "configuration is not in DEMO_TRADING mode")
     require(configuration.get("agent_authority_mode") == "DEMO_SESSION_BOUNDED", "configuration does not declare bounded Demo authority")

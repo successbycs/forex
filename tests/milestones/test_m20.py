@@ -195,6 +195,7 @@ def fixture(tmp_path: Path) -> tuple[Path, Path]:
             "configuration_fingerprint": FINGERPRINT, "result": {"ok": True, "exit_code": 0, "stdout": json.dumps(value)}})
     (bundle / "tests.txt").write_text("4 passed\n", encoding="utf-8")
     (bundle / "governance.txt").write_text("milestone governance valid\n", encoding="utf-8")
+    (bundle / "repository-verification.txt").write_text("FOREX_REPOSITORY_VERIFICATION_OK\n", encoding="utf-8")
     write(bundle / "configuration.json", {
         "runtime_mode": "DEMO_TRADING",
         "agent_authority_mode": "DEMO_SESSION_BOUNDED",
