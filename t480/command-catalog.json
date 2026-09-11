@@ -309,7 +309,57 @@
     },
     {
       "id": "m20_listener_stage_22",
-      "purpose": "Stage and verify fixed M20 listener payload part 22.",
+      "purpose": "Stage fixed M20 listener payload part 22.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_23",
+      "purpose": "Stage fixed M20 listener payload part 23.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_24",
+      "purpose": "Stage fixed M20 listener payload part 24.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_25",
+      "purpose": "Stage fixed M20 listener payload part 25.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_26",
+      "purpose": "Stage fixed M20 listener payload part 26.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_27",
+      "purpose": "Stage fixed M20 listener payload part 27.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_28",
+      "purpose": "Stage fixed M20 listener payload part 28.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_29",
+      "purpose": "Stage fixed M20 listener payload part 29.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_30",
+      "purpose": "Stage fixed M20 listener payload part 30.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_31",
+      "purpose": "Stage fixed M20 listener payload part 31.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_32",
+      "purpose": "Stage and verify fixed M20 listener payload part 32.",
       "approval_required": false
     },
     {

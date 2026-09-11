@@ -463,7 +463,7 @@ def test_m20_listener_prepare_verifies_all_payloads_before_activation():
 
 def test_m20_listener_staging_is_split_and_hash_checked():
     first = t480_adapter.OPERATIONS["m20_listener_stage_1"].powershell_command
-    final = t480_adapter.OPERATIONS["m20_listener_stage_22"].powershell_command
+    final = t480_adapter.OPERATIONS["m20_listener_stage_32"].powershell_command
     assert len(first) < 4000 and len(final) < 4000
     assert "WriteAllBytes" in first
     assert "[IO.File]::Open" in final and "Get-FileHash" in final

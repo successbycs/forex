@@ -661,10 +661,10 @@ def _m20_listener_stage_command(index: int) -> str:
     source = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
     release_id = hashlib.sha256(source + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes() + (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()).hexdigest()[:16]
     # Raw Base64 decoding is accepted by the T480 endpoint; in-process gzip
-    # expansion is not.  Twenty-two bounded fixed fragments stay below its command
-    # cap and match the catalogued release protocol.
+    # expansion is not. Thirty-two bounded fixed fragments stay below the
+    # observed T480 command cap and match the catalogued release protocol.
     encoded = base64.b64encode(source).decode("ascii")
-    chunk_size = ((len(encoded) + (22 * 4) - 1) // (22 * 4)) * 4
+    chunk_size = ((len(encoded) + (32 * 4) - 1) // (32 * 4)) * 4
     chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
     if index not in range(1, len(chunks) + 1):
         raise ValueError("M20 listener stage index is invalid")
@@ -983,10 +983,10 @@ OPERATIONS: dict[str, Operation] = {
     "m20_listener_stage_5": Operation("m20_listener_stage_5", "Stage fixed M20 listener payload part five.", powershell_command=_m20_listener_stage_command(5)),
 }
 
-for _index in range(6, 23):
+for _index in range(6, 33):
     OPERATIONS[f"m20_listener_stage_{_index}"] = Operation(
         f"m20_listener_stage_{_index}",
-        ("Stage and verify" if _index == 22 else "Stage") + f" fixed M20 listener payload part {_index}.",
+        ("Stage and verify" if _index == 32 else "Stage") + f" fixed M20 listener payload part {_index}.",
         powershell_command=_m20_listener_stage_command(_index),
     )
 
