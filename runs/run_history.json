@@ -11931,6 +11931,52 @@
         ],
         "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
       }
+    },
+    {
+      "event_id": "E000761",
+      "timestamp": "2026-09-11T11:25:14Z",
+      "milestone_id": "M27",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M27/20260911T112501Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000762",
+      "timestamp": "2026-09-11T11:25:16Z",
+      "milestone_id": "M27",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M27/20260911T112514Z/governance.stdout.txt",
+            "stderr": "runs/verification/M27/20260911T112514Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m27.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M27/20260911T112514Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M27/20260911T112514Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
     }
   ]
 }
