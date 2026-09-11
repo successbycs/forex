@@ -87,6 +87,17 @@ def _snapshot(payload: dict[str, Any], proposal: dict[str, Any]) -> dict[str, An
     if (set(value) != required or value["snapshot_id"] != proposal["snapshot_id"] or value["payload_sha256"] != proposal["decision_snapshot_sha256"] or not isinstance(value["m1_closed_bars"], list) or not isinstance(value["m5_closed_bars"], list)
             or not isinstance(gates, dict) or set(gates) != expected_gates or any(flag is not True and flag is not False for flag in gates.values())):
         raise SystemExit("M20 bridge snapshot does not bind its proposal")
+    decision_at = _parse_utc(proposal["decision_at_utc"], "proposal decision_at_utc")
+    for index, bar in enumerate(value["m1_closed_bars"]):
+        if not isinstance(bar, dict):
+            raise SystemExit("M20 bridge M1 receipt row is invalid")
+        try:
+            closed_at = _parse_utc(bar["closed_at_utc"], f"M1 receipt {index} closed_at_utc")
+            available_at = _parse_utc(bar["available_at_utc"], f"M1 receipt {index} available_at_utc")
+        except (KeyError, TypeError, ValueError, SystemExit) as error:
+            raise SystemExit("M20 bridge M1 receipt timestamp is invalid") from error
+        if available_at < closed_at or available_at > decision_at:
+            raise SystemExit("M20 bridge M1 receipt is outside the closed decision interval")
     return value
 
 

@@ -137,7 +137,8 @@ def validate_session(payload: dict[str, Any]) -> dict[str, Any]:
     return session
 
 
-def validate_bars(bars: Any, timeframe: str, observed_at: datetime, *, allow_empty: bool = False) -> None:
+def validate_bars(bars: Any, timeframe: str, observed_at: datetime, *, allow_empty: bool = False,
+                  receipt_cutoff: datetime | None = None) -> None:
     require(isinstance(bars, list) and (allow_empty or len(bars) >= 2), f"snapshot requires at least two closed {timeframe} bars")
     previous_close: datetime | None = None
     for index, bar in enumerate(bars):
@@ -146,6 +147,10 @@ def validate_bars(bars: Any, timeframe: str, observed_at: datetime, *, allow_emp
         opened = utc(bar.get("opened_at_utc"), f"{timeframe} bar {index}.opened_at_utc")
         closed = utc(bar.get("closed_at_utc"), f"{timeframe} bar {index}.closed_at_utc")
         require(opened < closed <= observed_at, f"{timeframe} bar {index} is unclosed or uses future data")
+        if receipt_cutoff is not None:
+            available = utc(bar.get("available_at_utc"), f"{timeframe} bar {index}.available_at_utc")
+            require(closed <= available <= receipt_cutoff,
+                    f"{timeframe} bar {index} receipt is outside its closed decision interval")
         require(previous_close is None or previous_close <= opened, f"{timeframe} bars are not ordered without overlap")
         previous_close = closed
         require(isinstance(bar.get("close"), (int, float)) and bar["close"] > 0, f"{timeframe} bar {index} close is invalid")
@@ -170,7 +175,9 @@ def validate_snapshot(payload: dict[str, Any], session: dict[str, Any]) -> dict[
     # non-actionable assessment with no invented candle rows.  It can never
     # authorize an order because completed_m1 is false.
     allow_empty_m1 = gates.get("completed_m1") is False and payload.get("proposal", {}).get("action") == "NO_TRADE"
-    validate_bars(snapshot.get("m1_closed_bars"), "M1", observed, allow_empty=allow_empty_m1)
+    decision = utc(object_field(payload, "proposal").get("decision_at_utc"), "proposal.decision_at_utc")
+    validate_bars(snapshot.get("m1_closed_bars"), "M1", observed, allow_empty=allow_empty_m1,
+                  receipt_cutoff=decision)
     m5_bars = snapshot.get("m5_closed_bars")
     require(isinstance(m5_bars, list), "M5 shadow-context candles must be a list")
     if m5_bars:
@@ -213,7 +220,9 @@ def validate_proposal(payload: dict[str, Any], session: dict[str, Any], snapshot
     decision_at = utc(proposal.get("decision_at_utc"), "proposal.decision_at_utc")
     expires = utc(proposal.get("expires_at_utc"), "proposal.expires_at_utc")
     observed = utc(snapshot["observed_at_utc"], "decision_snapshot.observed_at_utc")
-    require(decision_at == observed, "proposal decision time does not bind to the observed snapshot")
+    captured = utc(snapshot["captured_at_utc"], "decision_snapshot.captured_at_utc")
+    require(observed <= decision_at == captured,
+            "proposal decision time does not bind to the completed snapshot")
     require(decision_at <= expires <= decision_at + MAX_PROPOSAL_AGE, "proposal expiry exceeds M20 cap")
     require(expires <= utc(session["expires_at_utc"], "session.expires_at_utc"), "proposal expires after its session")
     string(proposal.get("rationale"), "proposal.rationale")

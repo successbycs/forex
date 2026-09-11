@@ -233,7 +233,8 @@ def load_session_lease(path: Path, now: datetime) -> dict[str, Any]:
     }
 
 
-def _bar_rows(rates: Any, *, timeframe_name: str, seconds: int, cutoff: int, timestamp_offset_seconds: int) -> tuple[list[dict[str, Any]], str]:
+def _bar_rows(rates: Any, *, timeframe_name: str, seconds: int, cutoff: int,
+              timestamp_offset_seconds: int, receipt_at: datetime | None = None) -> tuple[list[dict[str, Any]], str]:
     if rates is None:
         raise SystemExit(f"expected closed EURUSD {timeframe_name} candles")
     rows: list[dict[str, Any]] = []
@@ -256,6 +257,12 @@ def _bar_rows(rates: Any, *, timeframe_name: str, seconds: int, cutoff: int, tim
             "close": float(rate["close"]),
             "volume": int(rate["tick_volume"]),
         }
+        # MT5 bars do not carry a publication timestamp.  For entry evidence,
+        # retain the local instant at which this fixed read received every
+        # completed M1 candle.  The row is hash-bound into the immutable
+        # snapshot and proposal before any reservation can occur.
+        if receipt_at is not None:
+            row["available_at_utc"] = utc(receipt_at)
         ohlc = (row["open"], row["high"], row["low"], row["close"])
         if (not all(math.isfinite(value) for value in ohlc) or min(ohlc) <= 0
                 or row["low"] > min(row["open"], row["close"])
@@ -269,7 +276,8 @@ def _bar_rows(rates: Any, *, timeframe_name: str, seconds: int, cutoff: int, tim
     return rows, hashlib.sha256(raw).hexdigest()
 
 
-def _entry_m1_history_is_synchronized(*, rows: list[dict[str, Any]], observed_at: datetime) -> bool:
+def _entry_m1_history_is_synchronized(*, rows: list[dict[str, Any]], observed_at: datetime,
+                                      receipt_cutoff: datetime | None = None) -> bool:
     """Accept an entry window only when it ends at the observed M1 boundary.
 
     This is deliberately an entry-data gate.  Position monitoring keeps using
@@ -284,9 +292,14 @@ def _entry_m1_history_is_synchronized(*, rows: list[dict[str, Any]], observed_at
         try:
             opened_at = int(parse_utc(row["opened_at_utc"], "M1 opened_at_utc").timestamp())
             closed_at = int(parse_utc(row["closed_at_utc"], "M1 closed_at_utc").timestamp())
+            available_at = (parse_utc(row["available_at_utc"], "M1 available_at_utc")
+                            if receipt_cutoff is not None else None)
         except (KeyError, TypeError, ValueError, SystemExit):
             return False
         if closed_at - opened_at != 60 or closed_at > boundary:
+            return False
+        if available_at is not None and (available_at < datetime.fromtimestamp(closed_at, timezone.utc)
+                                         or available_at > receipt_cutoff):
             return False
         if previous_closed_at is not None and opened_at != previous_closed_at:
             return False
@@ -949,8 +962,11 @@ def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, l
     snapshot = {"snapshot_id": snapshot_id, **snapshot_body, "payload_sha256": digest}
     proposal = {
         "proposal_id": proposal_id, "session_id": session["session_id"], "snapshot_id": snapshot_id,
-        "decision_at_utc": observed_at,
-        "expires_at_utc": utc(min(parse_utc(observed_at, "observed_at_utc") + timedelta(minutes=5), parse_utc(session["expires_at_utc"], "expires_at_utc"))),
+        # A decision cannot predate the completed-bar receipt retained above.
+        # Keep the broker tick separately as ``observed_at_utc`` while binding
+        # the executable proposal to the post-read snapshot capture instant.
+        "decision_at_utc": utc(captured_at),
+        "expires_at_utc": utc(min(captured_at + timedelta(minutes=5), parse_utc(session["expires_at_utc"], "expires_at_utc"))),
         "selected_timeframe": "M1", "action": action, "proposed_entry": entry, "stop_loss": stop, "take_profit": take,
         "notional_usd": round(float(notional), 2) if notional is not None else None,
         "confidence": 100 if action == "NO_TRADE" else 70, "rationale": reason,
@@ -1822,10 +1838,12 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         for name, timeframe, seconds in TIMEFRAMES:
             if name == "M1":
                 rates = mt5.copy_rates_from_pos(SYMBOL, timeframe, 1, CLOSED_BAR_COUNT + 8)
+                receipt_at = datetime.now(timezone.utc)
                 boundary = int(observed_at.timestamp()) // seconds * seconds
                 try:
                     rows, _ = _bar_rows(rates, timeframe_name=name, seconds=seconds,
-                                        cutoff=boundary, timestamp_offset_seconds=offset_seconds)
+                                        cutoff=boundary, timestamp_offset_seconds=offset_seconds,
+                                        receipt_at=receipt_at)
                     raw_bars[name] = [{"timeframe": name, **row} for row in rows]
                 except (SystemExit, KeyError, TypeError, ValueError, OverflowError):
                     # Retain no partly parsed or invented rows.  The durable
@@ -1844,7 +1862,8 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         freshness_seconds = (captured_at - observed_at).total_seconds()
         entry_m1_synchronized = (
             int(observed_at.timestamp()) // 60 == int(captured_at.timestamp()) // 60
-            and _entry_m1_history_is_synchronized(rows=raw_bars["M1"], observed_at=observed_at)
+            and _entry_m1_history_is_synchronized(rows=raw_bars["M1"], observed_at=observed_at,
+                                                   receipt_cutoff=captured_at)
         )
         session = _session(lease)
         risk_policy = persistent_risk_policy()
@@ -1977,7 +1996,13 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
             _, _, submission_refusal = _current_entry_inputs(
                 offset_seconds=offset_seconds,
                 expected_boundary=int(parse_utc(proposal["decision_at_utc"], "decision_at_utc").timestamp()) // 60 * 60,
-                expected_m1_digest=hashlib.sha256(json.dumps([{key: value for key, value in row.items() if key != "timeframe"} for row in raw_bars["M1"]], sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+                # Receipt timestamps prove the original decision's
+                # availability but naturally differ on the fresh submission
+                # recheck; compare only the broker candle values here.
+                expected_m1_digest=hashlib.sha256(json.dumps([{key: value for key, value in row.items()
+                                                                if key not in {"timeframe", "available_at_utc"}}
+                                                               for row in raw_bars["M1"]], sort_keys=True,
+                                                              separators=(",", ":")).encode()).hexdigest(),
             )
             if submission_refusal:
                 validation_at = utc(datetime.now(timezone.utc))

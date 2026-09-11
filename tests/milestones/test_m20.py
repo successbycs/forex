@@ -31,6 +31,7 @@ def operation_payload(now: datetime) -> dict:
                 "timeframe": timeframe,
                 "opened_at_utc": stamp(now - timedelta(minutes=minutes * offset)),
                 "closed_at_utc": stamp(now - timedelta(minutes=minutes * (offset - 1))),
+                "available_at_utc": stamp(now),
                 "close": 1.1 + offset / 10000,
             }
             for offset in (3, 2)
@@ -96,8 +97,8 @@ def operation_payload(now: datetime) -> dict:
             "decision_snapshot_sha256": digest,
             "action": "NO_TRADE",
             "selected_timeframe": "M1",
-            "decision_at_utc": stamp(now),
-            "expires_at_utc": stamp(now + timedelta(minutes=5)),
+            "decision_at_utc": stamp(now + timedelta(seconds=2)),
+            "expires_at_utc": stamp(now + timedelta(minutes=5, seconds=2)),
             "notional_usd": None,
             "confidence": 100,
             "rationale": "M1 momentum is flat, so no order is sent.",
@@ -281,6 +282,25 @@ def test_m20_demo_evidence_verifier_rejects_a_capture_without_a_matched_trade_li
     result = verify(root, bundle)
     assert result.returncode != 0
     assert "no broker-matched OPENED to CLOSED Demo trade" in result.stderr
+
+
+@pytest.mark.parametrize("late", [False, True])
+def test_m20_demo_evidence_verifier_requires_m1_receipts_before_the_bound_decision(tmp_path: Path, late: bool):
+    root, bundle = fixture(tmp_path)
+    wrapper = json.loads((bundle / "demo-trading-operation.json").read_text(encoding="utf-8"))
+    payload = json.loads(wrapper["result"]["stdout"])
+    bar = payload["decision_snapshot"]["m1_closed_bars"][0]
+    if not late:
+        del bar["available_at_utc"]
+    else:
+        decision = datetime.fromisoformat(payload["proposal"]["decision_at_utc"].replace("Z", "+00:00"))
+        bar["available_at_utc"] = (decision + timedelta(seconds=1)).isoformat().replace("+00:00", "Z")
+    wrapper["result"]["stdout"] = json.dumps(payload)
+    write(bundle / "demo-trading-operation.json", wrapper)
+    update_artifact_digest(bundle, "demo-trading-operation.json")
+    result = verify(root, bundle)
+    assert result.returncode != 0
+    assert "receipt" in result.stderr or "available_at_utc" in result.stderr
 
 
 @pytest.mark.parametrize("field,value", [

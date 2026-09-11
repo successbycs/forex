@@ -508,8 +508,9 @@ def test_m20_runner_builds_the_same_no_trade_shape_accepted_by_the_evidence_cont
     }
     def bars(timeframe, minutes, values):
         return [
-            {"timeframe": timeframe, "opened_at_utc": stamp(observed - timedelta(minutes=minutes * (2 - index))),
-             "closed_at_utc": stamp(observed - timedelta(minutes=minutes * (1 - index))), "close": value}
+                {"timeframe": timeframe, "opened_at_utc": stamp(observed - timedelta(minutes=minutes * (2 - index))),
+                 "closed_at_utc": stamp(observed - timedelta(minutes=minutes * (1 - index))),
+                 "available_at_utc": stamp(observed.replace(second=2)), "close": value}
             for index, value in enumerate(values)
         ]
     # The M1-only runner does not collect or retain M5 candles.
@@ -667,6 +668,25 @@ def test_m20_stale_entry_history_does_not_change_closed_bar_monitor_input(monkey
                                 cutoff=int(boundary.timestamp()), timestamp_offset_seconds=0)
     assert len(parsed) == probe.CLOSED_BAR_COUNT
     assert not probe._entry_m1_history_is_synchronized(rows=parsed, observed_at=boundary + timedelta(seconds=48))
+
+
+def test_m20_assessed_m1_rows_bind_the_fixed_read_receipt_timestamp(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    boundary = datetime(2026, 9, 10, 4, 0, tzinfo=timezone.utc)
+    receipt = boundary + timedelta(seconds=7)
+    rates = []
+    for index in range(probe.CLOSED_BAR_COUNT):
+        opened = boundary - timedelta(minutes=probe.CLOSED_BAR_COUNT - index)
+        rates.append({"time": int(opened.timestamp()), "open": 1.1, "high": 1.1001,
+                      "low": 1.0999, "close": 1.1, "tick_volume": 10})
+    parsed, _ = probe._bar_rows(rates, timeframe_name="M1", seconds=60,
+                                cutoff=int(boundary.timestamp()), timestamp_offset_seconds=0,
+                                receipt_at=receipt)
+    assert {row["available_at_utc"] for row in parsed} == {probe.utc(receipt)}
+    assert probe._entry_m1_history_is_synchronized(rows=parsed, observed_at=boundary + timedelta(seconds=48),
+                                                    receipt_cutoff=receipt)
+    assert not probe._entry_m1_history_is_synchronized(rows=parsed, observed_at=boundary + timedelta(seconds=48),
+                                                        receipt_cutoff=boundary - timedelta(seconds=1))
 
 
 def test_m20_submission_recheck_rejects_a_minute_boundary_crossing(monkeypatch):
