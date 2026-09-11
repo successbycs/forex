@@ -11120,6 +11120,16 @@
         "proven_at": "2026-09-11T10:44:03Z",
         "next_milestone": "M23"
       }
+    },
+    {
+      "event_id": "E000706",
+      "timestamp": "2026-09-11T10:44:22Z",
+      "milestone_id": "M23",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
     }
   ]
 }
