@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Learning-first, risk-controlled EUR/USD research and trading assistance.",
   "phase": "M20_DEMO_TRADING_MVP",
-  "last_proven_milestone": "M22",
-  "current_milestone": "M23",
+  "last_proven_milestone": "M23",
+  "current_milestone": null,
   "next_milestone": "M24",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -40,7 +40,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-11T10:44:22Z",
+  "last_updated_at": "2026-09-11T10:46:23Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -3090,23 +3090,91 @@
       "blockers": []
     },
     "M23": {
-      "status": "IN_PROGRESS",
+      "status": "PROVEN",
       "started_at": "2026-09-11T10:44:22Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
+      "implementation_finished_at": "2026-09-11T10:46:23Z",
+      "verification_passed_at": "2026-09-11T10:46:22Z",
+      "real_world_proof_captured_at": "2026-09-11T10:46:21.397504Z",
       "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
+      "first_proven_at": "2026-09-11T10:46:23Z",
+      "proven_at": "2026-09-11T10:46:23Z",
+      "last_validated_at": "2026-09-11T10:46:23Z",
+      "checks": {
+        "M23-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:46:22Z",
+          "evidence": "runs/evidence/M23/20260911T104620Z/manifest.json",
+          "note": "The retained drill sizes only a hash-matched M22 simulation approval and returns explicit NO_TRADE outcomes otherwise."
+        },
+        "M23-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:46:22Z",
+          "evidence": "runs/evidence/M23/20260911T104620Z/manifest.json",
+          "note": "Focused tests, governance validation, and repository verification passed."
+        },
+        "M23-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:46:22Z",
+          "evidence": "runs/evidence/M23/20260911T104620Z/manifest.json",
+          "note": "The verified manifest binds Git revision, configuration fingerprint, policy hash, and artifact hashes."
+        },
+        "M23-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:46:23Z",
+          "evidence": "runs/evidence/M23/20260911T104620Z/manifest.json",
+          "note": "Sizing is offline, bounded by planned loss, rejects unapproved risk, and structurally disables order submission."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M23/20260911T104620Z/manifest.json",
+          "manifest_sha256": "6b2e78860badd27a3f0cad92bf441979083153d9239ab597b7b121986ef3c152",
+          "captured_at": "2026-09-11T10:46:21.397504Z",
+          "recorded_at": "2026-09-11T10:46:21Z",
+          "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+          "git_revision": "42205e2cd2c12abc0276b243f59879cd1efe60f6",
+          "summary": "FOREX_M23_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-11T10:46:22Z",
+        "git_revision": "42205e2cd2c12abc0276b243f59879cd1efe60f6",
+        "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M23/20260911T104621Z/governance.stdout.txt",
+            "stderr": "runs/verification/M23/20260911T104621Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m23.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M23/20260911T104621Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M23/20260911T104621Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
       "human_signoff": null,
       "blockers": []
     },
     "M24": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,
