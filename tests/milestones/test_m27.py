@@ -12,6 +12,7 @@ def test_m27_verifier_binds_tick_proof_to_raw_read_only_listener_response():
     for requirement in (
         "outer['operation']=='m27_demo_tick'",
         "outer['approval_required'] is False",
+        "outer['configuration_fingerprint']==m['configuration_fingerprint']",
         "tick['bid']>0 and tick['ask']>=tick['bid']",
         "tick['broker_timestamp_offset_seconds']==10800",
         "0<=manifest_age<24*3600",
