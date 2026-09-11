@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -40,7 +40,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-11T10:55:53Z",
+  "last_updated_at": "2026-09-11T10:57:56Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -3448,18 +3448,86 @@
       "blockers": []
     },
     "M27": {
-      "status": "IN_PROGRESS",
+      "status": "AWAITING_REAL_WORLD_PROOF",
       "started_at": "2026-09-11T10:55:53Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
+      "implementation_finished_at": "2026-09-11T10:57:56Z",
+      "verification_passed_at": "2026-09-11T10:57:44Z",
+      "real_world_proof_captured_at": "2026-09-11T10:57:32.770879Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
+      "checks": {
+        "M27-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:57:55Z",
+          "evidence": "runs/evidence/M27/20260911T105730Z/manifest.json",
+          "note": "A raw fixed read-only listener response proves a running GOMarketsMU-Demo EURUSD assessment captured within the fifteen-second freshness window."
+        },
+        "M27-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:57:56Z",
+          "evidence": "runs/evidence/M27/20260911T105730Z/manifest.json",
+          "note": "Focused tests, governance validation, and repository verification passed."
+        },
+        "M27-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:57:56Z",
+          "evidence": "runs/evidence/M27/20260911T105730Z/manifest.json",
+          "note": "The verified manifest binds the raw Demo observation, revision, configuration fingerprint, and artifact hashes."
+        },
+        "M27-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-11T10:57:56Z",
+          "evidence": "runs/evidence/M27/20260911T105730Z/manifest.json",
+          "note": "The evidence path is fixed, read-only, Demo-only, and rejects stale, stopped, or non-EURUSD observations."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M27/20260911T105730Z/manifest.json",
+          "manifest_sha256": "161bdc61a8e03639775cf0cc179f2efe61fd64cf4376afb0c7741138ec590f3f",
+          "captured_at": "2026-09-11T10:57:32.770879Z",
+          "recorded_at": "2026-09-11T10:57:44Z",
+          "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+          "git_revision": "15631475b33c6e3537c3a24f2b761c41436cd52b",
+          "summary": "FOREX_M27_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-11T10:57:44Z",
+        "git_revision": "15631475b33c6e3537c3a24f2b761c41436cd52b",
+        "configuration_fingerprint": "sha256:f1c46cc629795da5f6ba379c5ffcac59ef5165b658e81e576ccdb0f28c228b73",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M27/20260911T105744Z/governance.stdout.txt",
+            "stderr": "runs/verification/M27/20260911T105744Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m27.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M27/20260911T105744Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M27/20260911T105744Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
       "human_signoff": null,
       "blockers": []
     },
