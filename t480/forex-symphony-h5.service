@@ -1,0 +1,25 @@
+[Unit]
+Description=Forex H5 Plane Symphony-style task orchestrator
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Source is read-only. Workers use a dedicated clone/worktrees below the
+# explicitly writable cache path, never the shared repository's .git folder.
+WorkingDirectory=%h/projects/forex
+EnvironmentFile=%h/.config/forex/symphony-h5.env
+ExecStart=/usr/bin/python3 scripts/plane_symphony_t480.py run-once --loop
+Restart=on-failure
+RestartSec=15
+# Two workers, each limited by the H5 contract to one CPU, 1.5 GiB and 128 PIDs.
+CPUQuota=200%
+MemoryMax=3G
+TasksMax=256
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ReadWritePaths=%h/.local/state/forex-symphony-h5 %h/.cache/forex-symphony-h5
+
+[Install]
+WantedBy=default.target

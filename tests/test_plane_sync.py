@@ -25,9 +25,9 @@ def test_offline_contract_maps_existing_task_ids_without_connecting_to_plane():
     assert json.loads(result.stdout)["task_ids"] == task_ids
 
 
-def test_contract_refuses_connection_or_execution_authority(tmp_path: Path):
+def test_contract_refuses_disabled_or_execution_authority(tmp_path: Path):
     source = json.loads((ROOT / "config/plane_sync.json").read_text())
-    source["enabled"] = True
+    source["enabled"] = False
     path = tmp_path / "bad.json"
     path.write_text(json.dumps(source))
     with pytest.raises(PlaneSyncError, match="authority"):

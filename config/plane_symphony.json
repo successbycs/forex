@@ -1,0 +1,11 @@
+{
+  "schema_version": "forex.plane-symphony.v1",
+  "task_source": "docs/milestones/active-delivery-tasks.json",
+  "state_dir": "/home/chris/.local/state/forex-symphony-h5",
+  "worktree_root": "/home/chris/.cache/forex-symphony-h5/worktrees",
+  "max_workers": 2,
+  "cpu_limit": 1,
+  "memory_mib": 1536,
+  "pids_limit": 128,
+  "execution_authority": false
+}

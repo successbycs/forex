@@ -7,6 +7,7 @@ from typing import Any
 SCHEMA = "forex.active-delivery-tasks.v2"
 _TOP = {"schema_version", "purpose", "active_sequence", "execution_authority", "tasks"}
 _TASK = {"id", "stage", "title", "state", "formal_milestone", "acceptance", "requires", "owned_paths", "acceptance_commands", "acceptance_results", "review_disposition", "evidence_class", "execution_authority"}
+_TASK_OPTIONAL = {"symphony"}
 _STATES = {"PENDING", "READY", "IN_PROGRESS", "IN_REVIEW", "COMPLETE_REVIEWED", "BLOCKED_EXTERNAL_PLANE", "BLOCKED_EXTERNAL_OBSERVATION", "BLOCKED_HUMAN_MIGRATION"}
 _STAGES = {"HARNESS", "A", "B", "C"}
 _ACTIVE = {"READY", "IN_PROGRESS", "IN_REVIEW"}
@@ -26,7 +27,7 @@ def validate_task_plan(plan: dict[str, Any]) -> list[dict[str, Any]]:
         raise ActiveDeliveryTaskError("task plan sequence is invalid")
     by_id: dict[str, dict[str, Any]] = {}
     for task in tasks:
-        if not isinstance(task, dict) or set(task) != _TASK:
+        if not isinstance(task, dict) or not _TASK <= set(task) or not set(task) <= (_TASK | _TASK_OPTIONAL):
             raise ActiveDeliveryTaskError("task schema is invalid")
         task_id = task["id"]
         if not isinstance(task_id, str) or not task_id or task_id in by_id:
@@ -45,6 +46,19 @@ def validate_task_plan(plan: dict[str, Any]) -> list[dict[str, Any]]:
                 or not isinstance(task["review_disposition"], str) or not task["review_disposition"]
                 or not isinstance(task["evidence_class"], str) or not task["evidence_class"]):
             raise ActiveDeliveryTaskError("task evidence metadata is invalid")
+        if "symphony" in task:
+            policy = task["symphony"]
+            expected = {"eligible", "allowed_external_operations", "preflight_commands", "review_route"}
+            if task_id not in {"H5", "A1"} or not isinstance(policy, dict) or set(policy) != expected:
+                raise ActiveDeliveryTaskError("task Symphony policy is invalid")
+            if policy["eligible"] is not True or not isinstance(policy["review_route"], str) or not policy["review_route"]:
+                raise ActiveDeliveryTaskError("task Symphony eligibility is invalid")
+            operations, commands = policy["allowed_external_operations"], policy["preflight_commands"]
+            forbidden = ("broker", "mt5", "live", "shell", "bash", "powershell", "curl", "http://", "https://")
+            if (not isinstance(operations, list) or not operations or not all(isinstance(item, str) and item for item in operations)
+                    or not isinstance(commands, list) or not commands or not all(isinstance(item, str) and item for item in commands)
+                    or any(any(token in item.lower() for token in forbidden) for item in [*operations, *commands])):
+                raise ActiveDeliveryTaskError("task Symphony operation policy is unsafe")
         by_id[task_id] = task
     if sequence != list(by_id):
         raise ActiveDeliveryTaskError("task sequence must exactly match task order")

@@ -1,7 +1,7 @@
 {
-  "schema_version": "forex.plane-sync.v1",
-  "enabled": false,
-  "external_state": "PENDING_DEPLOYMENT",
+  "schema_version": "forex.plane-sync.v2",
+  "enabled": true,
+  "external_state": "H5_CONFIGURATION_REQUIRED",
   "task_source": "docs/milestones/active-delivery-tasks.json",
   "workflow_state_authority": "PLANE_VISIBLE_REPO_ACCEPTANCE",
   "plane_base_url_env": "FOREX_PLANE_BASE_URL",

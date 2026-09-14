@@ -8,6 +8,11 @@ t480/m20_demo_listener_service.local.json
 t480/m20_demo_listener_status.local.json
 t480/m20_demo_listener.stop
 t480/m20_demo_listener_service_runtime.py
+t480/symphony_h5.local.env
+t480/plane_mcp.local.env
+t480/symphony_h5.local.json
+t480/symphony_h5.state.json
+t480/symphony_h5.worktrees/
 .t480-execution.local.jsonl
 __pycache__/
 *.py[cod]

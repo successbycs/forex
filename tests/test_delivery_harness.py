@@ -30,6 +30,9 @@ def _inputs() -> tuple[dict, dict, dict, dict]:
 
 def test_reports_task_metadata_formal_evidence_blockers_and_no_authority():
     plan, state, registry, history = _inputs()
+    # Exercise the no-actionable-task case without depending on today's A1
+    # execution status in the living task metadata.
+    next(task for task in plan["tasks"] if task["id"] == "A1")["state"] = "BLOCKED_EXTERNAL_OBSERVATION"
     report = harness_status(task_plan=plan, state=state, registry=registry, history=history)
     assert report["execution_authority"] is False and report["read_only"] is True
     assert report["active_task"]["task_id"] == "M29"
@@ -40,6 +43,16 @@ def test_reports_task_metadata_formal_evidence_blockers_and_no_authority():
     assert any(item.get("task_id") == "A1" and item["state"] == "BLOCKED_EXTERNAL_OBSERVATION" for item in report["blockers"])
     assert report["next_action"]["state"] == "NO_ACTIVE_DELIVERY_TASK"
     assert report["unsupported_completion_claims"] == []
+
+
+def test_actionable_a1_is_selected_despite_parked_plane_and_formal_proof():
+    plan, state, registry, history = _inputs()
+    next(task for task in plan["tasks"] if task["id"] == "A1")["state"] = "IN_PROGRESS"
+    report = harness_status(task_plan=plan, state=state, registry=registry, history=history)
+    assert report["active_task"]["task_id"] == "A1"
+    assert report["next_action"]["state"] == "ACTIVE_TASK"
+    assert report["demonstrated_result"]["formal_milestone_status"] == "BLOCKED"
+    assert report["execution_authority"] is False
 
 
 def test_canonical_active_plan_contains_harness_and_abc_tasks_and_parks_plane_h5():
@@ -53,6 +66,15 @@ def test_canonical_active_plan_contains_harness_and_abc_tasks_and_parks_plane_h5
                for task in plan["tasks"])
     assert all({"owned_paths", "acceptance_commands", "acceptance_results", "review_disposition", "evidence_class"} <= set(task)
                for task in plan["tasks"])
+    assert {"H5", "A1"} == {task["id"] for task in plan["tasks"] if "symphony" in task}
+
+
+def test_task_plan_refuses_unsafe_symphony_operation_policy():
+    plan, _, _, _ = _inputs()
+    broken = copy.deepcopy(plan)
+    next(task for task in broken["tasks"] if task["id"] == "H5")["symphony"]["allowed_external_operations"] = ["mt5_demo_order"]
+    with pytest.raises(ValueError, match="Symphony operation policy is unsafe"):
+        harness_status(task_plan=broken, state=_inputs()[1], registry=_inputs()[2], history=_inputs()[3])
 
 
 def test_refuses_an_active_task_with_an_unmet_prerequisite():
