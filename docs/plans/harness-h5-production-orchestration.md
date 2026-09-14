@@ -32,11 +32,12 @@ T16 reaches Plane only through an authenticated SSH local forward to a T480
 loopback bridge. Do not add LAN bindings, firewall rules, router forwarding,
 or public control ports.
 
-The current H5 files are not in `HEAD`. This is critical: a worker must clone
-an exact clean, human-approved Git revision, and that revision currently would
-not include the H5 package. T480 has user-local Node.js, npm, Codex CLI, and
-an operator-completed Codex login; no credential was read or copied. A clean
-baseline and the remaining contained Codex egress path are still required.
+The complete H5 package is in locally committed, human-authorised revision
+`39e7f89be2b2c0eed59705241ed791309a529568`. T480 still has its older dirty
+checkout, so that revision must be published/deployed and recorded in the
+protected T480 H5 environment before any write-capable worker is selected.
+T480 has user-local Node.js, npm, Codex CLI, and an operator-completed Codex
+login; no credential was read or copied.
 
 ## Non-negotiable boundaries
 
@@ -53,25 +54,51 @@ baseline and the remaining contained Codex egress path are still required.
 
 ## Progress
 
+<!-- forex-work-projection:start task=H5 schema=forex.execution-work-projection.v1 -->
+<!-- forex-work-item id=baseline-provenance state=DONE -->
+- [x] baseline-provenance — Require H5 package presence in the approved clean baseline (DONE)
+<!-- forex-work-item id=identity-hardening state=DONE -->
+- [x] identity-hardening — Pin and revalidate exact Plane board, state, and work-item identities (DONE)
+<!-- forex-work-item id=state-machine state=DONE -->
+- [x] state-machine — Implement repository-only task transitions and fresh selection readback (DONE)
+<!-- forex-work-item id=host-tool-egress-confinement state=DONE -->
+- [x] host-tool-egress-confinement — Confine Codex host tool egress while retaining App Server transport (DONE)
+<!-- forex-work-item id=per-run-ipc-state-isolation state=DONE -->
+- [x] per-run-ipc-state-isolation — Expose only per-run IPC state to host and worker (DONE)
+<!-- forex-work-item id=ipc-readiness-and-lifecycle state=DONE -->
+- [x] ipc-readiness-and-lifecycle — Verify socket readiness and clean up failed IPC host units (DONE)
+<!-- forex-work-item id=ipc-integration-review state=DONE -->
+- [x] ipc-integration-review — Prove the fixed IPC path and obtain Astra review (DONE)
+<!-- forex-work-item id=lifecycle-retry state=DONE -->
+- [x] lifecycle-retry — Implement timeouts, health receipts, and review-gated retry (DONE)
+<!-- forex-work-item id=t480-codex-setup state=DONE -->
+- [x] t480-codex-setup — Install and interactively authenticate T480 Codex CLI (DONE)
+<!-- forex-work-item id=clean-baseline state=BLOCKED -->
+- [ ] clean-baseline — Record a human-authorized clean baseline containing H5 (BLOCKED)
+<!-- forex-work-item id=live-h5-review state=PENDING -->
+- [ ] live-h5-review — Run bounded H5 self-test to Review and repository-gated Done (PENDING)
+<!-- forex-work-projection:end -->
+
 - [x] (2026-09-14) Live board, state set, T16 private transport, and H5/A1
   display reconciliation were observed and retained in the prior H5 record.
 - [x] (2026-09-14) Astra independently reviewed the prototype and identified
   baseline provenance, board/task identity, worker isolation, lifecycle,
   retry, state-machine, and documentation gaps.
-- [ ] Commit or otherwise create a clean human-approved revision containing
-  the complete H5 package. Do not commit automatically.
-- [ ] Implement and test the hardened controller, worker boundary, state
-  transitions, retries, and operational receipts below.
+- [x] (2026-09-14) Chris authorised and Codex created clean local revision
+  `39e7f89be2b2c0eed59705241ed791309a529568` containing the H5 package.
+- [x] (2026-09-15) Completed and independently reviewed the MVP controller,
+  worker boundary, state transitions, lifecycle receipts, and strict
+  no-automatic-retry behavior.
 - [x] (2026-09-14) Install the user-local Codex CLI on T480 and complete
   Chris's interactive login; controlled readback confirmed App Server access.
-- [ ] Replace the fail-closed worker's total network denial with a
+- [x] Replace the fail-closed worker's total network denial with a
   controller-owned fixed Codex egress/IPC path, without exposing Plane, broker,
   MT5, LAN, arbitrary Internet, or inherited secrets to the worker. The
   isolated App Server host retains the transport connectivity Codex needs; its
   workspace-write tool sandbox is explicitly started with
   `sandbox_workspace_write.network_access=false`. This is a Codex tool policy,
   not an OS-level destination allowlist for the host process.
-- [ ] Complete the linked durable-loop sub-ExecPlan,
+- [x] Complete the linked durable-loop sub-ExecPlan,
   `harness-h5-execution-loop-orchestration.md`: it governs implementation
   continuation separately from the controller's canonical H5/A1 runtime
   scheduling and must not turn ExecPlan items into runtime operations.

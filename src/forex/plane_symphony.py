@@ -28,6 +28,10 @@ TASK_SOURCE = "docs/milestones/active-delivery-tasks.json"
 ROLLOUT_TASK_IDS = ("H5", "A1")
 PLANE_STATES = frozenset({"Ready", "In progress", "Review", "Blocked", "Done"})
 TASK_STATE_MAP = {
+    # Future repository work is visible on Plane but not selectable.  The
+    # board has no separate Pending state, so render it as Blocked rather than
+    # silently treating it as Ready.
+    "PENDING": "Blocked",
     "READY": "Ready",
     "IN_PROGRESS": "In progress",
     "IN_REVIEW": "Review",
@@ -507,6 +511,13 @@ class Controller:
             leases, outcome = self.leases.read(), []
             changed = False
             for task_id, lease in leases.items():
+                # A terminal lease is historical operational evidence.  A
+                # restart must never turn failure/completion into an active
+                # retry; a future reviewed retry operation may add a new
+                # lease without overwriting this record.
+                if lease.get("status") not in _ACTIVE_LEASE_STATES:
+                    outcome.append({"task_id": task_id, "status": str(lease.get("status", "BLOCKED_LIFECYCLE_INVALID"))})
+                    continue
                 try:
                     canonical = self.catalog.task(task_id)
                     operation = bind_fixed_operation(self.catalog, task_id=task_id,
@@ -522,7 +533,9 @@ class Controller:
                     outcome.append({"task_id": task_id, "status": "BLOCKED_CONFIGURATION_DRIFT"})
                     changed = True
                 else:
+                    lease["status"] = "RESUMABLE"
                     outcome.append({"task_id": task_id, "status": "RESUMABLE"})
+                    changed = True
             if changed:
                 self.leases.write(leases)
         return outcome

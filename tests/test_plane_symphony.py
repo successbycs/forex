@@ -186,6 +186,11 @@ def test_done_display_requires_repository_acceptance_evidence():
     assert issue_payload(task)["state"] == "Done"
 
 
+def test_pending_repository_task_is_visible_as_blocked_not_ready():
+    task = catalog(h5="PENDING")["tasks"][0]
+    assert desired_plane_state(task) == "Blocked"
+
+
 def test_repository_transition_sequence_rejects_plane_style_shortcuts():
     blocked = catalog(h5="BLOCKED_EXTERNAL_PLANE")["tasks"][0]
     ready = transition_task_state(blocked, "READY")
@@ -261,8 +266,24 @@ def test_failed_or_unavailable_lifecycle_never_silently_releases_capacity(tmp_pa
     unavailable.run_once({"H5": "Ready"}, baseline_revision="abcdef1", clean_baseline=True)
     unavailable_runner.fail_inspect = True
     unavailable.run_once({"H5": "Ready"}, baseline_revision="abcdef1", clean_baseline=True)
-    assert unavailable.leases.read()["H5"]["status"] == "IN_PROGRESS"
+    assert unavailable.leases.read()["H5"]["status"] == "RESUMABLE"
     assert unavailable_plane.issues["FOREX:H5"]["state"] == "In progress"
+
+
+def test_restart_preserves_terminal_failure_and_completion_history(tmp_path: Path):
+    failed, _, failed_runner = controller(tmp_path / "failed")
+    failed.run_once({"H5": "Ready"}, baseline_revision="abcdef1", clean_baseline=True)
+    failed_runner.lifecycle = "FAILED"
+    failed.reconcile_runner_lifecycle()
+    assert failed.recover_leases(baseline_revision="abcdef1") == [{"task_id": "H5", "status": "BLOCKED_RUNNER_FAILURE"}]
+    assert failed.leases.read()["H5"]["status"] == "BLOCKED_RUNNER_FAILURE"
+
+    completed, _, completed_runner = controller(tmp_path / "completed")
+    completed.run_once({"H5": "Ready"}, baseline_revision="abcdef1", clean_baseline=True)
+    completed_runner.lifecycle = "COMPLETED"
+    completed.reconcile_runner_lifecycle()
+    assert completed.recover_leases(baseline_revision="abcdef1") == [{"task_id": "H5", "status": "COMPLETED"}]
+    assert completed.leases.read()["H5"]["status"] == "COMPLETED"
 
 
 def test_two_worker_limit_never_creates_more_than_two_leases(tmp_path: Path):
