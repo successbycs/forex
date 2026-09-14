@@ -1,8 +1,22 @@
 # Project brain
 
-Forex is a learning-first EUR/USD research project. Its active M20 MVP is a bounded autonomous Demo-only loop—not a live-trading capability: a permanent T480 listener assesses fresh EUR/USD M1 data every ten seconds, records a proposal, candle metrics, and reason, may act only inside a capped Demo session, then reconciles the result. `NO TRADE`, `WAIT`, `INSUFFICIENT DATA`, and `NO SUFFICIENT EDGE HAS BEEN DEMONSTRATED` are valid results.
+Forex is a solo-operator EUR/USD Demo trading platform. Its active mission is
+to reach a bounded autonomous Demo-only decision-and-outcome loop quickly,
+without weakening the safety boundaries that make its decisions meaningful.
+The permanent T480 listener assesses fresh EUR/USD M1 data every ten seconds,
+records a proposal, candle metrics, and reason, may act only inside a capped
+Demo session, then reconciles the result. `NO TRADE`, `WAIT`, and
+`INSUFFICIENT DATA` remain valid results; lack of a pre-proven edge is not a
+reason to defer an otherwise authorised Demo hypothesis trial.
 
-The approximately USD 300 monthly figure is an aspiration for research comparison only. It is not a quota, acceptance criterion, sizing input, or profitability claim. Capital preservation, data integrity, safety, reproducibility, and explainability precede return.
+The approximately USD 300 monthly figure is an aspiration only. It is not a
+quota, acceptance criterion, sizing input, or profitability claim. For the
+Demo critical path, a good trading decision is one made by a frozen,
+explainable strategy on fresh permitted inputs and correctly protected,
+costed, retained and reconciled. Capital preservation, data integrity, safety,
+reproducibility, and explainability are non-negotiable; speculative strategy
+optimisation and resilience work beyond those boundaries are deferred until
+the loop operates.
 
 Current state is authoritative in `project_state.json`; the milestone registry is the fixed contract. The roadmap retains its three phases, while the active M20 MVP brings forward one narrow real-time Demo function: fresh tick plus closed M1/M5 data, a persisted `BUY`/`SELL`/`NO_TRADE` proposal, fixed session-capped Demo execution, and PostgreSQL reconciliation. It neither creates live access nor a reusable broker-control interface.
 
@@ -32,6 +46,11 @@ The diagram is explanatory rather than an assertion that every shown future or
 shared component is deployed. `docs/architecture.md` is the narrative source
 of truth for the design, while the milestone registry and project state retain
 their respective contract and execution roles.
+
+The [capability architecture](capability-architecture.md) defines which
+components own evidence, durable SQL state, deterministic Python logic, n8n
+automation, host scheduling and protected broker access. Use it to classify
+new work before adding a component or moving an existing one.
 
 The four-role Review Board is retained for the three phase gates only: M16,
 M27, and M32. M20 instead needs a current Triad-plus-domain completion

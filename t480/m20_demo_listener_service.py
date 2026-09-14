@@ -35,6 +35,16 @@ LEASE_PATH = STATE_ROOT / "m20_demo_session.local.json"
 CONFIG_PATH = STATE_ROOT / "m20_demo_listener_service.local.json"
 ASSESSMENT_TOTAL_PATH = STATE_ROOT / "m20_demo_assessment_total.local.json"
 ASSESSMENT_GATE_PATH = STATE_ROOT / "m20_demo_assessment_gate.local.json"
+# A replace-only latest complete assessment is deliberately separate from the
+# redacted heartbeat.  It gives a fixed read-only exporter one bound
+# snapshot/proposal pair without turning the five-second listener loop into an
+# unbounded local evidence archive.  Long-term retention belongs on the
+# orchestrator once an exporter is deployed.
+LATEST_ASSESSMENT_PATH = STATE_ROOT / "m20_demo_latest_assessment.local.json"
+# Immutable source records remove replace-only loss at the listener boundary.
+# Draining them is intentionally separate: downstream export failure must not
+# delete source evidence or delay broker protection.
+ASSESSMENT_SPOOL_PATH = STATE_ROOT / "m20_demo_assessment_spool" / ROOT.name
 # This mutable record is set only by fixed adapter actions during coordinated
 # maintenance. A malformed record fails closed: monitoring remains available
 # for an existing position but entry processing stays disabled.
@@ -257,6 +267,98 @@ def _write_status(payload: dict[str, Any]) -> None:
             if attempt == 2:
                 raise
             time.sleep(.05)
+
+
+def _retained_assessment(output: dict[str, Any], *, assessment_started_at_utc: str,
+                         assessment_completed_at_utc: str, assessment_sequence: int) -> dict[str, Any] | None:
+    """Build the one non-secret record shared by latest and immutable views."""
+    required = {"marker", "schema_version", "server", "symbol", "captured_at_utc",
+                "configuration_fingerprint", "decision_snapshot", "proposal"}
+    if (not isinstance(output, dict) or not required <= set(output)
+            or isinstance(assessment_sequence, bool) or not isinstance(assessment_sequence, int)
+            or assessment_sequence <= 0):
+        return None
+    if not isinstance(output["decision_snapshot"], dict) or not isinstance(output["proposal"], dict):
+        return None
+    return {
+        "schema_version": "forex.m20.latest-assessment.v1",
+        "listener_release_id": ROOT.name,
+        "assessment_sequence": assessment_sequence,
+        "assessment_started_at_utc": assessment_started_at_utc,
+        "assessment_completed_at_utc": assessment_completed_at_utc,
+        "assessment": {key: output.get(key) for key in (
+            "marker", "schema_version", "operation", "server", "symbol", "captured_at_utc",
+            "configuration_fingerprint", "tick_timestamp_offset_seconds", "decision_snapshot", "proposal",
+        )},
+    }
+
+
+def _write_latest_assessment(output: dict[str, Any], *, assessment_started_at_utc: str,
+                             assessment_completed_at_utc: str, assessment_sequence: int) -> str:
+    """Atomically retain one full non-secret assessment for fixed export.
+
+    Failure is diagnostic only: the existing listener and protection path must
+    continue.  This is replacement state, not a historical evidence archive.
+    """
+    retained = _retained_assessment(output, assessment_started_at_utc=assessment_started_at_utc,
+                                    assessment_completed_at_utc=assessment_completed_at_utc,
+                                    assessment_sequence=assessment_sequence)
+    if retained is None:
+        return "NOT_WRITTEN_UNSUPPORTED_RUNNER_OUTPUT"
+    try:
+        temporary = LATEST_ASSESSMENT_PATH.with_suffix(".tmp")
+        temporary.write_text(json.dumps(retained, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+        temporary.replace(LATEST_ASSESSMENT_PATH)
+    except (OSError, TypeError, ValueError):
+        return "NOT_WRITTEN_STORAGE_FAILURE"
+    return "RETAINED_LATEST"
+
+
+def _write_assessment_spool(output: dict[str, Any], *, assessment_started_at_utc: str,
+                            assessment_completed_at_utc: str, assessment_sequence: int) -> str:
+    """Publish one immutable source assessment after runner completion.
+
+    Storage trouble is only a diagnostic: runner execution, broker protection
+    and reconciliation have already completed before this postflight write.
+    """
+    retained = _retained_assessment(output, assessment_started_at_utc=assessment_started_at_utc,
+                                    assessment_completed_at_utc=assessment_completed_at_utc,
+                                    assessment_sequence=assessment_sequence)
+    if retained is None:
+        return "NOT_SPOOLED_UNSUPPORTED_RUNNER_OUTPUT"
+    try:
+        ASSESSMENT_SPOOL_PATH.mkdir(mode=0o700, parents=True, exist_ok=True)
+        if not ASSESSMENT_SPOOL_PATH.is_dir() or ASSESSMENT_SPOOL_PATH.is_symlink():
+            return "NOT_SPOOLED_STORAGE_FAILURE"
+        target = ASSESSMENT_SPOOL_PATH / f"{assessment_sequence:020d}.json"
+        raw = json.dumps(retained, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+        if target.exists() or target.is_symlink():
+            if target.is_symlink() or not target.is_file() or target.read_bytes() != raw:
+                return "NOT_SPOOLED_CONFLICT"
+            return "SPOOL_ALREADY_RETAINED"
+        staging = target.with_suffix(".pending")
+        if staging.exists() or staging.is_symlink():
+            return "NOT_SPOOLED_STORAGE_FAILURE"
+        with staging.open("xb") as handle:
+            handle.write(raw)
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            os.link(staging, target)
+        except FileExistsError:
+            if target.is_symlink() or not target.is_file() or target.read_bytes() != raw:
+                return "NOT_SPOOLED_CONFLICT"
+        finally:
+            if staging.exists() and not staging.is_symlink():
+                staging.unlink()
+        directory = os.open(ASSESSMENT_SPOOL_PATH, os.O_RDONLY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    except (OSError, TypeError, ValueError):
+        return "NOT_SPOOLED_STORAGE_FAILURE"
+    return "SPOOLED_IMMUTABLE"
 
 
 def _assessment_total() -> int:
@@ -619,13 +721,23 @@ def run() -> None:
         last_assessment_completed_at_utc = assessment_completed_at_utc
         last_assessment_duration_ms = assessment_duration_ms
         iteration += 1
-        _increment_assessment_total()
+        assessment_sequence = _increment_assessment_total()
         next_assessment_at = started + ASSESSMENT_INTERVAL_SECONDS
         try:
             output = json.loads(completed.stdout)
             proposal = output.get("proposal", {})
             last_result = {key: output.get(key) for key in ("marker", "server", "symbol", "captured_at_utc", "proposal", "strategy_selection", "strategy_assessments", "multi_timeframe_context", "execution", "reconciliation")}
             last_result["assessment_metrics"] = _assessment_metrics(output.get("decision_snapshot", {}), proposal)
+            last_result["latest_assessment_retention"] = _write_latest_assessment(
+                output, assessment_started_at_utc=assessment_started_at_utc,
+                assessment_completed_at_utc=assessment_completed_at_utc,
+                assessment_sequence=assessment_sequence,
+            )
+            last_result["assessment_spool_retention"] = _write_assessment_spool(
+                output, assessment_started_at_utc=assessment_started_at_utc,
+                assessment_completed_at_utc=assessment_completed_at_utc,
+                assessment_sequence=assessment_sequence,
+            )
             _request_protected_restart(output)
         except json.JSONDecodeError:
             last_result = {"error": completed.stderr.strip() or completed.stdout.strip(), "exit_code": completed.returncode}

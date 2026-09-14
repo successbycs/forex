@@ -1,0 +1,11 @@
+{
+  "schema_version": "forex.primary-event-policy-timing-amendment-draft.v1",
+  "status": "DRAFT_NOT_ACTIVE",
+  "execution_authority": false,
+  "human_approval_required": "Human review and explicit approval are required before any primary source qualification state may change.",
+  "baseline_schema_version": "forex.primary-event-context.v1",
+  "amendments": [
+    {"family_id":"FOMC_POLICY_DECISION","source_id":"federal-reserve-fomc-calendar","calendar_url":"https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm","timing_url":"https://www.federalreserve.gov/newsevents/pressreleases/monetary20240809a.htm","target_date":"2026-09-16","matching_policy":"EXACT_RETAINED_TIMING_MANIFEST_ONLY","coverage_status":"UNKNOWN","unavailable_source_handling":"UNAVAILABLE","execution_authority":false},
+    {"family_id":"ECB_POLICY_DECISION","source_id":"ecb-monetary-policy-calendar","calendar_url":"https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html","timing_url":"https://www.ecb.europa.eu/press/govcdec/mopo/html/index.en.html","target_date":"2026-10-29","matching_policy":"EXACT_RETAINED_TIMING_MANIFEST_ONLY","coverage_status":"UNKNOWN","unavailable_source_handling":"UNAVAILABLE","execution_authority":false}
+  ]
+}

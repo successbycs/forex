@@ -74,6 +74,42 @@ def _safe_extract(archive: bytes, destination: Path) -> None:
         source.extractall(destination, filter="data")
 
 
+def _copy_verified_evidence(manifest_path: Path, destination: Path) -> None:
+    """Copy only manifest-listed, hash-verified evidence into a review snapshot.
+
+    A review must never acquire extra local files merely because they share an
+    evidence directory with the bound manifest.  The manifest itself is bound
+    by the review request; each referenced artifact is independently bound
+    here before it reaches the reviewer workspace.
+    """
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    artifacts = manifest.get("artifacts")
+    if not isinstance(artifacts, list) or not artifacts:
+        raise RuntimeError("bound evidence manifest has no artifacts")
+    source_root = manifest_path.parent.resolve()
+    copied: set[Path] = set()
+    for artifact in artifacts:
+        if not isinstance(artifact, dict) or set(artifact) != {"path", "sha256"}:
+            raise RuntimeError("bound evidence manifest has an invalid artifact entry")
+        relative = Path(str(artifact["path"]))
+        digest = artifact["sha256"]
+        if (not str(relative) or relative.is_absolute() or ".." in relative.parts
+                or not isinstance(digest, str) or len(digest) != 64):
+            raise RuntimeError("bound evidence manifest has an unsafe artifact path or digest")
+        source = (source_root / relative).resolve()
+        if (not source.is_relative_to(source_root) or not source.is_file() or source.is_symlink()
+                or hashlib.sha256(source.read_bytes()).hexdigest() != digest):
+            raise RuntimeError(f"bound evidence artifact is absent or has a hash mismatch: {relative}")
+        target = (destination / relative).resolve()
+        if not target.is_relative_to(destination.resolve()):
+            raise RuntimeError("bound evidence artifact target escapes the review workspace")
+        if target in copied:
+            raise RuntimeError("bound evidence manifest repeats an artifact path")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+        copied.add(target)
+
+
 def create_review_workspace(cycle: Path, role: str) -> Path:
     """Make a minimal, clean snapshot bound to this cycle's Git revision.
 
@@ -116,9 +152,10 @@ def create_review_workspace(cycle: Path, role: str) -> Path:
         raise RuntimeError("bound evidence manifest hash does not match the review request")
     evidence_destination = workspace / request["evidence_manifest_path"]
     evidence_destination.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(live_manifest.parent, evidence_destination.parent, dirs_exist_ok=True)
+    shutil.copyfile(live_manifest, evidence_destination)
     if hashlib.sha256(evidence_destination.read_bytes()).hexdigest() != request["evidence_manifest_sha256"]:
         raise RuntimeError("copied evidence manifest hash does not match the review request")
+    _copy_verified_evidence(live_manifest, evidence_destination.parent)
 
     handoff = workspace / ".triad-review"
     handoff.mkdir()

@@ -1,0 +1,37 @@
+{
+  "schema_version": "forex.stream-isolation.v1",
+  "streams": [
+    {
+      "stream_id": "M1",
+      "server": "GOMarketsMU-Demo",
+      "account_scope": "m1_demo_scope",
+      "terminal_instance": "m1_demo_terminal",
+      "namespaces": {
+        "state_namespace": "m1_state_retained",
+        "monitor_namespace": "m1_monitor_retained",
+        "lease_namespace": "m1_lease_retained",
+        "reservation_namespace": "m1_reservation_retained",
+        "outcome_namespace": "m1_outcome_retained"
+      },
+      "deployment_state": "RETAINED_EXISTING_OPERATION",
+      "account_selection": "NOT_SELECTED",
+      "execution_capability": "NOT_EXPOSED"
+    },
+    {
+      "stream_id": "H_SLOW",
+      "server": "GOMarketsMU-Demo",
+      "account_scope": "h1_demo_scope",
+      "terminal_instance": "h1_demo_terminal",
+      "namespaces": {
+        "state_namespace": "h1_state_disabled",
+        "monitor_namespace": "h1_monitor_disabled",
+        "lease_namespace": "h1_lease_disabled",
+        "reservation_namespace": "h1_reservation_disabled",
+        "outcome_namespace": "h1_outcome_disabled"
+      },
+      "deployment_state": "NOT_DEPLOYED",
+      "account_selection": "NOT_SELECTED",
+      "execution_capability": "NOT_EXPOSED"
+    }
+  ]
+}

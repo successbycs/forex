@@ -1,8 +1,20 @@
 # Forex
 
-Forex is a learning-first, risk-controlled EUR/USD research and trading-assistance project. Approximately USD 300 per month is only a distant research aspiration; it is not a milestone, quota, sizing input, or claim of expected performance.
+Forex is a solo-operator, risk-controlled EUR/USD Demo trading platform. Its
+near-term mission is the shortest safe path to protected, explainable and
+reconciled Demo trading decisions—not an open-ended research programme or
+edge-case hardening exercise. Approximately USD 300 per month remains only a
+distant aspiration; it is not a milestone, quota, sizing input, or claim of
+expected performance.
 
-The roadmap retains historical research, decision controls, and future Demo validation phases. M20 is the active MVP exception: a fixed, capped `GOMarketsMU-Demo` EUR/USD loop from fresh data to recorded assessment, Demo execution, monitoring, and PostgreSQL reconciliation. Live trading and `GOMarketsMU-Live` remain structurally out of scope throughout.
+The roadmap retains historical research and future validation work, but those
+are subordinate to the current critical path. M20 is the active MVP: a fixed,
+capped `GOMarketsMU-Demo` EUR/USD loop from fresh data to recorded assessment,
+Demo execution, monitoring, and PostgreSQL reconciliation. A decision is
+"good" at this stage when it follows the frozen strategy and all required
+freshness, account, sizing, protection, cost, audit and reconciliation rules;
+profitability is learned from retained Demo outcomes rather than assumed. Live
+trading and `GOMarketsMU-Live` remain structurally out of scope throughout.
 
 ## Start building and testing
 

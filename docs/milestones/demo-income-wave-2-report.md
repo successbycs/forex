@@ -1,5 +1,91 @@
 # Wave 2: costs, data and executable-research handover
 
+## 2026-09-12 retained D1 inventory correction
+
+`runs/evidence/M6/current/probe.json` also retains 365 D1 bars, not only
+the previously discussed H1 sample. Inspection decoded its gzip/base64 payload
+and matched the declared decoded-byte SHA-256
+`0a4caad91b3757747dc30d2501a846309250873b185c84061b62491f374cd8f3`.
+The D1 opening-date range is 2025-04-03 through 2026-08-28. Reuse this retained
+source where suitable rather than assuming an entirely new year-long download
+is needed. This is inventory/integrity evidence, not H_SLOW dataset approval:
+the September target still needs the final August session, the required
+month-end coverage checks and explicit historical-availability treatment.
+
+## 2026-09-12 retained M20 replay inventory
+
+`scripts/m20_replay_batch_report.py runs/evidence/M20` is a read-only,
+hash-bound inventory over direct retained `demo-trading-operation.json`
+sources. It never repairs a source, follows no symlinked run directory, caps
+source size/count, and intentionally does not sum money across independently
+unreconciled source files. Unsupported or malformed captures retain both their
+path, raw SHA-256 and refusal reason.
+
+The current retained set has 20 source files: 16 reportable operation exports
+containing 16 replayable pairs, of which nine classify successfully and seven
+are retained as older-schema classification errors. Four sources are refused
+because their fixed T480 `stdout` value is not JSON; their raw source digests
+remain in the report. No reportable source contains a linked broker outcome,
+so broker-outcome count is zero and the aggregate financial conclusion is
+`NOT_EVALUATED_SOURCE_LEVEL_DUPLICATES_AND_OUTCOMES_NOT_RECONCILED`.
+
+This is an inventory of the imported Demo records, not a repair of the seven
+older schemas or four malformed captures, a profitability finding, broker
+provenance proof, or a reason to infer zero costs. Future loss-accounted spool
+captures will enter this review path only after their immutable local retention
+and the relevant source/provenance checks.
+
+## 2026-09-12 retained MT5 history summary
+
+`scripts/m20_history_report.py` is a separate strict reader for the fixed
+`m20_wave1_history` Demo envelope. It accepts only GOMarketsMU-Demo EURUSD
+deals under the M20 magic ID, preserves incomplete positions rather than
+inventing closes, and keeps commission, fee and swap distinct from price P&L.
+It is read-only and hashes the raw outer source.
+
+The earlier closeout source
+`runs/evidence/M20/w1-closeout-20260910T084421Z/raw/history.json`
+(`sha256:73e878bdc2ca93392b55ff64997d9f198aedf4bdfbedef8189c7af7421c806bf`)
+contains 31 deals across 16 positions. Fifteen positions are paired closed:
+11 losses, two wins and two flats, for AUD **-3.19** realised net price-plus-
+reported-charge P&L; eight closes are stop-loss-like. Position `42235606` has
+an entry but no exit in that particular capture.
+
+A later retained fixed-history capture,
+`runs/evidence/M20/w1-supervised-restart-20260910/raw/broker-history.json`
+at 09:29:55Z (`sha256:70f9d7be3f718b07f7393e25869dc08530ddb9d5dbbf4cc38fafbbcb471481a8`),
+contains 38 deals and 19 paired closed positions: 15 losses, two wins and two
+flats, for AUD **-4.10** net; eight closes are stop-loss-like. Thus the later
+source adds four closed losses totalling AUD -0.91 after the earlier closeout
+capture. Reported commission, fee and swap fields total AUD 0.00 each in both
+fixed-history captures.
+
+This is a bounded historical observation, not a current account state, a
+strategy-economics conclusion, a full charge/tariff assertion, or a link to a
+specific retained decision/proposal. It confirms a negative outcome across the
+latest retained history capture and should inform a later bounded review, not
+trigger automatic retuning, loss-chasing, risk expansion or data repair.
+
+### Fresh read-only all-history observation — not a formal retained bundle
+
+At 2026-09-12T04:55:45Z the fixed read-only
+`m20_all_demo_history_export` operation observed 123 account deal rows. After
+excluding three non-M20/EURUSD Demo deposit rows, its exact M20 EURUSD scope
+contained 120 deals / 60 paired closed positions: 45 losses, 11 wins, four
+flats, AUD **-10.41** net, and 16 stop-loss-like exits. Reported commission,
+fee and swap remained AUD 0.00. The all-history reporter accepts this named
+schema only and rejects non-finite values; it does not treat deposits as trade
+results.
+
+The exact adapter response is now immutably retained under ignored local
+operator storage at
+`runs/local/m20-history-captures/m20-all-history-d66933f404af3574/`, alongside
+its hash-bound report and receipt. This is operational retained evidence, not
+a formal M29 proof bundle. It confirms that the later imported capture
+understated the subsequent negative sequence; it does not establish strategy
+causation, complete costs, current availability, M29 proof or authority to
+automatically change the M1 policy, limits or risk-resume state.
+
 ## 2026-09-11 contract and implementation audit
 
 **Status: IN PROGRESS — contract mapping complete; no execution behaviour,
@@ -158,3 +244,35 @@ On 2026-09-11, Astra accepted the offline accounting slice after read-only
 review. Acceptance covers amount-level consistency only: it is not independent
 proof of broker provenance, charge completeness, profitability, deployment, or
 milestone completion.
+
+## 2026-09-12 reusable annotation and slower-policy input slice
+
+**Status: REVIEWED, research-only.** This slice adds no publisher collection,
+broker call, retention surface, execution-time filter, account selection or
+order authority.
+
+| Component | Implemented boundary | Verification and limitation |
+| --- | --- | --- |
+| `forex.event_quality` + `forex.event_annotations` | A decision-time event result retains source, revision, availability, schedule and quarantines. The annotation output is `EVENT_CONTEXT_ONLY`, with coverage explicitly `UNKNOWN`; it has no allow/block/direction field. | Focused event and M21 controls reject unavailable, cancelled, superseded, date-only and invalid-DST source records. This does not qualify a complete publisher feed or a healthy-calendar claim. |
+| `forex.h_slow_data` | Converts only an already-valid EUR/USD `D1` dataset snapshot at the exact decision cutoff into completed, available UTC daily bars, bound to the snapshot artifact hash. | Rejects wrong scope, non-midnight D1 timing, pre-close/future availability, stale cutoff and malformed snapshots. It is a read-only adapter, not a new data source or retention authority. |
+| `forex.h_slow_decision` | Binds the validated slower-policy input and target to a deterministic research record. A digest-verified matching event annotation may be attached for review only. | The attached context cannot modify the target or grant execution authority; mutation isolation is covered. A `BUY`/`SELL` result remains `RESEARCH_TARGET_ONLY`, not an order instruction. |
+
+The slower stream's account/terminal, risk limits, sizing, broker protection,
+financing, holding/reversal and reconciliation are deliberately not inferred
+from these components. Their exact human-owned fields are retained in
+[`H_SLOW Demo activation contract draft`](../../Research/experiments/h_slow_eurusd_tsmom_12m_v1/demo-activation-contract-draft.md).
+The separate D1 input requires a qualified snapshot before use; the existing
+M2 H1 retained data is not silently re-labelled as slower-strategy data.
+
+Focused regression commands passed locally:
+
+```text
+python3 -m pytest -q tests/test_event_annotations.py tests/milestones/test_m21.py
+python3 -m pytest -q tests/test_h_slow_data.py tests/test_h_slow_decision.py tests/test_h_slow_policy.py
+python3 -m pytest -q
+python3 scripts/forex_milestones.py validate
+```
+
+These results are implementation evidence only. They do not constitute a
+qualified dataset, cost observation, execution demonstration, profitability
+result, M20/M29 proof, or activation authority.

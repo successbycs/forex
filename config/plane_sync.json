@@ -1,0 +1,12 @@
+{
+  "schema_version": "forex.plane-sync.v1",
+  "enabled": false,
+  "external_state": "PENDING_DEPLOYMENT",
+  "task_source": "docs/milestones/active-delivery-tasks.json",
+  "workflow_state_authority": "PLANE_VISIBLE_REPO_ACCEPTANCE",
+  "plane_base_url_env": "FOREX_PLANE_BASE_URL",
+  "plane_api_key_env": "FOREX_PLANE_API_KEY",
+  "plane_workspace_env": "FOREX_PLANE_WORKSPACE",
+  "plane_project_env": "FOREX_PLANE_PROJECT",
+  "execution_authority": false
+}

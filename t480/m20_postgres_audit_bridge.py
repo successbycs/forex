@@ -18,6 +18,8 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, ROUND_DOWN
 from typing import Any
 
+from forex.m1_calendar_decision_overlay import M1CalendarOverlayError, apply_calendar_overlay
+
 
 def _digest(value: Any) -> str:
     return "sha256:" + hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
@@ -76,12 +78,31 @@ def _snapshot(payload: dict[str, Any], proposal: dict[str, Any]) -> dict[str, An
     value = _object(payload, "decision_snapshot")
     required = {"snapshot_id", "observed_at_utc", "captured_at_utc", "bid", "ask", "spread_points", "m1_closed_bars", "m5_closed_bars", "freshness_seconds", "safety_gates", "market_context", "strategy_assessments", "payload_sha256"}
     financing_fields = {"financing", "holding_review"}
+    calendar_fields = {"calendar_overlay"}
     if financing_fields & set(value):
         required |= financing_fields
         if not all(isinstance(value.get(key), dict) for key in financing_fields):
             raise SystemExit("M20 financing snapshot fields are invalid")
         if proposal.get("action") in {"BUY", "SELL"} and value["financing"].get("status") not in {"QUALIFIED_INPUTS", "DEMO_ESTIMATE"}:
             raise SystemExit("M20 actionable proposal has unqualified financing")
+    if calendar_fields & set(value):
+        required |= calendar_fields
+        overlay = value.get("calendar_overlay")
+        if (not isinstance(overlay, dict) or set(overlay) != {"schema_version", "candidate", "gate_observation", "final_action", "reason", "execution_authority", "overlay_sha256"}
+                or overlay.get("schema_version") != "forex.m1-calendar-decision-overlay.v1"
+                or overlay.get("execution_authority") is not False):
+            raise SystemExit("M20 calendar overlay snapshot is invalid")
+        try:
+            expected_overlay = apply_calendar_overlay(
+                candidate=overlay.get("candidate"), gate_observation=overlay.get("gate_observation"),
+            )
+        except M1CalendarOverlayError as error:
+            raise SystemExit("M20 calendar overlay snapshot is invalid") from error
+        if overlay != expected_overlay:
+            raise SystemExit("M20 calendar overlay snapshot semantics are invalid")
+        if (overlay["candidate"]["proposal_id"] != proposal["proposal_id"]
+                or proposal.get("action") != overlay["final_action"]):
+            raise SystemExit("M20 calendar overlay does not bind the proposal action")
     gates = value.get("safety_gates")
     expected_gates = {"fresh_quote", "completed_m1", "normal_spread", "no_existing_position", "demo_lease_active", "news_blackout_inactive", "abnormal_volatility_inactive"}
     if (set(value) != required or value["snapshot_id"] != proposal["snapshot_id"] or value["payload_sha256"] != proposal["decision_snapshot_sha256"] or not isinstance(value["m1_closed_bars"], list) or not isinstance(value["m5_closed_bars"], list)
@@ -233,8 +254,8 @@ def persist_proposal(payload: dict[str, Any]) -> dict[str, Any]:
             {**proposal, "application_revision": revision, "configuration_fingerprint": fingerprint},
         )
         cursor.execute(
-            "INSERT INTO forex.demo_decision_snapshot (snapshot_id,proposal_id,observed_at_utc,captured_at_utc,bid,ask,spread_points,m1_closed_bars,m5_closed_bars,freshness_seconds,payload_sha256) VALUES (%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s,%s)",
-            (snapshot["snapshot_id"], proposal["proposal_id"], snapshot["observed_at_utc"], snapshot["captured_at_utc"], snapshot["bid"], snapshot["ask"], snapshot["spread_points"], json.dumps(snapshot["m1_closed_bars"]), json.dumps(snapshot["m5_closed_bars"]), snapshot["freshness_seconds"], snapshot["payload_sha256"]),
+            "INSERT INTO forex.demo_decision_snapshot (snapshot_id,proposal_id,observed_at_utc,captured_at_utc,bid,ask,spread_points,m1_closed_bars,m5_closed_bars,news_context,freshness_seconds,payload_sha256) VALUES (%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,%s,%s)",
+            (snapshot["snapshot_id"], proposal["proposal_id"], snapshot["observed_at_utc"], snapshot["captured_at_utc"], snapshot["bid"], snapshot["ask"], snapshot["spread_points"], json.dumps(snapshot["m1_closed_bars"]), json.dumps(snapshot["m5_closed_bars"]), json.dumps({"calendar_overlay": snapshot["calendar_overlay"]} if "calendar_overlay" in snapshot else {}), snapshot["freshness_seconds"], snapshot["payload_sha256"]),
         )
         cursor.execute(
             """INSERT INTO forex.demo_strategy_selection

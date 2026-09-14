@@ -15,7 +15,7 @@ def test_m27_verifier_binds_tick_proof_to_raw_read_only_listener_response():
         "outer['configuration_fingerprint']==m['configuration_fingerprint']",
         "tick['bid']>0 and tick['ask']>=tick['bid']",
         "tick['broker_timestamp_offset_seconds'] in (7200,10800)",
-        "tick['broker_timestamp_offset_source']=='nearest_declared_eet_offset'",
+        "tick['broker_timestamp_offset_source']=='governed_configuration'",
         "0<=manifest_age<24*3600",
         "t['tick_time_msc']==tick['tick_time_msc']",
         "(bundle_capture-tick_at).total_seconds()<=15",

@@ -11,16 +11,20 @@ controls.
 from __future__ import annotations
 
 import argparse
+import base64
 from datetime import datetime, timezone
+import hashlib
 from html import escape
 import json
 import os
 from pathlib import Path
+import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from postgres_pgvector_adapter import remote  # noqa: E402
+from postgres_pgvector_adapter import SETTINGS, TARGET, remote  # noqa: E402
+from t480_core import build_ssh_command  # noqa: E402
 
 TABLES = (
     "source_registry",
@@ -47,6 +51,10 @@ ORDER_DIRECTION = {
     "gdelt_h1_aggregate": "DESC",
 }
 REQUIRED_ENV = ("FOREX_POSTGRES_HOST", "FOREX_POSTGRES_PORT", "FOREX_POSTGRES_DB", "FOREX_POSTGRES_USER", "FOREX_POSTGRES_PASSWORD")
+_CALENDAR_FACT_SCHEMA_RELATIVE = "sql/economic_calendar_facts.sql"
+_CALENDAR_FACT_SCHEMA_SHA256 = "06b09221ef12bc1758827beaf9973dc374d407524e1f9fe70a77449a98400259"
+_CALENDAR_FACT_WRAPPER_RELATIVE = "scripts/t480_apply_calendar_fact_schema.sh"
+_CALENDAR_FACT_WRAPPER_SHA256 = "c1f9d525bbc4be3910fba03cf901d86350f31ef71a104280eefa617aa95bfaf4"
 WRITE_COLUMNS = {
     "source_registry": ("source_id", "contract_version", "owner", "license", "cost_model", "api_version", "endpoint_allowlist", "rate_limit", "retention_rule", "historical_depth", "revision_support", "timezone_policy", "outage_policy", "approval_status", "secrets_reference", "provenance_note"),
     "raw_observation": ("observation_id", "contract_version", "source_id", "source_revision", "observed_at_utc", "available_at_utc", "retrieved_at_utc", "timezone", "payload_sha256", "payload_path", "redacted"),
@@ -82,6 +90,129 @@ def _psql(query: str) -> dict:
         + json.dumps(query)
         + " </dev/null"
     )
+
+
+def read_bls_calendar_facts() -> dict[str, object]:
+    """Read only fixed BLS lineage columns; no caller SQL or source selection.
+
+    A missing manual calendar migration is distinct from an empty deployed
+    table, so it is returned as an explicit observation rather than hidden as
+    an empty fact list.
+    """
+    load_local_env()
+    present = _psql(
+        "SELECT to_regclass('forex.economic_calendar_event_fact') IS NOT NULL;"
+    )
+    if not present["ok"]:
+        raise RuntimeError(present["stderr"].strip() or "T480 PostgreSQL operation failed")
+    # ``psql -At`` serialises SQL booleans as ``t``/``f``, not JSON literals.
+    # Accept only that exact fixed output rather than loosely coercing it.
+    marker = present["stdout"].strip()
+    if marker not in {"t", "f"}:
+        raise RuntimeError("T480 PostgreSQL calendar schema check was invalid")
+    schema_present = marker == "t"
+    if not schema_present:
+        return {"schema_present": False, "rows": []}
+    rows = _psql(
+        "SELECT COALESCE(json_agg(row_to_json(record)), '[]'::json) FROM ("
+        "SELECT fact_sha256,source_family,source_url,capture_completed_at_utc,raw_sha256,receipt_sha256,"
+        "event_identifier,scheduled_at_utc,event_title,country_code,currency_code,impact,qualification_state,"
+        "qualification_reason,source_revision,event_payload "
+        "FROM forex.economic_calendar_event_fact "
+        "WHERE source_family IN ('CPI','EMPLOYMENT_SITUATION','BLS_MONTHLY') "
+        "AND source_url LIKE 'https://www.bls.gov/schedule/%' "
+        "ORDER BY capture_completed_at_utc,event_identifier,source_revision,fact_sha256 LIMIT 100"
+        ") record;"
+    )
+    if not rows["ok"]:
+        raise RuntimeError(rows["stderr"].strip() or "T480 PostgreSQL operation failed")
+    decoded = json.loads(rows["stdout"] or "null")
+    if not isinstance(decoded, list):
+        raise RuntimeError("T480 PostgreSQL BLS calendar result was invalid")
+    return {"schema_present": True, "rows": decoded}
+
+
+def _stage_calendar_fact_schema() -> None:
+    """Copy only fixed, hash-pinned migration assets to fixed T480 paths."""
+    stage_windows_dir = r"C:\Users\chris\Documents\Code\forex-calendar-schema"
+    quote = lambda value: "'" + value.replace("'", "''") + "'"
+    assets = (
+        (_CALENDAR_FACT_SCHEMA_RELATIVE, _CALENDAR_FACT_SCHEMA_SHA256, "economic_calendar_facts.sql"),
+        (_CALENDAR_FACT_WRAPPER_RELATIVE, _CALENDAR_FACT_WRAPPER_SHA256, "t480_apply_calendar_fact_schema.sh"),
+    )
+    for relative, expected, _staged_name in assets:
+        try:
+            local_digest = hashlib.sha256((ROOT / relative).read_bytes()).hexdigest()
+        except OSError as exc:
+            raise RuntimeError("calendar-fact schema staging asset is unavailable") from exc
+        if local_digest != expected:
+            raise RuntimeError("calendar-fact schema staging asset hash does not match the approved asset")
+    mkdir = subprocess.run(
+        build_ssh_command(
+            TARGET,
+            "$ErrorActionPreference='Stop'; New-Item -ItemType Directory -Force -Path " + quote(stage_windows_dir) + " | Out-Null",
+            SETTINGS,
+        ),
+        text=True, capture_output=True, check=False,
+    )
+    if mkdir.returncode:
+        raise RuntimeError("T480 PostgreSQL calendar schema staging directory could not be prepared")
+    for relative, expected, staged_name in assets:
+        local_file = ROOT / relative
+        source_windows = subprocess.run(
+            ["wslpath", "-w", str(local_file)], text=True, capture_output=True, check=True,
+        ).stdout.strip()
+        transfer_command = (
+            "$ErrorActionPreference='Stop'; & scp.exe -B -o BatchMode=yes -o StrictHostKeyChecking=yes -- "
+            + quote(source_windows) + " " + quote(TARGET + ":" + stage_windows_dir + "\\" + staged_name)
+            + "; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+        )
+        transfer = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand",
+             base64.b64encode(transfer_command.encode("utf-16-le")).decode("ascii")],
+            text=True, capture_output=True, check=False,
+        )
+        if transfer.returncode:
+            raise RuntimeError("T480 PostgreSQL calendar schema staging transfer failed")
+
+
+def apply_calendar_fact_schema() -> dict[str, str]:
+    """Apply only the exact hash-pinned calendar-fact schema migration.
+
+    The operation accepts no SQL, file, source or row input. It stages the
+    reviewed local bytes only at the fixed remote path, using a temporary file
+    and an atomic no-clobber publish, then checks the identical remote file
+    before passing it to PostgreSQL. The migration itself contains schema DDL
+    only; it cannot fetch publisher material or insert a calendar fact.
+    """
+    local_file = ROOT / _CALENDAR_FACT_SCHEMA_RELATIVE
+    try:
+        local_bytes = local_file.read_bytes()
+    except OSError as exc:
+        raise RuntimeError("calendar-fact schema file is unavailable") from exc
+    local_digest = hashlib.sha256(local_bytes).hexdigest()
+    if local_digest != _CALENDAR_FACT_SCHEMA_SHA256:
+        raise RuntimeError("calendar-fact schema file hash does not match the approved migration")
+    load_local_env()
+    wrapper_file = ROOT / _CALENDAR_FACT_WRAPPER_RELATIVE
+    if hashlib.sha256(wrapper_file.read_bytes()).hexdigest() != _CALENDAR_FACT_WRAPPER_SHA256:
+        raise RuntimeError("calendar-fact schema wrapper hash does not match the approved wrapper")
+    _stage_calendar_fact_schema()
+    result = remote(
+        "wrapper=/mnt/c/Users/chris/Documents/Code/forex-calendar-schema/t480_apply_calendar_fact_schema.sh; "
+        f"expected={_CALENDAR_FACT_WRAPPER_SHA256}; "
+        "[ -f \"$wrapper\" ] && [ ! -L \"$wrapper\" ] || exit 41; "
+        "actual=$(sha256sum \"$wrapper\" | awk '{print $1}'); "
+        "[ \"$actual\" = \"$expected\" ] || exit 42; "
+        "bash \"$wrapper\""
+    )
+    if not result.get("ok"):
+        raise RuntimeError((result.get("stderr") or "").strip() or "T480 PostgreSQL calendar schema operation failed")
+    marker = f"FOREX_CALENDAR_FACT_SCHEMA_APPLIED sha256:{_CALENDAR_FACT_SCHEMA_SHA256}"
+    if marker not in result.get("stdout", ""):
+        raise RuntimeError("T480 PostgreSQL calendar schema operation returned an invalid result")
+    return {"operation": "forex-calendar-fact-schema-apply", "schema_sha256": "sha256:" + _CALENDAR_FACT_SCHEMA_SHA256,
+            "status": "APPLIED", "execution_authority": False}
 
 
 def _literal(value: object, column: str) -> str:
@@ -203,14 +334,17 @@ def run(command: str, table: str | None, limit: int, payload: dict[str, object] 
 
 
 def main(argv: list[str] | None = None) -> int:
+    raw_argv = sys.argv[1:] if argv is None else argv
     parser = argparse.ArgumentParser(description="Controlled Forex PostgreSQL administrator adapter.")
-    parser.add_argument("command", choices=("status", "tables", "schema", "read", "preview", "write", "export-html"))
+    parser.add_argument("command", choices=("status", "tables", "schema", "read", "preview", "write", "export-html", "apply-calendar-fact-schema"))
     parser.add_argument("--table", choices=TABLES)
     parser.add_argument("--limit", type=int, default=20)
     parser.add_argument("--file", type=Path, help="repository-relative JSON row for write")
     parser.add_argument("--approve", action="store_true", help="required for a database write")
     parser.add_argument("--output", type=Path, default=Path("reports/forex_postgres_export.html"), help="repository-relative HTML export path")
     args = parser.parse_args(argv)
+    if args.command == "apply-calendar-fact-schema" and raw_argv != ["apply-calendar-fact-schema"]:
+        parser.error("apply-calendar-fact-schema accepts no options or input")
     if args.command in {"schema", "read", "preview", "write"} and not args.table:
         parser.error("--table is required for schema, read, preview, and write")
     if args.command == "write" and (not args.file or not args.approve):
@@ -218,6 +352,9 @@ def main(argv: list[str] | None = None) -> int:
     if not 1 <= args.limit <= 1000:
         parser.error("--limit must be between 1 and 1000")
     try:
+        if args.command == "apply-calendar-fact-schema":
+            print(json.dumps(apply_calendar_fact_schema(), indent=2))
+            return 0
         if args.command == "export-html":
             print(export_html(args.output))
             return 0

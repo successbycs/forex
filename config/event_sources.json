@@ -1,0 +1,29 @@
+{
+  "schema_version": "forex.event-sources.v1",
+  "purpose": "Wave 2 annotation-only publisher scope; separate from the historical M7 candidate snapshot.",
+  "execution_authority": false,
+  "sources": [
+    {
+      "source_id": "bls-monthly-release-calendar",
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "usage_decision": "QUALIFIED_PUBLIC_SCHEDULE_METADATA",
+      "usage_review_date": "2026-09-12",
+      "terms_url": "https://www.bls.gov/opub/copyright-information.htm",
+      "licence_constraint": "BLS identifies its published material as public domain except previously copyrighted photographs/illustrations. Attribute BLS. Do not download images, reuse the BLS emblem, or imply endorsement.",
+      "url_template": "https://www.bls.gov/schedule/{year}/{month:02d}_sched_list.htm",
+      "selected_families": ["CPI", "EMPLOYMENT_SITUATION"],
+      "timing_rule": "Use America/New_York only when the retained page explicitly declares Eastern Time; otherwise quarantine date-only timing.",
+      "availability_rule": "Capture completion is locally observed availability. Preserve first observation and append local semantic revisions. Do not infer historical first publication.",
+      "retention": "Original HTML response bytes and attributed schedule metadata only; no linked assets or article bodies.",
+      "coverage_status": "UNKNOWN",
+      "runtime_status": "DEPLOYED_RAW_CAPTURE_ACTIVE",
+      "access_failure_policy": "Retain explicit retrieval failure; respect access denial and retry limits. Never treat an error page as a healthy empty calendar.",
+      "adoption_requirements": [
+        "Verify actual raw response parsing through the permitted collection path",
+        "Bind deployed parser, source declaration and capture storage versions",
+        "Configure acquisition cadence, timeout, retention location and failure reporting",
+        "Keep annotations optional and separate from order eligibility"
+      ]
+    }
+  ]
+}

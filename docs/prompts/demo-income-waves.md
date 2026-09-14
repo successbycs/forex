@@ -1,3 +1,34 @@
+## Operator mission and two-stream amendment — 2026-09-12
+
+Chris directs: finish the M1 Demo operation, retain it as an operating stream,
+and add one isolated longer-hold Forex Demo stream in this repository. Use
+published knowledge and informed, documented assumptions to select the initial
+rules; implement, execute in Demo and observe. Reproducing published research
+or demonstrating profitability is not a prerequisite to a bounded Demo trial.
+This amendment supersedes conflicting research-first sequencing in older wave
+text and supporting research notes. It does not change runtime limits or prove
+any milestone. [Deployment detail](../parallel-demo-streams.md).
+
+Separate four decisions: implementation readiness, permission to submit Demo
+orders, formal milestone closeout, and economic/funded readiness. A missing
+observation can keep a proof criterion pending without blocking unrelated
+authorised development or an already permitted operating stream.
+
+| Check or dependency | Treatment and purpose |
+| --- | --- |
+| Wrong account/server, unknown exposure, duplicate risk, missing protection, invalid sizing, stale required prices or exhausted risk budget | Retain as entry blockers; continue mandated position protection. |
+| Defined strategy version, account routing, holding rules and applicable Demo authority | Required for that stream's first order; reuse existing decisions rather than request them again. |
+| Profitable backtest, statistical significance, completed academic replication or mandatory shadow-performance period | Remove as Demo-entry prerequisites; use available history for bounded implementation checks and learn from Demo outcomes. |
+| Multi-year evaluation dataset, six-week observation, 20 closes or one billing period | Needed only for the particular measurement or claim; not blanket blockers for Demo launch or independent implementation. Warm-up and inputs actually used by a strategy remain required. |
+| Optional event annotations, unbuilt forecast model or unavailable LLM | Must not block a strategy that does not consume them. An explicitly activated event or forecast rule must enforce its declared missing-data policy. |
+| Existing valid tests, recovery work and proof | Reuse after checking relevance and bindings; retest affected behavior after changes, not unrelated work. |
+| Research uncertainty or unknown business costs | Report limitations; do not invent positive results. These can block a funded recommendation, not an otherwise permitted Demo hypothesis trial. |
+| Contract-required real-world proof, review and sign-off | Retain for formal closeout. No fabricated proof, silent waiver or inferred sign-off. |
+
+Before adding a gate, name the failure or decision it protects, the affected
+stream/activity and its release condition. Prefer bounded automated checks to
+new open-ended research. Do not convert sample checkpoints into trade quotas.
+
 ## Operator closeout sequencing amendment — 2026-09-11
 
 The human operator directs that a newly observed natural protected Demo
@@ -20,6 +51,16 @@ final verification/review gates are fresh and bound to the final release.
 
 # Research-based trading waves: execution guide
 
+## Critical strategy delivery amendment — 2026-09-13
+
+The current execution structure is [Demo Platform Waves — critical strategy
+delivery](demo-platform-wave-structure.md). Wave 1 supplies shared execution
+trust; Wave 2 supplies verified economic-event context; Wave 3 completes the
+equal H_SLOW strategy stream. Work may progress across all three where its own
+dependencies are met. Select only critical packages from that structure until
+both strategies are ready for Demo observation; preserve all content below as
+planning/history and do not delete deferred work.
+
 ## Operator priority amendment — 2026-09-10
 
 Get core Demo execution working first. Backup and isolated-restore proof is
@@ -31,7 +72,7 @@ checks, ledger/risk-state preservation and required execution evidence.
 This amendment does not itself complete Wave 1 or authorise Live trading.
 
 
-Revised 2026-09-10 following the repository and literature review. **Current
+Revised 2026-09-12 for parallel Demo delivery. **Current
 planning specification; this revision does not execute a wave.** Prior Wave 1
 work and explicit approvals remain valid within their scope. Read current
 handover/evidence for execution status; do not reset completed work to planned.
@@ -52,13 +93,13 @@ experiment; preserve those documents as historical rationale. The
 Registry contracts, canonical configuration and explicit operator authority
 still govern execution. A revised wave plan does not silently amend them.
 
-## Execute one wave at a time
+## Wave ownership and dependency-based progress
 
 | Wave | Activities | Intended result | Prompt |
 | --- | --- | --- | --- |
-| 1 | W1.1–W1.4 and W1.R | Repair independent risk latches first; prove broker state, accounting and recovery | [Wave 1](demo-income-wave-1.md); [resume prompt](demo-income-wave-1-resume-goal.md) |
-| 2 | W2.1–W2.2 | Qualified costs/data/eligibility and one shared replay/execution policy | [Wave 2](demo-income-wave-2.md) |
-| 3 | W3.1–W3.3 | Frozen baseline plus at most two challengers; selection-aware net economics and low-attention operation | [Wave 3](demo-income-wave-3.md); [research alias](research-trading-wave-goal.md) |
+| 1 | W1.1–W1.4 and W1.R | Finish reliable M1 operation; preserve its running Demo stream and track missing proof separately | [Wave 1](demo-income-wave-1.md); [resume prompt](demo-income-wave-1-resume-goal.md) |
+| 2 | W2.1–W2.2 | Supply reusable costs, data, event annotations and replay/execution components as each stream needs them | [Wave 2](demo-income-wave-2.md) |
+| 3 | W3.1–W3.3 | Define and implement one isolated longer-hold stream alongside M1; execute in Demo, observe and refine | [Wave 3](demo-income-wave-3.md); [research alias](research-trading-wave-goal.md) |
 | 4 | W4.0–W4.4, future gate | Prepare a default-disabled live mandate; separately authorise and measure one tiny funded pilot | [Wave 4](demo-income-wave-4.md) |
 
 Each wave file contains its activity specification and a fenced, copy-and-paste
@@ -66,6 +107,15 @@ goal prompt. The short prompt instructs the executing agent to read the full
 wave file and this guide; it does not depend on remembering this conversation.
 Run it from this repository's workspace. A wave is an execution grouping, not
 a new milestone or an amendment to the registry.
+
+M1 operation continues during later development under its existing authority.
+Finish critical M1 safety work before activating the second stream. Do not
+require every Wave 2 historical dataset or every market-dependent observation
+before work that does not consume it. Within an explicitly scoped multi-wave
+goal, continue independent authorised work while ordinary services collect
+pending evidence. Preserve one active formal milestone and its dependencies;
+prepare an exact amendment if the next implementation is outside that scope.
+This planning update does not start or restart a goal or a later milestone.
 
 The **W1.R** schedule is: R1 diagnose; R2/R3 correct recovery and
 unknown-exposure handling; R4 coordinate maintenance and deploy with R6 incident
@@ -89,9 +139,10 @@ allowance. Check the usage display before extending a run. See the official
 [usage guidance](https://learn.chatgpt.com/docs/pricing) and
 [Goal guidance](https://learn.chatgpt.com/docs/long-running-work).
 
-Do not launch the next wave automatically. A fresh execution instruction is
-required. Finish with a concise handover so later work reads the findings and
-changed files rather than repeating the whole repository review.
+A single-wave instruction remains scoped to that wave. A goal explicitly
+covering several waves may sequence their authorised work without asking again
+at each wave boundary; formal milestone entry rules still apply. Finish each
+activity with a concise handover rather than repeating the repository review.
 
 ## Shared execution contract
 
@@ -101,8 +152,8 @@ Every wave prompt incorporates the following requirements:
    `project_state.json`, the active contract in `milestone_registry.json`,
    `docs/evidence_and_milestones.md`, this guide, and the selected wave file.
    Re-check previous findings against current code and evidence.
-2. Work only within the active approved milestone. At preparation, this is
-   M20 and its implementation status is `NEEDS_FIX`. Re-read at execution time.
+2. Work only within the active approved milestone. Read its current identity
+   and status from project_state.json; do not assume the historical M20 state.
    Map work to whichever approved contract is active at execution time. These
    prompts do not themselves start a later milestone or waive dependencies.
 3. Map each proposed change to the active contract. For changes outside it,
@@ -145,7 +196,7 @@ Every wave prompt incorporates the following requirements:
 | A1, A2; R0 recovery | W1.4 and W1.R/W1.2 | Repair current M20 safety; preserve exact approved risk limits. Shared host recovery remains an owned dependency. |
 | A3; E1 accounting | W1.3 actual ledger; W2.1 cost model; W3.1 operator economics | One ledger and one cost convention, reused throughout. |
 | A4, A5, A6; E4 replay/data | W2.1–W2.2 | Map M21/M26/M28 and M13/M16 capabilities into the active approved contract. Additional quote retention conflicts with M20's no-tick-stream scope until explicitly amended. |
-| A7, A8, A9; E2/E3/E4/E5 | W3.1 | One trial register and report. H_SESSION retained; H_SLOW replaces H_H1 in the current plan. No automatic change to M20's execution ownership. |
+| A7, A8, A9; E2/E3/E4/E5 | W3.1–W3.3 | One longer-hold H_SLOW stream alongside M1, with isolated ownership and one trial register. H_SESSION and H_EVENT are deferred refinements, not required deliverables. |
 | A10; R0 extended operation | W1.R technical recovery; W3.2 economic/attention interval | Reuse valid recovery evidence and extend observation, not infrastructure. |
 | Review/closeout | W3.3 | Preserve required current reviews and historical milestone records. |
 | A11, A12 | W4.1–W4.4 | New exact Live contract and explicit account/capital authority required; current Live prohibition remains. |
@@ -194,7 +245,8 @@ values and request only the decisions needed for dependent work.
 | Loss-budget timezone, inclusion of unrealised losses/costs, pause/resume authority | Persistent risk implementation |
 | Permitted trading sessions, event exclusions, stale-source policy, cost assumptions | New eligibility rules |
 | Recurring cost allocation, operator-time budget, treatment of tax and development costs | Net operator benefit reporting |
-| Candidate selection, complete H_SLOW rule, frozen rules, search budget, observation window, sample/coverage requirements and statistical decision criteria | Economic experiment start |
+| Complete H_SLOW rule, account routing, bounded Demo risk/holding mandate and review/end conditions | Longer-hold Demo activation; agent selects and documents research-informed rules within approved scope |
+| Evaluation window, benchmarks and uncertainty/selection method | A confirmatory economic claim, not Demo-entry eligibility |
 | Intended live capital and minimum worthwhile net income | A supported business-case claim; never infer these from the Demo balance |
 | Maintenance window, drill constraints, and unattended observation conditions | Disruptive Demo drills or extended trial |
 
@@ -237,7 +289,12 @@ it does not deploy a policy, choose numerical thresholds or authorise a new exit
 | --- | --- | --- |
 | W1.1–W1.4 | Canonical holding mandate, broker swap calculator, financing-inclusive risk/entry checks, decision audit and approved protected-exit fallback. | Accurate costs and safe execution; no invented overnight edge and no dependency on completing W3 before qualified intraday operation. |
 | W2.1–W2.2 | Point-in-time financing/conversion/calendar history and matched hold/close replay through the shared kernel. | Qualify data and counterfactual limitations; no retroactive current-rate substitution or policy optimisation. |
-| W3.1 / W3.3 | Bounded holding-rule study, calibrated horizon evidence and conditional Demo qualification. | Remain inside the declared search budget; no automatic promotion or added order authority. |
+| W3.1 / W3.3 | One specified longer-hold Demo policy with financing-aware controls, then observed outcomes. | No mandatory holding-policy tournament or forecast model before a bounded trial; account/holding authority and protection remain required. |
+
+The following incremental-value calculation is an optional later conditional
+holding model, not the entry or overnight gate for the initial fixed-rule
+longer-hold Demo stream. W1's existing M1 exits remain unchanged. Do not build
+or calibrate this forecast model merely to permit the new stream to operate.
 
 At decision time t and a declared horizon H, compare the two net liquidation
 outcomes in AUD:
@@ -250,7 +307,8 @@ closing costs. Already incurred entry costs/accrued charges are common to both
 choices; retain them in lifetime P&L without deducting them twice. A TP target,
 current unrealised gain or positive swap is not a validated expected benefit.
 
-HOLD requires fresh supported costs, qualified horizon evidence, a conservative
+For that optional forecast-driven model, HOLD requires fresh supported costs,
+qualified horizon evidence, a conservative
 lower confidence bound above a predeclared net-benefit buffer, and all Option B,
 protection, duration and eligibility gates. Otherwise use the approved close or
 incident-handling fallback. Unknown account/quote state never authorises blind
@@ -260,15 +318,16 @@ versions, estimates and actual outcomes in the existing durable ledger.
 
 Before execution, resolve only missing holding mandate values: maximum duration,
 weekend treatment, broker rollover/calendar, cutoffs, freshness, fallback exit and
-failed-close behaviour. Before economic evaluation, freeze the forecast horizon,
-confidence method and benefit buffer. Reuse established approvals; adding this
-plan does not approve any unspecified numerical rule. Current M20.13 is analysis
+failed-close behaviour. Before evaluating the optional forecast model, freeze
+its horizon, confidence method and benefit buffer. Reuse established approvals;
+adding this plan does not approve any unspecified numerical rule. Current M20.13 is analysis
 only: map any execution-influencing exit change to an explicit contract amendment.
 
 ## Minimal architecture and autonomous operation
 
-Reuse Python, PostgreSQL, the fixed adapter and T480 scheduler. Add only a
-shared pure policy kernel, qualified data/cost inputs, small append-only
+Reuse Python, PostgreSQL, the fixed adapter, T480 scheduler and the existing
+pure policy kernel. Add only missing required data/cost inputs, a small
+broker-independent economic-event module, isolated stream state, small append-only
 experiment/trial records and reproducible reports. Do not add a graph database,
 message bus, separate engine service, nine-timeframe search or dashboard rewrite.
 
@@ -293,12 +352,12 @@ merely to accelerate the wave.
 
 Save a handover before a budget boundary. A budget limit does not make work
 complete and does not waive testing or proof. Do not silently expand scope,
-increase the budget, or continue into the next wave.
+increase the budget, or continue outside the waves explicitly in the goal.
 
 Do not spend repeated AI turns polling for a market event or enough trades.
 Use approved ordinary service/scheduler collection where available. Report
-pending proof and the exact resumption condition so the operator can pause the
-goal and resume after observations exist. The operating service may continue
+pending proof and the exact resumption condition. Continue independent work
+within the authorised scope; checkpoint when none remains. The operating service may continue
 only within its own existing authority; pausing AI work must not disable position
 protection. Never mark an unfinished goal or milestone complete to stop waiting.
 

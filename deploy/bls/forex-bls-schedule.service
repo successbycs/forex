@@ -1,0 +1,18 @@
+# TEMPLATE ONLY -- render and validate for the intended local orchestrator host.
+# Replace every {{...}} value with an absolute, operator-reviewed local path.
+[Unit]
+Description=Forex BLS monthly schedule collection pass (annotation only)
+
+[Service]
+Type=oneshot
+WorkingDirectory={{FOREX_REPOSITORY_ABSOLUTE_PATH}}
+# Optional: an ignored, mode-0600 local environment file for the shared T480
+# transport.  It may contain only the operator-managed transport settings.
+EnvironmentFile=-{{OPTIONAL_T480_ENVIRONMENT_FILE_ABSOLUTE_PATH}}
+ExecStart={{PYTHON_EXECUTABLE_ABSOLUTE_PATH}} {{FOREX_REPOSITORY_ABSOLUTE_PATH}}/scripts/bls_schedule.py --store {{BLS_RETAINED_STORE_ABSOLUTE_PATH}}
+# The scheduler can invoke at most two 90-second collector subprocesses; this
+# includes a 30-second margin and is not a retry budget.
+TimeoutStartSec=210s
+Restart=no
+UMask=0077
+NoNewPrivileges=true

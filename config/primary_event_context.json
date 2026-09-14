@@ -1,0 +1,47 @@
+{
+  "schema_version": "forex.primary-event-context.v1",
+  "execution_authority": false,
+  "purpose": "EUR/USD first-party event-source qualification and context only; this declaration cannot permit, veto, or direct a trade.",
+  "required_families": [
+    {
+      "family_id": "US_CPI",
+      "source_id": "bls-monthly-release-calendar",
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "source_url": "https://www.bls.gov/schedule/{year}/{month:02d}_sched_list.htm",
+      "source_url_matching_policy": "EXACT_BLS_MONTHLY_URL_TEMPLATE_ONLY",
+      "qualification_state": "RETAINED_CAPTURE_ACTIVE_COVERAGE_UNKNOWN",
+      "timing_requirement": "EXACT_LOCAL_TIME_DECLARED",
+      "limitation": "Only retained BLS monthly capture/parser observations qualify; capture success does not assert complete calendar coverage."
+    },
+    {
+      "family_id": "US_EMPLOYMENT_SITUATION",
+      "source_id": "bls-monthly-release-calendar",
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "source_url": "https://www.bls.gov/schedule/{year}/{month:02d}_sched_list.htm",
+      "source_url_matching_policy": "EXACT_BLS_MONTHLY_URL_TEMPLATE_ONLY",
+      "qualification_state": "RETAINED_CAPTURE_ACTIVE_COVERAGE_UNKNOWN",
+      "timing_requirement": "EXACT_LOCAL_TIME_DECLARED",
+      "limitation": "Only retained BLS monthly capture/parser observations qualify; capture success does not assert complete calendar coverage."
+    },
+    {
+      "family_id": "FOMC_POLICY_DECISION",
+      "source_id": "federal-reserve-fomc-calendar",
+      "publisher": "Board of Governors of the Federal Reserve System",
+      "source_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "source_url_matching_policy": "EXACT_RETAINED_TIMING_MANIFEST_ONLY",
+      "qualification_state": "RETAINED_TIMING_ACTIVE_COVERAGE_UNKNOWN",
+      "timing_requirement": "DECLARED_STATEMENT_OR_PRESS_CONFERENCE_TIME",
+      "limitation": "Only exact retained first-party calendar/timing-manifest observations qualify; coverage remains unknown and context only."
+    },
+    {
+      "family_id": "ECB_POLICY_DECISION",
+      "source_id": "ecb-monetary-policy-calendar",
+      "publisher": "European Central Bank",
+      "source_url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
+      "source_url_matching_policy": "EXACT_RETAINED_TIMING_MANIFEST_ONLY",
+      "qualification_state": "RETAINED_TIMING_ACTIVE_COVERAGE_UNKNOWN",
+      "timing_requirement": "DECLARED_POLICY_DECISION_TIME",
+      "limitation": "Only exact retained first-party calendar/timing-manifest observations qualify; coverage remains unknown and context only."
+    }
+  ]
+}

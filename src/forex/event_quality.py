@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import Counter
 from datetime import UTC, datetime
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -69,25 +70,42 @@ def qualify_events(records: list[dict[str, Any]], decision_cutoff_utc: str) -> d
     quarantine because they cannot safely support intraday historical context.
     """
     cutoff = _utc(decision_cutoff_utc)
+    if not isinstance(records, list) or not all(isinstance(row, dict) for row in records):
+        raise ValueError("records must be a list of event objects")
     candidates: list[dict[str, Any]] = []
     quarantined: list[dict[str, str]] = []
-    seen: set[tuple[str, int]] = set()
+    # Every duplicate version is ambiguous. Quarantine the entire version so
+    # input order cannot decide whether a cancellation suppresses a schedule.
+    def known_by_cutoff(row: dict[str, Any]) -> bool:
+        try:
+            return _utc(str(row.get("available_at_utc"))) <= cutoff
+        except ValueError:
+            return False
+
+    version_counts = Counter(
+        (row["event_id"], row["revision"]) for row in records
+        if isinstance(row.get("event_id"), str)
+        and type(row.get("revision")) is int and row["revision"] >= 1
+        and known_by_cutoff(row)
+    )
     for record in records:
         identity = _identity(record)
         missing = REQUIRED - record.keys()
         if missing:
             quarantined.append({"event": identity, "reason": "MISSING_REQUIRED_FIELD"})
             continue
-        try:
-            revision = int(record["revision"])
-        except (TypeError, ValueError):
+        if type(record["revision"]) is not int or record["revision"] < 1:
             quarantined.append({"event": identity, "reason": "INVALID_REVISION"})
             continue
-        key = (str(record["event_id"]), revision)
-        if key in seen:
+        revision = record["revision"]
+        if not all(isinstance(record[field], str) and record[field].strip()
+                   for field in ("event_id", "event_name", "source_id", "source_url", "license")):
+            quarantined.append({"event": identity, "reason": "MISSING_PROVENANCE"})
+            continue
+        key = (record["event_id"], revision)
+        if known_by_cutoff(record) and version_counts[key] > 1:
             quarantined.append({"event": identity, "reason": "DUPLICATE_REVISION"})
             continue
-        seen.add(key)
         if not str(record["source_url"]).startswith("https://") or not str(record["license"]).strip():
             quarantined.append({"event": identity, "reason": "MISSING_PROVENANCE"})
             continue
@@ -107,6 +125,15 @@ def qualify_events(records: list[dict[str, Any]], decision_cutoff_utc: str) -> d
     for event_id in sorted({str(item["event_id"]) for item in candidates}):
         versions = [item for item in candidates if str(item["event_id"]) == event_id]
         current = max(versions, key=lambda item: item["revision"])
+        # An ambiguous newer version cannot resurrect an older schedule.
+        ambiguous_newer = any(identity == event_id and
+                              (revision > current["revision"] or
+                               (revision == current["revision"] and count > 1))
+                              for (identity, revision), count in version_counts.items())
+        if ambiguous_newer:
+            for version in versions:
+                quarantined.append({"event": _identity(version), "reason": "AMBIGUOUS_REVISION_LINEAGE"})
+            continue
         for old in versions:
             if old is not current:
                 quarantined.append({"event": _identity(old), "reason": "SUPERSEDED_REVISION"})

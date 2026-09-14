@@ -1,0 +1,11 @@
+# TEMPLATE ONLY -- render and validate for the intended local orchestrator host.
+[Unit]
+Description=Hourly Forex BLS monthly schedule collection pass (no catch-up)
+
+[Timer]
+OnCalendar=hourly
+Persistent=false
+Unit=forex-bls-schedule.service
+
+[Install]
+WantedBy=timers.target

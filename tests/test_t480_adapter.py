@@ -2,6 +2,7 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 import types
@@ -204,6 +205,63 @@ def test_m20_unresolved_history_probe_is_fixed_demo_only_and_cannot_trade():
     assert len(command) < 2500
 
 
+def test_h_slow_preflight_is_fixed_read_only_and_redacts_account_identity():
+    command = t480_adapter.OPERATIONS["h_slow_demo_preflight"].powershell_command or ""
+    assert "Documents\\Code\\forex-h-slow\\mt5.local.json" in command
+    assert "GOMarketsMU-Demo" in command
+    assert "H1_demo" in command
+    assert "expected_login" in command
+    assert "account_scope_sha256" in command
+    assert "symbol_info_tick" in command and "EURUSD" in command
+    assert "positions_get" in command
+    assert "0<=age<=15" in command
+    assert "order_send" not in command
+    assert "orders_get" not in command
+    assert "password" not in command
+    assert t480_adapter.OPERATIONS["h_slow_demo_preflight"].approval_required is False
+
+
+def test_h_slow_preflight_embedded_probe_compiles_and_enforces_one_position_cap():
+    command = t480_adapter.OPERATIONS["h_slow_demo_preflight"].powershell_command or ""
+    embedded = re.search(r"& \$s\.python_path -c '(.*)' \$c;exit", command, re.DOTALL)
+    assert embedded is not None
+    compile(embedded.group(1).replace("''", "'"), "h_slow_demo_preflight.py", "exec")
+    assert "len(ps)<=1" in command
+
+
+def test_h_slow_reconciliation_snapshot_is_fixed_read_only_and_compiles():
+    command = t480_adapter.OPERATIONS["h_slow_demo_reconciliation_snapshot"].powershell_command or ""
+    assert "Documents\\Code\\forex-h-slow\\mt5.local.json" in command
+    assert "positions_get(symbol=''EURUSD'')" in command
+    assert "history_deals_get" in command
+    assert "getattr(deal,''symbol'',None)==''EURUSD''" in command
+    assert "position_valid" in command and "deal_valid" in command
+    assert "timedelta(days=31)" in command
+    assert "len(positions)<=1" in command and "len(deals)<=200" in command
+    assert "account_scope_sha256" in command
+    assert "order_send" not in command and "orders_get" not in command
+    assert "password" not in command
+    embedded = re.search(r"& \$s\.python_path -c '(.*)' \$c;exit", command, re.DOTALL)
+    assert embedded is not None
+    compile(embedded.group(1).replace("''", "'"), "h_slow_demo_reconciliation_snapshot.py", "exec")
+    assert t480_adapter.OPERATIONS["h_slow_demo_reconciliation_snapshot"].approval_required is False
+
+
+def test_h_slow_financing_terms_are_fixed_read_only_and_compile():
+    command = t480_adapter.OPERATIONS["h_slow_demo_financing_terms"].powershell_command or ""
+    assert "Documents\\Code\\forex-h-slow\\mt5.local.json" in command
+    assert "symbol_info(''EURUSD'')" in command and "symbol_info(''AUDUSD'')" in command
+    assert "swap_long" in command and "swap_short" in command and "swap_rollover3days" in command
+    assert "trade_tick_value_loss" in command and "AUDUSD" in command
+    assert "0<=euro_age<=15" in command and "0<=aud_age<=15" in command
+    assert "if quote_valid else None" in command and "0<=getattr(s,''swap_mode'')<=8" in command
+    assert "order_send" not in command and "orders_get" not in command and "password" not in command
+    embedded = re.search(r"& \$s\.python_path -c '(.*)' \$c;exit", command, re.DOTALL)
+    assert embedded is not None
+    compile(embedded.group(1).replace("''", "'"), "h_slow_demo_financing_terms.py", "exec")
+    assert t480_adapter.OPERATIONS["h_slow_demo_financing_terms"].approval_required is False
+
+
 def test_listener_install_requires_the_hash_bound_prepared_release():
     command = t480_adapter.OPERATIONS["m20_listener_install"].powershell_command or ""
     assert "m20_demo_listener_prepared.local.json" in command
@@ -274,6 +332,36 @@ def test_m20_listener_status_is_fixed_and_redacted():
     assert "$s.protected_restart_drill" in command
     assert "protected_restart_drill=$drill" in command
     assert "NOT_REPORTED" in command
+
+
+def test_m20_listener_latest_assessment_is_fixed_read_only_and_release_bound():
+    command = t480_adapter.OPERATIONS["m20_listener_latest_assessment"].powershell_command or ""
+    assert "m20_demo_latest_assessment.local.json" in command
+    assert "m20_demo_listener_status.local.json" in command
+    assert "m20_demo_listener_service.local.json" in command
+    assert "forex.m20.latest-assessment.v1" in command
+    assert "GOMarketsMU-Demo" in command and "EURUSD" in command
+    assert "LATEST_ASSESSMENT_ABSENT" in command
+    assert "M20 latest assessment exceeds fixed export limit" in command
+    assert "M20 latest assessment binding is invalid" in command
+    assert "order_send" not in command
+    assert "Start-ScheduledTask" not in command
+
+
+def test_m20_listener_spool_page_is_bounded_read_only_and_cursor_is_numeric_only():
+    command = t480_adapter.OPERATIONS["m20_listener_spool_page"].powershell_command or ""
+    assert "m20_demo_assessment_spool" in command
+    assert "Select-Object -First 8" in command
+    assert "SPOOL_ABSENT" in command
+    assert "raw_base64" in command
+    assert "Remove-Item" not in command and "order_send" not in command and "Start-ScheduledTask" not in command
+    dynamic = t480_adapter._m20_listener_spool_page_command(42)
+    assert "after_assessment_sequence=42" in dynamic
+    with pytest.raises(ValueError, match="non-negative"):
+        t480_adapter._m20_listener_spool_page_command(-1)
+    assert "Stop-ScheduledTask" not in command
+    assert "Remove-Item" not in command
+    assert "GOMarketsMU-Live" not in command
 
 
 def test_m20_liquidity_does_not_describe_a_failed_position_read_as_flat():
@@ -391,6 +479,20 @@ def test_m20_listener_install_is_hash_checked_and_fixed():
     assert len(command) < 3000
     assert "FOREX_M20_POSTGRES_DSN" not in command
     assert "FOREX_M20_DISCORD_WEBHOOK_URL" not in command
+
+
+def test_m20_listener_copy_unchanged_payloads_is_fixed_hash_checked_and_nontrading():
+    command = t480_adapter.OPERATIONS["m20_listener_copy_unchanged_payloads"].powershell_command or ""
+    for name in ("m20_demo_trading_session.payload", "m20_postgres_audit_bridge.payload",
+                 "m20_discord_trade_notification.payload"):
+        assert name in command
+    assert "m20_demo_listener_status.local.json" in command
+    assert "Get-FileHash" in command and "Copy-Item" in command
+    assert "unchanged dependency source hash differs" in command
+    assert "unchanged dependency target conflicts" in command
+    assert "order_send" not in command and "GOMarketsMU-Live" not in command
+    assert "Start-ScheduledTask" not in command and "Stop-ScheduledTask" not in command
+    assert "Remove-Item" not in command
 
 
 def test_m20_listener_watchdog_is_fixed_session_zero_and_has_no_order_surface():
@@ -833,22 +935,24 @@ def test_m20_capture_crossing_assessed_minute_records_terminal_non_submission(mo
     after_capture = initial + timedelta(seconds=1)
     _, clock = _capture_test_environment(monkeypatch, probe, initial=initial, after_capture=after_capture)
     calls = []
+    receipt = {"snapshot_id": None}
 
     def bridge(payload, command):
         calls.append((command, payload))
         if command == "enforce-risk-policy":
             return {"risk": {"entry_allowed": True, "maximum_loss_aud": 100}}
         if command == "persist-proposal":
-            return {"postgres_audit": {"session_id": "s", "proposal_id": "proposal", "snapshot_id": "snapshot", "execution_attempt_id": None, "record_sha256": "sha256:" + "e" * 64}}
+            receipt["snapshot_id"] = payload["decision_snapshot"]["snapshot_id"]
+            return {"postgres_audit": {"session_id": "s", "proposal_id": "proposal", "snapshot_id": receipt["snapshot_id"], "execution_attempt_id": None, "record_sha256": "sha256:" + "e" * 64}}
         if command == "reserve-execution":
             # The reservation is the last operation before the real fresh
             # quote/M1 recheck. Simulate its minute-boundary delay here.
             clock["now"] = after_capture
             attempt_id = payload["reservation"]["attempt_id"]
-            return {"reservation": {"slot_number": None}, "postgres_audit": {"session_id": "s", "proposal_id": "proposal", "snapshot_id": "snapshot", "execution_attempt_id": attempt_id, "record_sha256": "sha256:" + "e" * 64}}
+            return {"reservation": {"slot_number": None}, "postgres_audit": {"session_id": "s", "proposal_id": "proposal", "snapshot_id": receipt["snapshot_id"], "execution_attempt_id": attempt_id, "record_sha256": "sha256:" + "e" * 64}}
         if command == "reconcile":
             attempt_id = next(payload["result"]["attempt_id"] for command, payload in calls if command == "record-result")
-            return {"reconciliation": {"session_id": "s", "proposal_id": "proposal", "snapshot_id": "snapshot", "execution_attempt_id": attempt_id, "status": "NOT_SUBMITTED_RECONCILED"}}
+            return {"reconciliation": {"session_id": "s", "proposal_id": "proposal", "snapshot_id": receipt["snapshot_id"], "execution_attempt_id": attempt_id, "status": "NOT_SUBMITTED_RECONCILED"}}
         assert command == "record-result"
         return {"ok": True}
 

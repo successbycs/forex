@@ -1,0 +1,15 @@
+# Render absolute local paths and verify before installation.
+[Unit]
+Description=Forex fixed paged M20 assessment export (read-only, no trading)
+
+[Service]
+Type=oneshot
+WorkingDirectory={{REPOSITORY}}
+# User-systemd has a deliberately minimal Linux PATH. The fixed T480 adapter
+# invokes Windows PowerShell through WSL, so expose only its known directory.
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/mnt/c/Windows/System32/WindowsPowerShell/v1.0
+ExecStart={{PYTHON}} {{REPOSITORY}}/scripts/m20_spool_page_export.py --capture-root {{ASSESSMENTS}}
+Restart=no
+TimeoutStartSec=45s
+UMask=0077
+NoNewPrivileges=true

@@ -8,6 +8,7 @@ import types
 import pytest
 
 from forex import m20_policy_kernel as kernel
+from forex.m1_calendar_decision_overlay import apply_calendar_overlay
 
 
 def stamp(value: datetime) -> str:
@@ -47,6 +48,23 @@ def tick(cutoff: datetime) -> dict:
 
 def gates() -> dict:
     return {key: True for key in ("fresh_quote", "completed_m1", "normal_spread", "no_existing_position", "demo_lease_active", "news_blackout_inactive", "abnormal_volatility_inactive")}
+
+
+def bound_snapshot(*, observed: datetime, decision: datetime | None = None,
+                   include_financing: bool = True) -> dict:
+    """Create the exact deployed snapshot shape with its canonical body hash."""
+    body = {
+        **tick(observed), "captured_at_utc": stamp(decision or observed),
+        "m1_closed_bars": bars(cutoff=observed), "m5_closed_bars": [],
+        "safety_gates": gates(), "market_context": {}, "strategy_assessments": [],
+    }
+    if include_financing:
+        body.update(financing={}, holding_review={})
+    if decision is not None:
+        for row in body["m1_closed_bars"]:
+            row["available_at_utc"] = stamp(decision)
+    return {"snapshot_id": "snapshot-1", **body,
+            "payload_sha256": kernel._snapshot_body_sha256(body)}
 
 
 def test_strategy_assessments_and_selection_match_deployed_policy(monkeypatch):
@@ -153,3 +171,96 @@ def test_consistent_snapshot_still_reports_provenance_unverified():
     result = kernel.classify_retained_snapshot(snapshot)
     assert result["classification"] == "CLOCK_AND_GATES_CONSISTENT_PROVENANCE_UNVERIFIED"
     assert result["execution_authority"] is False
+
+
+def test_receipt_bound_snapshot_uses_later_decision_cutoff_not_broker_tick():
+    observed = datetime(2026, 9, 11, 9, 0, tzinfo=timezone.utc)
+    decision = observed + timedelta(seconds=7)
+    snapshot = {**tick(observed), "decision_at_utc": stamp(decision),
+                "m1_closed_bars": bars(cutoff=observed), "safety_gates": gates()}
+    # The complete M1 read was received at the later decision time and would
+    # be invalid if replay used the earlier broker-tick observation time.
+    for row in snapshot["m1_closed_bars"]:
+        row["available_at_utc"] = stamp(decision)
+    result = kernel.classify_retained_snapshot(snapshot)
+    assert result["decision_cutoff_utc"] == stamp(decision)
+    assert result["observed_at_utc"] == stamp(observed)
+    assert result["classification"] == "CLOCK_AND_GATES_CONSISTENT_PROVENANCE_UNVERIFIED"
+
+
+def test_rejects_a_decision_time_before_the_broker_observation():
+    observed = datetime(2026, 9, 11, 9, 0, tzinfo=timezone.utc)
+    snapshot = {**tick(observed), "decision_at_utc": stamp(observed - timedelta(seconds=1)),
+                "m1_closed_bars": bars(cutoff=observed), "safety_gates": gates()}
+    with pytest.raises(kernel.KernelInputError, match="predates"):
+        kernel.classify_retained_snapshot(snapshot)
+
+
+def test_classifies_actual_snapshot_plus_proposal_receipt_binding():
+    observed = datetime(2026, 9, 11, 9, 0, tzinfo=timezone.utc)
+    decision = observed + timedelta(seconds=7)
+    snapshot = bound_snapshot(observed=observed, decision=decision)
+    proposal = {"proposal_id": "proposal-1", "snapshot_id": "snapshot-1",
+                "decision_snapshot_sha256": snapshot["payload_sha256"], "decision_at_utc": stamp(decision)}
+    result = kernel.classify_retained_decision(snapshot, proposal)
+    assert result["proposal_bound"] is True
+    assert result["proposal_id"] == "proposal-1"
+    assert result["decision_cutoff_utc"] == stamp(decision)
+
+
+@pytest.mark.parametrize(("proposal_change", "message"), [
+    ({"snapshot_id": "other"}, "snapshot_id"),
+    ({"decision_snapshot_sha256": "sha256:other"}, "snapshot hash"),
+    ({"decision_at_utc": None}, "decision_at_utc"),
+    ({"proposal_id": ""}, "proposal_id"),
+])
+def test_rejects_unbound_or_incomplete_snapshot_proposal_pair(proposal_change, message):
+    observed = datetime(2026, 9, 11, 9, 0, tzinfo=timezone.utc)
+    snapshot = bound_snapshot(observed=observed)
+    proposal = {"proposal_id": "proposal-1", "snapshot_id": "snapshot-1",
+                "decision_snapshot_sha256": snapshot["payload_sha256"], "decision_at_utc": stamp(observed)}
+    proposal.update(proposal_change)
+    with pytest.raises(kernel.KernelInputError, match=message):
+        kernel.classify_retained_decision(snapshot, proposal)
+
+
+def test_rejects_a_mutated_snapshot_even_when_proposal_repeats_its_old_hash():
+    observed = datetime(2026, 9, 11, 9, 0, tzinfo=timezone.utc)
+    snapshot = bound_snapshot(observed=observed)
+    proposal = {"proposal_id": "proposal-1", "snapshot_id": "snapshot-1",
+                "decision_snapshot_sha256": snapshot["payload_sha256"], "decision_at_utc": stamp(observed)}
+    snapshot["m1_closed_bars"][-1]["close"] += 0.00001
+    with pytest.raises(kernel.KernelInputError, match="does not match"):
+        kernel.classify_retained_decision(snapshot, proposal)
+
+
+def test_classifies_legacy_deployed_snapshot_schema_without_financing_fields():
+    observed = datetime(2026, 9, 11, 9, 0, tzinfo=timezone.utc)
+    snapshot = bound_snapshot(observed=observed, include_financing=False)
+    proposal = {"proposal_id": "proposal-1", "snapshot_id": "snapshot-1",
+                "decision_snapshot_sha256": snapshot["payload_sha256"], "decision_at_utc": stamp(observed)}
+    result = kernel.classify_retained_decision(snapshot, proposal)
+    assert result["proposal_bound"] is True
+
+
+def test_calendar_overlay_snapshot_requires_the_bound_final_proposal_action():
+    observed = datetime(2026, 9, 11, 9, 0, tzinfo=timezone.utc)
+    snapshot = bound_snapshot(observed=observed)
+    overlay = apply_calendar_overlay(
+        candidate={"proposal_id": "proposal-1", "action": "BUY"},
+        gate_observation={"schema_version": "forex.m1-event-risk-gate.v1",
+                          "execution_authority": False, "scope": "NEW_ENTRY_ONLY",
+                          "state": "ANNOTATION_ONLY_DISABLED", "new_entry_permitted": None,
+                          "reason": "disabled"},
+    )
+    snapshot["calendar_overlay"] = overlay
+    body = {key: value for key, value in snapshot.items()
+            if key not in {"snapshot_id", "payload_sha256"}}
+    snapshot["payload_sha256"] = kernel._snapshot_body_sha256(body)
+    proposal = {"proposal_id": "proposal-1", "snapshot_id": "snapshot-1",
+                "decision_snapshot_sha256": snapshot["payload_sha256"],
+                "decision_at_utc": stamp(observed), "action": "BUY"}
+    assert kernel.classify_retained_decision(snapshot, proposal)["proposal_bound"] is True
+    proposal["action"] = "SELL"
+    with pytest.raises(kernel.KernelInputError, match="calendar overlay"):
+        kernel.classify_retained_decision(snapshot, proposal)

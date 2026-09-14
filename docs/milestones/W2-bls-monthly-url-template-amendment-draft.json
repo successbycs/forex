@@ -1,0 +1,27 @@
+{
+  "schema_version": "forex.primary-event-context-url-template-amendment-draft.v1",
+  "status": "DRAFT_NOT_ACTIVE",
+  "execution_authority": false,
+  "human_approval_required": "A human operator must review and explicitly approve a separately applied contract amendment; this draft cannot activate itself.",
+  "baseline_schema_version": "forex.primary-event-context.v1",
+  "amendments": [
+    {
+      "family_id": "US_CPI",
+      "source_id": "bls-monthly-release-calendar",
+      "source_url_template": "https://www.bls.gov/schedule/{year}/{month:02d}_sched_list.htm",
+      "matching_policy": "EXACT_BLS_MONTHLY_URL_TEMPLATE_ONLY",
+      "coverage_status": "UNKNOWN",
+      "unavailable_source_handling": "UNAVAILABLE",
+      "execution_authority": false
+    },
+    {
+      "family_id": "US_EMPLOYMENT_SITUATION",
+      "source_id": "bls-monthly-release-calendar",
+      "source_url_template": "https://www.bls.gov/schedule/{year}/{month:02d}_sched_list.htm",
+      "matching_policy": "EXACT_BLS_MONTHLY_URL_TEMPLATE_ONLY",
+      "coverage_status": "UNKNOWN",
+      "unavailable_source_handling": "UNAVAILABLE",
+      "execution_authority": false
+    }
+  ]
+}

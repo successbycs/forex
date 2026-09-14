@@ -1,242 +1,233 @@
-# Wave 3: Evidence of edge and viable operator economics
+# Wave 3: Parallel Demo strategies, observation and refinement
 
-Revised 2026-09-10. **Current research plan; not an executed experiment.**
-Read the [shared guide](demo-income-waves.md), current W1/W2 handovers and
+Revised 2026-09-12 at Chris's direction. **Current implementation and Demo
+observation plan; not a launch or completion claim.** Read the
+[shared guide](demo-income-waves.md), relevant W1/W2 handovers and
 [source review](../../Research/2026-09-10-fx-literature-source-review.md).
-This is now the single home of the former R0/E1–E5 research work. Its goal
-prompt alias is [research-trading-wave-goal.md](research-trading-wave-goal.md).
+The [research goal alias](research-trading-wave-goal.md) contains the identical
+goal prompt. [Deployment detail](../parallel-demo-streams.md).
 
-Determine whether one simple policy deserves further capital and engineering
-attention after broker charges, operating expenses and realistic risk controls.
-SUPPORTED, REJECTED and INCONCLUSIVE are honest possible findings. This wave
-does not have to manufacture a winning strategy to deliver a valid result.
+Keep the existing M1 stream operating and add one independently owned
+longer-hold EUR/USD Demo stream. Use established research and documented
+judgment to choose a simple initial rule. Verify correct implementation,
+execute under a bounded Demo mandate, observe and refine. Profitability,
+statistical significance and replication of academic results are not
+prerequisites to Demo entry. Demo outcomes are observations, not Live returns.
 
-## Activities, success and real-world tests
+This supersedes the earlier mandatory shadow-first, economic-support-before-
+Demo and multi-variant holding-study sequence. It does not waive operational
+safety, change M1 exits, provision an account or increase approved risk limits.
+The purpose is executable learning with low operator effort, not a daily
+trade or income quota.
 
-| ID | Change and mission value | Success criteria | Real-world demonstration |
+## Activities, success and actual observations
+
+| ID | Deliverable | Acceptance | Demonstration |
 | --- | --- | --- | --- |
-| W3.1 | Register and evaluate the frozen M1 baseline plus at most two predeclared challengers. Include operator economics and selection-aware inference. | Every trial, failure and variation is retained; policy/data/cost versions and final evaluation are frozen. Reproducible evidence and business verdicts use the declared criteria. No unknown capital/cost value is invented to produce a pass. | Rebuild chronological evaluation from qualified retained data, then collect genuinely future shadow observations and baseline broker outcomes over the declared interval. Reconcile costs with broker records and one actual billing period. Independently reproduce the report from immutable artifacts. |
-| W3.2 | Measure low-attention operation and expose state clearly using existing services. Add the authoritative PostgreSQL unresolved-attempt preflight to any repeat T480 host-reboot drill. | Service health, research evidence, entry permission and broker lifecycle are distinct; risk latches survive restart; the reboot drill fails closed when the global unresolved-attempt summary is nonempty or unavailable; operator minutes and recurring AI/resource costs meet the declared allowance. No duplicate entries or unresolved protection failures. | Reuse valid W1.R drills; observe a full liquid session of at least four hours with T16 disconnected and seven calendar days of scheduled collection, within the longer research interval. Retain continuity/gaps, incidents and operator actions. Run a repeat flat-account reboot only after the new ledger preflight passes; reboot without sign-in remains a separately verified dependency, not a consequence of T16 disconnection. |
-| W3.3 | Independently review economic evidence and, conditionally, qualify the selected candidate's actual Demo execution before any Live readiness claim. | An explicit disposition distinguishes shadow support, executed Demo qualification and operator viability. No candidate is promoted automatically. Formal milestone claims retain their complete bound review gates. | Verify reports without repairing inputs. If a candidate is supported and its exact Demo rule/contract is separately authorised, execute one frozen candidate through the existing fixed adapter and reconcile genuine fills, risk behaviour and costs over a predeclared trial. Otherwise retain rejection/inconclusiveness or the exact pending qualification. |
+| W3.1 | Define and implement one longer-hold H_SLOW policy alongside the frozen M1 baseline. Reuse existing execution/data components and add isolated ownership. | Complete executable rules, explicit assumptions, required inputs, account routing, Demo mandate and focused correctness checks. No mandatory profitable backtest, shadow observation duration or forecast model. | Replay suitable retained inputs to check rule behavior; test invalid data, sizing, stops, restart, duplicate refusal and cross-stream isolation. Read back the configured Demo account/release before activation. Tests are engineering evidence, not completed broker proof. |
+| W3.2 | Operate the two streams with separate records and low-attention monitoring. Shared data/events serve both without mixing accounts or positions. | Per-stream signals, rejections, attempts, orders, positions, costs and outcomes; combined exposure/risk view; deterministic protection survives absent LLM/T16. | Collect genuine Demo observations through ordinary services. Reconcile exact broker identifiers and costs for each stream. Demonstrate that one stream cannot modify, close or overwrite the other's state. Record missing observations without forced trades. |
+| W3.3 | Review execution and economics, decide one bounded refinement, and retain a clear handover. | Separate operational, economic and business verdicts; version every change, preserve losses and uncertain outcomes; no automatic strategy retuning or risk escalation. | Independently reconcile retained records and reproduce the report. Assess observed results at recorded checkpoints; introduce a single versioned refinement only through the applicable Demo deployment checks. Preserve all required milestone reviews and proof. |
 
-No trade quota applies. The collection intervals above are engineering
-checkpoints, not proof of sufficient independent information or sustainable
-returns. Record permissible gaps and recovery targets before collection;
-a proposed default is heartbeat gaps below 30 seconds outside recorded
-maintenance, with market closures reported as fresh waiting status. Coverage
-losses remain in the analysis. Do not fail or pass using retrospectively chosen
-uptime thresholds.
+These activities are not a requirement to finish all economic analysis before
+W3.2 can submit a Demo order. Activation follows W3.1's applicable operational
+checks and mandate; W3.3 uses the subsequent observations.
 
-## Freeze a small family before evaluation
+## Dependency rules that support progress
 
-**Baseline:** the post-remediation deployed M1 composite, including all five
-rules, precedence, fees, intended stops, sizing, exits, risk pauses and caps.
-Freeze its exact version. Five related EURUSD rules are not independent
-diversification. Preserve their required observations.
+- M1 continues under its existing approved policy. Repair outstanding critical
+  exposure/protection/accounting defects before adding another executing stream.
+- Reuse W1's valid reliability work and W2's inputs/calculators as needed. A
+  whole-wave completion label is not a substitute for checking the specific
+  capability, nor is an unrelated pending proof a new Demo-entry gate.
+- Historical data must cover the rule's actual warm-up and decision inputs.
+  A multi-year evaluation dataset or untouched historical holdout is not
+  required to begin prospective Demo observation.
+- Broker charges needed for risk/sizing must be observed or covered by an
+  explicitly approved labelled Demo estimate. Unknown charges are not zero.
+  Existing intraday allowances do not automatically qualify overnight costs.
+- Missing business capital, household-income targets, a full billing period
+  or statistical precision limits the relevant business claim, not otherwise
+  permitted Demo operation.
+- Preserve the active formal milestone and exact scope. If isolation, account
+  routing or holding changes are outside its contract, prepare the amendment
+  before dependent implementation. This plan is not an implicit registry edit.
 
-**H_SESSION:** apply one fixed entry filter to the baseline: intersection of
-08:00–17:00 `Europe/London` and 08:00–17:00 `America/New_York`, Monday–Friday,
-with every other baseline eligibility rule. These are explicit research
-windows, not official exchange hours or a published profit guarantee.
-Session closure prevents new entries and adds no new exit rule.
+## Initial strategy scope
 
-**H_SLOW:** replace the earlier H_H1 proposal with one slow daily technical
-rule or long-horizon trend rule selected from an inspected primary paper.
-Before its first evaluated trial, specify the paper/rule, any adaptation to
-single-pair EURUSD, lookback, signal/rebalance clock, warm-up, intended stop,
-position sizing, holding/exit policy, financing, missing-data handling and
-minimum-lot feasibility. Select on methodological fit and data availability,
-not the best return from an undeclared search. This definition is a required
-planning deliverable; the label alone is not an executable strategy.
+**M1 baseline:** retain the actual versioned composite, selection precedence,
+minute-scale exits, sizing and risk controls. Do not silently substitute a
+different strategy or turn higher-timeframe context into entry authority.
 
-H_SLOW remains a project hypothesis: monthly diversified momentum evidence
-does not validate an H1 filter or a single-pair daily adaptation. If suitable
-data is unavailable, explicitly reduce the registered family before evaluation
-or mark the candidate unready. Do not substitute a different strategy silently.
+**H_SLOW:** one slower trend-following rule selected on published evidence,
+simplicity and feasible inputs, not the best result from a parameter search.
+The implementing agent must choose and record the source rule and adaptations,
+then specify before the first order:
 
-At most two new confirmatory hypotheses; exploratory development variants
-still count in the full search history. No H_SESSION×H_SLOW combination,
-regime/session/volatility grid, nine-timeframe search or autonomous optimisation.
-Existing H1 observations remain useful context but are not another active
-confirmatory candidate. New candidates begin shadow-only.
+- signal, lookback, warm-up and completed-bar/availability semantics;
+- signal/rebalance clock and eligible entry conditions;
+- sizing, minimum-lot feasibility, stop placement and applicable account limits;
+- exit/reversal behavior, maximum hold, overnight and weekend treatment;
+- financing, conversion and gap assumptions; missing-data and failed-close behavior;
+- exact stream/account/terminal identity, release/configuration and review/end conditions.
 
-Compare each complete policy at matched feasible capital/risk against the
-baseline and a declared cash/no-FX alternative. Show the running-platform
-no-trade comparator separately where common costs matter. Do not invent cash
-interest. Every policy has its own position, cash, opportunity, risk-pause and
-exposure state; filtering only the baseline's executed trades is insufficient.
+The strategy name is not an executable specification. Do not keep asking the
+operator to select indicators: exercise judgment within the approved scope.
+Request only genuinely missing account, exposure or holding authority. Record
+inferences as assumptions; published evidence does not guarantee this adaptation.
 
-## Cost-aware holding study — W3.1, qualification in W3.3
+H_SESSION, H_EVENT, carry, directional news trading and a calibrated hold/close
+forecast model are deferred refinements, not required parallel deliverables.
+Start with M1 plus H_SLOW. Review one substantive refinement at a time, retaining
+every attempted version. No session × event × timeframe × holding grid.
 
-Use the [swap-aware research and decision method](../../Research/2026-09-10-swap-aware-hold-or-close.md)
-and W1/W2's qualified calculator, records and shared execution kernel.
+## Separate ownership and deployment
 
-| Owner | Change and why | Success criteria | Real-world demonstration |
-| --- | --- | --- | --- |
-| W3.1 | Compare close-before-rollover, bounded overnight holding and conditional holding for one predeclared entry policy. Test whether retaining exposure adds net value. | Register every variation and contrast. Estimate future net liquidation value across stop/target/time-exit outcomes, with forecast uncertainty; include actual financing and differences in exit costs. Use separate policy account paths and the existing selection-aware inference. | Reproduce chronological results and collect genuinely prospective shadow decisions on ordinary T480 operation. Report realised chosen actions separately from counterfactual estimates, including no-trade periods and cost/rate gaps. |
-| W3.1 | Calibrate horizon-specific forecasts and the conservative incremental-benefit threshold using development data only. | Freeze horizon, confidence-bound method, benefit buffer, maximum duration and risk/event constraints before final evaluation. HOLD requires conservative incremental value above the buffer and every Option B/protection gate. Unknown data/evidence uses the approved fallback. | Verify predictions against subsequent observations at the declared horizon; test calibration, net improvement, downside/tail loss, drawdown, turnover and financing sensitivity on untouched evaluation data. Insufficient precision is INCONCLUSIVE. |
-| W3.3 | Promote only an economically supported, exactly specified holding policy through the existing Demo qualification gate. | Neither positive swap nor shadow support grants order authority. Final disposition distinguishes forecast support, broker cost qualification, actual Demo execution and operator viability. | Under separately recorded exact Demo authority, reconcile genuine eligible rollover decisions, financing and exits on the frozen release. No forced entries or extended holding solely to gather proof. |
+Preferred initial deployment is a separately configured GOMarketsMU-Demo
+account and terminal instance for H_SLOW, in the same repository and on reused
+infrastructure where suitable. Account/terminal selection is pending; never
+silently select a saved login. Each stream needs separate leases, local files,
+monitor jobs, account-scoped reservations/idempotency and broker attribution.
 
-Keep the existing maximum of two new confirmatory challengers. Register the
-three-way holding comparison as a bounded development study on one specified
-entry policy, count all variants in the search history, and freeze any selected
-holding rule within the permitted candidate definition before final evaluation.
-Do not take a strategy × session × holding Cartesian product or hide additional
-confirmatory policies as benchmarks. H_SESSION remains an entry-only filter;
-changing its exits would change that hypothesis. If the intended confirmatory
-holding contrasts do not fit the registered family, prepare an explicit
-replacement/amendment before evaluation rather than silently enlarging it.
+Do not launch two copies of the current single-position executor. Verify that
+each monitor can affect only its exact owned tickets. Account separation does
+not by itself establish state separation: test filenames, database keys,
+restart recovery and routing. One entry writer per account/server remains.
 
-Compare each complete policy with the approved operating baseline and cash
-alternative. Conditional holding must demonstrate a worthwhile net advantage
-under the predeclared uncertainty/selection criteria while satisfying downside
-and operator-effort limits. A result may favour daily closure or bounded holding;
-there is no requirement that conditional holding win. No overnight model is
-required to complete W1's separately qualified intraday fallback.
+A shared-account alternative requires atomic aggregate reservations, verified
+hedging/netting semantics and explicit per-stream/total position and exposure
+limits. The current one-position cap is unchanged. Any two-position mandate
+must be recorded before activation; this plan does not grant it. Do not double
+the total experiment budget merely by creating another Demo account.
 
-## Registration and data protocol
+Read back account/server, deployed policy and protection configuration before
+the first order. Record a deterministic disable-new-entries/rollback path that
+preserves management and reconciliation of existing positions. Do not switch
+accounts while their exposure or pending attempts are unresolved.
 
-Reuse M19 lineage, M20 observations and PostgreSQL. Add only missing experiment
-and trial records plus immutable return artifacts, not a separate service.
-Start each trial record before evaluation; record failed/cancelled attempts,
-manual variants, parents, code/config/data/cost hashes and seeds. A crashed
-job remains visible. A candidate is a view over evidence and review events.
+## Proportionate pre-Demo checks
 
-Before opening final outcomes, freeze:
+Run focused automated checks for signal direction, completed data and clock
+handling, valid lot/stop/margin calculations, account binding, entry persistence,
+duplicate refusal, position ownership, restart recovery and broker reconciliation.
+Reuse valid prior results where applicable and retest affected behavior after
+material changes. Do not rerun unchanged infrastructure merely for a new label.
 
-1. Candidate family, complete executable rules, benchmarks, search/compute
-   limits and all known prior experimentation.
-2. Development/internal chronological validation and untouched final holdout.
-   Treat previously inspected history as development, not fresh OOS. If there
-   is no qualified historical holdout, declare a prospective-only design.
-3. Forward start/end and review date, effective-sample/coverage requirements,
-   worthwhile effect, uncertainty/inference method, safety stops and
-   inconclusive conditions. Six calendar weeks is a default collection
-   checkpoint; slower rules may require much longer to resolve an effect.
-4. Broker/account-specific cost model, base/+50%/2× variable execution-cost
-   stress and financing sensitivity. Unknown rates or fills cannot become zero.
-5. Intended capital, minimum worthwhile net income, recurring-cost allocation,
-   operator-time allowance and tax/development-cost treatment. Independent
-   engineering can proceed while these human-owned inputs remain pending,
-   but a supported business case cannot.
+A short replay or calculation-only shadow run can check code parity. There is
+no minimum profitable sample, mandatory shadow-duration gate or requirement to
+reproduce a paper before an authorised Demo trial. Use genuine broker responses
+to check the actual surface; fault injection does not establish broker behavior.
 
-Validate available-at and closed-at, past-only feature fitting, warm-up,
-overlapping outcome labels, gaps and ambiguous OHLC fills. Purge labels that
-cross evaluation boundaries; base any additional separation on actual
-information/outcome spans. Predeclare treatment of open trades at interval
-boundaries. Do not introduce arbitrary random splits or optimistic fills.
+Keep Demo entry permission distinct from formal proof of its full lifecycle:
+the first naturally eligible order generates evidence that cannot exist before
+execution. Missing lifecycle proof remains pending for closeout, not falsely
+marked complete. Never force an order or bypass a risk pause to obtain evidence.
 
-## Economic and statistical decision rules
+## Economic-event layer
 
-Report cash-flow-adjusted daily marked-to-market returns on common dates,
-including flat days/open exposure; retain intraday peaks for Option B. Report
-net AUD, initial-risk units, exposure, drawdown, time under water, pause
-frequency/duration, turnover, effective information, coverage and uncertainty.
+Wave 2 owns a small reusable module in this repository. Begin with US CPI,
+US Employment Situation, FOMC and ECB policy decisions/press conferences.
+Retain source, scheduled UTC time, original timezone, currency, first-known
+time, revisions and coverage health. Label incomplete coverage explicitly.
 
-Broker net P&L includes signed deal profit, commission, fees, swap and other
-attributable trading charges. Operator net income deducts attributable data,
-infrastructure, AI, electricity, licences and conversion/transfer costs not
-already included. Audit one billing period; show incremental and allocated
-shared costs. Report operator minutes and development costs separately, and
-label results before personal tax unless an applicable treatment is provided.
+Initially annotate M1 and H_SLOW decisions and outcomes. Missing optional
+annotations do not block either strategy or manufacture a CLEAR calendar
+result. Do not introduce a 30-minute blackout or directional news rule by
+default. If an event-based eligibility rule is later activated, version its
+coverage, timing and fail-closed behavior before it influences orders. Existing
+mandatory eligibility controls remain in force.
 
-Use one reviewed family method, White's Reality Check or Hansen SPA, selected
-before results, with aligned net comparisons and dependence-aware resampling.
-Proposed protocol defaults are 5% family significance, 10,000 seeded block
-bootstrap replications and development-selected block length, with declared
-sensitivity. Validate the implementation and interpretation before any
-confirmatory claim. Few effective blocks or invalid assumptions mean
-INCONCLUSIVE, not a forced p-value.
+## Observe, report and refine
 
-A family rejection does not identify a winner. Individual support requires
-predeclared simultaneous one-sided 95% bounds for the relevant candidate
-contrasts, including positive net benefit versus cash and improvement versus
-the M1 baseline under matched risk/capital. State how recurring expense and
-capital enter each contrast. Report historical and prospective findings
-separately. If these default criteria are changed, freeze the replacement
-before final evaluation and explain why; never choose whichever test passes.
+Start a compact versioned trial record before activation: hypothesis/source,
+assumptions, rules, account scope, release/configuration, Demo risk/holding
+mandate, review clock and stop/end conditions. Reuse the ledger; no new research
+service is needed.
 
-DSR/PSR and PBO/CSCV/CPCV are deferred, not mandatory gates. Retain aligned
-returns so justified diagnostics can be added later. Raw Sharpe is descriptive,
-not a substitute for net economic evidence.
+Use ordinary T480 services for collection while the operator or coding agent
+is absent. Report per-stream and combined exposure, marked-to-market results,
+drawdown, financing, rejected opportunities, incidents and coverage. Separate
+actual broker net from simulations and execution-cost estimates; do not deduct
+spread/slippage twice or count deposits as returns.
 
-Record two separate verdicts:
+Default reporting cadence is daily automated operational summaries and a weekly
+human-readable performance review, configured before operation. These are
+reporting checkpoints, not minimum trade counts or proof of sufficient data.
+Existing configured risk/incident checks continue at their required frequency.
+Low counts or slow trades yield a limited/inconclusive economic assessment,
+not a manufactured winner or automatic pause. Mandate expiry, risk limits and
+explicit stop conditions still apply.
 
-- **Evidence:** SUPPORTED_FOR_FURTHER_DEMO, REJECTED or INCONCLUSIVE under the
-  frozen effect/precision criteria. Lack of significance is not proof of no
-  edge; a negative noisy sample must not become a universal rejection.
-- **Operator viability:** SUPPORTED, REJECTED or INCONCLUSIVE at the stated
-  feasible capital. Support requires positive net operator income meeting the
-  declared target under base and +50% variable costs, acceptable drawdown/
-  pause behaviour and operator effort. Report 2× stress and break-even costs.
-  Unknown material inputs prohibit support.
+No automatic retuning after losses. Diagnose execution failures immediately;
+consider strategy changes at recorded reviews. Explain the proposed change,
+keep the earlier version's outcomes, check affected behavior and deploy only
+under the applicable versioned Demo authority. Never reset risk anchors or
+increase size to recover losses.
 
-Correctly triggered Option B pauses remain in the evaluated policy. They are
-not automatically implementation failures; their commercial impact must meet
-the predeclared tolerance. Failure to enforce a pause, unauthorised resume,
-unresolved exposure, protection or accounting failures block progression.
-Never remove pauses or scale beyond feasible lots to make performance pass.
+## Economic claims and future funded readiness
 
-Do not inspect results repeatedly and stop at the first profitable interval.
-Retuning consumes the holdout and creates a new registered version. Any
-extension has a new approved window and validity assessment; no automatic
-extension until significant.
+Record three separate statuses:
 
-## Collection, agent boundaries and executed qualification
+- **Operational:** ready, pending or failed, with the exact affected capability.
+- **Strategy economics:** observed results and uncertainty; supported, rejected
+  or inconclusive only against explicitly recorded criteria.
+- **Operator viability:** supported, rejected or inconclusive using actual
+  attributable costs and a declared feasible capital/effort basis.
 
-Use ordinary T480 services within their existing mandate, with bounded storage
-and resources. Record experiment events locally while T16/Codex are absent.
-Checkpoint once collection is verified; resume AI analysis at the declared
-condition. Pausing AI work must not disable protection.
+Uncertain or negative economics is learning, not an implementation pass or a
+guarantee of eventual profitability. An adverse result warrants a review against
+the trial's stop conditions; a safety breach blocks the affected execution.
 
-The state display must distinguish service health, data freshness, evidence
-stage, operating authority and broker exposure, with timestamps and all pause
-reasons. Reuse PostgreSQL/events and simple transition diagrams. No graph
-database or new dashboard platform.
+Historical replay and statistical analysis remain available for specific
+questions. Do not require a fixed six-week sample, 10,000 bootstrap replications,
+White/SPA procedure or simultaneous confidence bounds to launch Demo. If making
+a confirmatory edge claim or funded recommendation, specify suitable benchmarks,
+evaluation windows, cost stress and uncertainty/selection treatment before
+evaluation; preserve all prior trials and avoid holdout tuning. Do not stop the
+analysis at the first profitable interval. M1 need not outperform H_SLOW, nor
+must H_SLOW outperform M1 to be permitted as a Demo experiment.
 
-LLMs may prepare research proposals and explain verified findings under fixed
-call/cost/retry limits. No order authority, risk override, self-promotion,
-unrecorded strategy search or sentiment feature expansion. Missing LLM service
-must not stop deterministic protection/reconciliation.
+Actual financing, fees, recurring expenses, realistic capital and genuine
+candidate Demo execution remain relevant to Wave 4. Unknown material costs
+or inadequate evidence prevent a supported funded recommendation. The current
+GOMarketsMU-Live prohibition and separate funded-approval requirements remain.
 
-Shadow support qualifies a candidate only for the next bounded Demo decision.
-W3.3's executed trial requires an exact strategy/configuration/contract and
-operator authority before changing the executor. Freeze duration, loss budget,
-cost tolerances and success/end criteria before its first order. Missing that
-authority leaves executed qualification pending; it does not erase completed
-research or authorise Live. A selected candidate needs this proof before W4.
+## Continuity and completion
 
-## Completion and handover
+Reuse valid W1 recovery evidence. Do not impose a new four-hour/seven-day
+observation prerequisite to Demo activation. Measure unattended operation over
+the trial and retain missing proof against whichever contract requires it.
+A repeat host-reboot drill still needs an authoritative unresolved-attempt and
+exposure preflight, approved maintenance conditions and protection continuity;
+do not run one just to fill a report.
 
-Save `docs/milestones/demo-income-wave-3-report.md` and a versioned
-`Research/experiments/<id>/protocol.md` and `report.md`. Keep sensitive raw
-captures in existing ignored evidence locations, separate from verification.
-The old research-wave report, if present, is an input rather than a second
-required closeout report.
+Save docs/milestones/demo-income-wave-3-report.md and a compact versioned
+Research/experiments/<id>/protocol.md and report.md. Keep sensitive raw evidence
+in retained ignored locations, separate from verification. Report per-activity
+implementation, actual operation, pending proof and economic conclusions.
 
-W3 can deliver a completed rejected/inconclusive research result after its
-declared evaluation and required operational checks. For a supported candidate
-progressing toward Live, actual candidate Demo qualification is required and
-must remain explicitly pending until demonstrated. Never claim full completion
-with required proof missing. Only the formal closeout command may close an
-eligible milestone after all current contract gates and bound reviews.
+No full two-stream operational completion claim until both actually execute
+through their required broker lifecycle and isolation is demonstrated. No
+profitable outcome is required for an honest economic report. Only the formal
+closeout command may close a milestone after its declared real-world proof,
+current bound Triad-plus-domain review and required sign-off. No new milestone
+or goal is started by editing this plan.
 
 ## Copy-and-paste goal prompt
 
 ```text
-/goal Execute Wave 3: Evidence of edge and viable operator economics. Read docs/prompts/demo-income-waves.md and docs/prompts/demo-income-wave-3.md in full, the current W1/W2 handovers, and Research/2026-09-10-fx-literature-source-review.md. This is the canonical research wave; do not also execute the superseded R0/E1-E5 schedule.
+/goal Execute Wave 3: Parallel Demo strategies, observation and refinement. Read docs/prompts/demo-income-waves.md and docs/prompts/demo-income-wave-3.md in full, the relevant W1/W2 handovers, docs/parallel-demo-streams.md and Research/2026-09-10-fx-literature-source-review.md. Use this revised wave, not the superseded research-first sequence.
 
-Include the bounded W3.1 holding study and W3.3 qualification: compare daily closure, bounded holding and conditional holding on one predeclared entry policy; record every variant and keep the two-challenger limit. Freeze horizon-specific forecasts, uncertainty, benefit buffers and all financing costs before final evaluation. No automatic overnight authority or change to the entry-only H_SESSION hypothesis.
+Preserve the operating M1 Demo stream and finish applicable critical execution dependencies. Define and implement one isolated longer-hold H_SLOW stream using published evidence and documented judgment. Specify the exact rules, warm-up, sizing, protection, holding/financing treatment, account routing, review/end conditions and Demo mandate. H_SESSION, H_EVENT and conditional holding-model studies are deferred; no broad strategy search.
 
-Scope is W3.1-W3.3 only. Inspect Git status, applicable AGENTS.md, project_state.json, the active contract and docs/evidence_and_milestones.md. Verify dependencies and reuse existing components/approvals. Prepare exact amendments and missing operator decisions before dependent work; do not start another milestone.
+Inspect Git status, AGENTS.md, project_state.json, the active milestone contract and docs/evidence_and_milestones.md. Map implementation to the active approved scope and prepare exact amendments where needed. Reuse existing approvals; request only genuinely missing authority. This goal does not waive formal milestone dependencies or authorise the next milestone automatically.
 
-Register the frozen M1 baseline and at most two new challengers: H_SESSION and one fully specified literature-derived H_SLOW. H_SLOW replaces H_H1; do not expand the search grid. Freeze all rules, data/cost versions, trial family, capital/risk basis, temporal windows, selection-aware inference, decision criteria, compute limits and operator economics before final evaluation. Preserve every trial and failure, independent policy state and unknown observations.
+Run proportionate correctness and isolation checks, reuse valid prior evidence, then enable the exact authorised Demo stream without requiring a profitable backtest, statistical significance, academic replication or a mandatory shadow-performance period. Do not bypass account identity, fresh required data, exposure, protection, risk, persistence or reconciliation checks. Keep first-order eligibility separate from lifecycle proof generated by subsequent operation.
 
-Use qualified replay and prospective ordinary T480 collection. Reconcile actual broker charges and recurring expenses; include risk pauses and no-trade days. Do not double-count execution costs, infer capital from the Demo balance, tune on holdout or extend until profitable. Missing precision or material costs yields INCONCLUSIVE. Correct risk pauses are measured behaviour; failed enforcement blocks progression.
+Use separate account-scoped stream state and preferably separately configured Demo accounts/terminals. Do not select a saved account or relax the current one-position/aggregate risk caps implicitly. No second copy of the single-owner executor. Initial economic-event work annotates observations; it does not silently veto trades.
 
-New candidates are shadow-only initially. Execute W3.3 candidate qualification only after the exact Demo rule/contract and operating authority are recorded; research code never gains order authority. Verify genuine candidate fills before claiming executed support or Live readiness.
+Collect and reconcile both streams through ordinary services. Report daily operational summaries and weekly performance reviews unless an existing approved cadence applies. Keep actual costs, unknowns, rejected opportunities, losses and every strategy version. Review one substantive refinement at a time; no automatic retuning, risk escalation or LLM order overrides.
 
-Deliver separate evidence and operator-viability verdicts with independent verification. Save docs/milestones/demo-income-wave-3-report.md and versioned experiment conclusions under Research. Missing required proof stays pending. Use ordinary collection and a precise checkpoint/resumption condition instead of repeated AI polling. Respect only an explicitly supplied goal budget.
+Continue independent authorised work when a market observation is pending. Do not repeatedly poll or wait for arbitrary sample counts. Save exact pending proof and resumption conditions in docs/milestones/demo-income-wave-3-report.md and compact versioned trial records. Report operational readiness, strategy economics and operator viability separately; missing evidence remains pending or inconclusive.
 
-Preserve Option B, Demo-only EURUSD and exposure caps. No Live access, next wave/milestone, strategy self-promotion or LLM overrides. This prompt adds no commit/push/branch/PR authority; honour existing explicit authorisation only within scope. Formal closeout remains subject to the complete active contract and bound review.
+Preserve Option B, GOMarketsMU-Demo-only EURUSD, deterministic protection and the GOMarketsMU-Live prohibition. No Live access, new milestone, unspecified risk/holding authority, commit, push, branch or PR is granted by this prompt. Honour only explicit existing authority within scope. Formal closeout retains real-world proof, current bound Triad-plus-domain review and required sign-off. Respect only an explicitly supplied goal budget.
 ```

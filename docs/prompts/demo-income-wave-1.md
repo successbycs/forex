@@ -20,6 +20,15 @@ final verification/review gates are fresh and bound to the final release.
 
 # Wave 1: Trustworthy Demo execution
 
+## Parallel Demo direction — 2026-09-12
+
+Wave 1 finishes the existing M1 stream; it does not replace it with a slower
+strategy. Preserve its approved operation during later development. Apply the
+shared guide's mission-gate classification: no profitability or Wave 3 forecast
+prerequisite for M1 Demo operation. Deferred market observations remain pending
+for the claims that need them, without blocking unrelated authorised work.
+Longer-hold isolation and activation belong to revised Wave 3, not this wave.
+
 ## Operator resolution — 2026-09-10
 
 The instruction to resolve the blocked broker facts using sources/inference
@@ -94,7 +103,8 @@ Added by operator planning instruction on 10 September. Read the
 [swap-aware hold/close research](../../Research/2026-09-10-swap-aware-hold-or-close.md).
 These are subactivities of the existing four activities, not a new wave or
 permission to activate an overnight strategy. W1 supplies accurate costs,
-deterministic controls and an approved fallback; W3 supplies evidence of edge.
+deterministic controls and an approved fallback; W3 implements and observes the
+separate longer-hold Demo hypothesis.
 Do not block otherwise qualified intraday Demo execution on a W3 forecast.
 
 | Owner | Change and why | Success criteria | Real-world demonstration |
@@ -102,7 +112,7 @@ Do not block otherwise qualified intraday Demo execution on a W3 forecast.
 | W1.1 | Version the holding mandate in canonical configuration: maximum duration, broker rollover/calendar, review and entry cutoffs, freshness, fallback exit and weekend policy. | Effective deployment matches the approved settings; no assumed zero financing or silent forced-close rule. Identify exact contract amendments before dependent implementation. | Read back configuration/revision from T480 and compare with the approved policy and recorded decision. |
 | W1.3 | Add one signed AUD swap calculator and reuse the fee-complete ledger. Capture side, volume, calculation mode, rates, day multipliers, currencies, conversion sources and timestamps. | Support the observed broker mode first; missing/unsupported data is unknown. Projected, accrued and posted charges remain separate; each actual adjustment is attributed once, including partial closes. | Compare estimates recorded before rollover with genuine authorised Demo postings, within a predeclared currency-rounding tolerance. Ordinary and triple/holiday cases need actual observations where applicable; unobserved cases remain unqualified, never inferred from zero-swap closes. |
 | W1.4 | Include adverse financing through the maximum holding horizon in planned loss and entry cost feasibility. | Option B and valid SL/TP remain intact; uncertain swap credits do not increase risk capacity. Reject entries whose required costs are unknown or exceed headroom. TP feasibility is not expected return. | Retain deployed refusals with real broker inputs; separately test signed charges, currency conversion and cap crossings through the actual calculator/reservation path. Do not manufacture trades or losses. |
-| W1.2 / W1.4 | Add a deterministic pre-rollover position review and approved fallback, using the existing protected close/recovery path. | Record HOLD, CLOSE or REVIEW_REQUIRED with inputs, policy version and reasons. Without qualified horizon evidence, do not grant new overnight authority. Pending/failed exits preserve protection, block new entries and retain incidents; they never mean CLOSED. | Observe the approved boundary on a genuine eligible Demo position, reconcile any close with the broker, and retain recovery evidence. Failure injection is separate engineering evidence. If no eligible position occurs, record the missing proof and resumption condition. |
+| W1.2 / W1.4 | Add a deterministic pre-rollover position review and approved fallback, using the existing protected close/recovery path. | Record HOLD, CLOSE or REVIEW_REQUIRED with inputs, policy version and reasons. Preserve M1's approved holding mandate; do not grant new overnight authority in this wave. Pending/failed exits preserve protection, block new entries and retain incidents; they never mean CLOSED. | Observe the approved boundary on a genuine eligible Demo position, reconcile any close with the broker, and retain recovery evidence. Failure injection is separate engineering evidence. If no eligible position occurs, record the missing proof and resumption condition. |
 
 Qualification is specific to the approved holding mandate. Unobserved overnight
 or special-day charges prevent claiming those cases qualified; they do not
@@ -116,11 +126,12 @@ material risk/cost changes. An approved intraday fallback may permit qualified
 intraday entries with enough time to exit; inability to confirm an exit remains
 an exposure incident, not a guarantee that swap cannot occur.
 
-The conditional evaluator uses the shared guide's incremental-value rule.
+If later implemented, the optional conditional evaluator uses the shared
+guide's incremental-value rule; building that forecast is not a W1 dependency.
 W1 must not fabricate a return estimate, use an LLM confidence score or convert
 a TP target into expectancy. A qualified model is not a W1 deliverable: record
-EVIDENCE_UNQUALIFIED and apply the approved fallback until W3 authorises an
-exact policy after its evidence and Demo qualification gates. Preserve any
+EVIDENCE_UNQUALIFIED and apply the approved M1 fallback. A separate fixed-rule
+longer-hold Demo stream does not require this forecast model. Preserve any
 existing explicit authority while mapping the amendment; this document alone
 does not change exits. M20.13 currently permits protected-exit analysis only,
 so an execution-influencing holding/exit change needs an exact contract amendment.

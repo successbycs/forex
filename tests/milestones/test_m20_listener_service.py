@@ -34,6 +34,7 @@ def test_permanent_listener_is_a_bounded_m1_supervisor_with_status_and_stop():
     assert "M20 assessment exceeded its twelve-second bound" in source
     assert "timeout=12" in source
     assert "m20_demo_assessment_total.local.json" in source
+    assert '"m20_demo_assessment_spool" / ROOT.name' in source
     assert "assessment_total" in source and "process_iteration" in source
     assert "WAITING_FOR_FRESH_MT5_QUOTE" in source
     assert "--quote-identity" in source
@@ -95,6 +96,60 @@ def test_listener_module_loads_without_mt5_dependency():
     spec.loader.exec_module(module)
     assert module.ASSESSMENT_INTERVAL_SECONDS == 5
     assert module._nzst("2026-09-03T09:30:00Z") == "03/09/26 21:30:00 NZST"
+
+
+def test_latest_assessment_retention_is_replace_only_and_never_listener_critical(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    target = tmp_path / "latest.json"
+    monkeypatch.setattr(module, "LATEST_ASSESSMENT_PATH", target)
+    output = {
+        "marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1",
+        "operation": "m20_demo_trading_session", "server": "GOMarketsMU-Demo", "symbol": "EURUSD",
+        "captured_at_utc": "2026-09-12T00:00:01Z", "configuration_fingerprint": "sha256:" + "a" * 64,
+        "tick_timestamp_offset_seconds": 0, "decision_snapshot": {"snapshot_id": "s"},
+        "proposal": {"proposal_id": "p"}, "postgres_audit": {"not_retained": True},
+    }
+    assert module._write_latest_assessment(output, assessment_started_at_utc="2026-09-12T00:00:00Z",
+                                            assessment_completed_at_utc="2026-09-12T00:00:02Z",
+                                            assessment_sequence=1) == "RETAINED_LATEST"
+    retained = json.loads(target.read_text())
+    assert retained["assessment_sequence"] == 1
+    assert retained["assessment"]["decision_snapshot"] == {"snapshot_id": "s"}
+    assert "postgres_audit" not in retained["assessment"]
+    assert module._write_latest_assessment({}, assessment_started_at_utc="a", assessment_completed_at_utc="b", assessment_sequence=2) == "NOT_WRITTEN_UNSUPPORTED_RUNNER_OUTPUT"
+    assert module._write_latest_assessment(output, assessment_started_at_utc="a", assessment_completed_at_utc="b", assessment_sequence=0) == "NOT_WRITTEN_UNSUPPORTED_RUNNER_OUTPUT"
+    assert json.loads(target.read_text()) == retained
+
+
+def test_immutable_assessment_spool_is_idempotent_and_never_overwrites(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "ASSESSMENT_SPOOL_PATH", tmp_path / "spool")
+    output = {
+        "marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1",
+        "operation": "m20_demo_trading_session", "server": "GOMarketsMU-Demo", "symbol": "EURUSD",
+        "captured_at_utc": "2026-09-12T00:00:01Z", "configuration_fingerprint": "sha256:" + "a" * 64,
+        "tick_timestamp_offset_seconds": 0, "decision_snapshot": {"snapshot_id": "s"}, "proposal": {"proposal_id": "p"},
+    }
+    assert module._write_assessment_spool(output, assessment_started_at_utc="2026-09-12T00:00:00Z",
+                                          assessment_completed_at_utc="2026-09-12T00:00:02Z",
+                                          assessment_sequence=7) == "SPOOLED_IMMUTABLE"
+    target = tmp_path / "spool" / "00000000000000000007.json"
+    before = target.read_bytes()
+    assert module._write_assessment_spool(output, assessment_started_at_utc="2026-09-12T00:00:00Z",
+                                          assessment_completed_at_utc="2026-09-12T00:00:02Z",
+                                          assessment_sequence=7) == "SPOOL_ALREADY_RETAINED"
+    changed = {**output, "proposal": {"proposal_id": "changed"}}
+    assert module._write_assessment_spool(changed, assessment_started_at_utc="2026-09-12T00:00:00Z",
+                                          assessment_completed_at_utc="2026-09-12T00:00:02Z",
+                                          assessment_sequence=7) == "NOT_SPOOLED_CONFLICT"
+    assert target.read_bytes() == before
+    assert not list((tmp_path / "spool").glob("*.pending"))
 
 
 def test_listener_never_sleeps_a_negative_interval_after_monitoring():

@@ -1,0 +1,294 @@
+{
+  "schema_version": "forex.autonomous-delivery-queue.v1",
+  "purpose": "Select the next safe critical strategy-delivery package across shared trust, event context and H_SLOW without changing formal milestone state.",
+  "packages": [
+    {
+      "id": "W1-M29-DURABLE-RECOVERY-COLLECTOR",
+      "wave": "W1",
+      "title": "Build and test the non-trading M29 durable recovery collector",
+      "state": "COMPLETE",
+      "formal_milestone": "M29",
+      "requires": ["existing fixed listener status and spool surfaces", "no broker order operation"],
+      "execution_authority": false
+    },
+    {
+      "id": "W1-M29-EXTERNAL-PROOF",
+      "wave": "W1",
+      "title": "M29 durable recovery observation",
+      "state": "PARKED_EXTERNAL_PROOF",
+      "formal_milestone": "M29",
+      "requires": ["fresh Demo collector outage/restart/durable-dedup observation or a human-approved narrower contract"],
+      "execution_authority": false
+    },
+    {
+      "id": "W1-M1-RELIABILITY-TRIAGE",
+      "wave": "W1",
+      "title": "Release-controlled M1 loss-accounted assessment retention and reliability revalidation",
+      "state": "PARKED_EXTERNAL_OBSERVATION",
+      "formal_milestone": "M29",
+      "requires": ["deployed immutable spool and fixed paged exporter", "a natural fresh Demo listener assessment plus broker-surface revalidation after release"],
+      "execution_authority": false
+    },
+    {
+      "id": "W1-OPERATING-SCHEDULE-REGISTER",
+      "wave": "W1",
+      "title": "Maintain the declarative M1/MT5 operating schedule and service register",
+      "state": "COMPLETE",
+      "formal_milestone": "M29",
+      "requires": ["read-only register validation", "no runtime or deployment claim"],
+      "execution_authority": false
+    },
+    {
+      "id": "W1-MT5-RECONCILIATION-BASELINE",
+      "wave": "W1",
+      "title": "Reconcile retained MT5 history to M1 decisions and outcomes",
+      "state": "COMPLETE",
+      "formal_milestone": "M29",
+      "requires": ["retained MT5 exports", "retained M1 decision and assessment records"],
+      "execution_authority": false
+    },
+    {
+      "id": "W2-EVENT-PUBLISHER-CONTRACT",
+      "wave": "W2",
+      "title": "Operate deployed BLS/annotation services and retain coverage limitations",
+      "state": "COMPLETE",
+      "formal_milestone": "M29",
+      "requires": ["natural loss-accounted assessment captures before annotation coverage can be measured"],
+      "execution_authority": false
+    },
+    {
+      "id": "W2-M20-DAILY-HISTORY-RETENTION",
+      "wave": "W2",
+      "title": "Deploy reviewed read-only daily all-Demo-history retention",
+      "state": "COMPLETE",
+      "formal_milestone": "M29",
+      "requires": ["retain and inspect future scheduled captures under the operator's evidence policy"],
+      "execution_authority": false
+    },
+    {
+      "id": "W2-FIRST-PARTY-POLICY-STORE-VERIFICATION",
+      "wave": "W2",
+      "title": "Verify retained first-party FOMC and ECB timing-source bundles",
+      "state": "COMPLETE",
+      "formal_milestone": "M29",
+      "requires": ["immutable local source bundles", "read-only verifier", "no order authority"],
+      "execution_authority": false
+    },
+    {
+      "id": "W2-PRIMARY-EVENT-CONTEXT-INTEGRATION",
+      "wave": "W2",
+      "title": "Integrate verified retained primary-source observations into read-only event-context reporting",
+      "state": "COMPLETE",
+      "formal_milestone": "M29",
+      "requires": ["W2-FIRST-PARTY-POLICY-STORE-VERIFICATION", "existing primary event-context contract", "no gate or order change"],
+      "execution_authority": false
+    },
+    {
+      "id": "W2-BLS-RETAINED-SOURCE-VERIFICATION",
+      "wave": "W2",
+      "title": "Verify retained BLS CPI and Employment Situation calendar-source evidence",
+      "state": "COMPLETE",
+      "formal_milestone": "M29",
+      "requires": ["immutable retained BLS store", "read-only provenance verifier", "no order authority"],
+      "execution_authority": false
+    },
+    {
+      "id": "W2-BLS-URL-TEMPLATE-AMENDMENT-PREPARATION",
+      "wave": "W2",
+      "title": "Prepare the non-active BLS monthly URL-template source-contract amendment",
+      "state": "COMPLETE",
+      "formal_milestone": "M29",
+      "requires": ["W2-BLS-RETAINED-SOURCE-VERIFICATION", "read-only impact report", "no active configuration change"],
+      "execution_authority": false
+    },
+    {
+      "id": "W2-BLS-URL-TEMPLATE-AMENDMENT-ACTIVATION",
+      "wave": "W2",
+      "title": "Apply Chris-approved exact BLS monthly URL-template context policy",
+      "state": "COMPLETE",
+      "formal_milestone": "M29",
+      "requires": ["W2-BLS-URL-TEMPLATE-AMENDMENT-PREPARATION", "Chris's explicit approval", "gate remains disabled"],
+      "execution_authority": false
+    },
+    {
+      "id": "W2-POLICY-TIMING-SOURCE-AMENDMENT-PREPARATION",
+      "wave": "W2",
+      "title": "Prepare the non-active FOMC/ECB retained timing-source qualification amendment",
+      "state": "COMPLETE",
+      "formal_milestone": "M29",
+      "requires": ["W2-FIRST-PARTY-POLICY-STORE-VERIFICATION", "read-only impact report", "no active configuration change"],
+      "execution_authority": false
+    },
+    {
+      "id": "W2-FIXED-POLICY-CALENDAR-PROBE",
+      "wave": "W2",
+      "title": "Prepare fixed first-party FOMC and ECB calendar capture payloads",
+      "state": "DEPLOYED_OBSERVED_CONTEXT_UNKNOWN",
+      "formal_milestone": "M29",
+      "requires": ["exact Federal Reserve FOMC calendar and ECB Governing Council calendar endpoints", "bounded non-redirecting one-pass transport", "no parser, retention write, event gate or trading authority"],
+      "execution_authority": false
+    },
+    {
+      "id": "W2-FIXED-POLICY-CALENDAR-COLLECTOR",
+      "wave": "W2",
+      "title": "Prepare fixed FOMC/ECB calendar capture with immutable receipt retention",
+      "state": "DEPLOYED_OBSERVED_CONTEXT_UNKNOWN",
+      "formal_milestone": "M29",
+      "requires": ["W2-FIXED-POLICY-CALENDAR-PROBE", "pre-transport capture reservation", "35-second outer deadline", "immutable raw/receipt retention", "no event gate or trading authority"],
+      "execution_authority": false
+    },
+    {
+      "id": "W2-POSTGRES-CALENDAR-FACT-PROJECTION",
+      "wave": "W2",
+      "title": "Prepare canonical PostgreSQL projection of retained calendar facts",
+      "state": "COMPLETE_REVIEWED_NOT_DEPLOYED",
+      "formal_milestone": "M29",
+      "requires": ["immutable raw publisher material and receipt", "validated event fact with source/capture/raw/receipt references", "manual approved PostgreSQL migration", "no event gate or trading authority"],
+      "execution_authority": false
+    },
+    {
+      "id": "W2-PRIMARY-EVENT-STRATEGY-CONTEXT",
+      "wave": "W2",
+      "title": "Complete verified primary EUR/USD economic-event context",
+      "state": "PARKED_EXTERNAL_COVERAGE",
+      "formal_milestone": "M29",
+      "requires": ["fresh non-ambiguous retained source coverage for every primary family", "no order authority"],
+      "execution_authority": false
+    },
+    {
+      "id": "W2-EVENT-RISK-GATE-PREPARATION",
+      "wave": "W2",
+      "title": "Prepare disabled event-risk new-entry gate and exact policy amendment",
+      "state": "COMPLETE",
+      "formal_milestone": "M29",
+      "requires": ["verified event-context contract", "operator approval before enabled deployment"],
+      "execution_authority": false
+    },
+    {
+      "id": "W2-M20-CALENDAR-DECISION-OVERLAY",
+      "wave": "W2",
+      "title": "Bind the disabled M1 calendar gate to the final M20 Demo proposal",
+      "state": "COMPLETE_REVIEWED_DISABLED",
+      "formal_milestone": "M29",
+      "requires": ["existing final M20 risk and position vetoes", "disabled governed event-risk policy", "hash-bound decision snapshot", "no policy activation or broker-order change"],
+      "execution_authority": false
+    },
+    {
+      "id": "W3-HSLOW-DURABLE-WORKER-PREPARATION",
+      "wave": "W3",
+      "title": "Prepare the submission-disabled H_SLOW durable-worker command",
+      "state": "COMPLETE",
+      "formal_milestone": "M29",
+      "requires": ["an explicitly selected isolated local store and human mandate before any installation or activation"],
+      "execution_authority": false
+    },
+    {
+      "id": "W3-HSLOW-STRATEGY-AND-ISOLATION",
+      "wave": "W3",
+      "title": "Complete H_SLOW strategy contract and isolated Demo lifecycle",
+      "state": "COMPLETE",
+      "formal_milestone": "M29",
+      "requires": ["submission-disabled durable worker", "isolated state and risk/protection contract", "no activation"],
+      "execution_authority": false
+    },
+    {
+      "id": "W3-HSLOW-EXECUTION-SEMANTICS-PROPOSAL",
+      "wave": "W3",
+      "title": "Prepare the exact inactive H_SLOW v1 entry, holding and exit semantics",
+      "state": "COMPLETE_REVIEWED_DISABLED",
+      "formal_milestone": "M29",
+      "requires": ["fixed H_SLOW monthly policy and ATR protection rule", "reviewable DRAFT_NOT_ACTIVE operating proposal", "no order route or authority"],
+      "execution_authority": false
+    },
+    {
+      "id": "W3-HSLOW-EDGE-EVIDENCE-SIZING",
+      "wave": "W3",
+      "title": "Post-trial: bind H_SLOW risk-tier changes to verifier-backed retained forward/OOS evidence",
+      "state": "DEFERRED_POST_INITIAL_DEMO_LOOP",
+      "formal_milestone": "M29",
+      "requires": ["initial fixed-risk Demo loop and retained reconciled outcomes", "immutable retained forward/OOS record", "exact research-decision and strategy-version binding"],
+      "execution_authority": false
+    },
+    {
+      "id": "W3-HSLOW-INITIAL-FIXED-RISK-READINESS",
+      "wave": "W3",
+      "title": "Prepare the bounded H1 fixed-risk H_SLOW Demo decision path",
+      "state": "COMPLETE_REVIEWED_SUBMISSION_DISABLED",
+      "formal_milestone": "M29",
+      "requires": ["fixed AUD loss, USD notional and lease ceilings", "fresh valid inputs at runtime", "no routing or order authority"],
+      "execution_authority": false
+    },
+    {
+      "id": "W3-HSLOW-CANONICAL-DISABLED-MANDATE",
+      "wave": "W3",
+      "title": "Record canonical disabled H_SLOW isolation and pre-activation mandate",
+      "state": "COMPLETE_REVIEWED_DISABLED",
+      "formal_milestone": "M29",
+      "requires": ["distinct opaque H1 scope, terminal and namespaces", "Demo-only pre-activation state", "initial-trial cap binding", "no account selection or execution capability"],
+      "execution_authority": false
+    },
+    {
+      "id": "W3-HSLOW-FIXED-EXECUTION-REQUEST",
+      "wave": "W3",
+      "title": "Bind a fixed-risk H1 preparation into a verified Demo execution request",
+      "state": "COMPLETE_REVIEWED_SUBMISSION_DISABLED",
+      "formal_milestone": "M29",
+      "requires": ["H1 fixed-risk trial configuration", "prepared fixed-risk lifecycle action", "future fixed adapter and broker preflight"],
+      "execution_authority": false
+    },
+    {
+      "id": "W3-HSLOW-FIXED-DEMO-PREFLIGHT",
+      "wave": "W3",
+      "title": "Prepare the fixed read-only H1 Demo terminal preflight",
+      "state": "COMPLETE_REVIEWED_NOT_DEPLOYED",
+      "formal_milestone": "M29",
+      "requires": ["fixed Windows-local H1 terminal binding", "Demo/AUD/EURUSD identity", "fresh quote and no more than one observed H1 position", "no route or order authority"],
+      "execution_authority": false
+    },
+    {
+      "id": "W3-HSLOW-PREFLIGHT-REQUEST-BINDING",
+      "wave": "W3",
+      "title": "Bind the fixed H1 broker preflight to the submission-disabled execution request",
+      "state": "COMPLETE_REVIEWED_SUBMISSION_DISABLED",
+      "formal_milestone": "M29",
+      "requires": ["exact fixed preflight record", "governed broker-clock offset", "flat H1 scope", "side quote and volume-lattice match", "no order route"],
+      "execution_authority": false
+    },
+    {
+      "id": "W3-HSLOW-PREFLIGHT-RECEIPT-VERIFIER",
+      "wave": "W3",
+      "title": "Validate a captured fixed H1 preflight receipt locally",
+      "state": "COMPLETE_REVIEWED_SUBMISSION_DISABLED",
+      "formal_milestone": "M29",
+      "requires": ["one local non-symlink fixed preflight JSON record", "governed broker-clock offset", "no broker call, write, route or order authority"],
+      "execution_authority": false
+    },
+    {
+      "id": "W3-HSLOW-RECONCILIATION-SNAPSHOT",
+      "wave": "W3",
+      "title": "Prepare fixed H1 Demo EUR/USD reconciliation capture",
+      "state": "COMPLETE_REVIEWED_NOT_DEPLOYED",
+      "formal_milestone": "M29",
+      "requires": ["fixed Windows-local H1 terminal binding", "exact Demo/AUD/EURUSD identity", "at most one valid position", "bounded valid EUR/USD deal history", "no order route"],
+      "execution_authority": false
+    },
+    {
+      "id": "W3-HSLOW-FINANCING-TERMS",
+      "wave": "W3",
+      "title": "Prepare fixed H1 Demo financing and conversion-terms capture",
+      "state": "COMPLETE_REVIEWED_NOT_DEPLOYED",
+      "formal_milestone": "M29",
+      "requires": ["fixed Windows-local H1 terminal binding", "exact Demo/AUD/EURUSD identity", "fresh EUR/USD and AUD/USD quotes", "observed swap/rollover and broker volume terms", "no order route"],
+      "execution_authority": false
+    },
+    {
+      "id": "W3-HSLOW-DEMO-ACTIVATION",
+      "wave": "W3",
+      "title": "Activate the isolated H_SLOW Demo stream",
+      "state": "PARKED_EXECUTION_INTEGRATION",
+      "formal_milestone": "M29",
+      "requires": ["W3-HSLOW-EXECUTION-SEMANTICS-PROPOSAL", "Chris approval of the proposed H_SLOW v1 operating semantics", "install and pass the fixed read-only H1 preflight", "fixed Demo-only execution adapter with H1 account binding", "broker-observed fresh quote/margin/protection/cost inputs", "isolated durable state and reconciliation deployment"],
+      "execution_authority": false
+    }
+  ]
+}

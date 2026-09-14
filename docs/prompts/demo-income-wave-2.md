@@ -1,12 +1,28 @@
 # Wave 2: Trustworthy costs, data and executable research
 
-Revised 2026-09-10. **Implementation plan; execute only under an explicit wave
+Revised 2026-09-12. **Implementation plan; execute only under an explicit wave
 instruction and the applicable approved contract.** Read the
 [shared guide](demo-income-waves.md) and current Wave 1 handover. Verify
 dependencies rather than assuming a report means completion.
 
 The outcome is a trustworthy way to measure the policy actually traded.
 This wave implements review actions A3–A6; it does not establish an edge.
+
+## Mission and two-stream dependencies
+
+Supply the capabilities M1 and the longer-hold stream actually consume; do not
+make the complete historical research programme a prerequisite for Demo launch.
+The initial economic-event module annotates decisions and outcomes in this
+repository. It must report unavailable coverage honestly without vetoing a
+strategy that does not use events for entry. Required inputs for an activated
+eligibility/risk rule still fail closed when unavailable.
+
+Twenty closes, nonzero-charge examples, multi-year evaluation history and all
+swap-calendar cases are measurement checkpoints, not blanket development or
+Demo-entry gates. Keep the applicable proof pending. Current costs/approved
+labelled allowances needed for risk and the chosen rule's warm-up remain
+required. Do not extend an intraday estimate to overnight without an explicit
+bounded policy. Wave 3 owns stream isolation and longer-hold activation.
 
 ## Activities, success and real-world tests
 
@@ -33,7 +49,8 @@ where required; zero-fee samples do not prove fee handling.
   account terms and observations, not advertised minimum spreads.
 - Define required economic-event coverage, freshness and blackout rules before
   activating them. The existing limited/date-only calendar sample is not a
-  complete scheduled-event feed. Required unavailable context blocks entry.
+  complete scheduled-event feed. Begin annotation-only; required unavailable
+  context blocks entry only for a policy that explicitly consumes it.
 - Preserve current strategy ownership during extraction. A session gate,
   stop/sizing change or event rule affecting orders is a versioned policy
   change, with its exact contract/configuration reviewed before deployment.
@@ -43,15 +60,19 @@ where required; zero-fee samples do not prove fee handling.
 ## Swap history and policy replay — W2.1 / W2.2
 
 Reuse W1's calculator, evaluator and ledger; do not build a second cost engine.
-Read the [holding-rule research](../../Research/2026-09-10-swap-aware-hold-or-close.md).
+The [holding-rule research](../../Research/2026-09-10-swap-aware-hold-or-close.md)
+is reference material for later conditional-holding work, not a mandatory
+forecast-model implementation before a fixed-rule Demo stream.
 
 | Owner | Change and why | Success criteria | Real-world demonstration |
 | --- | --- | --- | --- |
 | W2.1 | Retain point-in-time swap terms, calculation modes, rollover multipliers/calendar and AUD conversion references alongside permitted execution observations. | Each replay decision uses only terms available at that time. Rate revisions and missing historical coverage are explicit; today's rates never backfill past trades. Retention stays within the approved surface. | Reproduce W1's observed financing adjustments from immutable snapshots and broker records, including applicable special-day handling; retain error/rounding attribution. Missing cases remain pending. |
 | W2.2 | Replay close-before-rollover, bounded overnight hold and conditional hold through the shared policy kernel, with independent account/risk state. | Both alternatives share the decision time and evaluation horizon; model stops, targets, time exits, failures, financing and executable closing costs. Sunk entry costs are not charged twice. Missing forecasts produce an unqualified conditional decision. | Replay retained genuine decision inputs and compare policy outputs with deployment; compare realised outcomes only for the action actually taken. Label the alternative as counterfactual, preserve price/path ambiguity and qualify it against subsequent market observations. |
 
-This builds measurement capability, not a holding-rule optimisation experiment.
-It does not change H_SESSION, expand the candidate family or permit overnight
+This builds measurement capability, not a mandatory holding-rule tournament.
+Implement only the financing/replay path needed by the selected fixed rule;
+defer alternative-policy and conditional-forecast comparisons until useful.
+H_SESSION is deferred by revised Wave 3. This wave does not permit overnight
 orders. New quote retention still requires the exact scope amendment below.
 
 ## W2.2 data and replay qualification
@@ -65,10 +86,11 @@ duration, closed-at, available-at, revisions, bid/ask coverage, warm-up and gaps
 Opening time before capture is insufficient for a closed bar. Where historical
 availability is assumed rather than observed, disclose and bound that assumption.
 
-Obtain enough history for the selected research horizon. A slower challenger
-may require several years across differing conditions; a fixed year or bar
-count alone does not establish adequacy. Do not treat the existing 720 H1 bars
-or twelve evaluated sessions as confirming edge evidence.
+Obtain the history needed to calculate the selected rule's warm-up and signals.
+An economic study may later need years across differing conditions; that is
+not an additional first-Demo-order requirement. Inventory retained data before
+collecting it again. A bar count or twelve evaluated sessions alone does not
+establish an edge; label the actual coverage and limitations.
 
 A bounded quote sample or other additional retention requires an explicit
 scope amendment before collection: M20 currently forbids a retained tick stream.
@@ -105,7 +127,7 @@ connect to Live.
 ```text
 /goal Execute Wave 2: Trustworthy costs, data and executable research. Read docs/prompts/demo-income-waves.md and docs/prompts/demo-income-wave-2.md in full. Read the current Wave 1 report and verify actual dependency evidence.
 
-Include W2.1/W2.2 swap-history and holding-policy replay: preserve point-in-time rates, calendars and AUD conversions, reuse W1 calculators, and distinguish actual outcomes from counterfactuals. Unknown historical costs are not zero. Do not optimise or enable holding rules in this wave.
+Include the W2.1/W2.2 costs and data needed by the selected rule: preserve point-in-time rates, calendars and AUD conversions, reuse W1 calculators, and distinguish actual outcomes from counterfactuals. Begin economic-event annotation without a new trade veto. Unknown historical costs are not zero. Do not require a conditional-holding forecast or multi-variant replay study, optimise strategies or enable new holding rules in this wave.
 
 Scope is W2.1-W2.2 only: qualified broker costs, honest market/event eligibility, final pre-submit revalidation, one shared executable policy kernel, and point-in-time data/replay qualification. Inspect Git status, applicable AGENTS.md, project_state.json, the active milestone contract and docs/evidence_and_milestones.md. Preserve unrelated work and existing approvals.
 
@@ -114,6 +136,8 @@ Map activities to the approved active contract. Prepare exact missing amendments
 Test actual behaviour and compare against retained genuine Demo decisions, fills, costs and lifecycle inputs. Validate source clocks, data availability, negative cases and ambiguous intrabar outcomes. Keep actual broker P&L separate from cost estimates, and unknown charges/fills separate from zero. Do not infer edge from target feasibility, decision parity or sample count.
 
 Complete only when the approved criteria and real-world comparisons are satisfied. Save docs/milestones/demo-income-wave-2-report.md with per-criterion status, exact versions, evidence, limitations and resumption conditions. Respect only an explicitly supplied goal budget; use ordinary collection instead of repeated AI polling.
+
+Treat sample counts, unobserved charge cases and historical evaluation coverage as pending measurement claims, not blanket barriers to independent authorised work or existing M1 operation. Preserve rule warm-up, current required risk/cost inputs, exact scope and formal proof requirements.
 
 Preserve Option B, Demo-only EURUSD, one-position control and protection. No Live access, new strategy execution, next wave or next milestone. This prompt adds no commit/push/branch/PR authority; use any existing explicit authorisation only within its scope. Formal closeout still requires every current contract gate and bound review.
 ```

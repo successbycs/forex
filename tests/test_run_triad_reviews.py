@@ -109,3 +109,31 @@ def test_attempt_is_validated_only_after_canonical_staging(monkeypatch) -> None:
         assert (cycle / "submissions/ai_engineer.json").is_file()
     finally:
         shutil.rmtree(cycle)
+
+
+def test_reviewer_copies_only_hash_verified_manifest_artifacts(tmp_path: Path) -> None:
+    runner = _runner_module()
+    source = tmp_path / "source"; destination = tmp_path / "destination"
+    source.mkdir()
+    declared = source / "declared.json"; declared.write_text('{"ok":true}\n', encoding="utf-8")
+    (source / "unlisted-secret.txt").write_text("must not reach reviewer\n", encoding="utf-8")
+    manifest = source / "manifest.json"
+    manifest.write_text(json.dumps({"artifacts": [{"path": "declared.json", "sha256": hashlib.sha256(declared.read_bytes()).hexdigest()}]}), encoding="utf-8")
+    runner._copy_verified_evidence(manifest, destination)
+    assert (destination / "declared.json").read_bytes() == declared.read_bytes()
+    assert not (destination / "unlisted-secret.txt").exists()
+
+
+def test_reviewer_refuses_tampered_manifest_artifact(tmp_path: Path) -> None:
+    runner = _runner_module()
+    source = tmp_path / "source"; destination = tmp_path / "destination"
+    source.mkdir()
+    artifact = source / "artifact.txt"; artifact.write_text("actual\n", encoding="utf-8")
+    manifest = source / "manifest.json"
+    manifest.write_text(json.dumps({"artifacts": [{"path": "artifact.txt", "sha256": "0" * 64}]}), encoding="utf-8")
+    try:
+        runner._copy_verified_evidence(manifest, destination)
+    except RuntimeError as error:
+        assert "hash mismatch" in str(error)
+    else:
+        raise AssertionError("tampered evidence was copied")

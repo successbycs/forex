@@ -174,16 +174,133 @@ finally:m.shutdown()
 
 
 def _m27_demo_tick_command() -> str:
-    """Read one fixed EURUSD tick from the configured Demo terminal."""
+    """Read a fresh Demo tick using the governed offset, never inferred age."""
+    offset_seconds = load_configuration(ROOT, environ={}).mt5.broker_tick_time_offset_seconds
     code = (
-        "import json,sys;from datetime import datetime,timezone;import MetaTrader5 as m;"
+        "import json,sys,math;from datetime import datetime,timezone;import MetaTrader5 as m;"
         "ok=m.initialize(path=sys.argv[1]);a=m.account_info() if ok else None;q=m.symbol_info_tick('EURUSD') if a and a.server=='GOMarketsMU-Demo' else None;"
-        "valid=bool(a) and a.server=='GOMarketsMU-Demo' and q is not None and getattr(q,'bid',0)>0 and getattr(q,'ask',0)>0 and getattr(q,'time_msc',0)>0;"
-        "now=datetime.now(timezone.utc);raw=getattr(q,'time_msc',0)/1000 if q is not None else 0;offset=min((7200,10800),key=lambda candidate:abs((now-datetime.fromtimestamp(raw-candidate,timezone.utc)).total_seconds())) if valid else None;"
-        "print(json.dumps({'ok':valid,'captured_at_utc':now.isoformat().replace('+00:00','Z'),'server':getattr(a,'server',None),'symbol':'EURUSD','bid':getattr(q,'bid',None),'ask':getattr(q,'ask',None),'tick_time_msc':getattr(q,'time_msc',None),'broker_timestamp_offset_seconds':offset,'broker_timestamp_offset_source':'nearest_declared_eet_offset'}));"
+        "valid=bool(a) and a.server=='GOMarketsMU-Demo' and q is not None and all(isinstance(getattr(q,k,None),(int,float)) and not isinstance(getattr(q,k,None),bool) and math.isfinite(getattr(q,k)) for k in ('bid','ask','time_msc')) and q.bid>0 and q.ask>=q.bid and q.time_msc>0;"
+        f"now=datetime.now(timezone.utc);offset={offset_seconds};"
+        "age=now.timestamp()-(q.time_msc/1000-offset) if valid else None;valid=valid and 0<=age<=15;"
+        "print(json.dumps({'ok':valid,'captured_at_utc':now.isoformat().replace('+00:00','Z'),'server':getattr(a,'server',None),'symbol':'EURUSD','bid':getattr(q,'bid',None),'ask':getattr(q,'ask',None),'tick_time_msc':getattr(q,'time_msc',None),'broker_timestamp_offset_seconds':offset,'broker_timestamp_offset_source':'governed_configuration','tick_age_seconds':age}));"
         "m.shutdown() if ok else None;sys.exit(0 if valid else 3)"
     )
     return "$ErrorActionPreference='Stop';$s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json;& $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path;exit $LASTEXITCODE"
+
+
+def _h_slow_demo_preflight_command() -> str:
+    """Read the fixed H1 Demo terminal state; it has no order capability."""
+    offset_seconds = load_configuration(ROOT, environ={}).mt5.broker_tick_time_offset_seconds
+    code = (
+        "import hashlib,json,math,sys;from datetime import datetime,timezone;import MetaTrader5 as m;"
+        "p=sys.argv[1];bad=lambda r:{'ok':False,'status':r};\n"
+        "try:c=json.load(open(p,encoding='utf-8'));assert set(c)=={'python_path','terminal_path','expected_login','account_label'};assert c['account_label']=='H1_demo';assert isinstance(c['expected_login'],int) and not isinstance(c['expected_login'],bool) and c['expected_login']>0\n"
+        "except Exception:print(json.dumps(bad('LOCAL_CONFIGURATION_INVALID'),separators=(',',':')));raise SystemExit(3)\n"
+        "ok=m.initialize(path=c['terminal_path']);a=m.account_info() if ok else None;s=m.symbol_info('EURUSD') if a else None;q=m.symbol_info_tick('EURUSD') if s else None;ps=m.positions_get() if q else None;now=datetime.now(timezone.utc);"
+        "valid=bool(a) and a.server=='GOMarketsMU-Demo' and a.currency=='AUD' and getattr(a,'login',None)==c['expected_login'] and bool(s) and q is not None and ps is not None and len(ps)<=1 and all(isinstance(getattr(q,k,None),(int,float)) and not isinstance(getattr(q,k,None),bool) and math.isfinite(getattr(q,k)) for k in ('bid','ask','time_msc')) and q.bid>0 and q.ask>=q.bid and q.time_msc>0;"
+        f"age=now.timestamp()-(q.time_msc/1000-{offset_seconds}) if valid else None;valid=valid and 0<=age<=15;"
+        "fields=('name','point','trade_tick_size','trade_tick_value_loss','trade_contract_size','volume_min','volume_max','volume_step','trade_stops_level','trade_freeze_level');"
+        "result={'ok':valid,'status':'PREFLIGHT_OK' if valid else 'PREFLIGHT_REFUSED','captured_at_utc':now.isoformat().replace('+00:00','Z'),'account_label':c['account_label'],'account_scope_sha256':'sha256:'+hashlib.sha256((a.server+':'+str(a.login)).encode()).hexdigest() if a else None,'server':getattr(a,'server',None),'currency':getattr(a,'currency',None),'symbol':'EURUSD','bid':getattr(q,'bid',None),'ask':getattr(q,'ask',None),'tick_time_msc':getattr(q,'time_msc',None),'broker_timestamp_offset_seconds':" + str(offset_seconds) + ",'tick_age_seconds':age,'open_positions':len(ps) if ps is not None else None,'symbol_specification':{k:getattr(s,k,None) for k in fields} if s else None};"
+        "print(json.dumps(result,separators=(',',':')));m.shutdown() if ok else None;sys.exit(0 if valid else 3)"
+    )
+    return (
+        "$ErrorActionPreference='Stop';$c=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-h-slow\\mt5.local.json';"
+        "if(!(Test-Path -LiteralPath $c)){throw 'H_SLOW fixed local configuration is absent'};"
+        "$s=gc -Raw -LiteralPath $c|ConvertFrom-Json;"
+        "if([string]::IsNullOrWhiteSpace($s.python_path)-or !(Test-Path -LiteralPath $s.python_path)){throw 'H_SLOW configured Python interpreter is absent'};"
+        "& $s.python_path -c '" + code.replace("'", "''") + "' $c;exit $LASTEXITCODE"
+    )
+
+
+def _h_slow_demo_reconciliation_snapshot_command() -> str:
+    """Read the fixed H1 Demo EURUSD state needed for later reconciliation."""
+    offset_seconds = load_configuration(ROOT, environ={}).mt5.broker_tick_time_offset_seconds
+    code = """import hashlib,json,math,sys
+from datetime import datetime,timezone,timedelta
+import MetaTrader5 as m
+p=sys.argv[1]
+try:
+ c=json.load(open(p,encoding='utf-8'))
+ assert set(c)=={'python_path','terminal_path','expected_login','account_label'}
+ assert c['account_label']=='H1_demo'
+ assert isinstance(c['expected_login'],int) and not isinstance(c['expected_login'],bool) and c['expected_login']>0
+except Exception:
+ print(json.dumps({'ok':False,'status':'LOCAL_CONFIGURATION_INVALID'},separators=(',',':')))
+ raise SystemExit(3)
+ok=m.initialize(path=c['terminal_path'])
+try:
+ a=m.account_info() if ok else None
+ now=datetime.now(timezone.utc)
+ valid=bool(a) and a.server=='GOMarketsMU-Demo' and a.currency=='AUD' and getattr(a,'login',None)==c['expected_login']
+ positions=m.positions_get(symbol='EURUSD') if valid else None
+ all_deals=m.history_deals_get(now-timedelta(days=31),now) if valid else None
+ deals=[deal for deal in all_deals if getattr(deal,'symbol',None)=='EURUSD'] if all_deals is not None else None
+ finite=lambda value:isinstance(value,(int,float)) and not isinstance(value,bool) and math.isfinite(value)
+ position_valid=lambda value:all(finite(getattr(value,field,None)) for field in ('ticket','type','volume','price_open','sl','tp','time','time_update','profit','swap')) and getattr(value,'ticket')>0 and getattr(value,'volume')>0 and getattr(value,'price_open')>0 and getattr(value,'sl')>=0 and getattr(value,'tp')>=0 and getattr(value,'time')>0 and getattr(value,'time_update')>0
+ deal_valid=lambda value:getattr(value,'symbol',None)=='EURUSD' and all(finite(getattr(value,field,None)) for field in ('ticket','order','position_id','time','time_msc','entry','type','volume','price','profit','commission','swap','fee','reason')) and getattr(value,'ticket')>0 and getattr(value,'order')>=0 and getattr(value,'position_id')>=0 and getattr(value,'time')>0 and getattr(value,'time_msc')>0 and getattr(value,'volume')>0 and getattr(value,'price')>0
+ valid=valid and positions is not None and all_deals is not None and len(positions)<=1 and len(all_deals)<=200 and len(deals)<=200 and all(position_valid(value) for value in positions) and all(deal_valid(value) for value in deals)
+ position_fields=('ticket','type','volume','price_open','sl','tp','time','time_update','profit','swap')
+ deal_fields=('ticket','order','position_id','time','time_msc','entry','type','volume','price','profit','commission','swap','fee','reason')
+ rows=lambda values,fields:[{field:getattr(value,field,None) for field in fields} for value in values]
+ result={'ok':bool(valid),'status':'RECONCILIATION_SNAPSHOT_OK' if valid else 'RECONCILIATION_SNAPSHOT_REFUSED','captured_at_utc':now.isoformat().replace('+00:00','Z'),'account_label':c['account_label'],'account_scope_sha256':'sha256:'+hashlib.sha256((a.server+':'+str(a.login)).encode()).hexdigest() if a else None,'server':getattr(a,'server',None),'currency':getattr(a,'currency',None),'symbol':'EURUSD','broker_timestamp_offset_seconds':""" + str(offset_seconds) + """,'open_positions':rows(positions,position_fields) if valid else None,'deals':rows(deals,deal_fields) if valid else None}
+ print(json.dumps(result,separators=(',',':')))
+ raise SystemExit(0 if valid else 3)
+finally:
+ if ok:m.shutdown()
+"""
+    return (
+        "$ErrorActionPreference='Stop';$c=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-h-slow\\mt5.local.json';"
+        "if(!(Test-Path -LiteralPath $c)){throw 'H_SLOW fixed local configuration is absent'};"
+        "$s=gc -Raw -LiteralPath $c|ConvertFrom-Json;"
+        "if([string]::IsNullOrWhiteSpace($s.python_path)-or !(Test-Path -LiteralPath $s.python_path)){throw 'H_SLOW configured Python interpreter is absent'};"
+        "& $s.python_path -c '" + code.replace("'", "''") + "' $c;exit $LASTEXITCODE"
+    )
+
+
+def _h_slow_demo_financing_terms_command() -> str:
+    """Read fixed H1 Demo EURUSD financing terms and AUD conversion quote."""
+    offset_seconds = load_configuration(ROOT, environ={}).mt5.broker_tick_time_offset_seconds
+    code = """import hashlib,json,math,sys
+from datetime import datetime,timezone
+import MetaTrader5 as m
+p=sys.argv[1]
+try:
+ c=json.load(open(p,encoding='utf-8'))
+ assert set(c)=={'python_path','terminal_path','expected_login','account_label'}
+ assert c['account_label']=='H1_demo'
+ assert isinstance(c['expected_login'],int) and not isinstance(c['expected_login'],bool) and c['expected_login']>0
+except Exception:
+ print(json.dumps({'ok':False,'status':'LOCAL_CONFIGURATION_INVALID'},separators=(',',':')))
+ raise SystemExit(3)
+ok=m.initialize(path=c['terminal_path'])
+try:
+ a=m.account_info() if ok else None
+ s=m.symbol_info('EURUSD') if a else None
+ conversion=m.symbol_info('AUDUSD') if s else None
+ q=m.symbol_info_tick('EURUSD') if conversion else None
+ aq=m.symbol_info_tick('AUDUSD') if q else None
+ now=datetime.now(timezone.utc)
+ finite=lambda value:isinstance(value,(int,float)) and not isinstance(value,bool) and math.isfinite(value)
+ valid=bool(a) and a.server=='GOMarketsMU-Demo' and a.currency=='AUD' and getattr(a,'login',None)==c['expected_login'] and s is not None and conversion is not None and q is not None and aq is not None
+ valid=valid and all(finite(getattr(s,field,None)) and getattr(s,field)>0 for field in ('trade_tick_size','trade_tick_value_loss','trade_contract_size','volume_min','volume_max','volume_step'))
+ valid=valid and finite(getattr(s,'swap_long',None)) and finite(getattr(s,'swap_short',None)) and type(getattr(s,'swap_mode',None)) is int and 0<=getattr(s,'swap_mode')<=8 and type(getattr(s,'swap_rollover3days',None)) is int and 0<=getattr(s,'swap_rollover3days')<=7
+ quote_valid=q is not None and aq is not None and all(finite(getattr(tick,field,None)) for tick in (q,aq) for field in ('bid','ask','time_msc')) and q.bid>0 and q.ask>=q.bid and aq.bid>0 and aq.ask>=aq.bid and q.time_msc>0 and aq.time_msc>0
+ euro_age=now.timestamp()-(q.time_msc/1000-""" + str(offset_seconds) + """) if quote_valid else None;aud_age=now.timestamp()-(aq.time_msc/1000-""" + str(offset_seconds) + """) if quote_valid else None
+ valid=valid and quote_valid and 0<=euro_age<=15 and 0<=aud_age<=15 and s.volume_min<=s.volume_max and s.volume_step<=s.volume_min
+ fields=('trade_tick_size','trade_tick_value_loss','trade_contract_size','swap_mode','swap_long','swap_short','swap_rollover3days','volume_min','volume_max','volume_step')
+ result={'ok':bool(valid),'status':'FINANCING_TERMS_OK' if valid else 'FINANCING_TERMS_REFUSED','captured_at_utc':now.isoformat().replace('+00:00','Z'),'account_label':c['account_label'],'account_scope_sha256':'sha256:'+hashlib.sha256((a.server+':'+str(a.login)).encode()).hexdigest() if a else None,'server':getattr(a,'server',None),'currency':getattr(a,'currency',None),'symbol':'EURUSD','broker_timestamp_offset_seconds':""" + str(offset_seconds) + """,'eurusd_terms':{field:getattr(s,field,None) for field in fields} if s else None,'eurusd_quote':{'bid':getattr(q,'bid',None),'ask':getattr(q,'ask',None),'time_msc':getattr(q,'time_msc',None),'age_seconds':euro_age if q else None},'audusd_quote':{'bid':getattr(aq,'bid',None),'ask':getattr(aq,'ask',None),'time_msc':getattr(aq,'time_msc',None),'age_seconds':aud_age if aq else None}}
+ print(json.dumps(result,separators=(',',':')))
+ raise SystemExit(0 if valid else 3)
+finally:
+ if ok:m.shutdown()
+"""
+    return (
+        "$ErrorActionPreference='Stop';$c=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-h-slow\\mt5.local.json';"
+        "if(!(Test-Path -LiteralPath $c)){throw 'H_SLOW fixed local configuration is absent'};"
+        "$s=gc -Raw -LiteralPath $c|ConvertFrom-Json;"
+        "if([string]::IsNullOrWhiteSpace($s.python_path)-or !(Test-Path -LiteralPath $s.python_path)){throw 'H_SLOW configured Python interpreter is absent'};"
+        "& $s.python_path -c '" + code.replace("'", "''") + "' $c;exit $LASTEXITCODE"
+    )
 
 
 def _m20_wave1_candles_command() -> str:
@@ -355,6 +472,50 @@ def _m20_listener_status_command() -> str:
         "$age=$null; $stale=$false; try { $age=[Math]::Round(((Get-Date).ToUniversalTime()-([datetime]::Parse([string]$s.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds,1); $stale=($age -ge 30) } catch { $stale=$true }; "
         "$recovery=if ($stale) { 'EXPLICIT_RECOVERY_REQUIRED' } else { 'NOT_REQUIRED' }; $recoveryDetail=$null; "
         "$protection=$null;$protectionObservation='NO_DURABLE_PROTECTION_RECORD';$job=Join-Path $state 'm20_demo_monitor_job.local.json';if(Test-Path -LiteralPath $job){try{$j=gc -Raw -LiteralPath $job|ConvertFrom-Json;$protection=[ordered]@{ticket=$j.position.ticket;action=$j.proposal.action;entry_price=$j.position.price_open;stop_loss=$j.position.sl;take_profit=$j.position.tp;submitted_at_utc=$j.submitted_at_utc};$protectionObservation=if($s.monitor.state -eq 'RUNNING'){'OBSERVED_ACTIVE'}else{'LAST_KNOWN_UNVERIFIED'}}catch{$protectionObservation='DURABLE_PROTECTION_STATE_UNREADABLE'}};$drill=if($null -eq $s.protected_restart_drill){[ordered]@{observation='NOT_REPORTED';state=$null}}else{$s.protected_restart_drill};$state=if ($stale) { 'STALE' } else { $s.state }; $supervisorAlive=(!$stale -and ($s.state -notin @('STOPPED','STARTUP_FAILED'))); [pscustomobject]@{running=$supervisorAlive;state=$state;release_id=$s.release_id;heartbeat_at_utc=$s.heartbeat_at_utc;heartbeat_at_nzst=$s.heartbeat_at_nzst;heartbeat_age_seconds=$age;iteration=$s.process_iteration;assessment_total=$s.assessment_total;assessment_started_at_utc=$s.assessment_started_at_utc;assessment_completed_at_utc=$s.assessment_completed_at_utc;assessment_duration_ms=$s.assessment_duration_ms;next_assessment_at_utc=$s.next_assessment_at_utc;next_assessment_at_nzst=$s.next_assessment_at_nzst;detail=$s.detail;monitor=$s.monitor;quote=$s.quote;discord_open_alert_configured=$notifications;open_position_protection=$protection;protection_observation=$protectionObservation;protected_restart_drill=$drill;last_result=$s.last_result;recovery_action=$recovery;recovery_detail=$recoveryDetail}|ConvertTo-Json -Compress -Depth 8"
+    )
+
+
+def _m20_listener_latest_assessment_command() -> str:
+    """Return the one retained full listener assessment without touching MT5.
+
+    The listener's normal heartbeat deliberately keeps its last result compact.
+    This separate fixed operation reads only the replace-only ProgramData record
+    and verifies its release/configuration binding before returning it. It is
+    an export surface, not an instruction to assess, restart, or trade.
+    """
+    return (
+        "$ErrorActionPreference='Stop';$state='C:\\ProgramData\\ForexListener\\state';"
+        "$statusPath=Join-Path $state 'm20_demo_listener_status.local.json';"
+        "if(!(Test-Path -LiteralPath $statusPath)){[pscustomobject]@{observation='LISTENER_STATUS_ABSENT';assessment=$null}|ConvertTo-Json -Compress;exit 0};"
+        "$status=gc -Raw -LiteralPath $statusPath|ConvertFrom-Json;$release=[string]$status.release_id;"
+        "if($release -notmatch '^[0-9a-f]{16}$'){throw 'M20 active release id is absent or invalid'};"
+        "$path=Join-Path $state 'm20_demo_latest_assessment.local.json';"
+        "if(!(Test-Path -LiteralPath $path)){[pscustomobject]@{observation='LATEST_ASSESSMENT_ABSENT';listener_release_id=$release;assessment=$null}|ConvertTo-Json -Compress;exit 0};"
+        "$item=Get-Item -LiteralPath $path;if($item.Length -gt 1048576){throw 'M20 latest assessment exceeds fixed export limit'};"
+        "$raw=[IO.File]::ReadAllBytes($path);$sha='sha256:'+([BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash($raw)).Replace('-','').ToLower());"
+        "try{$record=([Text.Encoding]::UTF8.GetString($raw)|ConvertFrom-Json)}catch{throw 'M20 latest assessment is not valid JSON'};"
+        "if($record.schema_version -ne 'forex.m20.latest-assessment.v1'-or $record.listener_release_id -ne $release){throw 'M20 latest assessment binding is invalid'};"
+        "$assessment=$record.assessment;$sequence=$record.assessment_sequence;if($null -eq $assessment -or $assessment.server -ne 'GOMarketsMU-Demo'-or $assessment.symbol -ne 'EURUSD'-or $null -eq $assessment.decision_snapshot -or $null -eq $assessment.proposal-or $sequence -isnot [long]-or $sequence -le 0){throw 'M20 latest assessment shape is invalid'};"
+        "$config=Join-Path $state 'm20_demo_listener_service.local.json';if(Test-Path -LiteralPath $config){$c=gc -Raw -LiteralPath $config|ConvertFrom-Json;if($assessment.configuration_fingerprint -ne $c.FOREX_M20_CONFIGURATION_FINGERPRINT){throw 'M20 latest assessment configuration binding is invalid'}};"
+        "[pscustomobject]@{observation='AVAILABLE';listener_release_id=$release;assessment_sequence=$sequence;assessment_started_at_utc=$record.assessment_started_at_utc;assessment_completed_at_utc=$record.assessment_completed_at_utc;raw_sha256=$sha;assessment=$assessment}|ConvertTo-Json -Compress -Depth 16"
+    )
+
+
+def _m20_listener_spool_page_command(after_assessment_sequence: int = 0) -> str:
+    """Read a bounded immutable spool page after one validated local cursor."""
+    if isinstance(after_assessment_sequence, bool) or not isinstance(after_assessment_sequence, int) or after_assessment_sequence < 0:
+        raise ValueError("spool page cursor must be a non-negative integer")
+    fingerprint = project_configuration_fingerprint()
+    return (
+        "$ErrorActionPreference='Stop';$state='C:\\ProgramData\\ForexListener\\state';"
+        "$status=gc -Raw (Join-Path $state 'm20_demo_listener_status.local.json')|ConvertFrom-Json;$release=[string]$status.release_id;"
+        "if($release -notmatch '^[0-9a-f]{16}$'){throw 'M20 active release id is absent or invalid'};"
+        "$config=gc -Raw (Join-Path $state 'm20_demo_listener_service.local.json')|ConvertFrom-Json;"
+        "if($config.FOREX_M20_CONFIGURATION_FINGERPRINT -ne '" + fingerprint + "'){throw 'M20 spool configuration binding is invalid'};"
+        "$root=Join-Path (Join-Path $state 'm20_demo_assessment_spool') $release;"
+        "if(!(Test-Path -LiteralPath $root)){[pscustomobject]@{observation='SPOOL_ABSENT';listener_release_id=$release;after_assessment_sequence=" + str(after_assessment_sequence) + ";records=@()}|ConvertTo-Json -Compress;exit 0};"
+        "$all=@(Get-ChildItem -LiteralPath $root -Force);if(@($all|Where-Object {$_.PSIsContainer -or $_.Name -notmatch '^[0-9]{20}\\.json$'}).Count -ne 0){throw 'M20 spool contains incomplete or unsafe entry'};"
+        "$files=@($all|Where-Object {[int64]$_.BaseName -gt " + str(after_assessment_sequence) + "}|Sort-Object Name|Select-Object -First 8);$records=@();$total=0;foreach($file in $files){if($file.Length -le 0 -or $file.Length -gt 262144){throw 'M20 spool record exceeds fixed export limit'};$raw=[IO.File]::ReadAllBytes($file);$total+=$raw.Length;if($total -gt 1048576){throw 'M20 spool page exceeds fixed export limit'};try{$record=([Text.Encoding]::UTF8.GetString($raw)|ConvertFrom-Json)}catch{throw 'M20 spool record is not valid JSON'};if($record.schema_version -ne 'forex.m20.latest-assessment.v1'-or $record.listener_release_id -ne $release-or $record.assessment_sequence -ne [int64]$file.BaseName-or $record.assessment.server -ne 'GOMarketsMU-Demo'-or $record.assessment.symbol -ne 'EURUSD'-or $null -eq $record.assessment.decision_snapshot-or $null -eq $record.assessment.proposal){throw 'M20 spool record binding is invalid'};$sha='sha256:'+([BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash($raw)).Replace('-','').ToLower());$records+=[pscustomobject]@{assessment_sequence=[int64]$record.assessment_sequence;raw_sha256=$sha;raw_base64=[Convert]::ToBase64String($raw)}};[pscustomobject]@{observation='AVAILABLE';listener_release_id=$release;after_assessment_sequence=" + str(after_assessment_sequence) + ";records=$records}|ConvertTo-Json -Compress -Depth 8"
     )
 
 
@@ -844,6 +1005,9 @@ OPERATIONS: dict[str, Operation] = {
     "m20_financing_preview": Operation("m20_financing_preview", "Run the hash-bound deployed Demo financing calculator without placing orders.", powershell_command=_m20_demo_trading_session_command().replace("$c.terminal_path $lease;", "$c.terminal_path $lease --financing-preview;"), timeout_seconds=60),
     "m20_swap_terms": Operation("m20_swap_terms", "Read fixed Demo EURUSD financing terms and AUDUSD conversion quotes without trading.", powershell_command=_m20_swap_terms_command(), timeout_seconds=60),
     "m27_demo_tick": Operation("m27_demo_tick", "Read one fixed fresh EURUSD bid/ask tick from GOMarketsMU-Demo without trading.", powershell_command=_m27_demo_tick_command(), timeout_seconds=60),
+    "h_slow_demo_preflight": Operation("h_slow_demo_preflight", "Read the fixed H1 GOMarketsMU-Demo EURUSD terminal/account preflight without credentials, mutation, or order capability.", powershell_command=_h_slow_demo_preflight_command(), timeout_seconds=60),
+    "h_slow_demo_reconciliation_snapshot": Operation("h_slow_demo_reconciliation_snapshot", "Read fixed H1 GOMarketsMU-Demo EURUSD position and bounded deal state for reconciliation without credentials, mutation, or order capability.", powershell_command=_h_slow_demo_reconciliation_snapshot_command(), timeout_seconds=60),
+    "h_slow_demo_financing_terms": Operation("h_slow_demo_financing_terms", "Read fixed H1 GOMarketsMU-Demo EURUSD financing terms and AUD conversion quote without credentials, mutation, or order capability.", powershell_command=_h_slow_demo_financing_terms_command(), timeout_seconds=60),
     "m20_wave1_candles": Operation("m20_wave1_candles", "Inspect fixed Demo M1 candle availability and the terminal error without trading.", powershell_command=_m20_wave1_candles_command(), timeout_seconds=60),
     "m20_wave1_history": Operation("m20_wave1_history", "Read the fixed September 2026 Wave 1 Demo account deal/order reconciliation window.", powershell_command=_m20_wave1_history_command(), timeout_seconds=60),
     "m20_all_demo_history_export": Operation("m20_all_demo_history_export", "Export complete bounded GOMarketsMU-Demo account deal/order history without trading.", powershell_command=_m20_all_demo_history_export_command(), timeout_seconds=120),
@@ -896,6 +1060,16 @@ OPERATIONS: dict[str, Operation] = {
         "m20_listener_status",
         "Inspect the permanent M20 Demo listener heartbeat and recover its fixed task when the heartbeat is stale.",
         powershell_command=_m20_listener_status_command(),
+    ),
+    "m20_listener_latest_assessment": Operation(
+        "m20_listener_latest_assessment",
+        "Export the one retained full GOMarketsMU-Demo EURUSD M20 assessment without starting, restarting, or trading.",
+        powershell_command=_m20_listener_latest_assessment_command(),
+    ),
+    "m20_listener_spool_page": Operation(
+        "m20_listener_spool_page",
+        "Read at most eight immutable current-release M20 assessment spool records after a validated local cursor; never acknowledge, alter, restart, or trade.",
+        powershell_command=_m20_listener_spool_page_command(),
     ),
     "m20_listener_recover": Operation(
         "m20_listener_recover",
@@ -1030,6 +1204,44 @@ OPERATIONS["m20_listener_stage_verify"] = Operation(
         "[pscustomobject]@{verified=$true}|ConvertTo-Json -Compress"
     ),
 )
+
+
+def _m20_listener_copy_unchanged_payloads_command() -> str:
+    """Copy only byte-identical deployed dependencies into a new listener release.
+
+    The constrained T480 endpoint rejects the current runner's smallest safe
+    base64 stage command. These three payloads are unchanged, so a fixed
+    source-and-destination hash check is safer than widening the transport
+    command limit or exposing a generic file-copy operation.
+    """
+    service = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
+    runner = (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()
+    bridge = (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes()
+    discord = (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()
+    release_id = hashlib.sha256(service + runner + bridge + discord).hexdigest()[:16]
+    expected = {
+        "m20_demo_trading_session.payload": hashlib.sha256(runner).hexdigest(),
+        "m20_postgres_audit_bridge.payload": hashlib.sha256(bridge).hexdigest(),
+        "m20_discord_trade_notification.payload": hashlib.sha256(discord).hexdigest(),
+    }
+    hashes = ";".join("'" + name + "'='" + digest + "'" for name, digest in expected.items())
+    return (
+        "$ErrorActionPreference='Stop';$base='C:\\ProgramData\\ForexListener';$state=Join-Path $base state;"
+        "$status=gc -Raw (Join-Path $state 'm20_demo_listener_status.local.json')|ConvertFrom-Json;$old=[string]$status.release_id;"
+        "if($old -notmatch '^[0-9a-f]{16}$'){throw 'M20 active release id is absent or invalid'};"
+        "$sourceRoot=Join-Path $base ('releases\\'+$old);$targetRoot=Join-Path $base 'releases\\" + release_id + "';New-Item -ItemType Directory -Force $targetRoot|Out-Null;"
+        "$expected=@{" + hashes + "};foreach($entry in $expected.GetEnumerator()){$source=Join-Path $sourceRoot $entry.Key;$target=Join-Path $targetRoot $entry.Key;if(!(Test-Path -LiteralPath $source)-or (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLower() -ne $entry.Value){throw ('M20 unchanged dependency source hash differs: '+$entry.Key)};if(Test-Path -LiteralPath $target){if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLower() -ne $entry.Value){throw ('M20 unchanged dependency target conflicts: '+$entry.Key)}}else{Copy-Item -LiteralPath $source -Destination $target -ErrorAction Stop;if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLower() -ne $entry.Value){throw ('M20 unchanged dependency copy hash differs: '+$entry.Key)}}};"
+        "[pscustomobject]@{copied=$true;source_release_id=$old;target_release_id='" + release_id + "';payload_count=3}|ConvertTo-Json -Compress"
+    )
+
+
+OPERATIONS["m20_listener_copy_unchanged_payloads"] = Operation(
+    "m20_listener_copy_unchanged_payloads",
+    "Copy only hash-identical deployed M20 runner, audit bridge, and notification payloads into the fixed prepared release.",
+    powershell_command=_m20_listener_copy_unchanged_payloads_command(),
+    timeout_seconds=60,
+)
+
 
 def _m20_listener_runner_stage_command(index: int) -> str:
     """Stage runner fragments independently, then assemble and hash-check them.
@@ -1195,10 +1407,15 @@ def requirements() -> dict[str, Any]:
     }
 
 
-def execute(operation_id: str) -> dict[str, Any]:
+def execute(operation_id: str, *, after_assessment_sequence: int | None = None) -> dict[str, Any]:
     operation = OPERATIONS.get(operation_id)
     if operation is None:
         raise ValueError(f"Unknown operation: {operation_id}")
+    if after_assessment_sequence is not None:
+        if operation_id != "m20_listener_spool_page":
+            raise ValueError("spool page cursor is valid only for the fixed spool-page operation")
+        operation = Operation(operation_id, operation.purpose,
+                              powershell_command=_m20_listener_spool_page_command(after_assessment_sequence))
     payload = execute_operation(operation, target=target(), settings=TRANSPORT_SETTINGS)
     payload["tool_id"] = TOOL_ID
     return payload
@@ -1211,6 +1428,7 @@ def parser() -> argparse.ArgumentParser:
         choices=["dependency-status", "describe-requirements", "preflight", "execute", "verify"],
     )
     command_parser.add_argument("--operation", choices=sorted(OPERATIONS))
+    command_parser.add_argument("--after-assessment-sequence", type=int)
     return command_parser
 
 
@@ -1232,7 +1450,8 @@ def main(argv: list[str] | None = None) -> int:
         require_dependency(APP_CONFIG)
         if not args.operation:
             raise SystemExit("--operation is required for execute and verify")
-        payload = execute(args.operation)
+        payload = (execute(args.operation) if args.after_assessment_sequence is None
+                   else execute(args.operation, after_assessment_sequence=args.after_assessment_sequence))
         if args.operation == "m1_mt5_demo_probe" and payload.get("ok"):
             payload["proof_marker"] = "FOREX_M1_PROOF_OK"
         if args.command == "verify":

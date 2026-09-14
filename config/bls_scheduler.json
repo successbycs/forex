@@ -1,0 +1,7 @@
+{
+  "schema_version": "forex.bls-scheduler-policy.v1",
+  "interval_seconds": 3600,
+  "denial_backoff_seconds": 86400,
+  "month_offsets": [0, 1],
+  "execution_authority": false
+}

@@ -1,0 +1,10 @@
+[Unit]
+Description=Poll fixed latest M20 assessment for immutable local retention
+
+[Timer]
+OnUnitActiveSec=2min
+Persistent=false
+Unit=forex-m20-assessment-export.service
+
+[Install]
+WantedBy=timers.target

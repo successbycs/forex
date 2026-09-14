@@ -1,0 +1,8 @@
+{
+  "schema_version": "forex.bls-collection-policy.v1",
+  "operation_id": "bls_monthly_calendar_probe",
+  "source_id": "bls-monthly-release-calendar",
+  "transport_deadline_seconds": 35,
+  "automatic_retries": 0,
+  "execution_authority": false
+}

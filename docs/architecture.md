@@ -1,5 +1,56 @@
 # Architecture
 
+## Architectural guiding principles
+
+The system separates proof, durable state, deterministic decision-making,
+orchestration, and broker access. A component must not silently assume the
+authority of another component.
+
+| Capability | Owns | Must not own |
+| --- | --- | --- |
+| Immutable files and JSON evidence | Original external responses, MT5 exports, hashes, receipts, manifests, and recovery artifacts. These are the source record needed to show what was observed and when. | Mutable operational state, unverified repair of captured evidence, or broad analytics queries. |
+| PostgreSQL | Validated, queryable and durable application facts: lifecycle state, idempotency/reservations, normalized broker facts, canonical calendar facts, event/decision/trade joins, reconciliation, and derived analytics. | The only copy of external raw source bytes, arbitrary broker commands, or unvalidated external input. Every SQL fact derived from a source must retain a reference to its source record and digest. |
+| Python application services | Deterministic domain rules: parsing and validation, provenance checks, risk/sizing, idempotency, recovery, reconciliation, and report construction. | Visual approval flows, generic integration plumbing, or authority not declared in the component contract. |
+| n8n | Bounded integration orchestration: scheduled public-source collection where its node contract is suitable, notifications, human review/exception routing, and read-only report delivery. Workflow execution history is operational evidence, not proof by itself. | MT5 credentials, trade entry/exit/amendment, risk latches, recovery authority, durable financial lifecycle state, or proof authority. n8n workflows are versioned production artifacts and require a fixed deployment/activation contract. |
+| systemd and Windows Task Scheduler | Host-local, always-on or precisely timed services with explicit restart and health behavior. | Cross-system business workflows, source-of-truth data, or human approvals. |
+| Fixed T480 adapter | Narrow, catalogued access to protected local resources such as MT5, local n8n, and named database operations. | Generic shell, generic SQL, generic source download, or a general MT5 interface. |
+
+### Data and authority flow
+
+```text
+External publisher or MT5
+  -> immutable raw evidence and receipt
+  -> validated PostgreSQL projection
+  -> Python decision, reconciliation, or report logic
+  -> n8n notification or operator workflow
+
+Only the fixed Demo-only T480 execution path may contact MT5 for a trading
+operation. No workflow, report, model, or database query receives implicit
+broker authority.
+```
+
+### Selection rules
+
+- Retain raw files first when the question is “what did the source say?” or
+  the item may be required as proof.
+- Project every validated structured calendar fact to PostgreSQL. Use the same
+  rule for other facts with lifecycle, idempotency, concurrency,
+  reconciliation, repeated joins, or historical reporting requirements.
+- Use Python where behavior must be deterministic, testable, fail-closed, and
+  governed by application rules.
+- Use n8n where the value is integration visibility, scheduling across APIs,
+  notification, or a human-in-the-loop workflow; never use it to bypass a
+  Python/T480 safety boundary.
+- Use a host scheduler for a local service that must survive independently of
+  browser sessions and workflow execution history.
+- Treat AI output as versioned research context or an advisory only. It cannot
+  create trading authority or replace a deterministic risk/execution check.
+
+The implementation map and staged repository-structure target are in
+[Capability architecture](capability-architecture.md). That document is the
+starting point for all new capabilities; it does not replace a milestone
+contract or claim deployment status.
+
 ## High-level system diagram
 
 ![High-level Forex repository architecture](assets/forex-architecture-overview.png)

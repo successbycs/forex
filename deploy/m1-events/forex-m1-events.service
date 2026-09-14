@@ -1,0 +1,12 @@
+# Render absolute local paths and verify before installation.
+[Unit]
+Description=Forex retained M1 event annotations (no trading authority)
+
+[Service]
+Type=oneshot
+WorkingDirectory={{REPOSITORY}}
+ExecStart={{PYTHON}} {{REPOSITORY}}/scripts/m1_event_service.py --assessment-root {{ASSESSMENTS}} --additional-assessment-root {{CURRENT_ASSESSMENTS}} --store {{STORE}} --sidecars {{SIDECARS}} --reports {{REPORTS}}
+Restart=no
+TimeoutStartSec=15min
+UMask=0077
+NoNewPrivileges=true

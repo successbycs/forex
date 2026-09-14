@@ -1,0 +1,23 @@
+{
+  "schema_version": "forex.h-slow.demo-trial-mandate.v1",
+  "state": "PRE_ACTIVATION_REVIEWED",
+  "server": "GOMarketsMU-Demo",
+  "account_scope": "h1_demo_scope",
+  "terminal_instance": "h1_demo_terminal",
+  "policy_version": "forex.h-slow.eurusd-tsmom-12m.v1",
+  "operator_approval_reference": "approval_h1_trial_demo",
+  "risk_resume_authority_reference": "resume_h1_operator_rule",
+  "limits": {
+    "max_open_positions": 1,
+    "max_loss_aud": 1000.0,
+    "max_notional_usd": 10000.0,
+    "lease_budget_usd": 100000.0
+  },
+  "rule_references": {
+    "sizing": "hslow_sizing_policy_v1",
+    "protection": "hslow_protection_rule_v1",
+    "holding_exit": "hslow_holding_exit_rule_v1",
+    "financing_cost": "hslow_financing_cost_rule_v1",
+    "reconciliation": "hslow_reconciliation_rule_v1"
+  }
+}

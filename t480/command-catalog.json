@@ -63,6 +63,21 @@
       "approval_required": false
     },
     {
+      "id": "h_slow_demo_preflight",
+      "purpose": "Read the fixed H1 GOMarketsMU-Demo EURUSD terminal/account preflight without credentials, mutation, caller parameters, or order capability.",
+      "approval_required": false
+    },
+    {
+      "id": "h_slow_demo_reconciliation_snapshot",
+      "purpose": "Read fixed H1 GOMarketsMU-Demo EURUSD position and bounded deal state for reconciliation without credentials, mutation, caller parameters, or order capability.",
+      "approval_required": false
+    },
+    {
+      "id": "h_slow_demo_financing_terms",
+      "purpose": "Read fixed H1 GOMarketsMU-Demo EURUSD financing terms and AUD conversion quote without credentials, mutation, caller parameters, or order capability.",
+      "approval_required": false
+    },
+    {
       "id": "m20_unresolved_history_probe",
       "purpose": "Read only the fixed GOMarketsMU-Demo EURUSD broker-deal window for unresolved M20 attempts.",
       "approval_required": false
@@ -105,6 +120,16 @@
     {
       "id": "m20_listener_status",
       "purpose": "Inspect the permanent M20 Demo listener heartbeat without changing its task; use the explicit recovery operation to restart it.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_latest_assessment",
+      "purpose": "Export the one retained full GOMarketsMU-Demo EURUSD M20 assessment without starting, restarting, or trading.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_spool_page",
+      "purpose": "Read at most eight immutable current-release M20 assessment spool records after a validated local cursor; never acknowledge, alter, restart, or trade.",
       "approval_required": false
     },
     {
@@ -185,6 +210,11 @@
     {
       "id": "m20_listener_prepare",
       "purpose": "Verify the fixed staged M20 release and atomically prepare its non-secret service configuration.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_copy_unchanged_payloads",
+      "purpose": "Copy only hash-identical deployed M20 runner, audit bridge, and notification payloads into the fixed prepared release.",
       "approval_required": false
     },
     {

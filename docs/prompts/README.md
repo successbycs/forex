@@ -6,6 +6,10 @@ authorise its execution. A goal prompt is an execution brief, not evidence of co
 the milestone registry remains the declarative contract and `project_state`
 remains the mutable execution record.
 
+**Current delivery precedence:** [Harness H1–H4 → Wave A → Wave B → Wave C](demo-platform-wave-structure.md#active-harness-sequence--2026-09-13).
+The retained W1–W3/H_SLOW prompts remain historical/deferred planning and do
+not authorise active work unless explicitly reactivated.
+
 | Prompt | Purpose |
 | --- | --- |
 | [M2 shared T480 PostgreSQL](M2-shared-t480-postgres-goal.md) | Complete M2 using the shared T480 AI Lab PostgreSQL service. |

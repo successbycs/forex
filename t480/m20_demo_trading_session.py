@@ -28,6 +28,9 @@ from zoneinfo import ZoneInfo
 
 import MetaTrader5 as mt5
 
+from forex.m1_calendar_decision_overlay import apply_calendar_overlay
+from forex.m1_event_risk_gate import evaluate_new_entry
+
 
 SERVER = "GOMarketsMU-Demo"
 SYMBOL = "EURUSD"
@@ -100,6 +103,47 @@ REFUSAL_DRILL_MAXIMUM_LOSS_AUD = 0.01
 
 
 RISK_POLICY_REQUIRED = {"policy_version", "reporting_currency", "maximum_risk_per_trade_percent", "maximum_risk_per_trade_aud", "daily_loss_limit_percent", "weekly_loss_limit_percent", "peak_equity_drawdown_limit_percent", "loss_budget_timezone", "daily_pause_reset", "manual_resume_reasons", "require_known_external_cashflow"}
+
+M1_EVENT_RISK_POLICY_PATH = Path(__file__).resolve().parents[1] / "config" / "m1_event_risk_gate.json"
+
+
+def _m1_event_risk_policy() -> dict[str, Any]:
+    """Load the governed, disabled-by-default M1 calendar policy."""
+    try:
+        return json.loads(M1_EVENT_RISK_POLICY_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SystemExit("M1 calendar event-risk policy is absent or invalid") from error
+
+
+def _apply_m1_calendar_overlay(*, snapshot: dict[str, Any], proposal: dict[str, Any],
+                               policy: dict[str, Any], sidecar: Any = None,
+                               primary_context: Any = None) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Bind a calendar new-entry veto before proposal persistence or reservation."""
+    gate = evaluate_new_entry(policy=policy, sidecar=sidecar, primary_context=primary_context)
+    overlay = apply_calendar_overlay(
+        candidate={"proposal_id": proposal["proposal_id"], "action": proposal["action"]},
+        gate_observation=gate,
+    )
+    snapshot["calendar_overlay"] = overlay
+    body = {key: value for key, value in snapshot.items()
+            if key not in {"snapshot_id", "payload_sha256"}}
+    digest = "sha256:" + hashlib.sha256(
+        json.dumps(body, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    # The proposal identifier remains the formed baseline-candidate identity
+    # that the overlay records.  Re-key the snapshot from its completed,
+    # overlay-bound body so the retained snapshot identifier and digest agree
+    # without creating an ID/digest cycle through that candidate reference.
+    snapshot_id = str(uuid5(NAMESPACE_URL, f"{proposal['proposal_id']}:{digest}"))
+    snapshot["snapshot_id"] = snapshot_id
+    proposal["snapshot_id"] = snapshot_id
+    snapshot["payload_sha256"] = digest
+    proposal["decision_snapshot_sha256"] = digest
+    if overlay["final_action"] == "NO_TRADE" and proposal["action"] in {"BUY", "SELL"}:
+        proposal.update({"action": "NO_TRADE", "proposed_entry": None, "stop_loss": None,
+                         "take_profit": None, "notional_usd": None, "confidence": 100,
+                         "rationale": overlay["reason"]})
+    return gate, overlay
 
 
 def persistent_risk_policy() -> dict[str, Any]:
@@ -1965,6 +2009,15 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                                            "cost_coverage_status": "NOT_APPLICABLE"})
                 bridge_payload["proposal"] = proposal
                 bridge_payload["strategy_selection"] = strategy_selection
+        # This is deliberately after every pre-existing M20 refusal.  The
+        # overlay binds the final proposal action that will be persisted, not
+        # an earlier strategy candidate that a later safety gate changed.
+        _apply_m1_calendar_overlay(
+            snapshot=snapshot, proposal=proposal, policy=_m1_event_risk_policy(),
+        )
+        bridge_payload["proposal"] = proposal
+        bridge_payload["decision_snapshot"] = snapshot
+        bridge_payload["strategy_selection"] = strategy_selection
         multi_timeframe_context = _shadow_context(
             proposal=proposal, selection=strategy_selection, assessments=strategy_assessments,
             bars=raw_bars, observed_at=tick_record["observed_at_utc"],

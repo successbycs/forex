@@ -7,7 +7,10 @@ policy replay; it cannot submit, amend, or close an order.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
+import json
 import math
+import re
 from typing import Any
 
 KERNEL_VERSION = "forex.m20.11.pure-policy-kernel.v1"
@@ -30,10 +33,25 @@ OWNER_MAX_HOLD_SECONDS = {
     "range_reversion": 6 * 60,
     "session_breakout": 10 * 60,
 }
+_M20_BASE_SNAPSHOT_BODY_FIELDS = frozenset({
+    "observed_at_utc", "captured_at_utc", "bid", "ask", "spread_points",
+    "freshness_seconds", "m1_closed_bars", "m5_closed_bars", "safety_gates",
+    "market_context", "strategy_assessments",
+})
+_M20_FINANCING_SNAPSHOT_FIELDS = frozenset({"financing", "holding_review"})
+_M20_EXTENDED_SNAPSHOT_BODY_FIELDS = _M20_BASE_SNAPSHOT_BODY_FIELDS | _M20_FINANCING_SNAPSHOT_FIELDS
+_M20_CALENDAR_OVERLAY_SNAPSHOT_FIELDS = _M20_EXTENDED_SNAPSHOT_BODY_FIELDS | frozenset({"calendar_overlay"})
+_SHA256 = re.compile(r"sha256:[0-9a-f]{64}\Z")
 
 
 class KernelInputError(ValueError):
     """A retained input cannot support a deterministic policy conclusion."""
+
+
+def _snapshot_body_sha256(snapshot_body: dict[str, Any]) -> str:
+    """Return the deployed canonical digest for an exact M20 snapshot body."""
+    encoded = json.dumps(snapshot_body, sort_keys=True, separators=(",", ":")).encode()
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
 
 
 def parse_utc(value: Any, label: str) -> datetime:
@@ -217,7 +235,16 @@ def classify_retained_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
     """Classify retained M20 decision data without granting execution authority."""
     if not isinstance(snapshot, dict):
         raise KernelInputError("snapshot is invalid")
-    cutoff = snapshot.get("observed_at_utc")
+    observed_at = parse_utc(snapshot.get("observed_at_utc"), "observed_at_utc")
+    # Newer M20 snapshots bind M1 bars to their fixed-read receipt and make a
+    # proposal only after the complete capture.  Replay must therefore use
+    # that decision cutoff, not the earlier broker tick timestamp.  Older
+    # retained snapshots remain characterisable using their observation time.
+    decision_value = snapshot.get("decision_at_utc", snapshot.get("observed_at_utc"))
+    decision_at = parse_utc(decision_value, "decision_at_utc")
+    if decision_at < observed_at:
+        raise KernelInputError("decision_at_utc predates observed_at_utc")
+    cutoff = decision_at.isoformat().replace("+00:00", "Z")
     rows = snapshot.get("m1_closed_bars")
     if not isinstance(rows, list):
         raise KernelInputError("snapshot M1 bars are absent")
@@ -236,6 +263,62 @@ def classify_retained_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
     if not gates_qualified:
         qualifications.append("SAFETY_GATES")
     return {"kernel_version": KERNEL_VERSION, "strategy_version": STRATEGY_VERSION,
+            "observed_at_utc": observed_at.isoformat().replace("+00:00", "Z"),
+            "decision_cutoff_utc": cutoff,
             "classification": "CLOCK_AND_GATES_CONSISTENT_PROVENANCE_UNVERIFIED" if not qualifications else "UNQUALIFIED_" + "_AND_".join(qualifications),
             "reason": "M1 clock consistency and the complete captured safety-gate set are valid, but source/provenance qualification is outside this retained-record classifier." if not qualifications else "Retained M20 parity is availability and/or gate unqualified; the result has no point-in-time or execution conclusion.",
             "assessments": assessments, "selection": selection, "execution_authority": False}
+
+
+def classify_retained_decision(snapshot: dict[str, Any], proposal: dict[str, Any]) -> dict[str, Any]:
+    """Classify a retained M20 snapshot with its bound proposal receipt time.
+
+    M20 persists the decision time on the proposal after a complete M1 read.
+    This offline adapter requires the proposal to identify and hash-bind the
+    same snapshot before supplying that later cutoff to the pure classifier.
+    It neither persists a result nor alters the deployed listener.
+    """
+    if not isinstance(snapshot, dict) or not isinstance(proposal, dict):
+        raise KernelInputError("snapshot and proposal must be mappings")
+    snapshot_id = snapshot.get("snapshot_id")
+    payload_sha256 = snapshot.get("payload_sha256")
+    body_fields = frozenset(snapshot) - {"snapshot_id", "payload_sha256"}
+    if body_fields not in {_M20_BASE_SNAPSHOT_BODY_FIELDS, _M20_EXTENDED_SNAPSHOT_BODY_FIELDS, _M20_CALENDAR_OVERLAY_SNAPSHOT_FIELDS}:
+        raise KernelInputError("retained snapshot body is not an exact deployed M20 schema variant")
+    if body_fields in {_M20_EXTENDED_SNAPSHOT_BODY_FIELDS, _M20_CALENDAR_OVERLAY_SNAPSHOT_FIELDS} and not all(
+            isinstance(snapshot[field], dict) for field in _M20_FINANCING_SNAPSHOT_FIELDS):
+        raise KernelInputError("extended retained snapshot financing fields are invalid")
+    if "calendar_overlay" in body_fields:
+        try:
+            from forex.m1_calendar_decision_overlay import M1CalendarOverlayError, apply_calendar_overlay
+            overlay = snapshot["calendar_overlay"]
+            if not isinstance(overlay, dict) or overlay != apply_calendar_overlay(
+                    candidate=overlay.get("candidate"), gate_observation=overlay.get("gate_observation")):
+                raise KernelInputError("retained snapshot calendar overlay is invalid")
+        except (M1CalendarOverlayError, TypeError, AttributeError) as exc:
+            raise KernelInputError("retained snapshot calendar overlay is invalid") from exc
+    if not isinstance(snapshot_id, str) or not snapshot_id:
+        raise KernelInputError("snapshot_id is required for proposal binding")
+    if not isinstance(payload_sha256, str) or not _SHA256.fullmatch(payload_sha256):
+        raise KernelInputError("snapshot payload_sha256 is not a canonical SHA-256 digest")
+    snapshot_body = {key: snapshot[key] for key in body_fields}
+    if _snapshot_body_sha256(snapshot_body) != payload_sha256:
+        raise KernelInputError("snapshot payload_sha256 does not match the retained snapshot body")
+    proposal_id = proposal.get("proposal_id")
+    if not isinstance(proposal_id, str) or not proposal_id:
+        raise KernelInputError("proposal_id is required for proposal binding")
+    if "calendar_overlay" in body_fields:
+        overlay = snapshot["calendar_overlay"]
+        if (overlay["candidate"]["proposal_id"] != proposal_id
+                or proposal.get("action") != overlay["final_action"]):
+            raise KernelInputError("calendar overlay does not bind the retained proposal action")
+    if proposal.get("snapshot_id") != snapshot_id:
+        raise KernelInputError("proposal snapshot_id does not bind the retained snapshot")
+    if proposal.get("decision_snapshot_sha256") != payload_sha256:
+        raise KernelInputError("proposal decision snapshot hash does not bind the retained snapshot")
+    decision_at = proposal.get("decision_at_utc")
+    if not isinstance(decision_at, str):
+        raise KernelInputError("proposal decision_at_utc is required")
+    merged = {**snapshot, "decision_at_utc": decision_at}
+    classified = classify_retained_snapshot(merged)
+    return {**classified, "proposal_id": proposal_id, "proposal_bound": True}

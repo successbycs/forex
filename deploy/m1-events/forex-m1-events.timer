@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly retained M1 event annotation pass
+
+[Timer]
+OnCalendar=*-*-* *:10:00
+Persistent=false
+Unit=forex-m1-events.service
+
+[Install]
+WantedBy=timers.target

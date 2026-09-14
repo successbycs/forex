@@ -1,0 +1,10 @@
+{
+  "schema_version": "forex.m1-event-risk-gate-policy.v1",
+  "enabled": false,
+  "scope": "NEW_ENTRY_ONLY",
+  "required_context_state": "QUALIFIED_CONTEXT_ONLY",
+  "blackout_before_seconds": 1800,
+  "blackout_after_seconds": 900,
+  "execution_authority": false,
+  "activation_requirement": "A separately approved governed policy amendment, current first-party source qualification, decision-time-bound integration proof, and explicit operator activation are required before this evaluator may affect M1 entry eligibility."
+}

@@ -1,0 +1,5 @@
+{
+  "schema_version": "forex.m1-event-automation-policy.v1",
+  "window_mode": "DECISION_UTC_DAY",
+  "execution_authority": false
+}
