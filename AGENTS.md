@@ -130,8 +130,19 @@ Before ending an execution turn, run:
 
 ```bash
 python3 scripts/check_execution_continuation.py
+```
 
 - `.codex/skills/release-readiness/SKILL.md` — use before deploying a material
   workflow, enabling autonomous demo execution, promoting a strategy to its next
   stage, or closing a formal milestone.
 
+## Repository change authority
+
+Codex may create local commits for completed, tested, scope-authorised work when
+the active milestone or approved ExecPlan explicitly permits it. Before
+committing, it must verify the relevant tests, preserve unrelated changes,
+include only owned paths, and report the commit hash.
+
+Codex must not push, create branches, open pull requests, change formal
+milestone state, or perform Live-trading actions without Chris's explicit
+instruction.
