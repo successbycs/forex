@@ -3647,7 +3647,7 @@
     {
       "milestone_id": "M29",
       "title": "Real-time Demo recovery safety proven",
-      "objective": "Prove interruption, outage, restart, and idempotent collection recovery against fresh Demo data without an order.",
+      "objective": "Prove one controlled permanent-listener interruption and recovery while the GOMarketsMU-Demo account is flat and held, without an order.",
       "delivery_type": "OPERATIONAL_SAFETY",
       "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
@@ -3660,7 +3660,7 @@
       "from_state": "The milestone capability is not yet proven.",
       "to_state": "Real-time Demo recovery safety proven",
       "scope": [
-        "Prove interruption, outage, restart, and idempotent collection recovery against fresh Demo data without an order.",
+        "Prove one controlled permanent-listener interruption and recovery while the GOMarketsMU-Demo account is flat and under maintenance hold, without an order.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -3750,7 +3750,7 @@
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
+      "notes": "Lean Demo MVP scope approved 2026-09-15: this contract proves bounded listener-worker recovery only. It does not claim an upstream broker outage or durable collection deduplication. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
     },
     {
       "milestone_id": "M30",

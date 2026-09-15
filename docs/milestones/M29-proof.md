@@ -1,7 +1,16 @@
 # M29 proof
 
-The current capture records a bounded observation on the real `GOMarketsMU-Demo` EURUSD quote surface: a fixed read-only tick, a deliberately terminated local adapter client, and a fresh fixed read-only tick. It binds both raw adapter envelopes by SHA-256, the request identity, revision, governed configuration fingerprint, broker clock offset, and tick freshness. It cannot submit, modify, or cancel an order: `m27_demo_tick` has no order surface.
+M29 is the lean Demo-MVP listener-recovery gate. Its real-world surface is the
+permanent `GOMarketsMU-Demo` EURUSD listener under maintenance hold. A valid
+run records an initially flat AUD Demo account, a controlled listener-worker
+handoff, recovery of the same release-bound S4U task, and a flat held account
+afterward. It cannot assess or place an order while the hold is active.
 
-This is **not M29 recovery proof**. Killing a short-lived local client and repeating a stateless read does not establish an interruption of a durable collector, an upstream outage, a collector restart, or durable request deduplication. The verifier therefore deliberately refuses closeout even when all retained artifacts are well formed. The capture emits `FOREX_M29_OBSERVATION_CAPTURED_UNSUPPORTED`, never the contract's `FOREX_M29_PROOF_OK` success marker.
+`scripts/capture_m29_evidence.sh` retains raw fixed-operation envelopes and
+the release, revision, configuration and event-log bindings. The offline
+verifier checks those retained bytes only; it does not contact T480 or MT5.
+The required success marker is `FOREX_M29_PROOF_OK`.
 
-A closeable M29 bundle needs evidence from a declared durable collector surface: a stable collector identity and lifecycle record, a real interruption or upstream-outage observation, a bounded restart record, persisted request/receipt identities spanning restart, and verification that a replayed receipt is deduplicated without a mutation. Its raw envelopes must be retained and bound to the same current revision and governed configuration, with fresh, nonfuture Demo EURUSD ticks. That collector surface and its required evidence are not implemented by this package; no successful M29 proof is manufactured here.
+This does not claim an upstream broker outage, durable collection
+deduplication, profitability, or Live capability. Those are deliberately
+outside the MVP M29 contract.
