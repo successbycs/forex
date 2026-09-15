@@ -1,76 +1,137 @@
+# Forex Project
 
-# Project overview
-To build an end to end solution to trade Forex autonomously and provide a positive return over time.  To use external economic data to support trade or no trade decisions.  This is an MVP so great lengths to harden the software does not add meaningful value to the projects completion as an MVP.
+## Objective
 
-# Project Structure
-Use Harness engineering to set-up this repo and to strucuture files, capabilities and features as per this link. https://openai.com/index/harness-engineering/.
+Build an evidence-led Forex decision and execution platform.
 
-# Architecture
-Use https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html as a guide to Architecture.md  Examples of Architecture.md are. https://github.com/rust-lang/rust-analyzer/blob/d7c99931d05e3723d878bea5dc26766791fa4e69/docs/dev/architecture.md  
+The MVP evaluates explicit trading hypotheses, uses market and external economic
+context to support trade/no-trade decisions, and records reproducible evidence.
+It begins in research, backtest, and paper-trading modes. Live execution is a
+later stage that requires explicit human authorisation and formal safety gates.
 
-# Execution Plans
-Read `PLANS.md` and the active ExecPlan before execution. `PLANS.md` defines
-the operational loop for this repository; the cookbook is background guidance:
-https://developers.openai.com/cookbook/articles/codex_exec_plans
+Do not claim or imply that the system can guarantee a positive return. Research
+and backtest results justify hypotheses and controlled experiments; they do not
+prove future profitability.
 
-# Testing and Proofs
-Must provide a real world proof not just a proof of execution.
+## Repository map
 
-An instruction to execute a plan authorizes continuing its in-scope tasks
-through implementation, verification, repair, and required review. Use progress
-updates while working; do not end the turn after a passing test or small package
-when another authorised task is actionable. Existing authorization persists
-across turns. Finish only when the requested outcome is met, the user pauses or
-redirects work, or all remaining authorised work requires a specific unavailable
-dependency or new authority. Apply the stop-condition audit in `PLANS.md`.
+Use this repository as the system of record. Before beginning material work, read
+the sources relevant to the task:
 
-Before ending an execution turn, run
-`python3 scripts/check_execution_continuation.py` against the active ExecPlan's
-work record. `CONTINUE` means execute the reported item; a blocked deployment
-does not block independent preparation or review. Invalid metadata needs repair.
-An agent-written approval clause does not create new human authority requirements:
-check the user's existing instructions and the actual operation's scope first.
-User pauses, cancellations and review-only requests take precedence over this
-execution loop. Never turn this check into permission to broaden task scope.
+- `docs/architecture.md` — domains, layers, interfaces, and dependency directions.
+- `PLANS.md` — ExecPlan format, execution lifecycle, progress records, and stop
+  conditions.
+- `project_state.json` — current formal state.
+- `milestone_registry.json` — active milestone contract, entry gates, and proof
+  requirements.
+- `docs/evidence_and_milestones.md` — evidence model and milestone policy.
+- Active ExecPlan — scope, acceptance criteria, risks, and verification steps.
+- `.codex/skills/research-evidence/SKILL.md` — use before planning work based on
+  external claims, strategy ideas, market behaviour, or research.
+- `.codex/skills/qa-verification/SKILL.md` — use before reporting a material
+  implementation, integration, strategy, or release as complete.
+  - `docs/agent-workflow.md` — roles, delivery loop, review/repair workflow, and
+  autonomous demo-execution controls.
 
+`AGENTS.md` is the repository map and non-negotiable operating boundary. Keep
+detailed process, templates, workflow status, and changing delivery information
+in the documents above rather than expanding this file.
 
-# Build and test
-Once a piece of function has been built it must be tested and include a real world outcome.  The build must move the project forward and any code change must move the project towards its goal of autonomoud Forex execution.
+## Architecture and planning
 
-# Forex agent operating rules
+Use Harness engineering principles: make the repository legible to Codex through
+clear structure, executable feedback loops, versioned plans, and enforceable
+boundaries.
 
-- Inspect `git status` before editing and preserve unrelated work.
-- Read `project_state.json`, the active contract in `milestone_registry.json`, and `docs/evidence_and_milestones.md` before milestone work.
-- Implement only the active formal milestone. Continue authorised ExecPlan
-  tasks within it without asking again. Starting the next formal milestone
-  requires an explicit Goal or human instruction and satisfaction of its entry
-  gates; completing an implementation task does not advance the formal state.
-- Treat `target_date` as a human-owned forecast. Only the closeout command may generate the actual completion timestamp, `proven_at`.
-- Never claim completion from code, tests, mocks, documentation, or narrative JSON alone. Capture and independently verify proof on the contract's declared real-world surface.
-- Require a current Triad-plus-domain `RECOMMEND_COMPLETE` result bound to the exact contract, revision, configuration, verifier, and evidence. Review roles are read-only and cannot approve or close milestones.
-- Keep raw evidence separate from verification results. Never fabricate, repair, or overwrite captured evidence.
-- Put changeable non-secret operator settings in canonical configuration files. Put secrets and machine-local values in ignored environment or local override files.
-- A material implementation, dependency, schema, surface, or governed-configuration change invalidates affected proof.
-- Shared platform transport belongs to `cs-ai-lab-infra`; Forex owns its adapter catalog, application schemas, workflows, and evidence.
-- Preserve the hard safety boundary: no trading on `GOMarketsMU-Live`, 
-- Trading on `GOMarketsMU-Demo`is approved by Chris the human operator
-- Do not commit, push, create a branch, or open a pull request without explicit human instruction.
+Use `docs/architecture.md` as the architectural source of truth. Prefer explicit,
+simple boundaries over unnecessary abstraction. Shared platform transport belongs
+to `cs-ai-lab-infra`; this repository owns Forex adapter catalogues, application
+schemas, workflows, decisions, and evidence.
 
-## Active delivery direction — Harness H1–H4 → Wave A
+For work requiring multiple steps, risk decisions, integrations, or material
+changes, use an ExecPlan. Read `PLANS.md` and the active ExecPlan before
+execution.
 
-For autonomous-delivery planning, the active non-formal sequence is **Harness
-H1–H4 → Wave A → Wave B → Wave C**. It does not alter `project_state.json`,
-the active M29 contract, broker authority, or proof gates. H_SLOW and broader
-research remain retained but deferred unless Chris explicitly reactivates them.
+Implement only the active formal milestone. Completing an implementation task
+does not itself advance formal milestone state. Starting a new formal milestone
+requires an explicit human Goal or instruction and satisfaction of its declared
+entry gates.
 
-Every bounded task records its owned paths, acceptance checks and actual test
-or observation result; raw evidence remains distinct from verification and
-formal proof. Terra receives one bounded implementation package. Astra reviews
-each result. After two failed Terra repair attempts on the same defect, Astra
-owns the repair; an independent read-only reviewer checks Astra's material fix.
-Neither workflow status nor tests may be represented as real-world proof.
+## MVP delivery standard
 
-The repository instructions require a current Triad-plus-domain recommendation
-for closeout, while every formal closeout must also obey its exact registry
-contract. Until Chris reconciles any narrower contract wording, apply the
-stricter combined requirement; do not waive either rule by delivery planning.
+Prioritise the smallest reliable implementation that proves the active milestone.
+
+Do not add production-scale infrastructure unless it is required for:
+
+- data integrity;
+- broker and trading safety;
+- reproducibility;
+- the active milestone’s declared proof surface; or
+- an explicit acceptance criterion.
+
+Every bounded task must record:
+
+- owned paths;
+- acceptance checks;
+- actual test or observation result;
+- limitations, risks, or unresolved assumptions.
+
+## Evidence, research, and proof
+
+Use `research-evidence` before creating or materially changing an ExecPlan for a
+strategy rule, indicator, model, risk control, economic-data decision, or
+product hypothesis.
+
+Research evidence must distinguish:
+
+- evidence-supported findings;
+- reasonable inferences;
+- assumptions requiring a test; and
+- unsupported or rejected claims.
+
+Each formal milestone must declare its proof surface in its registry contract.
+
+“Real-world proof” means evidence captured on that declared surface. Code,
+tests, mocks, screenshots, documentation, and narrative JSON are necessary
+supporting evidence but are not real-world proof by themselves.
+
+Keep raw evidence separate from derived verification results. Never fabricate,
+repair, alter, or overwrite captured raw evidence.
+
+A material implementation, dependency, schema, interface, governed
+configuration, or workflow change invalidates affected proof. Record the impact
+and the re-verification required; do not invalidate unrelated proof without
+reason.
+
+Before formal closeout, require the current review and recommendation gates
+declared in the active registry contract and `PLANS.md`. Review roles are
+read-only and cannot approve or close milestones.
+
+`target_date` is a human-owned forecast. Only the approved closeout process may
+create the actual completion timestamp, `proven_at`.
+
+## Testing and verification
+
+Every code change must move the active milestone towards its declared outcome.
+
+After a meaningful implementation change:
+
+1. Run relevant automated checks.
+2. Inspect real outputs, not only command exit codes.
+3. Use `qa-verification` for material changes.
+4. Capture evidence against each acceptance criterion.
+5. Repair in-scope defects before reporting completion.
+
+A passing test suite alone is not sufficient. Verification must include the
+relevant end-to-end workflow, data integrity, safety controls, and declared
+proof surface.
+
+Before ending an execution turn, run:
+
+```bash
+python3 scripts/check_execution_continuation.py
+
+- `.codex/skills/release-readiness/SKILL.md` — use before deploying a material
+  workflow, enabling autonomous demo execution, promoting a strategy to its next
+  stage, or closing a formal milestone.
+

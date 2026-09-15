@@ -495,7 +495,12 @@ def _m20_listener_latest_assessment_command() -> str:
         "$raw=[IO.File]::ReadAllBytes($path);$sha='sha256:'+([BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash($raw)).Replace('-','').ToLower());"
         "try{$record=([Text.Encoding]::UTF8.GetString($raw)|ConvertFrom-Json)}catch{throw 'M20 latest assessment is not valid JSON'};"
         "if($record.schema_version -ne 'forex.m20.latest-assessment.v1'-or $record.listener_release_id -ne $release){throw 'M20 latest assessment binding is invalid'};"
-        "$assessment=$record.assessment;$sequence=$record.assessment_sequence;if($null -eq $assessment -or $assessment.server -ne 'GOMarketsMU-Demo'-or $assessment.symbol -ne 'EURUSD'-or $null -eq $assessment.decision_snapshot -or $null -eq $assessment.proposal-or $sequence -isnot [long]-or $sequence -le 0){throw 'M20 latest assessment shape is invalid'};"
+        # Windows PowerShell's JSON parser represents small JSON integers as
+        # Int32 and larger ones as Int64.  The listener's monotonically
+        # increasing sequence is valid in either representation; rejecting
+        # Int32 made the fixed read-only evidence export fail after a normal
+        # number of assessment cycles.
+        "$assessment=$record.assessment;$sequence=$record.assessment_sequence;if($null -eq $assessment -or $assessment.server -ne 'GOMarketsMU-Demo'-or $assessment.symbol -ne 'EURUSD'-or $null -eq $assessment.decision_snapshot -or $null -eq $assessment.proposal-or (($sequence -isnot [int]) -and ($sequence -isnot [long])) -or $sequence -le 0){throw 'M20 latest assessment shape is invalid'};"
         "$config=Join-Path $state 'm20_demo_listener_service.local.json';if(Test-Path -LiteralPath $config){$c=gc -Raw -LiteralPath $config|ConvertFrom-Json;if($assessment.configuration_fingerprint -ne $c.FOREX_M20_CONFIGURATION_FINGERPRINT){throw 'M20 latest assessment configuration binding is invalid'}};"
         "[pscustomobject]@{observation='AVAILABLE';listener_release_id=$release;assessment_sequence=$sequence;assessment_started_at_utc=$record.assessment_started_at_utc;assessment_completed_at_utc=$record.assessment_completed_at_utc;raw_sha256=$sha;assessment=$assessment}|ConvertTo-Json -Compress -Depth 16"
     )
@@ -1256,7 +1261,9 @@ def _m20_listener_runner_stage_command(index: int) -> str:
         + (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()
     ).hexdigest()[:16]
     encoded = base64.b64encode(source).decode("ascii")
-    parts = 64
+    # Eighty fixed fragments remain below the observed Windows SSH command
+    # limit; the former 64-way runner payload was rejected before execution.
+    parts = 80
     chunk_size = ((len(encoded) + (parts * 4) - 1) // (parts * 4)) * 4
     chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
     prefix = "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; New-Item -ItemType Directory -Force $root|Out-Null; $payload=Join-Path $root 'm20_demo_trading_session.payload'; "
@@ -1265,8 +1272,8 @@ def _m20_listener_runner_stage_command(index: int) -> str:
     raise ValueError("M20 listener runner stage index is invalid")
 
 
-for _index in range(1, 65):
-    _final = _index == 64
+for _index in range(1, 81):
+    _final = _index == 80
     OPERATIONS[f"m20_listener_runner_stage_{_index}"] = Operation(
         f"m20_listener_runner_stage_{_index}",
         ("Stage and verify" if _final else "Stage") + f" fixed M20 listener runner payload part {_index}.",
@@ -1287,7 +1294,7 @@ OPERATIONS["m20_listener_runner_verify"] = Operation(
         "$root=Join-Path $base 'releases\\" + _runner_release_id + "'; "
         "$file=Join-Path $root 'm20_demo_trading_session.payload'; "
         "$fragments=@(Get-ChildItem -LiteralPath $root|Where-Object {$_.Name -match '^m20_demo_trading_session\\.part\\d{2}$'}|Sort-Object Name|ForEach-Object {$_.FullName}); "
-        "if ($fragments.Count -ne 64) { throw ('M20 listener runner fragments are incomplete: '+$fragments.Count) }; "
+        "if ($fragments.Count -ne 80) { throw ('M20 listener runner fragments are incomplete: '+$fragments.Count) }; "
         "$encoded=(($fragments|ForEach-Object {[IO.File]::ReadAllText($_)}) -join ''); "
         "[IO.File]::WriteAllBytes($file,[Convert]::FromBase64String($encoded)); "
         "if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -ne '" + _runner_source_digest + "') { throw 'M20 listener runner staged source hash failed' }; "
