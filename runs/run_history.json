@@ -12872,6 +12872,26 @@
         "proven_at": "2026-09-15T09:53:37Z",
         "next_milestone": "M29"
       }
+    },
+    {
+      "event_id": "E000807",
+      "timestamp": "2026-09-15T09:53:51Z",
+      "milestone_id": "M29",
+      "action": "MILESTONE_READY",
+      "detail": {
+        "from": "BLOCKED",
+        "to": "READY"
+      }
+    },
+    {
+      "event_id": "E000808",
+      "timestamp": "2026-09-15T09:53:51Z",
+      "milestone_id": "M29",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
     }
   ]
 }

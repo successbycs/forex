@@ -5,8 +5,8 @@
   "project_purpose": "Solo-operator EUR/USD Demo trading platform: make protected, explainable, reconciled trading decisions first; learn from retained Demo outcomes before any later optimisation.",
   "phase": "M20_DEMO_TRADING_MVP",
   "last_proven_milestone": "M28",
-  "current_milestone": null,
-  "next_milestone": "M29",
+  "current_milestone": "M29",
+  "next_milestone": "M30",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
   "broker": "GO Markets Mauritius",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "PROVEN",
+  "implementation_status": "IN_PROGRESS",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -44,7 +44,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-15T09:53:37Z",
+  "last_updated_at": "2026-09-15T09:53:51Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -3747,8 +3747,8 @@
       "blockers": []
     },
     "M29": {
-      "status": "BLOCKED",
-      "started_at": "2026-09-11T12:21:18Z",
+      "status": "IN_PROGRESS",
+      "started_at": "2026-09-15T09:53:51Z",
       "implementation_finished_at": null,
       "verification_passed_at": null,
       "real_world_proof_captured_at": null,
@@ -3760,12 +3760,7 @@
       "evidence": [],
       "verification": null,
       "human_signoff": null,
-      "blockers": [
-        {
-          "reason": "Chris requested parking market-dependent execution proof until the Monday reopening. Resume only after fresh Demo quotes, verified broker-time handling, M27/M28 revalidation and remediation of M29 recovery-proof gaps. Economic-event architecture review proceeds separately; no dependency waiver or milestone completion is implied.",
-          "recorded_at": "2026-09-11T22:34:38Z"
-        }
-      ]
+      "blockers": []
     },
     "M30": {
       "status": "PLANNED",
