@@ -543,7 +543,7 @@ def test_m20_reboot_recovery_status_is_read_only():
 def test_m20_listener_release_includes_the_fixed_t480_discord_adapter_without_exposing_its_webhook():
     prepare = t480_adapter.OPERATIONS["m20_listener_prepare"].powershell_command or ""
     configure = t480_adapter.OPERATIONS["m20_listener_configure"].powershell_command or ""
-    stage = t480_adapter.OPERATIONS["m20_listener_discord_stage_6"].powershell_command or ""
+    stage = t480_adapter.OPERATIONS["m20_listener_discord_stage_10"].powershell_command or ""
     assert "m20_discord_trade_notification.payload" in prepare
     assert "M20 Discord adapter staged source hash failed" in stage
     assert "FOREX_M20_PERSISTENT_RISK_POLICY" in configure

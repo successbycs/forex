@@ -784,9 +784,13 @@
     },
     {
       "id": "m20_listener_discord_stage_6",
-      "purpose": "Assemble and verify the fixed M20 Discord lifecycle-notification adapter.",
+      "purpose": "Stage fixed M20 Discord lifecycle-notification adapter part 6.",
       "approval_required": false
     },
+    {"id":"m20_listener_discord_stage_7","purpose":"Stage fixed M20 Discord lifecycle-notification adapter part 7.","approval_required":false},
+    {"id":"m20_listener_discord_stage_8","purpose":"Stage fixed M20 Discord lifecycle-notification adapter part 8.","approval_required":false},
+    {"id":"m20_listener_discord_stage_9","purpose":"Stage fixed M20 Discord lifecycle-notification adapter part 9.","approval_required":false},
+    {"id":"m20_listener_discord_stage_10","purpose":"Assemble and verify the fixed M20 Discord lifecycle-notification adapter.","approval_required":false},
     {
       "id": "m20_listener_runner_verify",
       "purpose": "Verify the fully staged fixed M20 listener runner payload hash.",

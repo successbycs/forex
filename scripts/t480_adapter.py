@@ -1352,7 +1352,9 @@ def _m20_listener_discord_stage_command(index: int) -> str:
     source = (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()
     release_id = hashlib.sha256((ROOT / "t480" / "m20_demo_listener_service.py").read_bytes() + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes() + source).hexdigest()[:16]
     encoded = base64.b64encode(source).decode("ascii")
-    parts = 6
+    # The final six-way fragment also carries assembly and hash verification;
+    # ten fixed fragments keep that final command below the T480 boundary.
+    parts = 10
     chunk_size = ((len(encoded) + (parts * 4) - 1) // (parts * 4)) * 4
     chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
     if index not in range(1, parts + 1):
@@ -1367,8 +1369,8 @@ def _m20_listener_discord_stage_command(index: int) -> str:
     return prefix + "$fragments=@(" + fragment_names + "); if ($fragments | Where-Object { !(Test-Path -LiteralPath $_) }) { throw 'M20 Discord adapter fragments are incomplete' }; $encoded=(($fragments|ForEach-Object {[IO.File]::ReadAllText($_)}) -join '')+'" + final_chunk + "'; [IO.File]::WriteAllBytes($payload,[Convert]::FromBase64String($encoded)); if ((Get-FileHash -LiteralPath $payload -Algorithm SHA256).Hash.ToLower() -ne '" + digest + "') { throw 'M20 Discord adapter staged source hash failed' }; $fragments|ForEach-Object { Remove-Item -LiteralPath $_ -Force }; [pscustomobject]@{stage=" + str(index) + ";ok=$true}|ConvertTo-Json -Compress"
 
 
-for _index in range(1, 7):
-    _final = _index == 6
+for _index in range(1, 11):
+    _final = _index == 10
     OPERATIONS[f"m20_listener_discord_stage_{_index}"] = Operation(
         f"m20_listener_discord_stage_{_index}",
         ("Stage and verify" if _final else "Stage") + f" fixed M20 Discord lifecycle-notification adapter part {_index}.",
