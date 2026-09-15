@@ -12760,6 +12760,16 @@
         "proven_at": "2026-09-15T09:51:16Z",
         "next_milestone": "M28"
       }
+    },
+    {
+      "event_id": "E000801",
+      "timestamp": "2026-09-15T09:52:55Z",
+      "milestone_id": "M28",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "NEEDS_REVALIDATION",
+        "to": "IN_PROGRESS"
+      }
     }
   ]
 }
