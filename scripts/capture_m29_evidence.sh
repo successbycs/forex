@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"; cd "$root"; bundle="${1:-runs/evidence/M29/$(date -u +%Y%m%dT%H%M%SZ)}"
-[ ! -e "$bundle" ] || { echo "Refusing to overwrite evidence bundle" >&2; exit 2; }; git diff --quiet || { echo "M29 capture requires a clean worktree" >&2; exit 2; }; mkdir -p "$bundle"
+[ ! -e "$bundle" ] || { echo "Refusing to overwrite evidence bundle" >&2; exit 2; }
+# Evidence registration updates these two local operational ledgers.  They are
+# intentionally uncommitted and must not prevent a later source-clean capture.
+# Everything else, including staged or untracked source, must be absent: the
+# manifest attests exactly to HEAD, never an index or local overlay.
+dirty_source="$( { git diff --name-only; git diff --cached --name-only; git ls-files --others --exclude-standard; } | sort -u | grep -vx -e project_state.json -e runs/run_history.json || true )"
+[ -z "$dirty_source" ] || { echo "M29 capture requires clean source; changed: $dirty_source" >&2; exit 2; }
+mkdir -p "$bundle"
 python3 -m pytest -q tests/milestones/test_m29.py >"$bundle/tests.txt" 2>&1; python3 scripts/forex_milestones.py validate >"$bundle/governance.txt" 2>&1
 for x in m20_listener_continuity_status:m29-continuity.json m20_listener_status:postflight-listener.json m20_demo_account_liquidity:postflight-account.json m20_listener_diagnostics:postflight-diagnostics.json; do python3 scripts/t480_adapter.py execute --operation "${x%%:*}" >"$bundle/${x#*:}"; done
 git rev-parse HEAD >"$bundle/revision.txt"; echo FOREX_M29_PROOF_OK >"$bundle/summary.txt"
