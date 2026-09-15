@@ -351,11 +351,18 @@ def _write_assessment_spool(output: dict[str, Any], *, assessment_started_at_utc
         finally:
             if staging.exists() and not staging.is_symlink():
                 staging.unlink()
-        directory = os.open(ASSESSMENT_SPOOL_PATH, os.O_RDONLY)
-        try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
+        # ``fsync`` on a directory is a useful durability barrier on POSIX.
+        # Windows does not expose a directory handle that ``fsync`` accepts;
+        # attempting it there turned a successfully published immutable NTFS
+        # receipt into ``NOT_SPOOLED_STORAGE_FAILURE`` on every assessment.
+        # The file itself is flushed before its no-overwrite link publication,
+        # so skip only the unsupported directory barrier on Windows.
+        if os.name != "nt":
+            directory = os.open(ASSESSMENT_SPOOL_PATH, os.O_RDONLY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
     except (OSError, TypeError, ValueError):
         return "NOT_SPOOLED_STORAGE_FAILURE"
     return "SPOOLED_IMMUTABLE"

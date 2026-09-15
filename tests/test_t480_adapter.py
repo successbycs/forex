@@ -358,6 +358,7 @@ def test_m20_listener_spool_page_is_bounded_read_only_and_cursor_is_numeric_only
     assert "Select-Object -First 8" in command
     assert "SPOOL_ABSENT" in command
     assert "raw_base64" in command
+    assert "ReadAllBytes($file.FullName)" in command
     assert "Remove-Item" not in command and "order_send" not in command and "Start-ScheduledTask" not in command
     dynamic = t480_adapter._m20_listener_spool_page_command(42)
     assert "after_assessment_sequence=42" in dynamic

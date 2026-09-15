@@ -152,6 +152,27 @@ def test_immutable_assessment_spool_is_idempotent_and_never_overwrites(tmp_path,
     assert not list((tmp_path / "spool").glob("*.pending"))
 
 
+def test_immutable_assessment_spool_skips_only_windows_unsupported_directory_fsync(tmp_path, monkeypatch):
+    """A flushed receipt remains publishable on NTFS without a directory fsync."""
+    spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "ASSESSMENT_SPOOL_PATH", tmp_path / "spool")
+    monkeypatch.setattr(module, "ROOT", Path("a" * 16))
+    monkeypatch.setattr(module.os, "name", "nt")
+    output = {
+        "marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1",
+        "operation": "m20_demo_trading_session", "server": "GOMarketsMU-Demo", "symbol": "EURUSD",
+        "captured_at_utc": "2026-09-12T00:00:01Z", "configuration_fingerprint": "sha256:" + "a" * 64,
+        "tick_timestamp_offset_seconds": 0, "decision_snapshot": {"snapshot_id": "s"}, "proposal": {"proposal_id": "p"},
+    }
+    assert module._write_assessment_spool(output, assessment_started_at_utc="2026-09-12T00:00:00Z",
+                                          assessment_completed_at_utc="2026-09-12T00:00:02Z",
+                                          assessment_sequence=8) == "SPOOLED_IMMUTABLE"
+    assert (tmp_path / "spool" / "00000000000000000008.json").is_file()
+
+
 def test_listener_never_sleeps_a_negative_interval_after_monitoring():
     spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
     assert spec and spec.loader
