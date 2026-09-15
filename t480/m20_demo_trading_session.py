@@ -133,27 +133,36 @@ def _m1_event_risk_policy() -> dict[str, Any]:
         raise SystemExit("M1 calendar event-risk policy is absent or invalid") from error
 
 
-def _apply_m1_calendar_overlay(*, snapshot: dict[str, Any], proposal: dict[str, Any],
-                               policy: dict[str, Any], sidecar: Any = None,
-                               primary_context: Any = None) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Bind a calendar new-entry veto before proposal persistence or reservation."""
-    candidate = {"proposal_id": proposal["proposal_id"], "action": proposal["action"]}
+def evaluate_new_entry(*, policy: Any, sidecar: Any = None, primary_context: Any = None) -> dict[str, Any]:
+    """Evaluate the shipped calendar seam without a repository-only import.
+
+    The released policy is disabled.  Any future enabled policy must ship its
+    approved context evaluator; until then this fixed endpoint refuses a new
+    entry rather than silently changing authority.
+    """
     valid_policy = (isinstance(policy, dict) and set(policy) == _M1_EVENT_RISK_POLICY_FIELDS
                     and policy.get("schema_version") == "forex.m1-event-risk-gate-policy.v1"
                     and isinstance(policy.get("enabled"), bool) and policy.get("scope") == "NEW_ENTRY_ONLY"
                     and policy.get("execution_authority") is False)
     if valid_policy and policy["enabled"] is False:
-        gate = {"schema_version": "forex.m1-event-risk-gate.v1", "execution_authority": False,
+        return {"schema_version": "forex.m1-event-risk-gate.v1", "execution_authority": False,
                 "scope": "NEW_ENTRY_ONLY", "state": "ANNOTATION_ONLY_DISABLED",
                 "new_entry_permitted": None, "reason": "SHIPPED_POLICY_DISABLED_NO_EXECUTION_BEHAVIOR_CHANGE"}
-    elif valid_policy:
-        gate = {"schema_version": "forex.m1-event-risk-gate.v1", "execution_authority": False,
+    if valid_policy:
+        return {"schema_version": "forex.m1-event-risk-gate.v1", "execution_authority": False,
                 "scope": "NEW_ENTRY_ONLY", "state": "FAIL_SAFE_CONTEXT_UNAVAILABLE",
                 "new_entry_permitted": False, "reason": "CALENDAR_GATE_IMPLEMENTATION_UNAVAILABLE"}
-    else:
-        gate = {"schema_version": "forex.m1-event-risk-gate.v1", "execution_authority": False,
-                "scope": "NEW_ENTRY_ONLY", "state": "FAIL_SAFE_CONTEXT_UNAVAILABLE",
-                "new_entry_permitted": False, "reason": "CALENDAR_GATE_POLICY_INVALID"}
+    return {"schema_version": "forex.m1-event-risk-gate.v1", "execution_authority": False,
+            "scope": "NEW_ENTRY_ONLY", "state": "FAIL_SAFE_CONTEXT_UNAVAILABLE",
+            "new_entry_permitted": False, "reason": "CALENDAR_GATE_POLICY_INVALID"}
+
+
+def _apply_m1_calendar_overlay(*, snapshot: dict[str, Any], proposal: dict[str, Any],
+                               policy: dict[str, Any], sidecar: Any = None,
+                               primary_context: Any = None) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Bind a calendar new-entry veto before proposal persistence or reservation."""
+    candidate = {"proposal_id": proposal["proposal_id"], "action": proposal["action"]}
+    gate = evaluate_new_entry(policy=policy, sidecar=sidecar, primary_context=primary_context)
     overlay = _calendar_overlay(candidate=candidate, gate=gate)
     snapshot["calendar_overlay"] = overlay
     body = {key: value for key, value in snapshot.items()
