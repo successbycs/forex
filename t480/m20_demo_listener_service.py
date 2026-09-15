@@ -66,6 +66,7 @@ MONITOR_RETRY_SECONDS = 10
 RESTART_DRILL_OBSERVATION = "NOT_CHECKED"
 CONTINUITY_WINDOW_SECONDS = 30 * 60
 CONTINUITY_SAMPLE_SECONDS = 5
+CONTINUITY_STATUS_READ_ATTEMPTS = 3
 CONTINUITY_MAX_HEARTBEAT_AGE_SECONDS = 30
 CONTINUITY_RECOVERY_DEADLINE_SECONDS = 5 * 60
 CONTINUITY_TERMINAL_STATES = {"PASS", "FAIL", "INCONCLUSIVE"}
@@ -861,20 +862,28 @@ def _append_continuity_event(value: dict[str, Any]) -> None:
 
 
 def _continuity_sample(release_id: str) -> dict[str, Any]:
-    try:
-        status = json.loads(STATUS_PATH.read_text(encoding="utf-8-sig"))
-        heartbeat = str(status["heartbeat_at_utc"])
-        parsed = datetime.fromisoformat(heartbeat.replace("Z", "+00:00"))
-        if parsed.tzinfo is None:
-            raise ValueError("heartbeat lacks timezone")
-        age = (datetime.now(timezone.utc) - parsed.astimezone(timezone.utc)).total_seconds()
-        valid = (status.get("release_id") == release_id and status.get("state") == "MAINTENANCE_HOLD"
-                 and 0 <= age < CONTINUITY_MAX_HEARTBEAT_AGE_SECONDS)
-        return {"captured_at_utc": _utc_now(), "heartbeat_at_utc": heartbeat,
-                "heartbeat_age_seconds": round(age, 3), "state": status.get("state"),
-                "release_id": status.get("release_id"), "valid": valid}
-    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
-        return {"captured_at_utc": _utc_now(), "valid": False, "reason": "STATUS_UNAVAILABLE"}
+    # The listener publishes its heartbeat with an atomic replace.  On NTFS a
+    # concurrent reader can momentarily see neither name during that replace;
+    # this is not a listener outage.  Retry only this bounded local read, then
+    # retain a real unavailable observation if all attempts fail.
+    for attempt in range(CONTINUITY_STATUS_READ_ATTEMPTS):
+        try:
+            status = json.loads(STATUS_PATH.read_text(encoding="utf-8-sig"))
+            heartbeat = str(status["heartbeat_at_utc"])
+            parsed = datetime.fromisoformat(heartbeat.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                raise ValueError("heartbeat lacks timezone")
+            age = (datetime.now(timezone.utc) - parsed.astimezone(timezone.utc)).total_seconds()
+            valid = (status.get("release_id") == release_id and status.get("state") == "MAINTENANCE_HOLD"
+                     and 0 <= age < CONTINUITY_MAX_HEARTBEAT_AGE_SECONDS)
+            return {"captured_at_utc": _utc_now(), "heartbeat_at_utc": heartbeat,
+                    "heartbeat_age_seconds": round(age, 3), "state": status.get("state"),
+                    "release_id": status.get("release_id"), "valid": valid}
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+            if attempt + 1 < CONTINUITY_STATUS_READ_ATTEMPTS:
+                time.sleep(0.1)
+                continue
+            return {"captured_at_utc": _utc_now(), "valid": False, "reason": "STATUS_UNAVAILABLE"}
 
 
 def _continuity_observation(values: dict[str, Any], release_id: str) -> dict[str, Any]:
