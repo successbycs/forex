@@ -40,7 +40,7 @@ def report_amendment(*,baseline_contract:dict[str,Any],draft:dict[str,Any],store
  draft=validate_draft(draft);by_family={row["family_id"]:row for row in baseline_contract["required_families"]};bundles={(row["family_id"],row["target_date"]):row for row in verified["bundles"]};delta=[];evidence=[]
  for amendment in sorted(draft["amendments"],key=lambda x:x["family_id"]):
   family=amendment["family_id"];before=by_family.get(family);bundle=bundles.get((family,amendment["target_date"]))
-  if before is None or before.get("source_id")!=amendment["source_id"] or before.get("source_url")!=amendment["calendar_url"] or before.get("qualification_state")!="PENDING_RETAINED_CAPTURE":raise PolicyTimingAmendmentError("baseline pending family does not match draft")
+  if before is None or before.get("source_id")!=amendment["source_id"] or before.get("source_url")!=amendment["calendar_url"] or before.get("qualification_state") not in {"PENDING_RETAINED_CAPTURE","RETAINED_TIMING_ACTIVE_COVERAGE_UNKNOWN"}:raise PolicyTimingAmendmentError("baseline non-active family does not match draft")
   if bundle is None or bundle["event_record"]["document_provenance"]["timing"]["source_url"]!=amendment["timing_url"] or bundle["event_record"]["document_provenance"]["calendar"]["source_url"]!=amendment["calendar_url"]:raise PolicyTimingAmendmentError("verified retained timing provenance does not match draft")
   delta.append({"family_id":family,"before_qualification_state":"PENDING_RETAINED_CAPTURE","after_matching_policy":amendment["matching_policy"],"coverage_status":"UNKNOWN","execution_authority":False})
   evidence.append(bundle)
