@@ -582,7 +582,7 @@ def test_m20_listener_runner_and_bridge_staging_are_fixed_and_hash_checked():
     runner_final = t480_adapter.OPERATIONS["m20_listener_runner_stage_80"].powershell_command
     runner_verify = t480_adapter.OPERATIONS["m20_listener_runner_verify"].powershell_command
     bridge_first = t480_adapter.OPERATIONS["m20_listener_bridge_stage_1"].powershell_command
-    bridge_final = t480_adapter.OPERATIONS["m20_listener_bridge_stage_32"].powershell_command
+    bridge_final = t480_adapter.OPERATIONS["m20_listener_bridge_stage_48"].powershell_command
     bridge_verify = t480_adapter.OPERATIONS["m20_listener_bridge_verify"].powershell_command
     for first, final, filename in (
         (runner_first, runner_final, "m20_demo_trading_session.payload"),
@@ -596,7 +596,7 @@ def test_m20_listener_runner_and_bridge_staging_are_fixed_and_hash_checked():
         else:
             assert "WriteAllText" in first and "WriteAllText" in final
             assert "ReadAllText" in bridge_verify and "Get-FileHash" in bridge_verify
-            assert "$fragments.Count -ne 32" in bridge_verify
+            assert "$fragments.Count -ne 48" in bridge_verify
         staged_name = filename.removesuffix(".payload")
         assert staged_name in first and staged_name in final
 
