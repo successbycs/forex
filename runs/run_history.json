@@ -12674,6 +12674,92 @@
         ],
         "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
       }
+    },
+    {
+      "event_id": "E000795",
+      "timestamp": "2026-09-15T03:20:05Z",
+      "milestone_id": "M27",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M27/20260915T031842Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000796",
+      "timestamp": "2026-09-15T03:20:19Z",
+      "milestone_id": "M27",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M27/20260915T032019Z/governance.stdout.txt",
+            "stderr": "runs/verification/M27/20260915T032019Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m27.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M27/20260915T032019Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M27/20260915T032019Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000797",
+      "timestamp": "2026-09-15T09:39:37Z",
+      "milestone_id": "M27",
+      "action": "TRIAD_RECOMMENDATION_RECORDED",
+      "detail": {
+        "path": "runs/triad/M27/M27-20260915T032019Z-4c93c5f7/recommendation.json",
+        "recommendation": "RECOMMEND_COMPLETE"
+      }
+    },
+    {
+      "event_id": "E000798",
+      "timestamp": "2026-09-15T09:40:31Z",
+      "milestone_id": "M27",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris",
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "event_id": "E000799",
+      "timestamp": "2026-09-15T09:51:16Z",
+      "milestone_id": "M27",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "NEEDS_REVALIDATION",
+        "to": "IN_PROGRESS"
+      }
+    },
+    {
+      "event_id": "E000800",
+      "timestamp": "2026-09-15T09:51:16Z",
+      "milestone_id": "M27",
+      "action": "MILESTONE_PROVEN",
+      "detail": {
+        "proven_at": "2026-09-15T09:51:16Z",
+        "next_milestone": "M28"
+      }
     }
   ]
 }
