@@ -18,11 +18,32 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, ROUND_DOWN
 from typing import Any
 
-from forex.m1_calendar_decision_overlay import M1CalendarOverlayError, apply_calendar_overlay
-
-
 def _digest(value: Any) -> str:
     return "sha256:" + hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def _calendar_overlay(*, candidate: dict[str, Any], gate: dict[str, Any]) -> dict[str, Any]:
+    """Rebuild the self-contained overlay contract used by the session runner."""
+    if (set(candidate) != {"proposal_id", "action"} or candidate["action"] not in {"BUY", "SELL", "NO_TRADE"}
+            or not isinstance(candidate["proposal_id"], str) or not candidate["proposal_id"]):
+        raise ValueError("candidate shape is invalid")
+    required = {"schema_version", "execution_authority", "scope", "state", "new_entry_permitted", "reason"}
+    if (not isinstance(gate, dict) or not required <= set(gate) or set(gate) - required - {"event_count"}
+            or gate.get("schema_version") != "forex.m1-event-risk-gate.v1" or gate.get("execution_authority") is not False
+            or gate.get("scope") != "NEW_ENTRY_ONLY" or not isinstance(gate.get("reason"), str)):
+        raise ValueError("gate observation is invalid")
+    permissions = {"ANNOTATION_ONLY_DISABLED": None, "NEW_ENTRY_PERMITTED": True,
+                   "NEW_ENTRY_REFUSED_EVENT_WINDOW": False, "FAIL_SAFE_CONTEXT_UNAVAILABLE": False,
+                   "FAIL_SAFE_CONTEXT_PARTIAL": False, "FAIL_SAFE_CONTEXT_AMBIGUOUS": False}
+    if gate.get("state") not in permissions or gate.get("new_entry_permitted") is not permissions[gate["state"]]:
+        raise ValueError("gate observation state is incoherent")
+    refused = candidate["action"] in {"BUY", "SELL"} and gate["new_entry_permitted"] is False
+    final = "NO_TRADE" if refused else candidate["action"]
+    reason = ("CALENDAR_NEW_ENTRY_REFUSED:" if refused else "BASELINE_CANDIDATE_PRESERVED:") + gate["reason"]
+    body = {"schema_version": "forex.m1-calendar-decision-overlay.v1", "candidate": candidate,
+            "gate_observation": gate, "final_action": final, "reason": reason,
+            "execution_authority": False}
+    return {**body, "overlay_sha256": _digest(body)}
 
 
 def _payload() -> dict[str, Any]:
@@ -93,10 +114,10 @@ def _snapshot(payload: dict[str, Any], proposal: dict[str, Any]) -> dict[str, An
                 or overlay.get("execution_authority") is not False):
             raise SystemExit("M20 calendar overlay snapshot is invalid")
         try:
-            expected_overlay = apply_calendar_overlay(
-                candidate=overlay.get("candidate"), gate_observation=overlay.get("gate_observation"),
+            expected_overlay = _calendar_overlay(
+                candidate=overlay.get("candidate"), gate=overlay.get("gate_observation"),
             )
-        except M1CalendarOverlayError as error:
+        except ValueError as error:
             raise SystemExit("M20 calendar overlay snapshot is invalid") from error
         if overlay != expected_overlay:
             raise SystemExit("M20 calendar overlay snapshot semantics are invalid")

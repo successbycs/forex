@@ -28,10 +28,6 @@ from zoneinfo import ZoneInfo
 
 import MetaTrader5 as mt5
 
-from forex.m1_calendar_decision_overlay import apply_calendar_overlay
-from forex.m1_event_risk_gate import evaluate_new_entry
-
-
 SERVER = "GOMarketsMU-Demo"
 SYMBOL = "EURUSD"
 MAX_TICK_AGE_SECONDS = 30
@@ -105,12 +101,34 @@ REFUSAL_DRILL_MAXIMUM_LOSS_AUD = 0.01
 RISK_POLICY_REQUIRED = {"policy_version", "reporting_currency", "maximum_risk_per_trade_percent", "maximum_risk_per_trade_aud", "daily_loss_limit_percent", "weekly_loss_limit_percent", "peak_equity_drawdown_limit_percent", "loss_budget_timezone", "daily_pause_reset", "manual_resume_reasons", "require_known_external_cashflow"}
 
 M1_EVENT_RISK_POLICY_PATH = Path(__file__).resolve().parents[1] / "config" / "m1_event_risk_gate.json"
+_M1_EVENT_RISK_POLICY_FIELDS = {"schema_version", "enabled", "scope", "required_context_state", "blackout_before_seconds", "blackout_after_seconds", "execution_authority", "activation_requirement"}
+
+
+def _calendar_overlay(*, candidate: dict[str, Any], gate: dict[str, Any]) -> dict[str, Any]:
+    """Build the small, self-contained overlay verified by the audit bridge."""
+    refused = candidate["action"] in {"BUY", "SELL"} and gate["new_entry_permitted"] is False
+    final = "NO_TRADE" if refused else candidate["action"]
+    reason = ("CALENDAR_NEW_ENTRY_REFUSED:" if refused else "BASELINE_CANDIDATE_PRESERVED:") + gate["reason"]
+    body = {"schema_version": "forex.m1-calendar-decision-overlay.v1", "candidate": candidate,
+            "gate_observation": gate, "final_action": final, "reason": reason,
+            "execution_authority": False}
+    return {**body, "overlay_sha256": "sha256:" + hashlib.sha256(
+        json.dumps(body, sort_keys=True, separators=(",", ":")).encode()).hexdigest()}
 
 
 def _m1_event_risk_policy() -> dict[str, Any]:
     """Load the governed, disabled-by-default M1 calendar policy."""
     try:
         return json.loads(M1_EVENT_RISK_POLICY_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        # A fixed ProgramData release contains no external-news package.  Its
+        # shipped state is therefore explicitly inactive, never implicitly
+        # enabled by a missing repository-relative configuration file.
+        return {"schema_version": "forex.m1-event-risk-gate-policy.v1", "enabled": False,
+                "scope": "NEW_ENTRY_ONLY", "required_context_state": "QUALIFIED_CONTEXT_ONLY",
+                "blackout_before_seconds": 1800, "blackout_after_seconds": 900,
+                "execution_authority": False,
+                "activation_requirement": "A separately approved governed policy amendment and deployed context package are required before this evaluator may affect M1 entry eligibility."}
     except (OSError, json.JSONDecodeError) as error:
         raise SystemExit("M1 calendar event-risk policy is absent or invalid") from error
 
@@ -119,11 +137,24 @@ def _apply_m1_calendar_overlay(*, snapshot: dict[str, Any], proposal: dict[str, 
                                policy: dict[str, Any], sidecar: Any = None,
                                primary_context: Any = None) -> tuple[dict[str, Any], dict[str, Any]]:
     """Bind a calendar new-entry veto before proposal persistence or reservation."""
-    gate = evaluate_new_entry(policy=policy, sidecar=sidecar, primary_context=primary_context)
-    overlay = apply_calendar_overlay(
-        candidate={"proposal_id": proposal["proposal_id"], "action": proposal["action"]},
-        gate_observation=gate,
-    )
+    candidate = {"proposal_id": proposal["proposal_id"], "action": proposal["action"]}
+    valid_policy = (isinstance(policy, dict) and set(policy) == _M1_EVENT_RISK_POLICY_FIELDS
+                    and policy.get("schema_version") == "forex.m1-event-risk-gate-policy.v1"
+                    and isinstance(policy.get("enabled"), bool) and policy.get("scope") == "NEW_ENTRY_ONLY"
+                    and policy.get("execution_authority") is False)
+    if valid_policy and policy["enabled"] is False:
+        gate = {"schema_version": "forex.m1-event-risk-gate.v1", "execution_authority": False,
+                "scope": "NEW_ENTRY_ONLY", "state": "ANNOTATION_ONLY_DISABLED",
+                "new_entry_permitted": None, "reason": "SHIPPED_POLICY_DISABLED_NO_EXECUTION_BEHAVIOR_CHANGE"}
+    elif valid_policy:
+        gate = {"schema_version": "forex.m1-event-risk-gate.v1", "execution_authority": False,
+                "scope": "NEW_ENTRY_ONLY", "state": "FAIL_SAFE_CONTEXT_UNAVAILABLE",
+                "new_entry_permitted": False, "reason": "CALENDAR_GATE_IMPLEMENTATION_UNAVAILABLE"}
+    else:
+        gate = {"schema_version": "forex.m1-event-risk-gate.v1", "execution_authority": False,
+                "scope": "NEW_ENTRY_ONLY", "state": "FAIL_SAFE_CONTEXT_UNAVAILABLE",
+                "new_entry_permitted": False, "reason": "CALENDAR_GATE_POLICY_INVALID"}
+    overlay = _calendar_overlay(candidate=candidate, gate=gate)
     snapshot["calendar_overlay"] = overlay
     body = {key: value for key, value in snapshot.items()
             if key not in {"snapshot_id", "payload_sha256"}}
