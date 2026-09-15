@@ -1,26 +1,50 @@
 
 # Project overview
-To build an end to end solution to trade Forex autonomously and provide a positive return over time.  To use external economic data to support trade or no trade decisions.
+To build an end to end solution to trade Forex autonomously and provide a positive return over time.  To use external economic data to support trade or no trade decisions.  This is an MVP so great lengths to harden the software does not add meaningful value to the projects completion as an MVP.
 
 # Project Structure
-Use HArness engineering to set-up this repo and to strucuture files, capabilities and features as per this link. https://openai.com/index/harness-engineering/
+Use Harness engineering to set-up this repo and to strucuture files, capabilities and features as per this link. https://openai.com/index/harness-engineering/.
 
 # Architecture
 Use https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html as a guide to Architecture.md  Examples of Architecture.md are. https://github.com/rust-lang/rust-analyzer/blob/d7c99931d05e3723d878bea5dc26766791fa4e69/docs/dev/architecture.md  
 
 # Execution Plans
-Use this link as the base knowledge: https://developers.openai.com/cookbook/articles/codex_exec_plans
+Read `PLANS.md` and the active ExecPlan before execution. `PLANS.md` defines
+the operational loop for this repository; the cookbook is background guidance:
+https://developers.openai.com/cookbook/articles/codex_exec_plans
+
+# Testing and Proofs
+Must provide a real world proof not just a proof of execution.
+
+An instruction to execute a plan authorizes continuing its in-scope tasks
+through implementation, verification, repair, and required review. Use progress
+updates while working; do not end the turn after a passing test or small package
+when another authorised task is actionable. Existing authorization persists
+across turns. Finish only when the requested outcome is met, the user pauses or
+redirects work, or all remaining authorised work requires a specific unavailable
+dependency or new authority. Apply the stop-condition audit in `PLANS.md`.
+
+Before ending an execution turn, run
+`python3 scripts/check_execution_continuation.py` against the active ExecPlan's
+work record. `CONTINUE` means execute the reported item; a blocked deployment
+does not block independent preparation or review. Invalid metadata needs repair.
+An agent-written approval clause does not create new human authority requirements:
+check the user's existing instructions and the actual operation's scope first.
+User pauses, cancellations and review-only requests take precedence over this
+execution loop. Never turn this check into permission to broaden task scope.
 
 
 # Build and test
-Once a piece of function has been built it must be tested and include a real world outcome.  The build must move the project forward and any code change must move the project towards its goal of autonomoud Forex execution.#
-
+Once a piece of function has been built it must be tested and include a real world outcome.  The build must move the project forward and any code change must move the project towards its goal of autonomoud Forex execution.
 
 # Forex agent operating rules
 
 - Inspect `git status` before editing and preserve unrelated work.
 - Read `project_state.json`, the active contract in `milestone_registry.json`, and `docs/evidence_and_milestones.md` before milestone work.
-- Implement only the active milestone. Do not automatically begin the next milestone.  Begin the next milestone if there is a Goal defined that defines this.
+- Implement only the active formal milestone. Continue authorised ExecPlan
+  tasks within it without asking again. Starting the next formal milestone
+  requires an explicit Goal or human instruction and satisfaction of its entry
+  gates; completing an implementation task does not advance the formal state.
 - Treat `target_date` as a human-owned forecast. Only the closeout command may generate the actual completion timestamp, `proven_at`.
 - Never claim completion from code, tests, mocks, documentation, or narrative JSON alone. Capture and independently verify proof on the contract's declared real-world surface.
 - Require a current Triad-plus-domain `RECOMMEND_COMPLETE` result bound to the exact contract, revision, configuration, verifier, and evidence. Review roles are read-only and cannot approve or close milestones.
@@ -32,7 +56,7 @@ Once a piece of function has been built it must be tested and include a real wor
 - Trading on `GOMarketsMU-Demo`is approved by Chris the human operator
 - Do not commit, push, create a branch, or open a pull request without explicit human instruction.
 
-## Active delivery direction — Harness H1–H4
+## Active delivery direction — Harness H1–H4 → Wave A
 
 For autonomous-delivery planning, the active non-formal sequence is **Harness
 H1–H4 → Wave A → Wave B → Wave C**. It does not alter `project_state.json`,

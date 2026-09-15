@@ -1,0 +1,17 @@
+[Unit]
+Description=Forex bounded GDELT publisher egress (no trading authority)
+
+[Service]
+Type=simple
+WorkingDirectory={{REPOSITORY}}
+Environment=FOREX_GDELT_EGRESS_BIND_HOST=127.0.0.1
+Environment=FOREX_GDELT_EGRESS_PORT=8092
+Environment=FOREX_GDELT_EGRESS_BEARER_FILE={{EGRESS_BEARER_FILE}}
+Environment=FOREX_GDELT_CANDIDATE_SIGNING_KEY_FILE={{CANDIDATE_SIGNING_KEY_FILE}}
+ExecStart={{PYTHON}} {{REPOSITORY}}/scripts/run_gdelt_publisher_egress.py
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077

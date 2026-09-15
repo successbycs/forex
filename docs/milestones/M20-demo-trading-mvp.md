@@ -141,6 +141,23 @@ use `--show-rejections` to inspect them without confusing them with trades.
   Live roadmap, and operator feedback questions are in
   [M20.12-multi-timeframe-context-trial.md](M20.12-multi-timeframe-context-trial.md).
 
+### Deferred operational requirement — entry eligibility and assessment retention
+
+Before M20 is treated as an operationally healthy continuous Demo loop, the
+listener status and T16 dashboard must prominently show whether a new entry is
+currently eligible and, when it is not, the exact fail-closed pause reason.
+`RUNNING` must never be presented as equivalent to able to submit a trade.
+
+The current T480 observation on 2026-09-14 recorded a healthy listener and a
+flat `GOMarketsMU-Demo` account, while the persistent Option B risk guard
+refused new entries with `EXTERNAL_CASH_FLOW`. It also reported
+`NOT_SPOOLED_STORAGE_FAILURE` for assessment-spool retention. These are
+separate conditions: the former requires a deliberate operator review and the
+fixed risk-resume operation only after the cash-flow difference is understood;
+the latter requires retention diagnosis and a verified repair. Neither permits
+a restart, a risk-policy bypass, or a Live operation. Resolve and independently
+verify both before relying on listener status as evidence of trade readiness.
+
 All M20 packages remain Demo-only. They do not claim M20 completion or
 authorize Live trading.
 

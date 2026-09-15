@@ -1,0 +1,82 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "GDELT-V2",
+  "authorization": "Chris explicitly instructed execution of docs/plans/gdelt-context-signal-repair.md on 2026-09-15. Repository governance and broker safety boundaries remain unchanged.",
+  "markdown_plan": "docs/plans/gdelt-context-signal-repair.md",
+  "items": [
+    {
+      "id": "baseline",
+      "title": "Record the deployed placeholder behavior and scope the repair",
+      "state": "DONE",
+      "requires": [],
+      "evidence": [
+        "2026-09-15 live n8n execution 614 staged four real GDELT archives yet emitted article_count=0 and mean_tone=0 literally; PostgreSQL verification reported 234 final aggregates and 1,170 GDELT-linked provenance rows."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "execution-authorisation",
+      "title": "Confirm Chris explicitly instructed execution of this ExecPlan",
+      "state": "DONE",
+      "requires": ["baseline"],
+      "evidence": ["2026-09-15 user instruction: execute."],
+      "blocker": null
+    },
+    {
+      "id": "parser-contract",
+      "title": "Define and test the fixed in-memory GKG relevance and tone contract",
+      "state": "DONE",
+      "requires": ["execution-authorisation"],
+      "evidence": ["2026-09-15 Terra implementation: tests/test_gdelt_context_v2.py evaluates the literal n8n Code-node source against opaque synthetic GKG rows. Focused parser/M11/adapter suite: 15 passed."],
+      "blocker": null
+    },
+    {
+      "id": "article-retention-design",
+      "title": "Define and test publisher retrieval, extraction, retention, and content deduplication",
+      "state": "DONE",
+      "requires": ["parser-contract"],
+      "evidence": ["2026-09-15 Chris explicitly authorised retrieval of eligible GDELT publisher URLs and PostgreSQL retention of title/body.", "2026-09-15 Astra material repair: src/forex/gdelt_publisher_egress.py provides one loopback-only fixed POST fetch route. It validates candidate metadata, rejects literal/private/non-global destinations, pins a selected public address, revalidates up to three redirects, uses a fixed user agent/no credentials, and streams at most 1 MiB. 23 focused local tests passed; deployment and independent review remain pending."],
+      "blocker": null
+    },
+    {
+      "id": "workflow-and-schema",
+      "title": "Implement the versioned workflow, metrics migration, and bounded installer update",
+      "state": "DONE",
+      "requires": ["article-retention-design"],
+      "evidence": ["2026-09-15 local workflow is rewired to the loopback egress route; installer now requires its health contract before workflow activation.", "2026-09-15 Astra final local repair: HMAC-signed candidate envelopes, separate ignored T480-local bearer/signing-key injection contract, exact attempt_id receipt hand-off, and immutable stage retry guard are implemented. No remote deployment occurred."],
+      "blocker": null
+    },
+    {
+      "id": "tests",
+      "title": "Run focused unit, workflow, and PostgreSQL integration checks",
+      "state": "IN_PROGRESS",
+      "requires": ["workflow-and-schema"],
+      "evidence": ["2026-09-15 focused local suite passed: pytest -q tests/test_gdelt_context_v2.py tests/milestones/test_m11.py tests/test_n8n_forex_adapter.py tests/test_gdelt_publisher_egress.py tests/test_gdelt_article_retention.py tests/test_n8n_m11_install_v3.py tests/test_provision_gdelt_egress_secrets.py tests/test_gdelt_article_retention_sql.py (35 passed). PostgreSQL rollback integration is executable but intentionally unrun because this local repair package is not authorised to deploy or make remote calls.", "2026-09-15 release-blocker repair: n8n is moved onto a new Docker-internal `forex-gdelt-private` network with PostgreSQL, while only `gdelt-egress` has `forex-gdelt-outbound`; fixed GDELT archive retrieval now crosses the bounded service too. Docker COPY inputs exactly match the image digest manifest. The installer applies/recreates this compose topology, inspects it, checks the signed egress contract, and restores base n8n/removes only egress on failure. The rollback verifier now mirrors the workflow attempt insert and exact receipt update (attempt_id, final URL, chain, pinned IP, byte count and payload hash). Focused repair suite: 33 passed. No remote component changed."],
+      "blocker": null
+    },
+    {
+      "id": "review",
+      "title": "Obtain independent read-only review and repair findings",
+      "state": "PENDING",
+      "requires": ["tests"],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "deploy",
+      "title": "Deploy the reviewed fixed workflows to the existing private T480 n8n service",
+      "state": "PENDING",
+      "requires": ["review"],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "live-observation",
+      "title": "Verify one newly collected live PostgreSQL aggregate and render the operator result",
+      "state": "PENDING",
+      "requires": ["deploy"],
+      "evidence": [],
+      "blocker": null
+    }
+  ]
+}

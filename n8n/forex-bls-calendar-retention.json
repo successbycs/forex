@@ -1,0 +1,158 @@
+{
+  "name": "Forex A1 BLS immutable capture",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "UTC",
+    "executionTimeout": 90,
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none"
+  },
+  "nodes": [
+    {
+      "id": "manual",
+      "name": "Manual A1 capture",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {},
+      "retryOnFail": false
+    },
+    {
+      "id": "prepare",
+      "name": "Prepare capture",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const n=new Date();\nreturn [{json:{capture_id:`bls-n8n-${$execution.id}`,year:n.getUTCFullYear(),month:n.getUTCMonth()+1,started_at_utc:n.toISOString()}}];"
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "fetch",
+      "name": "Fetch BLS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{'https://www.bls.gov/schedule/'+$json.year+'/'+String($json.month).padStart(2,'0')+'_sched_list.htm'}}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "timeout": 35000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false,
+              "responseFormat": "file",
+              "outputPropertyName": "publisher_html"
+            }
+          }
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "envelope",
+      "name": "Prepare observed envelope",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const p=$('Prepare capture').first().json;\nconst r=$input.first().json;\nconst b=await this.helpers.getBinaryDataBuffer(0,'publisher_html');\nif(b.length===0||b.length>2097152) throw Error('BLS body outside retention limit');\nif(r.statusCode!==200||typeof r.headers?.['content-type']!=='string') throw Error('BLS response not HTML success');\nconst ct=r.headers['content-type'];\nif(!['text/html','application/xhtml+xml'].includes(ct.split(';')[0].trim().toLowerCase())) throw Error('BLS content type refused');\nreturn [{json:{...p,completed_at_utc:new Date().toISOString(),status_code:r.statusCode,content_type:ct,body_base64:b.toString('base64'),body_complete:true}}];"
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "retain",
+      "name": "Retain BLS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8091/forex/a1/retain-bls",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify($json)}}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "timeout": 35000
+        }
+      },
+      "retryOnFail": false
+    }
+  ],
+  "connections": {
+    "Manual A1 capture": {
+      "main": [
+        [
+          {
+            "node": "Prepare capture",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare capture": {
+      "main": [
+        [
+          {
+            "node": "Fetch BLS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch BLS": {
+      "main": [
+        [
+          {
+            "node": "Prepare observed envelope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare observed envelope": {
+      "main": [
+        [
+          {
+            "node": "Retain BLS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

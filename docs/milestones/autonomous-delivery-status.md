@@ -1,6 +1,6 @@
 # Autonomous delivery status
 
-## Active Harness status — 2026-09-13
+## Active Harness status — 2026-09-14
 
 **Active sequence:** Harness H1–H4 → Wave A → Wave B → Wave C. This is a
 delivery-status change only; formal state remains M29 `BLOCKED` and no proof,
@@ -20,11 +20,11 @@ python3 scripts/delivery_harness_status.py
 
 | Task | Evidence/status | Next condition |
 | --- | --- | --- |
-| Harness H1: concise repository map | `IN_REVIEW`; [repository map](../repository-map.md) and declared command results are present, but independent review is not recorded. | Independent review of the map and active task metadata. |
-| Harness H2: active sequence | `PENDING`; it begins only after H1 receives `COMPLETE_REVIEWED`. | Retain A/B/C priorities through task handovers. |
-| Harness H3: visible task/evidence interface | `PENDING`; implementation exists but it begins review only after H2. | Independent review; no claim that a status row is proof. |
-| Harness H4: offline Plane mapping | `PENDING`; implementation exists but it begins review only after H2. | Plane connectivity acceptance is explicitly parked at H5 and needs its own authorised acceptance. |
-| Wave A | Pending Harness review: retrieve real BLS/FOMC/ECB calendar records from PostgreSQL with source/capture/raw/receipt lineage. | Real lineaged records; no source-policy or entry-gate activation. |
+| Harness H1: concise repository map | `COMPLETE_REVIEWED`; the repository map and canonical task metadata were independently accepted. | No further H1 action. |
+| Harness H2: active sequence | `COMPLETE_REVIEWED`; the H1–H4 → A → B → C sequence and superseded wording were independently accepted. | No further H2 action. |
+| Harness H3: visible task/evidence interface | `COMPLETE_REVIEWED`; the task/evidence interface and fail-closed dependency selection were independently accepted. | No further H3 action. |
+| Harness H4: offline Plane mapping | `COMPLETE_REVIEWED`; the repository-only mapping was independently accepted. Plane remains display-only. | H5 is separately parked for T480 configuration, read-only connectivity, and board acceptance; it is not an H1–H4 → A gate. |
+| Wave A | A1 n8n workflow, retention service and verified projection are implemented and independently reviewed; PostgreSQL still has `NO_STORED_BLS_FACTS`. | Clear shared T480 new-service capacity hold and obtain explicit deployment approval, then capture/project/report real BLS facts. FOMC/ECB remain A2. See the [A1 ExecPlan](../plans/wave-a1-n8n-calendar-lineage.md). |
 | Wave B | Pending Wave A: bind PostgreSQL calendar context to final M1 eligibility and produce an explainable UTC/Pacific-Auckland joined report. | Keep disabled/default policy and all existing M1 safeguards unless separately approved. |
 | Wave C | Pending Wave B: observe recurring protected Demo decision, execution and reconciliation. | Natural Demo operations only; no forced trade or fabricated proof. |
 

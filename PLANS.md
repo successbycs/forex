@@ -2,11 +2,119 @@
 
 This document describes the requirements for an execution plan ("ExecPlan"), a design document that a coding agent can follow to deliver a working feature or system change. Treat the reader as a complete beginner to this repository: they have only the current working tree and the single ExecPlan file you provide. There is no memory of prior plans and no external context.
 
+## Repository governance takes precedence
+
+`AGENTS.md`, `project_state.json`, the active contract in
+`milestone_registry.json`, and `docs/evidence_and_milestones.md` govern every
+ExecPlan in this repository. Read them before milestone work. An ExecPlan may
+not advance beyond the formal active milestone, authorize a broker action,
+change proof gates, commit or publish changes without the required human
+instruction, or override a safety boundary. Where this document conflicts with
+those sources, the repository governance sources win.
+
+Harness engineering is required throughout delivery. Resolve the current wave
+and task from the user's authorised ExecPlan and canonical task metadata; do
+not hard-code a completed wave as the current task in this reusable standard.
+Apply `AGENTS.md` and the formal milestone's authority and proof gates.
+
 ## How to use ExecPlans and PLANS.md
 
-When authoring an executable specification (ExecPlan), follow PLANS.md _to the letter_. If it is not in your context, refresh your memory by reading the entire PLANS.md file. Be thorough in reading (and re-reading) source material to produce an accurate specification. When creating a spec, start from the skeleton and flesh it out as you do your research.
+When authoring an executable specification (ExecPlan), follow the applicable
+parts of PLANS.md. If it is not in your context, refresh your memory by reading
+the entire PLANS.md file. Be thorough in reading (and re-reading) source
+material to produce an accurate specification. When creating a spec, start from
+the skeleton and flesh it out as you do your research.
 
-When implementing an executable specification (ExecPlan), do not prompt the user for "next steps"; simply proceed to the next milestone. Keep all sections up to date, add or split entries in the list at every stopping point to affirmatively state the progress made and next steps. Resolve ambiguities autonomously, and commit frequently.
+When implementing an executable specification (ExecPlan), continue with the
+bounded work the user has authorized in the formal active milestone. Keep all
+sections up to date and add or split entries at every stopping point to state
+progress and remaining work. Resolve only in-scope technical ambiguities
+autonomously. Use authorization already supplied in the conversation for normal
+implementation steps, including external operations when in scope. Seek direction
+only for a material expansion, a missing consequential choice, or an operation
+whose required authority is absent. Commit only with explicit human instruction.
+
+Do not stop merely because a bounded implementation reveals a repairable
+design, test, documentation, or configuration-contract defect. Continue with
+the next safe repair package, record the blocker and its evidence, and rerun
+the affected checks. Astra owns a material repair after two failed Terra repair
+attempts on the same defect; an independent read-only review must then inspect
+that repair. An unavailable external dependency blocks only the tasks that need
+it. Continue other authorised work whose prerequisites hold. A missing endpoint,
+adapter, test, or schema that the plan authorizes building is implementation
+work, not an external blocker. Attempt authorised observations and inspect the
+existing connection configuration before declaring access unavailable; never
+print secrets or manufacture observations.
+
+## Operational execution loop
+
+When asked to execute, repeat the following loop within the authorised scope:
+
+1. Read the active plan and task record. Select the next unfinished item whose
+   prerequisites hold. If the metadata is stale, reconcile it against observed
+   work and review records; do not invent completion to unlock a dependency.
+2. Implement the bounded item and run its relevant checks. Repair failures.
+   After a passing check, continue to the integration or next task needed for
+   the requested outcome; test success alone is not an end-of-turn condition.
+3. Obtain required reviews. Record implementer, reviewer, findings, repair
+   attempts, and the reviewed revision or file digests. Use actual separate
+   reviewers; describing your own work as an Astra review is not independence.
+   Follow the Terra/Astra repair rule in `AGENTS.md` and do not self-accept.
+4. Update Progress, Decisions, Outcomes, and task metadata with actual results
+   and observed timestamps. Separate implementation acceptance from operational
+   evidence and formal closeout. Keep pending work visibly unchecked.
+5. Select and execute the next authorised item in the same turn. Send concise
+   progress updates while continuing. Do not ask for another “go” for work the
+   user already authorised. Answer steering questions briefly and resume unless
+   the user pauses, replaces, or cancels execution.
+
+Before ending an incomplete implementation turn, audit the stop condition:
+identify the exact remaining task, the unavailable dependency or missing
+authority, checks actually attempted and their results, alternatives considered,
+and why no other authorised task can proceed. Make any needed user request
+concrete and minimal. Do not stop simply because an observation is external,
+a service needs building, a test passed, or a small package was completed.
+Respect explicit approval requirements and formal entry gates throughout.
+
+### Step-level blockers and authority
+
+Represent unfinished work as individual steps with dependencies in the active
+ExecPlan's execution-work JSON. A blocked step records the source of the
+constraint, the observed reason and a concrete unblock action. Continue every
+independent authorised step whose prerequisites hold. A capacity hold on T480
+deployment does not prevent local packaging, sizing, diagnostics, reviews or
+evaluating an existing-host alternative. Such alternatives must still satisfy
+the intended outcome and the actual authority boundaries.
+
+Before requesting approval, identify where the requirement originated and
+compare it with the user's existing authorization. Agent-authored wording in
+an ExecPlan cannot revoke that authorization or manufacture a new approval
+gate. Genuine platform constraints, explicit human restrictions and formal
+proof gates still apply. Do not ask the user to confirm facts you can inspect.
+
+For A1, run `python3 scripts/check_execution_continuation.py` after each bounded
+result and before an execution handoff. Other ExecPlans supply their work record
+with `--work-plan <path>`. Exit 1 / `CONTINUE` identifies actionable work; carry
+it out in the same turn. Exit 2 means invalid or missing metadata; repair it.
+Exit 0 / `BLOCKED` permits a handoff only after checking that all remaining work
+is represented, blocker evidence is current, and the claimed constraint really
+applies. Exit 0 / `COMPLETE` means recorded steps are done, not formal proof.
+Record test results and separate review before setting a step to DONE. A
+checker cannot discover omitted steps or authenticate narrative evidence.
+
+The repository Stop hook provides a corrective continuation when the work
+record says CONTINUE. It is limited to one correction per turn to avoid a
+runaway loop caused by stale records; a repeated failure is visibly reported.
+The agent remains responsible for looping through the work. User interruptions
+remain effective, and a correction never overrides a pause, cancellation,
+review-only request, missing authority or a real platform constraint.
+See `docs/execution-continuation.md` for hook trust and runtime limitations.
+
+The status CLI is a read-only reporter, not a background executor.
+`NO_ACTIVE_DELIVERY_TASK` means no task is explicitly READY, IN_PROGRESS, or
+IN_REVIEW in its input. Inspect the authorised plan for unfinished implementation
+before treating that report as a blocker. These instructions govern execution
+while an agent is running; they do not schedule a new turn after a final reply.
 
 When discussing an executable specification (ExecPlan), record decisions in a log in the spec for posterity; it should be unambiguously clear why any change to the specification was made. ExecPlans are living documents, and it should always be possible to restart from _only_ the ExecPlan and no other work.
 
@@ -22,15 +130,24 @@ NON-NEGOTIABLE REQUIREMENTS:
 * Every ExecPlan must produce a demonstrably working behavior, not merely code changes to "meet a definition".
 * Every ExecPlan must define every term of art in plain language or do not use it.
 
+For a governed Forex milestone, distinguish implementation validation from
+formal completion proof. The plan must name the contract's declared real-world
+surface, raw evidence, independent verification, and required review route.
+Passing tests or a local demonstration can validate implementation but cannot
+support a claim that the milestone is complete.
+
 Purpose and intent come first. Begin by explaining, in a few sentences, why the work matters from a user's perspective: what someone can do after this change that they could not do before, and how to see it working. Then guide the reader through the exact steps to achieve that outcome, including what to edit, what to run, and what they should observe.
 
-The agent executing your plan can list files, read files, search, run the project, and run tests. It does not know any prior context and cannot infer what you meant from earlier milestones. Repeat any assumption you rely on. Do not point to external blogs or docs; if knowledge is required, embed it in the plan itself in your own words. If an ExecPlan builds upon a prior ExecPlan and that file is checked in, incorporate it by reference. If it is not, you must include all relevant context from that plan.
+The agent executing your plan can list files, read files, search, run the project, and run tests. It does not know any prior context and cannot infer what you meant from earlier milestones. Repeat any assumption you rely on. Do not point to external blogs or docs; if knowledge is required, embed it in the plan itself in your own words. A checked-in prior ExecPlan may be cited as a supplementary record, but repeat all information needed to perform the new work safely.
 
 ## Formatting
 
-Format and envelope are simple and strict. Each ExecPlan must be one single fenced code block labeled as `md` that begins and ends with triple backticks. Do not nest additional triple-backtick code fences inside; when you need to show commands, transcripts, diffs, or code, present them as indented blocks within that single fence. Use indentation for clarity rather than code fences inside an ExecPlan to avoid prematurely closing the ExecPlan's code fence. Use two newlines after every heading, use # and ## and so on, and correct syntax for ordered and unordered lists.
-
-When writing an ExecPlan to a Markdown (.md) file where the content of the file *is only* the single ExecPlan, you should omit the triple backticks.
+Format and envelope are simple and strict. When an ExecPlan appears inside
+another document or response, put it in one fenced code block labelled `md`.
+When a Markdown file contains only that ExecPlan, omit the outer fence. In both
+forms, do not nest triple-backtick code fences; present commands, transcripts,
+diffs, and code as indented blocks. Use two newlines after headings and correct
+Markdown syntax for ordered and unordered lists.
 
 Write in plain prose. Prefer sentences over lists. Avoid checklists, tables, and long enumerations unless brevity would obscure meaning. 
 
@@ -38,18 +155,23 @@ Write in plain prose. Prefer sentences over lists. Avoid checklists, tables, and
 
 Self-containment and plain language are paramount. If you introduce a phrase that is not ordinary English ("daemon", "middleware", "RPC gateway", "filter graph"), define it immediately and remind the reader how it manifests in this repository (for example, by naming the files or commands where it appears). Do not say "as defined previously" or "according to the architecture doc." Include the needed explanation here, even if you repeat yourself.
 
-Avoid common failure modes. Do not rely on undefined jargon. Do not describe "the letter of a feature" so narrowly that the resulting code compiles but does nothing meaningful. Do not outsource key decisions to the reader. When ambiguity exists, resolve it in the plan itself and explain why you chose that path. Err on the side of over-explaining user-visible effects and under-specifying incidental implementation details.
+Avoid common failure modes. Do not rely on undefined jargon. Do not describe "the letter of a feature" so narrowly that the resulting code compiles but does nothing meaningful. Resolve in-scope technical choices and explain why. Escalate only when required authority is missing or a choice materially exceeds the authorised scope. Make observable user outcomes precise without overspecifying incidental implementation details.
 
 Anchor the plan with observable outcomes. State what the user can do after implementation, the commands to run, and the outputs they should see. Acceptance should be phrased as behavior a human can verify ("after starting the server, navigating to [http://localhost:8080/health](http://localhost:8080/health) returns HTTP 200 with body OK") rather than internal attributes ("added a HealthCheck struct"). If a change is internal, explain how its impact can still be demonstrated (for example, by running tests that fail before and pass after, and by showing a scenario that uses the new behavior).
 
 Specify repository context explicitly. Name files with full repository-relative paths, name functions and modules precisely, and describe where new files should be created. If touching multiple areas, include a short orientation paragraph that explains how those parts fit together so a novice can navigate confidently. When running commands, show the working directory and exact command line. When outcomes depend on environment, state the assumptions and provide alternatives when reasonable.
 Be idempotent and safe. Write the steps so they can be run multiple times without causing damage or drift. If a step can fail halfway, include how to retry or adapt. If a migration or destructive operation is necessary, spell out backups or safe fallbacks. Prefer additive, testable changes that can be validated as you go.
 
-Validation is not optional. Include instructions to run tests, to start the system if applicable, and to observe it doing something useful. Describe comprehensive testing for any new features or capabilities. Include expected outputs and error messages so a novice can tell success from failure. Where possible, show how to prove that the change is effective beyond compilation (for example, through a small end-to-end scenario, a CLI invocation, or an HTTP request/response transcript). State the exact test commands appropriate to the project’s toolchain and how to interpret their results.
+Validation is not optional. Include instructions to run tests, start the system when applicable, and observe useful behavior. Describe comprehensive testing for new capabilities, expected outputs, and error messages. State the exact test commands and how to interpret their results. For a governed milestone, separately specify the contract-required real-world evidence and independent verification; never describe test output, a mock, or a local scenario as formal proof.
 
 Capture evidence. When your steps produce terminal output, short diffs, or logs, include them inside the single fenced block as indented examples. Keep them concise and focused on what proves success. If you need to include a patch, prefer file-scoped diffs or small excerpts that a reader can recreate by following your instructions rather than pasting large blobs.
 
 ## Milestones
+
+An ExecPlan step or delivery task (such as H1 or A1) is not a formal registry
+milestone (such as M29). Continue between authorised plan steps automatically.
+Only the formal closeout process can complete a registry milestone, and starting
+its successor still requires the authority and entry gates in `AGENTS.md`.
 
 Milestones are narrative, not bureaucracy. If you break the work into milestones, introduce each with a brief paragraph that describes the scope, what will exist at the end of the milestone that did not exist before, the commands to run, and the acceptance you expect to observe. Keep it readable as a story: goal, work, result, proof. Progress and milestones are distinct: milestones tell the story, progress tracks granular work. Both must exist. Never abbreviate a milestone merely for the sake of brevity, do not leave out details that could be crucial to a future implementation.
 
@@ -63,7 +185,7 @@ Each milestone must be independently verifiable and incrementally implement the 
 * If you change course mid-implementation, document why in the `Decision Log` and reflect the implications in `Progress`. Plans are guides for the next contributor as much as checklists for you.
 * At completion of a major task or the full plan, write an `Outcomes & Retrospective` entry summarizing what was achieved, what remains, and lessons learned.
 
-# Prototyping milestones and parallel implementations
+## Prototyping milestones and parallel implementations
 
 It is acceptable—-and often encouraged—-to include explicit prototyping milestones when they de-risk a larger change. Examples: adding a low-level operator to a dependency to validate feasibility, or exploring two composition orders while measuring optimizer effects. Keep prototypes additive and testable. Clearly label the scope as “prototyping”; describe how to run and observe results; and state the criteria for promoting or discarding the prototype.
 
@@ -147,5 +269,3 @@ Prefer additive code changes followed by subtractions that keep tests passing. P
 If you follow the guidance above, a single, stateless agent -- or a human novice -- can read your ExecPlan from top to bottom and produce a working, observable result. That is the bar: SELF-CONTAINED, SELF-SUFFICIENT, NOVICE-GUIDING, OUTCOME-FOCUSED.
 
 When you revise a plan, you must ensure your changes are comprehensively reflected across all sections, including the living document sections, and you must write a note at the bottom of the plan describing the change and the reason why. ExecPlans must describe not just the what but the why for almost everything.
-
-

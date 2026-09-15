@@ -1,0 +1,50 @@
+# Merge this reviewed fragment into cs-ai-lab-infra's existing compose project.
+# There is intentionally no `ports:` entry: only containers on `internal` can
+# reach the service at gdelt-egress:8092.
+services:
+  gdelt-egress:
+    # Built by scripts/n8n_m11_install.py from the fixed Forex repository
+    # root.  Do not use a relative Compose build context here: this fragment
+    # is merged from a different repository and Compose would otherwise make
+    # the build input depend on the operator's working directory.
+    image: forex-gdelt-publisher-egress:local
+    restart: unless-stopped
+    environment:
+      FOREX_GDELT_EGRESS_BIND_HOST: 0.0.0.0
+      FOREX_GDELT_EGRESS_PORT: 8092
+      FOREX_GDELT_EGRESS_BEARER_FILE: /run/secrets/forex_gdelt_egress_bearer
+      FOREX_GDELT_CANDIDATE_SIGNING_KEY_FILE: /run/secrets/forex_gdelt_candidate_signing_key
+      FOREX_GDELT_EGRESS_CONTAINER_MODE: "true"
+    secrets:
+      - forex_gdelt_egress_bearer
+      - forex_gdelt_candidate_signing_key
+    # The dedicated network avoids mutating the existing shared bridge (Docker
+    # cannot safely change a live network's `internal` flag). The egress
+    # service is its only member with an outbound route.
+    networks: [gdelt-private, gdelt-outbound]
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8092/healthz',timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+secrets:
+  forex_gdelt_egress_bearer:
+    file: /home/chris/.config/forex/gdelt-egress-bearer
+  forex_gdelt_candidate_signing_key:
+    file: /home/chris/.config/forex/gdelt-candidate-signing-key
+
+networks:
+  # n8n is moved onto this new internal-only network. PostgreSQL retains its
+  # original shared network and joins this one too, so only n8n's outbound
+  # access changes and its database service name continues to resolve.
+  gdelt-private:
+    name: forex-gdelt-private
+    internal: true
+  # This network is deliberately attached only to gdelt-egress.  It retains
+  # publisher HTTPS egress without giving n8n a path to arbitrary publishers.
+  gdelt-outbound:
+    name: forex-gdelt-outbound

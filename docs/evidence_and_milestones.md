@@ -11,7 +11,7 @@ Every milestone currently declares `SELF_ATTESTED_INTEGRITY`. M0 uses a fixed-jo
 ## M20 Demo-only operating model
 
 Closed historical bars remain valid evidence for the historical and replay
-contracts only. They cannot satisfy the active M20 contract: a fresh
+contracts only. They cannot satisfy the M20 contract: a fresh
 `GOMarketsMU-Demo` EUR/USD data-to-outcome loop. M20 evidence must distinguish
 raw broker observations from verification results and bind the exact Demo
 server, Git revision, governed configuration fingerprint, session lease,
@@ -39,6 +39,19 @@ but has no human sign-off gate.
 `target_date` is an editable planning forecast owned by the human operator. It never causes closeout and is never reported as the actual completion date. A material change moves previously proven work to `NEEDS_REVALIDATION`; `first_proven_at` remains historical while a fresh `proven_at` is generated after revalidation.
 
 ## Normal execution
+
+During authorised implementation, follow the operational loop in `PLANS.md`.
+An ExecPlan task is a unit of work within the delivery scope, not a formal
+registry transition. After implementing, testing, and reviewing a task, continue
+the next authorised task whose prerequisites hold. A blocked formal proof
+surface does not by itself block unrelated authorised implementation; conversely,
+task completion cannot waive formal proof or dependency requirements.
+
+Separate buildable gaps from unavailable external dependencies. Missing code,
+an endpoint, or a workflow that the plan calls for is work to implement. Missing
+observations require an authorised attempt or a documented access constraint
+before they justify a handoff. Record actual results and follow the stop-condition
+audit in `PLANS.md` before ending an incomplete execution turn.
 
 ```text
 python3 scripts/forex_milestones.py validate
@@ -69,6 +82,10 @@ Do not record approval on someone else's behalf. `prove` prepares `M1` as `READY
 - `refresh-fingerprint` acknowledges current operator configuration but proves nothing. Re-run affected verification and real-world proof after a material change.
 
 ### Revalidation limit and human exception
+
+The limit below concerns formal revalidation cycles recorded by the milestone
+CLI. It is separate from ordinary implementation tests and the Terra/Astra
+repair loop; a local failed test does not consume a formal revalidation cycle.
 
 The append-only run history permits at most three normal revalidation cycles
 for a milestone. On reaching the third cycle, do not continue endlessly: stop

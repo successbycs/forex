@@ -1,0 +1,27 @@
+# Apply beside cs-ai-lab-infra's existing compose project.  The absolute file
+# is ignored, mode 0600, and contains only the two values consumed by n8n.
+# It puts no port on the egress service and exposes no Docker socket.
+services:
+  postgres:
+    # Keep the shared bridge for existing consumers and add a dedicated
+    # internal caller network for n8n.
+    networks: [internal, gdelt-private]
+  n8n:
+    env_file:
+      - /home/chris/.config/forex/gdelt-n8n.env
+    # The Code node needs exactly these Node built-ins.  Do not add modules to
+    # this allowlist: crypto signs the fixed candidate and net rejects IP URL
+    # literals before they reach the egress service.
+    environment:
+      NODE_FUNCTION_ALLOW_BUILTIN: crypto,net
+    # n8n keeps PostgreSQL reachability through this Docker-internal network,
+    # but has no Internet-facing network.
+    # `!override` prevents Compose list-merging the original shared bridge
+    # back onto n8n. Without it, this file would look private but n8n would
+    # still retain arbitrary NAT egress.
+    networks: !override [gdelt-private]
+
+networks:
+  gdelt-private:
+    name: forex-gdelt-private
+    internal: true

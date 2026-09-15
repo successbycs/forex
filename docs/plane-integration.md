@@ -65,6 +65,11 @@ run the same loopback forward within WSL only when that client already has
 its own verified SSH alias and key. Do not widen the listener to `0.0.0.0`.
 Browser login does not require copying any server `.env` or API token.
 
+The separate n8n browser tunnel is documented in
+[`n8n-t16-access.md`](n8n-t16-access.md). It uses a different local port
+(`15678`) and forwards only to the T480 n8n loopback listener (`5678`); it
+does not alter this Plane access path.
+
 An authenticated `404` by itself does not identify a broken proxy: it may
 also be an unsupported route or an inaccessible workspace. Diagnose the
 documented projects collection `/api/v1/workspaces/forex/projects/` and

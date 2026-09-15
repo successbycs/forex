@@ -1,0 +1,8 @@
+**
+!src/
+!src/forex/
+!src/forex/**
+!scripts/
+!scripts/run_bls_n8n_service.py
+**/__pycache__/
+**/*.pyc

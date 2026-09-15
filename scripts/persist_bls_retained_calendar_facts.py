@@ -46,12 +46,15 @@ def _store(value: Path) -> Path:
     return absolute
 
 
-def build_payload(store: Path) -> tuple[dict[str, Any], bytes, str]:
+def build_payload(store: Path, *, projector=None) -> tuple[dict[str, Any], bytes, str]:
     """Project one retained store and use the existing writer's validation."""
     from forex.bls_calendar_projection_persistence import _validated_projection
     from forex.bls_retained_calendar_facts import project_retained_bls_store
 
-    projection = project_retained_bls_store(_store(store))
+    selected_projector = project_retained_bls_store if projector is None else projector
+    if not callable(selected_projector):
+        raise ValueError("BLS retained projection must be callable")
+    projection = selected_projector(_store(store))
     payload = {
         "schema_version": "forex.bls-calendar-fact-persistence-payload.v1",
         "projection_sha256": projection["projection_sha256"],
@@ -149,8 +152,8 @@ printf 'FOREX_BLS_CALENDAR_FACTS_PERSISTED journal_sha256:%s created:%s existing
             "existing_count": int(match.group(3)), "execution_authority": False}
 
 
-def persist_store(store: Path) -> dict[str, Any]:
-    payload, raw, payload_sha256 = build_payload(store)
+def persist_store(store: Path, *, projector=None) -> dict[str, Any]:
+    payload, raw, payload_sha256 = build_payload(store, projector=projector)
     load_local_env()
     _stage_payload(raw, payload_sha256)
     return _remote_persist(payload, payload_sha256)

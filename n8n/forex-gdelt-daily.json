@@ -1,9 +1,387 @@
-{"name":"Forex GDELT hourly download and stage","active":false,"settings":{"executionOrder":"v1","timezone":"UTC"},"nodes":[
-{"id":"webhook","name":"Run M11 now (T480-local only)","type":"n8n-nodes-base.webhook","typeVersion":2,"webhookId":"2e9a7b9a-7a20-4ff3-8f5a-35d2a6890996","position":[0,200],"parameters":{"httpMethod":"POST","path":"forex-m11-run-now","responseMode":"lastNode","options":{}}},
-{"id":"schedule","name":"Schedule after UTC hour closes","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[0,80],"parameters":{"rule":{"interval":[{"field":"cronExpression","expression":"5 * * * *"}]}}},
-{"id":"build","name":"Build four closed-hour GKG URLs","type":"n8n-nodes-base.code","typeVersion":2,"position":[220,160],"parameters":{"jsCode":"const n=new Date(),h=new Date(Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate(),n.getUTCHours()-1));return [0,15,30,45].map(m=>{const d=new Date(h.getTime()+m*60000),s=d.toISOString().slice(0,19).replace(/[-:T]/g,'');return {json:{hour:h.toISOString(),id:`gdelt-gkg-${s}`,rev:`${s}.gkg.csv.zip`,observed:d.toISOString(),available:new Date(d.getTime()+900000).toISOString(),url:`https://data.gdeltproject.org/gdeltv2/${s}.gkg.csv.zip`}}});"}},
-{"id":"download","name":"Download GKG ZIP","type":"n8n-nodes-base.httpRequest","typeVersion":4,"position":[440,160],"parameters":{"method":"GET","url":"={{$json.url}}","options":{"timeout":60000,"response":{"response":{"neverError":false,"responseFormat":"file","outputPropertyName":"data"}}}}},
-{"id":"extract","name":"Extract GKG ZIP","type":"n8n-nodes-base.compression","typeVersion":1,"position":[640,160],"parameters":{"operation":"decompress","binaryPropertyName":"data","options":{}}},
-{"id":"aggregate","name":"Aggregate one closed hour of context","type":"n8n-nodes-base.code","typeVersion":2,"position":[840,160],"parameters":{"jsCode":"const hash=require('crypto').createHash,x=$input.all();if(x.length!==4)throw Error('Expected four GDELT archives');const r=[];for(let i=0;i<4;i++){const b=await this.helpers.getBinaryDataBuffer(i,'file_0'),j=x[i].json;r.push({observation_id:j.id,source_revision:j.rev,observed_at_utc:j.observed,available_at_utc:j.available,payload_sha256:'sha256:'+hash('sha256').update(b).digest('hex'),payload_path:'n8n://gdelt/'+j.rev})}return [{json:{stage_id:'gdelt-h1-'+x[0].json.hour.replace(/[-:T.]/g,'').slice(0,10),bucket_time_utc:x[0].json.hour,source_records:r,aggregate_sha256:r[0].payload_sha256,article_count:0,mean_tone:0,query_definition_version:'eurusd-context-terms.v1',uncertainty_label:'EXPERIMENTAL_CONTEXT_ONLY',retrieved_at_utc:new Date().toISOString()}}];"}},
-{"id":"stage","name":"Persist provenance and stage hourly GDELT context","type":"n8n-nodes-base.postgres","typeVersion":2.5,"position":[1060,160],"parameters":{"operation":"executeQuery","query":"=WITH source_catalog AS (INSERT INTO forex.source_registry (source_id,contract_version,owner,license,cost_model,api_version,endpoint_allowlist,rate_limit,retention_rule,historical_depth,revision_support,timezone_policy,outage_policy,approval_status,secrets_reference,provenance_note) VALUES ('gdelt-sentiment-prototype','forex.gdelt-context.v1','Forex MVP','GDELT public data terms','FREE','GDELT v2',jsonb_build_array('https://data.gdeltproject.org/gdeltv2/'),'bounded hourly pull','hashes and aggregate only','archive-dependent','archive revision','UTC-normalised','skip; no automatic retry','PENDING_QUALIFICATION','NONE','Experimental aggregate context only; no article content retained') ON CONFLICT (source_id) DO NOTHING), source_rows AS (SELECT * FROM jsonb_to_recordset('{{ JSON.stringify($json.source_records) }}'::jsonb) AS source(observation_id text, source_revision text, observed_at_utc timestamptz, available_at_utc timestamptz, payload_sha256 text, payload_path text)), persisted_sources AS (INSERT INTO forex.raw_observation (observation_id,contract_version,source_id,source_revision,observed_at_utc,available_at_utc,retrieved_at_utc,timezone,payload_sha256,payload_path,redacted) SELECT observation_id,'forex.gdelt-context.v1','gdelt-sentiment-prototype',source_revision,observed_at_utc,available_at_utc,'{{ $json.retrieved_at_utc }}','UTC',payload_sha256,payload_path,true FROM source_rows ON CONFLICT (observation_id) DO NOTHING) INSERT INTO forex.gdelt_hourly_stage (stage_id,bucket_time_utc,source_records,aggregate_sha256,article_count,mean_tone,query_definition_version,uncertainty_label,retrieved_at_utc) VALUES ('{{ $json.stage_id }}','{{ $json.bucket_time_utc }}','{{ JSON.stringify($json.source_records) }}'::jsonb,'{{ $json.aggregate_sha256 }}',{{ $json.article_count }},{{ $json.mean_tone }},'{{ $json.query_definition_version }}','{{ $json.uncertainty_label }}','{{ $json.retrieved_at_utc }}') ON CONFLICT (stage_id) DO NOTHING;","options":{}}}
-],"connections":{"Schedule after UTC hour closes":{"main":[[{"node":"Build four closed-hour GKG URLs","type":"main","index":0}]]},"Run M11 now (T480-local only)":{"main":[[{"node":"Build four closed-hour GKG URLs","type":"main","index":0}]]},"Build four closed-hour GKG URLs":{"main":[[{"node":"Download GKG ZIP","type":"main","index":0}]]},"Download GKG ZIP":{"main":[[{"node":"Extract GKG ZIP","type":"main","index":0}]]},"Extract GKG ZIP":{"main":[[{"node":"Aggregate one closed hour of context","type":"main","index":0}]]},"Aggregate one closed hour of context":{"main":[[{"node":"Persist provenance and stage hourly GDELT context","type":"main","index":0}]]}}}
+{
+    "name": "Forex GDELT hourly download and stage",
+    "active": false,
+    "settings": {
+        "executionOrder": "v1",
+        "timezone": "UTC",
+        "saveExecutionProgress": false,
+        "saveManualExecutions": false,
+        "saveExecutionSuccess": "none",
+        "saveExecutionError": "none"
+    },
+    "nodes": [
+        {
+            "id": "webhook",
+            "name": "Run M11 now (T480-local only)",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "webhookId": "2e9a7b9a-7a20-4ff3-8f5a-35d2a6890996",
+            "position": [
+                0,
+                200
+            ],
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "forex-m11-run-now",
+                "responseMode": "lastNode",
+                "options": {}
+            }
+        },
+        {
+            "id": "schedule",
+            "name": "Schedule after UTC hour closes",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.2,
+            "position": [
+                0,
+                80
+            ],
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "cronExpression",
+                            "expression": "5 * * * *"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "build",
+            "name": "Build four closed-hour GKG URLs",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                220,
+                160
+            ],
+            "parameters": {
+                "jsCode": "const n=new Date(),h=new Date(Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate(),n.getUTCHours()-1));return [0,15,30,45].map(m=>{const d=new Date(h.getTime()+m*60000),s=d.toISOString().slice(0,19).replace(/[-:T]/g,'');return {json:{hour:h.toISOString(),id:`gdelt-gkg-v2-${s}`,rev:`${s}.gkg.csv.zip`,observed:d.toISOString(),available:new Date(d.getTime()+900000).toISOString(),url:`https://data.gdeltproject.org/gdeltv2/${s}.gkg.csv.zip`}}});"
+            }
+        },
+        {
+            "id": "download",
+            "name": "Download GKG ZIP",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                440,
+                160
+            ],
+            "parameters": {
+                "method": "POST",
+                "url": "http://gdelt-egress:8092/forex/gdelt/archive",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "={{ 'Bearer ' + $env.FOREX_GDELT_EGRESS_BEARER }}"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "contentType": "raw",
+                "rawContentType": "application/json",
+                "body": "={{ JSON.stringify({ url: $json.url }) }}",
+                "options": {
+                    "timeout": 60000,
+                    "response": {
+                        "response": {
+                            "neverError": false,
+                            "responseFormat": "file",
+                            "outputPropertyName": "data"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "id": "hash-zip",
+            "name": "Hash downloaded GKG ZIP",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                620,
+                160
+            ],
+            "parameters": {
+                "jsCode": "const createHash=require('crypto').createHash;const items=$input.all();return await Promise.all(items.map(async(item,index)=>{const archive=await this.helpers.getBinaryDataBuffer(index,'data');if(!archive.length)throw Error('Empty GDELT archive');return {json:{...item.json,archive_sha256:'sha256:'+createHash('sha256').update(archive).digest('hex')},binary:item.binary};}));"
+            }
+        },
+        {
+            "id": "extract",
+            "name": "Extract GKG ZIP",
+            "type": "n8n-nodes-base.compression",
+            "typeVersion": 1,
+            "position": [
+                800,
+                160
+            ],
+            "parameters": {
+                "operation": "decompress",
+                "binaryPropertyName": "data",
+                "options": {}
+            }
+        },
+        {
+            "id": "aggregate",
+            "name": "Aggregate one closed hour of context",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1020,
+                160
+            ],
+            "parameters": {
+                "jsCode": "const createHash=require('crypto').createHash,net=require('net');const items=$input.all(),MAX_CSV_BYTES=32*1024*1024,MAX_CANDIDATES=5,QUERY_VERSION='eurusd-context-terms.v2';if(items.length!==4)throw Error('Expected four GDELT archives');const hour=items[0].json.hour;if(!hour||!Number.isFinite(Date.parse(hour)))throw Error('Missing or invalid closed hour');const expected_revisions=[0,15,30,45].map(minute=>new Date(Date.parse(hour)+minute*60000).toISOString().slice(0,19).replace(/[-:T]/g,'')+'.gkg.csv.zip'),seen=new Set(),docs=new Map(),source_records=[];const token=(s,t)=>t.some(x=>new RegExp('(?:^|[^A-Z0-9_])'+x+'(?:$|[^A-Z0-9_])').test(s)),eur=['EUR','EURO','EUROZONE','ECB','EUROPEAN_CENTRAL_BANK'],usd=['USD','DOLLAR','FED','FEDERAL_RESERVE','FOMC','US_INFLATION','CPI','EMPLOYMENT','NONFARM'];const publicHttps=value=>{try{const u=new URL(value);if(u.protocol!=='https:'||u.username||u.password||value.length>2048)return null;u.hash='';u.hostname=u.hostname.toLowerCase();const h=u.hostname.replace(/^\\[|\\]$/g,'');if(h==='localhost'||h.endsWith('.localhost')||net.isIP(h)!==0)return null;return u.toString();}catch{return null;}};let source_row_count=0;for(let index=0;index<items.length;index++){const meta=items[index].json;if(meta.hour!==hour)throw Error('Input archive hour mismatch');if(!expected_revisions.includes(meta.rev)||seen.has(meta.rev))throw Error('Expected one archive for each closed-hour quarter');seen.add(meta.rev);if(!/^sha256:[a-f0-9]{64}$/.test(meta.archive_sha256||''))throw Error('Missing archive SHA-256');const data=await this.helpers.getBinaryDataBuffer(index,'file_0');if(data.length>MAX_CSV_BYTES)throw Error('GKG CSV exceeds 32 MiB limit');const text=data.toString('utf8');if(text.includes('\\uFFFD'))throw Error('GKG CSV is not valid UTF-8');for(const line of text.split(/\\r?\\n/)){if(!line)continue;const c=line.split('\\t');if(c.length<16||!c[4])throw Error('Malformed GKG required columns');source_row_count++;const relevant=token([c[8],c[10],c[12],c[14]].join(' ').toUpperCase(),['EURUSD'])||(token([c[8],c[10],c[12],c[14]].join(' ').toUpperCase(),eur)&&token([c[8],c[10],c[12],c[14]].join(' ').toUpperCase(),usd));if(!relevant)continue;const x=(c[15]||'').split(',')[0].trim(),n=x===''?null:Number(x),tone=Number.isFinite(n)?n:null;const canonical_url=publicHttps(c[4]),document_key=canonical_url||c[4];if(!docs.has(document_key))docs.set(document_key,{tone,canonical_url,sources:[]});docs.get(document_key).sources.push({source_observation_id:meta.id,gdelt_document_id:(c[0]||createHash('sha256').update(c[4]).digest('hex')).slice(0,512),bucket_time_utc:hour,source_tone:tone});}source_records.push({observation_id:meta.id,source_revision:meta.rev,observed_at_utc:meta.observed,available_at_utc:meta.available,payload_sha256:meta.archive_sha256,payload_path:'n8n://gdelt/'+meta.rev});}if(seen.size!==4)throw Error('Expected one archive for each closed-hour quarter');const values=[...docs.values()],tones=values.map(d=>d.tone).filter(x=>x!==null),article_count=values.length,tone_sample_count=tones.length,mean_tone=tone_sample_count?Number((tones.reduce((a,b)=>a+b,0)/tone_sample_count).toFixed(6)):0,article_candidates=values.filter(d=>d.canonical_url).map(d=>({canonical_url:d.canonical_url,sources:d.sources})).sort((a,b)=>a.canonical_url.localeCompare(b.canonical_url)).slice(0,MAX_CANDIDATES),aggregate_material=JSON.stringify({source_records,query_definition_version:QUERY_VERSION,source_row_count,article_count,tone_sample_count,mean_tone});return [{json:{stage_id:'gdelt-h1-v2-'+hour.replace(/[-:T.]/g,'').slice(0,10),bucket_time_utc:hour,source_records,aggregate_sha256:'sha256:'+createHash('sha256').update(aggregate_material).digest('hex'),article_count,source_row_count,tone_sample_count,mean_tone,query_definition_version:QUERY_VERSION,uncertainty_label:'EXPERIMENTAL_CONTEXT_ONLY',retrieved_at_utc:new Date().toISOString(),article_candidates}}];"
+            }
+        },
+        {
+            "id": "stage",
+            "name": "Persist provenance and stage hourly GDELT context",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                1240,
+                160
+            ],
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "=WITH input AS (SELECT '{{ $json.stage_id }}'::text stage_id,'{{ $json.bucket_time_utc }}'::timestamptz bucket_time_utc,'{{ JSON.stringify($json.source_records) }}'::jsonb source_records,'{{ $json.aggregate_sha256 }}'::text aggregate_sha256,{{ $json.article_count }}::integer article_count,{{ $json.source_row_count }}::integer source_row_count,{{ $json.tone_sample_count }}::integer tone_sample_count,{{ $json.mean_tone }}::numeric mean_tone,'{{ $json.query_definition_version }}'::text query_definition_version,'{{ $json.uncertainty_label }}'::text uncertainty_label,'{{ $json.retrieved_at_utc }}'::timestamptz retrieved_at_utc), existing AS (SELECT stage_id,aggregate_sha256,bucket_time_utc FROM forex.gdelt_hourly_stage WHERE stage_id=(SELECT stage_id FROM input)), conflict_guard AS (SELECT CASE WHEN EXISTS (SELECT 1 FROM existing) AND NOT EXISTS (SELECT 1 FROM existing,input WHERE existing.aggregate_sha256=input.aggregate_sha256 AND existing.bucket_time_utc=input.bucket_time_utc) THEN 1/0 ELSE 1 END ok), source_catalog AS (INSERT INTO forex.source_registry (source_id,contract_version,owner,license,cost_model,api_version,endpoint_allowlist,rate_limit,retention_rule,historical_depth,revision_support,timezone_policy,outage_policy,approval_status,secrets_reference,provenance_note) VALUES ('gdelt-sentiment-prototype','forex.gdelt-context.v2','Forex MVP','GDELT public data terms','FREE','GDELT v2',jsonb_build_array('https://data.gdeltproject.org/gdeltv2/'),'bounded hourly pull','hashes, aggregate, bounded publisher title/body','archive-dependent','archive revision','UTC-normalised','rerun exact stage only; mismatch fails closed','PENDING_QUALIFICATION','NONE','Experimental context only; bounded publisher title/body retention') ON CONFLICT (source_id) DO UPDATE SET contract_version=EXCLUDED.contract_version,provenance_note=EXCLUDED.provenance_note), source_rows AS (SELECT * FROM jsonb_to_recordset((SELECT source_records FROM input)) AS source(observation_id text, source_revision text, observed_at_utc timestamptz, available_at_utc timestamptz, payload_sha256 text, payload_path text)), persisted_sources AS (INSERT INTO forex.raw_observation (observation_id,contract_version,source_id,source_revision,observed_at_utc,available_at_utc,retrieved_at_utc,timezone,payload_sha256,payload_path,redacted) SELECT observation_id,'forex.gdelt-context.v2','gdelt-sentiment-prototype',source_revision,observed_at_utc,available_at_utc,input.retrieved_at_utc,'UTC',payload_sha256,payload_path,true FROM source_rows,input ON CONFLICT (observation_id) DO NOTHING), inserted AS (INSERT INTO forex.gdelt_hourly_stage (stage_id,bucket_time_utc,source_records,aggregate_sha256,article_count,source_row_count,tone_sample_count,mean_tone,query_definition_version,uncertainty_label,retrieved_at_utc) SELECT stage_id,bucket_time_utc,source_records,aggregate_sha256,article_count,source_row_count,tone_sample_count,mean_tone,query_definition_version,uncertainty_label,retrieved_at_utc FROM input,conflict_guard ON CONFLICT (stage_id) DO NOTHING RETURNING stage_id) SELECT stage_id FROM inserted UNION ALL SELECT input.stage_id FROM input,existing WHERE existing.aggregate_sha256=input.aggregate_sha256 AND existing.bucket_time_utc=input.bucket_time_utc;",
+                "options": {}
+            }
+        },
+        {
+            "id": "expand-article-candidates",
+            "name": "Expand bounded publisher candidates",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1240,
+                380
+            ],
+            "parameters": {
+                "jsCode": "const crypto=require('crypto'),aggregates=$('Aggregate one closed hour of context').all(),key=$env.FOREX_GDELT_CANDIDATE_SIGNING_KEY,stable=value=>Array.isArray(value)?'['+value.map(stable).join(',')+']':value&&typeof value==='object'?'{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+stable(value[k])).join(',')+'}':JSON.stringify(value);if(aggregates.length!==1)throw Error('Expected exactly one aggregate input');if(typeof key!=='string'||key.length<32)throw Error('GDELT candidate signing key is unavailable');return aggregates.flatMap(aggregate=>aggregate.json.article_candidates.map(candidate=>{const material={aggregate_sha256:aggregate.json.aggregate_sha256,bucket_time_utc:aggregate.json.bucket_time_utc,candidate};return {json:{...material,signature:crypto.createHmac('sha256',key).update(stable(material),'utf8').digest('hex')}};}));"
+            }
+        },
+        {
+            "id": "fetch-article",
+            "name": "Fetch publisher page through bounded loopback egress",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1460,
+                380
+            ],
+            "parameters": {
+                "method": "POST",
+                "url": "http://gdelt-egress:8092/forex/gdelt/fetch",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                        "value": "={{ 'Bearer ' + $env.FOREX_GDELT_EGRESS_BEARER }}"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "contentType": "raw",
+                "rawContentType": "application/json",
+                "body": "={{ JSON.stringify($json) }}",
+                "options": {
+                    "timeout": 15000,
+                    "response": {
+                        "response": {
+                            "fullResponse": false,
+                            "neverError": true,
+                            "responseFormat": "json"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "id": "extract-article",
+            "name": "Extract normalized publisher article",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1680,
+                380
+            ],
+            "deprecated_direct_fetch_parameters": {
+                "jsCode": "const createHash=require('crypto').createHash,items=$input.all(),candidates=$('Expand bounded publisher candidates').all(),MAX_RETAINED_BYTES=1048576;if(items.length!==candidates.length)throw Error('Fetch/candidate item count mismatch');const b64=value=>Buffer.from(value||'','utf8').toString('base64'),failure=(candidate,item,reason)=>({json:{result_status:'FAILED',failure_reason_base64:b64(reason),http_status:Number.isInteger(item.json.statusCode)?item.json.statusCode:null,canonical_url_base64:b64(candidate.json.canonical_url),sources_base64:b64(JSON.stringify(candidate.json.sources)),content_type_base64:b64(''),retrieved_at_utc:new Date().toISOString()}});const plain=value=>value.replace(/<script[\\s\\S]*?<\\/script>|<style[\\s\\S]*?<\\/style>|<noscript[\\s\\S]*?<\\/noscript>|<nav[\\s\\S]*?<\\/nav>|<header[\\s\\S]*?<\\/header>|<footer[\\s\\S]*?<\\/footer>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'\\\"').replace(/&#39;/gi,\"'\").replace(/\\s+/g,' ').trim();return await Promise.all(items.map(async(item,index)=>{const candidate=candidates[index],r=item.json,status=Number.isInteger(r.statusCode)?r.statusCode:null;if(status>=300&&status<400)return failure(candidate,item,'REDIRECT_REFUSED');if(status!==200)return failure(candidate,item,'HTTP_STATUS_REJECTED');const rawType=r.headers?.['content-type'];if(typeof rawType!=='string')return failure(candidate,item,'MISSING_CONTENT_TYPE');const contentType=rawType.split(';')[0].trim().toLowerCase();if(!['text/html','application/xhtml+xml'].includes(contentType))return failure(candidate,item,'CONTENT_TYPE_REJECTED');let bytes;try{bytes=await this.helpers.getBinaryDataBuffer(index,'publisher_html');}catch{return failure(candidate,item,'MISSING_RESPONSE_BODY');}if(bytes.length===0)return failure(candidate,item,'EMPTY_RESPONSE_BODY');if(bytes.length>MAX_RETAINED_BYTES)return failure(candidate,item,'RETAIN_LIMIT_EXCEEDED');const html=bytes.toString('utf8');if(html.includes('\\uFFFD'))return failure(candidate,item,'INVALID_UTF8');const title=plain((html.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i)||[])[1]||'').slice(0,500),body=plain(html).slice(0,100000);if(!title||!body)return failure(candidate,item,'EMPTY_EXTRACTED_ARTICLE');return {json:{result_status:'RETAINED',failure_reason_base64:b64(''),http_status:status,content_sha256:'sha256:'+createHash('sha256').update(title+'\\n'+body).digest('hex'),canonical_url_base64:b64(candidate.json.canonical_url),title_base64:b64(title),body_base64:b64(body),sources_base64:b64(JSON.stringify(candidate.json.sources)),content_type_base64:b64(contentType),retrieved_at_utc:new Date().toISOString()}};}));"
+            },
+            "parameters": {
+                "jsCode": "const createHash=require('crypto').createHash,items=$input.all(),candidates=$('Expand bounded publisher candidates').all(),MAX_RETAINED_BYTES=1048576;if(items.length!==candidates.length)throw Error('Egress/candidate item count mismatch');const b64=value=>Buffer.from(value||'','utf8').toString('base64'),failure=(candidate,r,reason)=>({json:{result_status:'FAILED',failure_reason_base64:b64(reason),http_status:Number.isInteger(r.http_status)?r.http_status:null,canonical_url_base64:b64(candidate.json.canonical_url),sources_base64:b64(JSON.stringify(candidate.json.sources)),content_type_base64:b64(''),retrieved_at_utc:new Date().toISOString()}}),plain=value=>value.replace(/<script[\\s\\S]*?<\\/script>|<style[\\s\\S]*?<\\/style>|<noscript[\\s\\S]*?<\\/noscript>|<nav[\\s\\S]*?<\\/nav>|<header[\\s\\S]*?<\\/header>|<footer[\\s\\S]*?<\\/footer>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'\\\"').replace(/&#39;/gi,\"'\").replace(/\\s+/g,' ').trim();return items.map((item,index)=>{const candidate=candidates[index],r=item.json;if(r.status!=='RETAINED')return failure(candidate,r,String(r.reason||'EGRESS_FAILED'));if(!['text/html','application/xhtml+xml'].includes(r.content_type)||typeof r.content_base64!=='string')return failure(candidate,r,'EGRESS_CONTRACT_REJECTED');let bytes;try{bytes=Buffer.from(r.content_base64,'base64');}catch{return failure(candidate,r,'EGRESS_CONTRACT_REJECTED');}if(!bytes.length||bytes.length>MAX_RETAINED_BYTES)return failure(candidate,r,'EGRESS_CONTRACT_REJECTED');const html=bytes.toString('utf8');if(html.includes('\\uFFFD'))return failure(candidate,r,'INVALID_UTF8');const title=plain((html.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i)||[])[1]||'').slice(0,500),body=plain(html).slice(0,100000);if(!title||!body)return failure(candidate,r,'EMPTY_EXTRACTED_ARTICLE');return {json:{result_status:'RETAINED',failure_reason_base64:b64(''),http_status:r.http_status,content_sha256:'sha256:'+createHash('sha256').update(title+'\\n'+body).digest('hex'),canonical_url_base64:b64(candidate.json.canonical_url),title_base64:b64(title),body_base64:b64(body),sources_base64:b64(JSON.stringify(candidate.json.sources)),content_type_base64:b64(r.content_type),retrieved_at_utc:new Date().toISOString()}};});"
+            }
+        },
+        {
+            "id": "persist-article",
+            "name": "Retain deduplicated publisher article",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                1900,
+                380
+            ],
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "=WITH input AS (SELECT CASE WHEN '{{ $json.result_status }}'='RETAINED' THEN 'RETAINED' ELSE 'FAILED' END result_status,NULLIF('{{ $json.content_sha256 || '' }}','')::text content_sha256,convert_from(decode('{{ $json.canonical_url_base64 }}','base64'),'UTF8') canonical_url,NULLIF(convert_from(decode('{{ $json.title_base64 || '' }}','base64'),'UTF8'),'') title,NULLIF(convert_from(decode('{{ $json.body_base64 || '' }}','base64'),'UTF8'),'') body,NULLIF(convert_from(decode('{{ $json.content_type_base64 }}','base64'),'UTF8'),'') content_type,NULLIF(convert_from(decode('{{ $json.failure_reason_base64 }}','base64'),'UTF8'),'') failure_reason,{{ $json.http_status === null ? 'NULL' : $json.http_status }}::integer http_status,'{{ $json.retrieved_at_utc }}'::timestamptz retrieved_at_utc,convert_from(decode('{{ $json.sources_base64 }}','base64'),'UTF8')::jsonb sources), attempts AS (INSERT INTO forex.gdelt_article_retrieval_attempt (canonical_url,retrieved_at_utc,result_status,failure_reason,http_status,content_sha256,content_type) SELECT canonical_url,retrieved_at_utc,result_status,failure_reason,http_status,content_sha256,content_type FROM input RETURNING attempt_id), inserted AS (INSERT INTO forex.gdelt_article (content_sha256,title,body,retrieved_at_utc,content_type) SELECT content_sha256,title,body,retrieved_at_utc,content_type FROM input WHERE result_status='RETAINED' ON CONFLICT (content_sha256) DO NOTHING RETURNING content_sha256), retained AS (SELECT content_sha256 FROM inserted UNION SELECT article.content_sha256 FROM forex.gdelt_article article,input WHERE input.result_status='RETAINED' AND article.content_sha256=input.content_sha256), mapped AS (INSERT INTO forex.gdelt_article_url (content_sha256,canonical_url,first_retrieved_at_utc,last_retrieved_at_utc) SELECT retained.content_sha256,input.canonical_url,input.retrieved_at_utc,input.retrieved_at_utc FROM retained,input ON CONFLICT (content_sha256,canonical_url) DO UPDATE SET last_retrieved_at_utc=EXCLUDED.last_retrieved_at_utc RETURNING content_sha256), links AS (SELECT retained.content_sha256,source.source_observation_id,source.gdelt_document_id,source.bucket_time_utc,source.source_tone FROM retained,input CROSS JOIN LATERAL jsonb_to_recordset(input.sources) AS source(source_observation_id text,gdelt_document_id text,bucket_time_utc timestamptz,source_tone numeric)), linked AS (INSERT INTO forex.gdelt_article_source (content_sha256,source_observation_id,gdelt_document_id,bucket_time_utc,source_tone) SELECT content_sha256,source_observation_id,gdelt_document_id,bucket_time_utc,source_tone FROM links ON CONFLICT DO NOTHING RETURNING content_sha256) SELECT attempt_id FROM attempts;",
+                "options": {}
+            }
+        },
+        {
+            "id": "persist-egress-receipt",
+            "name": "Persist publisher egress receipt",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.5,
+            "position": [
+                2120,
+                380
+            ],
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "=UPDATE forex.gdelt_article_retrieval_attempt SET final_url=convert_from(decode('{{ Buffer.from($('Fetch publisher page through bounded loopback egress').item.json.canonical_url || '').toString('base64') }}','base64'),'UTF8'),redirect_chain=convert_from(decode('{{ Buffer.from(JSON.stringify($('Fetch publisher page through bounded loopback egress').item.json.redirect_chain || [])).toString('base64') }}','base64'),'UTF8')::jsonb,pinned_ip=convert_from(decode('{{ Buffer.from($('Fetch publisher page through bounded loopback egress').item.json.pinned_ip || '').toString('base64') }}','base64'),'UTF8'),byte_count={{ $('Fetch publisher page through bounded loopback egress').item.json.byte_count || 'NULL' }}::integer,payload_sha256=NULLIF('{{ $('Fetch publisher page through bounded loopback egress').item.json.payload_sha256 || '' }}','') WHERE attempt_id={{ $json.attempt_id }}::bigint RETURNING attempt_id;",
+                "options": {}
+            }
+        }
+    ],
+    "connections": {
+        "Schedule after UTC hour closes": {
+            "main": [
+                [
+                    {
+                        "node": "Build four closed-hour GKG URLs",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Run M11 now (T480-local only)": {
+            "main": [
+                [
+                    {
+                        "node": "Build four closed-hour GKG URLs",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Build four closed-hour GKG URLs": {
+            "main": [
+                [
+                    {
+                        "node": "Download GKG ZIP",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Download GKG ZIP": {
+            "main": [
+                [
+                    {
+                        "node": "Hash downloaded GKG ZIP",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Hash downloaded GKG ZIP": {
+            "main": [
+                [
+                    {
+                        "node": "Extract GKG ZIP",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract GKG ZIP": {
+            "main": [
+                [
+                    {
+                        "node": "Aggregate one closed hour of context",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Aggregate one closed hour of context": {
+            "main": [
+                [
+                    {
+                        "node": "Persist provenance and stage hourly GDELT context",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Persist provenance and stage hourly GDELT context": {
+            "main": [
+                [
+                    {
+                        "node": "Expand bounded publisher candidates",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Expand bounded publisher candidates": {
+            "main": [
+                [
+                    {
+                        "node": "Fetch publisher page through bounded loopback egress",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Fetch publisher page through bounded loopback egress": {
+            "main": [
+                [
+                    {
+                        "node": "Extract normalized publisher article",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract normalized publisher article": {
+            "main": [
+                [
+                    {
+                        "node": "Retain deduplicated publisher article",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Retain deduplicated publisher article": {
+            "main": [
+                [
+                    {
+                        "node": "Persist publisher egress receipt",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}
