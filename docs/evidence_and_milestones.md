@@ -107,6 +107,14 @@ history. The three-cycle limit remains the automatic stop for normal retries.
 
 Evidence capture and evidence verification are separate. The verifier does not contact, modify, repair, or regenerate the observed system. Hash, freshness, revision, surface, configuration, runner-attestation, and signature mismatches fail closed. Its independence is logical separation within the repository, not a separate provenance authority.
 
+M29 has an explicitly authorised historical function-proof policy. Its registry
+pins the accepted 15 September 2026 manifest, collector revision, observed
+runtime revisions, configuration and payload hashes. That exact intact bundle
+has no age expiry while its runtime payloads/configuration remain unchanged.
+Its original raw evidence approval remains bound to the same manifest; current
+local verification is still required. This exception does not extend to any
+other milestone or imply present uptime. See `docs/milestones/M29-proof.md`.
+
 ### M20 evidence sequence
 
 For M20, first record that the fixed adapter observed the exact

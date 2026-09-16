@@ -3647,7 +3647,22 @@
     {
       "milestone_id": "M29",
       "title": "Real-time Demo recovery safety proven",
-      "objective": "Prove one controlled permanent-listener interruption and recovery while the GOMarketsMU-Demo account is flat and held, without an order.",
+      "objective": "Accept the retained 15 September 2026 held Demo worker-handoff drill as proof of bounded listener recovery, with a flat account before and after and no order.",
+      "retained_evidence_policy": {
+        "manifest_path": "runs/evidence/M29/20260915T111605Z/manifest.json",
+        "manifest_sha256": "bd19c0179122cbef432871380837572dddc056067456aea231fd02099dc26785",
+        "collector_revision": "7a2fd92690203019ad57349d4f2bf633f93b93e6",
+        "drill_revision": "4dc94fe7895fd1a2eee605461a646c9618b29c1a",
+        "diagnostics_revision": "4fc956d5184d4f0c3a47c7d3c469fac9ff2843e8",
+        "configuration_fingerprint": "sha256:480f4a09e4a2869f94725d5bd307799729e7cef6f40344f0c15b8dac0f01e246",
+        "runtime_payload_sha256": {
+          "m20_demo_listener_service.payload": "sha256:995fb00eb0fd1751857847b42d58e36f3de7dc56cef58ad8df522fc91583ba80",
+          "m20_demo_trading_session.payload": "sha256:4c5dc4dd993db03be4571c9f891de6aa13d91b46b2c9edba5d594d675c93bb0e",
+          "m20_postgres_audit_bridge.payload": "sha256:b5d62c3ede5e81ee3273442cfe253ba616653a2668ab82d214a9e32e7729f63f",
+          "m20_discord_trade_notification.payload": "sha256:42f5ea077eaebe0929d46cb2ce94ba99d6698a42db81c03a5d3e2af3f4f20ba5"
+        },
+        "rationale": "Chris approved closeout against this exact retained bundle without another drill. The observed runtime revisions and collector revision remain distinct; all four runtime payload hashes and governed configuration are unchanged. This historical function proof has no age expiry and carries forward the existing approval of its inputs and outputs. Current local verification remains required."
+      },
       "delivery_type": "OPERATIONAL_SAFETY",
       "proof_type": "OPERATIONAL_DRILL",
       "dependencies": [
@@ -3680,7 +3695,7 @@
       "acceptance_criteria": [
         {
           "id": "M29-C1",
-          "description": "The capability works on the declared surface: real-time GOMarketsMU-Demo collection and recovery workflow.",
+          "description": "The retained 15 September held Demo worker-handoff drill passed with the account flat before and after.",
           "kind": "CAPABILITY"
         },
         {
@@ -3690,12 +3705,12 @@
         },
         {
           "id": "M29-C3",
-          "description": "Current self-attested real-world proof matches the Git revision, configuration fingerprint, and declared source/model versions.",
+          "description": "The pinned retained bundle and all artifact hashes validate; its collector and runtime revisions remain explicit, and runtime payloads and governed configuration match the accepted baseline.",
           "kind": "REAL_WORLD_PROOF"
         },
         {
           "id": "M29-C4",
-          "description": "Safety, provenance, licensing, point-in-time, and no-lookahead boundaries hold with no unresolved critical issue.",
+          "description": "The retained Demo observations show maintenance hold, flat account, idle monitoring, recovered handoff and no order; Chris approved these exact retained inputs and outputs.",
           "kind": "SAFETY"
         }
       ],
@@ -3715,7 +3730,9 @@
             "-m",
             "pytest",
             "-q",
-            "tests/milestones/test_m29.py"
+            "tests/milestones/test_m29.py",
+            "tests/milestones/test_m29_retained.py",
+            "tests/test_milestone_governance.py"
           ]
         }
       ],
@@ -3744,13 +3761,13 @@
       ],
       "human_review_required": true,
       "proof_invalidated_by": [
-        "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
-        "Evidence exceeding its declared freshness window.",
-        "A point-in-time, provenance, or safety-boundary violation."
+        "A change to the pinned listener runtime payloads, governed runtime configuration, or declared held worker-handoff recovery surface.",
+        "Any alteration of the pinned manifest or its captured artifact bytes, or a provenance or safety-boundary violation.",
+        "Documentation and evidence-tooling changes require current local verification but do not invalidate the retained operational observation solely because its age or repository revision differs."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "Lean Demo MVP scope approved 2026-09-15: this contract proves bounded listener-worker recovery only. It does not claim an upstream broker outage or durable collection deduplication. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
+      "notes": "Chris authorised retained-evidence closeout on 2026-09-16. The exact pinned bundle proves bounded held listener-worker recovery. Its age and documentation or evidence-tooling changes do not invalidate that observation; listener payload, governed runtime configuration, recovery surface or evidence-integrity changes do. The 10-hour freshness rule applies only to the ordinary capture route without retained_evidence_policy. This proves no ongoing uptime, broker outage, host reboot, durable deduplication, profitability or Live capability."
     },
     {
       "milestone_id": "M30",

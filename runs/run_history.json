@@ -12892,6 +12892,151 @@
         "from": "READY",
         "to": "IN_PROGRESS"
       }
+    },
+    {
+      "event_id": "E000809",
+      "timestamp": "2026-09-15T11:16:23Z",
+      "milestone_id": "M29",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M29/20260915T111605Z/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000810",
+      "timestamp": "2026-09-15T11:16:24Z",
+      "milestone_id": "M29",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M29/20260915T111623Z/governance.stdout.txt",
+            "stderr": "runs/verification/M29/20260915T111623Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m29.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M29/20260915T111623Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M29/20260915T111623Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000811",
+      "timestamp": "2026-09-16T02:21:38Z",
+      "milestone_id": "M29",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris",
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "event_id": "E000812",
+      "timestamp": "2026-09-16T02:38:43Z",
+      "milestone_id": "M29",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M29-C1",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000813",
+      "timestamp": "2026-09-16T02:38:44Z",
+      "milestone_id": "M29",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M29-C3",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000814",
+      "timestamp": "2026-09-16T02:38:44Z",
+      "milestone_id": "M29",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M29-C4",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000815",
+      "timestamp": "2026-09-16T02:38:47Z",
+      "milestone_id": "M29",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M29/20260916T023844Z/governance.stdout.txt",
+            "stderr": "runs/verification/M29/20260916T023844Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m29.py",
+              "tests/milestones/test_m29_retained.py",
+              "tests/test_milestone_governance.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M29/20260916T023844Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M29/20260916T023844Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000816",
+      "timestamp": "2026-09-16T02:39:33Z",
+      "milestone_id": "M29",
+      "action": "CHECK_RECORDED",
+      "detail": {
+        "criterion": "M29-C2",
+        "result": "PASS"
+      }
+    },
+    {
+      "event_id": "E000817",
+      "timestamp": "2026-09-16T02:39:34Z",
+      "milestone_id": "M29",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "IN_PROGRESS",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
     }
   ]
 }

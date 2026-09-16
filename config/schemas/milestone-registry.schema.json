@@ -77,9 +77,34 @@
         "kind": {"enum": ["CAPABILITY", "VERIFICATION", "REAL_WORLD_PROOF", "SAFETY"]}
       }
     },
+    "retainedEvidencePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest_path", "manifest_sha256", "collector_revision", "drill_revision", "diagnostics_revision", "configuration_fingerprint", "runtime_payload_sha256", "rationale"],
+      "properties": {
+        "manifest_path": {"type": "string", "pattern": "^runs/evidence/M29/[^/]+/manifest\\.json$"},
+        "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "collector_revision": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "drill_revision": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "diagnostics_revision": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "configuration_fingerprint": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "runtime_payload_sha256": {
+          "type": "object", "additionalProperties": false,
+          "required": ["m20_demo_listener_service.payload", "m20_demo_trading_session.payload", "m20_postgres_audit_bridge.payload", "m20_discord_trade_notification.payload"],
+          "properties": {
+            "m20_demo_listener_service.payload": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+            "m20_demo_trading_session.payload": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+            "m20_postgres_audit_bridge.payload": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+            "m20_discord_trade_notification.payload": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+          }
+        },
+        "rationale": {"type": "string", "minLength": 1}
+      }
+    },
     "milestone": {
       "type": "object",
       "additionalProperties": false,
+      "allOf": [{"if": {"required": ["retained_evidence_policy"]}, "then": {"properties": {"milestone_id": {"const": "M29"}}}}],
       "required": [
         "milestone_id", "title", "objective", "delivery_type", "proof_type", "dependencies",
         "entry_conditions", "from_state", "to_state", "scope", "out_of_scope",
@@ -91,6 +116,7 @@
         "milestone_id": {"pattern": "^M(0|[1-9][0-9]*)$"},
         "title": {"type": "string", "minLength": 1},
         "objective": {"type": "string", "minLength": 1},
+        "retained_evidence_policy": {"$ref": "#/$defs/retainedEvidencePolicy"},
         "delivery_type": {"enum": ["FOUNDATION_ENABLING", "CAPABILITY_DELIVERING", "RESEARCH_EVALUATION", "OPERATIONAL_SAFETY"]},
         "proof_type": {"enum": ["REPOSITORY_EXECUTION", "REAL_SYSTEM_INTEGRATION", "OPERATIONAL_DRILL", "EMPIRICAL_RESEARCH"]},
         "dependencies": {"$ref": "#/$defs/stringArray"},

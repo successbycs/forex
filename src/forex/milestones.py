@@ -243,6 +243,7 @@ def validate_registry(registry: dict[str, Any]) -> None:
                 f"milestone {milestone.get('milestone_id', index)} missing fields: {sorted(missing)}"
             )
         milestone_id = milestone["milestone_id"]
+        _validate_retained_policy(milestone)
         if not isinstance(milestone_id, str) or not milestone_id.startswith("M"):
             raise GovernanceError(f"invalid milestone_id: {milestone_id!r}")
         if "review_board_required" in milestone and not isinstance(milestone["review_board_required"], bool):
@@ -533,6 +534,87 @@ def _replace_bundle(argv: Iterable[str], bundle: Path) -> list[str]:
     return [part.replace("{bundle}", str(bundle)) for part in argv]
 
 
+def _validate_retained_policy(milestone: dict[str, Any]) -> dict[str, Any] | None:
+    policy = milestone.get("retained_evidence_policy")
+    if "retained_evidence_policy" not in milestone:
+        return None
+    if milestone.get("milestone_id") != "M29":
+        raise GovernanceError("retained evidence policy is permitted only for M29")
+    schema = load_json(Path(__file__).resolve().parents[2] / "config/schemas/milestone-registry.schema.json")
+    errors = list(Draft202012Validator(schema["$defs"]["retainedEvidencePolicy"]).iter_errors(policy))
+    if errors:
+        raise GovernanceError(f"invalid M29 retained evidence policy: {errors[0].message}")
+    return policy
+
+
+def _validate_retained_m29(root: Path, manifest_path: Path, manifest: dict[str, Any], policy: dict[str, Any]) -> None:
+    """Inspect the accepted historical observation without contacting its source."""
+    def require(condition: bool, message: str) -> None:
+        if not condition:
+            raise GovernanceError(f"M29 retained evidence: {message}")
+
+    require(manifest_path == (root / policy["manifest_path"]).resolve(), "manifest path mismatch")
+    require(sha256_file(manifest_path) == policy["manifest_sha256"], "manifest hash mismatch")
+    require(manifest["git_revision"] == policy["collector_revision"], "collector revision mismatch")
+    require(manifest["configuration_fingerprint"] == policy["configuration_fingerprint"], "configuration mismatch")
+    require(manifest["dirty_worktree"] is False, "capture worktree was dirty")
+    bundle = manifest_path.parent
+    required = {"tests.txt", "governance.txt", "m29-continuity.json", "postflight-listener.json", "postflight-account.json", "postflight-diagnostics.json", "revision.txt", "summary.txt"}
+    require({a["path"] for a in manifest["artifacts"]} == required, "artifact set mismatch")
+    require((bundle / "revision.txt").read_text().strip() == policy["collector_revision"], "revision artifact mismatch")
+    require((bundle / "summary.txt").read_text().strip() == "FOREX_M29_PROOF_OK", "result marker mismatch")
+    require(manifest["observed_result"] == "FOREX_M29_PROOF_OK", "observed result mismatch")
+    times = []
+
+    def observation(name: str, operation: str) -> dict[str, Any]:
+        envelope = load_json(bundle / name)
+        result = envelope.get("result", {})
+        require(envelope.get("operation") == operation and envelope.get("ok") is True, f"invalid {name}")
+        require(result.get("ok") is True and result.get("exit_code") == 0, f"failed {name}")
+        times.append(parse_utc(result.get("finished_at")))
+        try:
+            value = json.loads(result["stdout"])
+            require(isinstance(value, dict), f"invalid response {name}")
+            return value
+        except (KeyError, TypeError, ValueError) as exc:
+            raise GovernanceError(f"invalid retained response: {name}") from exc
+
+    def flat(account: dict[str, Any]) -> bool:
+        return (account.get("server") == "GOMarketsMU-Demo" and account.get("currency") == "AUD"
+                and account.get("position_observation") == "AVAILABLE" and account.get("open_positions") == 0)
+
+    def deployment(binding: dict[str, Any], revision: str) -> None:
+        require(binding.get("application_revision") == revision, "runtime revision mismatch")
+        require(binding.get("configuration_fingerprint") == policy["configuration_fingerprint"], "runtime configuration mismatch")
+        require(binding.get("payload_sha256") == policy["runtime_payload_sha256"], "runtime payload hashes mismatch")
+
+    continuity = observation("m29-continuity.json", "m20_listener_continuity_status")
+    record = continuity.get("record", {})
+    require(continuity.get("observation") == "AVAILABLE" and record.get("state") == "PASS"
+            and record.get("handoff", {}).get("state") == "RECOVERED", "recovery did not pass")
+    for phase in ("baseline", "postflight"):
+        snapshot = record.get(phase, {})
+        require(snapshot.get("valid") is True and flat(snapshot.get("account", {})), f"{phase} account not flat Demo")
+        deployment(snapshot.get("deployment", {}), policy["drill_revision"])
+        require(snapshot.get("heartbeat", {}).get("valid") is True
+                and snapshot["heartbeat"].get("state") == "MAINTENANCE_HOLD", f"{phase} hold invalid")
+        require(snapshot.get("unresolved_execution", {}).get("state") == "CLEAR", f"{phase} execution unresolved")
+    listener = observation("postflight-listener.json", "m20_listener_status")
+    require(listener.get("running") is True and listener.get("state") == "MAINTENANCE_HOLD"
+            and listener.get("release_id") == record.get("release_id"), "listener not held on drill release")
+    require(listener.get("monitor", {}).get("state") == "IDLE", "monitor not idle")
+    require(listener.get("protection_observation") in {"NO_DURABLE_PROTECTION_RECORD", "LAST_KNOWN_UNVERIFIED"}, "protection unresolved")
+    require(flat(observation("postflight-account.json", "m20_demo_account_liquidity")), "postflight account not flat Demo")
+    diagnostics = observation("postflight-diagnostics.json", "m20_listener_diagnostics")
+    require(diagnostics.get("maintenance_hold_present") is True and diagnostics.get("logon_type") == "S4U"
+            and diagnostics.get("deployment_binding", {}).get("observation") == "VALID", "diagnostics binding invalid")
+    deployment(diagnostics["deployment_binding"], policy["diagnostics_revision"])
+    require(times == sorted(times) and (times[-1] - times[0]).total_seconds() <= 120, "postflight ordering invalid")
+    for name, digest in policy["runtime_payload_sha256"].items():
+        path = root / "t480" / name.replace(".payload", ".py")
+        require(path.is_file() and f"sha256:{sha256_file(path)}" == digest, f"current runtime payload changed: {name}")
+
+
 def validate_evidence_bundle(
     root: Path,
     state: dict[str, Any],
@@ -571,12 +653,13 @@ def validate_evidence_bundle(
     if manifest["schema_version"] != "1.0.0" or manifest["milestone_id"] != milestone["milestone_id"]:
         raise GovernanceError("evidence schema or milestone mismatch")
     captured_at = parse_utc(manifest["captured_at"])
+    retained_policy = _validate_retained_policy(milestone)
     age_hours = (datetime.now(timezone.utc) - captured_at).total_seconds() / 3600
-    if age_hours < -0.1 or age_hours > milestone["real_world_proof"]["freshness_hours"]:
+    if age_hours < -0.1 or (not retained_policy and age_hours > milestone["real_world_proof"]["freshness_hours"]):
         raise GovernanceError(f"evidence is outside the freshness window ({age_hours:.1f} hours old)")
     if manifest["configuration_fingerprint"] != configuration_fingerprint(root, state):
         raise GovernanceError("evidence configuration fingerprint does not match current configuration")
-    if manifest["git_revision"] != git_revision(root):
+    if not retained_policy and manifest["git_revision"] != git_revision(root):
         raise GovernanceError("evidence Git revision does not match the current revision")
     if manifest["surface"] != milestone["real_world_proof"]["surface"]:
         raise GovernanceError("evidence execution surface does not match the milestone contract")
@@ -606,7 +689,9 @@ def validate_evidence_bundle(
     for marker in milestone["real_world_proof"]["success_markers"]:
         if marker not in combined_text:
             raise GovernanceError(f"evidence success marker is missing: {marker}")
-    if run_external_verifier:
+    if retained_policy:
+        _validate_retained_m29(root, manifest_path, manifest, retained_policy)
+    elif run_external_verifier:
         command = _replace_bundle(milestone["real_world_proof"]["verifier_command"], bundle)
         # A verifier may use the governance CLI for a read-only configuration
         # lookup.  This function is also called by ``record-evidence`` while
@@ -671,6 +756,7 @@ def _gate_errors(store: MilestoneStore, milestone_id: str) -> list[str]:
     milestone = store.milestone(milestone_id)
     item = store.milestone_state(milestone_id)
     errors: list[str] = []
+    retained_evidence_valid = False
     try:
         changes = material_worktree_changes(store.root)
         if changes:
@@ -712,6 +798,7 @@ def _gate_errors(store: MilestoneStore, milestone_id: str) -> list[str]:
                 errors.append("completion proof must be recaptured from a clean worktree")
             if manifest.get("git_revision") == "UNBORN":
                 errors.append("completion proof requires an immutable Git revision")
+            retained_evidence_valid = milestone_id == "M29" and bool(milestone.get("retained_evidence_policy"))
         except GovernanceError as exc:
             errors.append(str(exc))
     if milestone["human_review_required"]:
@@ -722,11 +809,11 @@ def _gate_errors(store: MilestoneStore, milestone_id: str) -> list[str]:
             errors.append("human sign-off must confirm both inputs and outputs were reviewed")
         elif signoff.get("configuration_fingerprint") != current_fingerprint:
             errors.append("human sign-off configuration fingerprint is stale")
-        elif signoff.get("git_revision") != git_revision(store.root):
+        elif not retained_evidence_valid and signoff.get("git_revision") != git_revision(store.root):
             errors.append("human sign-off Git revision is stale")
         elif not item["evidence"] or signoff.get("evidence_manifest_sha256") != item["evidence"][-1].get("manifest_sha256"):
             errors.append("human sign-off is not tied to the current evidence bundle")
-        elif not verification or signoff.get("verification_recorded_at") != verification.get("recorded_at"):
+        elif not retained_evidence_valid and (not verification or signoff.get("verification_recorded_at") != verification.get("recorded_at")):
             errors.append("human sign-off is not tied to the current verification result")
     if item.get("blockers"):
         errors.append("unresolved blockers remain")

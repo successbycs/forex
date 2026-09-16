@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -44,7 +44,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-15T09:53:51Z",
+  "last_updated_at": "2026-09-16T02:39:34Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -3747,19 +3747,100 @@
       "blockers": []
     },
     "M29": {
-      "status": "IN_PROGRESS",
+      "status": "AWAITING_REAL_WORLD_PROOF",
       "started_at": "2026-09-15T09:53:51Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
-      "human_signed_off_at": null,
+      "implementation_finished_at": "2026-09-16T02:39:34Z",
+      "verification_passed_at": "2026-09-16T02:38:47Z",
+      "real_world_proof_captured_at": "2026-09-15T11:16:13.427588Z",
+      "human_signed_off_at": "2026-09-16T02:21:38Z",
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
-      "human_signoff": null,
+      "checks": {
+        "M29-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-16T02:38:43Z",
+          "evidence": "runs/evidence/M29/20260915T111605Z/manifest.json",
+          "note": "Retained held Demo handoff recovered 2026-09-15 at 10:14:26 UTC; baseline and postflight account flat."
+        },
+        "M29-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-16T02:38:44Z",
+          "evidence": "runs/evidence/M29/20260915T111605Z/manifest.json",
+          "note": "Offline retained policy validates exact manifest and all artifacts; all four runtime payload hashes and governed configuration match current files; collector and runtime revisions preserved."
+        },
+        "M29-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-16T02:38:44Z",
+          "evidence": "runs/evidence/M29/20260915T111605Z/manifest.json",
+          "note": "Retained observations show GOMarketsMU-Demo AUD flat, maintenance hold, idle monitor and recovered handoff without order; existing Chris approval preserved against identical manifest."
+        },
+        "M29-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-16T02:39:33Z",
+          "evidence": "runs/verification/M29/20260916T023844Z/milestone-tests.stdout.txt",
+          "note": "Current local verification passed governance validation and 32 focused M29 retained-policy and milestone-governance tests; independent parent-agent review found no required repair."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M29/20260915T111605Z/manifest.json",
+          "manifest_sha256": "bd19c0179122cbef432871380837572dddc056067456aea231fd02099dc26785",
+          "captured_at": "2026-09-15T11:16:13.427588Z",
+          "recorded_at": "2026-09-15T11:16:23Z",
+          "configuration_fingerprint": "sha256:480f4a09e4a2869f94725d5bd307799729e7cef6f40344f0c15b8dac0f01e246",
+          "git_revision": "7a2fd92690203019ad57349d4f2bf633f93b93e6",
+          "summary": "FOREX_M29_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-16T02:38:47Z",
+        "git_revision": "af989dd246c4875da00c0bff7f92cbe3cf73e538",
+        "configuration_fingerprint": "sha256:480f4a09e4a2869f94725d5bd307799729e7cef6f40344f0c15b8dac0f01e246",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M29/20260916T023844Z/governance.stdout.txt",
+            "stderr": "runs/verification/M29/20260916T023844Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m29.py",
+              "tests/milestones/test_m29_retained.py",
+              "tests/test_milestone_governance.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M29/20260916T023844Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M29/20260916T023844Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
+      "human_signoff": {
+        "operator": "Chris",
+        "decision": "APPROVE",
+        "note": "Operator reviewed retained M29 inputs and outputs and approved closeout without a repeat drill.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "af989dd246c4875da00c0bff7f92cbe3cf73e538",
+        "configuration_fingerprint": "sha256:480f4a09e4a2869f94725d5bd307799729e7cef6f40344f0c15b8dac0f01e246",
+        "evidence_manifest_sha256": "bd19c0179122cbef432871380837572dddc056067456aea231fd02099dc26785",
+        "verification_recorded_at": "2026-09-15T11:16:24Z",
+        "recorded_at": "2026-09-16T02:21:38Z"
+      },
       "blockers": []
     },
     "M30": {
