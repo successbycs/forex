@@ -48,8 +48,26 @@ def fixture(tmp_path):
     for name in contract.REQUIRED - {"manifest.json", "summary.txt", "m30-audit.json", "m30-verification.txt"}:
         (bundle / name).write_bytes((prior / name).read_bytes())
     (bundle / "m30-verification.txt").write_text("FOREX_M30_TARGETED_VERIFICATION_OK\n", encoding="utf-8")
+    def shift_timestamps(value, delta):
+        if isinstance(value, dict):
+            return {key: shift_timestamps(item, delta) for key, item in value.items()}
+        if isinstance(value, list):
+            return [shift_timestamps(item, delta) for item in value]
+        if isinstance(value, str):
+            try:
+                stamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                return value
+            if stamp.tzinfo is not None:
+                return (stamp.astimezone(timezone.utc) + delta).isoformat().replace("+00:00", "Z")
+        return value
+
+    # Keep the synthetic lifecycle causally before the verifier clock without
+    # ageing the separately retained listener observations.  This prevents a
+    # same-second fixture race from masking the semantic assertion under test.
+    margin = timedelta(seconds=5)
     wrapper = json.loads((bundle / "demo-trading-operation.json").read_text())
-    payload = json.loads(wrapper["result"]["stdout"])
+    payload = shift_timestamps(json.loads(wrapper["result"]["stdout"]), -margin)
     payload["operation"] = "m20_demo_trading_session"
     at = payload["decision_snapshot"]["observed_at_utc"]
     snapshot = payload["decision_snapshot"]
@@ -70,11 +88,15 @@ def fixture(tmp_path):
     wrapper["result"]["stdout"] = json.dumps(payload)
     write(bundle / "demo-trading-operation.json", wrapper)
     wrapper = json.loads((bundle / "lifecycle-summary.json").read_text())
-    row = json.loads(wrapper["result"]["stdout"])[0]
+    row = shift_timestamps(json.loads(wrapper["result"]["stdout"])[0], -margin)
     row.update(proposal_id=proposal["proposal_id"], attempt_id="attempt-1", snapshot_id=proposal["snapshot_id"],
                proposal_expires_at_utc=proposal["expires_at_utc"], close_reason="BROKER_SIDE_CLOSE")
     row["opening_context"]["position_ticket"] = 99
     row["closing_context"].update(position_ticket=99, close_reason="BROKER_SIDE_CLOSE")
+    history = row["closing_context"]["broker_history"]
+    history["broker_deals_sha256"] = "sha256:" + hashlib.sha256(
+        json.dumps(history["broker_deals"], sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
     wrapper["result"]["stdout"] = json.dumps([row])
     write(bundle / "lifecycle-summary.json", wrapper)
     contract.capture(bundle, root)

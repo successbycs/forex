@@ -218,7 +218,6 @@ def verify(bundle: Path, root: Path) -> None:
     m20.ensure_no_live_reference(manifest)
     require(manifest.get("git_revision") == subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip(), "manifest revision does not match HEAD")
     captured = m20.utc(manifest.get("captured_at"), "manifest.captured_at")
-    require(timedelta(0) <= datetime.now(timezone.utc) - captured < timedelta(hours=24), "M30 evidence is stale or future-dated")
     fingerprint = m20.project_fingerprint(root)
     require(manifest.get("configuration_fingerprint") == fingerprint, "manifest fingerprint does not match current configuration")
     recorded = manifest.get("artifacts")
@@ -247,6 +246,7 @@ def verify(bundle: Path, root: Path) -> None:
     require(audit.get("broker_matched_lifecycle") == lifecycle, "M30 audit lifecycle mismatch")
     require((bundle / "revision.txt").read_text(encoding="utf-8").strip() == manifest["git_revision"], "revision artifact mismatch")
     require((bundle / "summary.txt").read_text(encoding="utf-8").strip() == MARKER, "proof marker is missing")
+    require(timedelta(0) <= datetime.now(timezone.utc) - captured < timedelta(hours=24), "M30 evidence is stale or future-dated")
     print("FOREX_M30_EVIDENCE_VERIFIED")
     print(MARKER)
 
