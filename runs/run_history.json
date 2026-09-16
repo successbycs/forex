@@ -13318,6 +13318,53 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000827",
+      "timestamp": "2026-09-16T05:29:06Z",
+      "milestone_id": "M30",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M30/20260916T052859Z/governance.stdout.txt",
+            "stderr": "runs/verification/M30/20260916T052859Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m30.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M30/20260916T052859Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M30/20260916T052859Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000828",
+      "timestamp": "2026-09-16T05:29:07Z",
+      "milestone_id": "M30",
+      "action": "IMPLEMENTATION_FINISHED",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "AWAITING_REAL_WORLD_PROOF"
+      }
     }
   ]
 }
