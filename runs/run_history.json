@@ -13037,6 +13037,55 @@
         "from": "IN_PROGRESS",
         "to": "AWAITING_REAL_WORLD_PROOF"
       }
+    },
+    {
+      "event_id": "E000818",
+      "timestamp": "2026-09-16T02:39:44Z",
+      "milestone_id": "M29",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M29/20260916T023941Z/governance.stdout.txt",
+            "stderr": "runs/verification/M29/20260916T023941Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m29.py",
+              "tests/milestones/test_m29_retained.py",
+              "tests/test_milestone_governance.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M29/20260916T023941Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M29/20260916T023941Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000819",
+      "timestamp": "2026-09-16T02:39:52Z",
+      "milestone_id": "M29",
+      "action": "MILESTONE_PROVEN",
+      "detail": {
+        "proven_at": "2026-09-16T02:39:52Z",
+        "next_milestone": "M30"
+      }
     }
   ]
 }

@@ -20,7 +20,7 @@ runtime configuration.
 - [x] (2026-09-16) Added a schema-supported, M29-only retained-evidence policy.
 - [x] (2026-09-16) 32 focused/governance tests passed; exact retained bundle validated offline with `FOREX_M29_PROOF_OK`; parent agent completed independent read-only review without required repairs.
 - [x] (2026-09-16 02:38Z) Recorded all four acceptance checks and passing current local verification; preserved Chris's 02:21:38Z approval unchanged.
-- [ ] Run formal closeout using Chris’s recorded approval.
+- [x] (2026-09-16 02:39:52Z) Normal CLI emitted `M29 PROVEN at 2026-09-16T02:39:52Z` using Chris's unchanged approval; M30 became READY and was not started.
 
 ## Evidence Brief
 
@@ -138,8 +138,9 @@ verifier incorrectly equated these with the collector revision. The M29 policy
 now keeps all identities and checks executable bytes.
 
 The default continuation checker fails with `IsADirectoryError` on the repo
-root because its unrelated default work-plan pointer is empty. This work does
-not change that unrelated metadata; the explicit H5 work-plan can be checked.
+root because the old A1 work record lacks `markdown_plan`; the old H5 execution
+record has the same issue. This work does not change that unrelated metadata.
+The current explicit H5 production-orchestration record can be checked.
 
 ## Owned Paths and Verification Matrix
 
@@ -164,5 +165,21 @@ bundle returned `FOREX_M29_PROOF_OK`. No raw evidence bytes were changed.
 
 ## Outcomes & Retrospective
 
-Pending implementation. This plan must be updated with actual test results,
-the final policy digest, and the formal closeout result.
+Implemented and formally closed through the normal `prove` transition at
+2026-09-16T02:39:52Z. Implementation commit: `874e66d`. Current verification
+passed on that committed implementation before closeout; all four acceptance
+checks are recorded. The parent agent independently reviewed the policy,
+schema, validator and tests without required repairs.
+
+The policy digest (SHA-256 of sorted, compact JSON) is
+`53f3351c2018c2b70c19934d9362538b361cea57eb76af9791a48fea1b0a00e7`.
+The manifest digest remains
+`bd19c0179122cbef432871380837572dddc056067456aea231fd02099dc26785`.
+Chris's original approval timestamp remains 2026-09-16T02:21:38Z.
+
+No T480 or broker command, repeat drill, raw-evidence mutation or Live action
+occurred. The result is historical proof of the bounded held worker-handoff
+function; it makes no uptime, broker-outage or profitability claim. M30 is
+READY, not started. Final state/history and this progress record are committed
+separately after proof; that administrative commit does not change runtime
+payloads, proof implementation, or the observed evidence.

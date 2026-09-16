@@ -4,8 +4,8 @@
   "repository": "successbycs/forex",
   "project_purpose": "Solo-operator EUR/USD Demo trading platform: make protected, explainable, reconciled trading decisions first; learn from retained Demo outcomes before any later optimisation.",
   "phase": "M20_DEMO_TRADING_MVP",
-  "last_proven_milestone": "M28",
-  "current_milestone": "M29",
+  "last_proven_milestone": "M29",
+  "current_milestone": null,
   "next_milestone": "M30",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
+  "implementation_status": "PROVEN",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -44,7 +44,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-16T02:39:34Z",
+  "last_updated_at": "2026-09-16T02:39:52Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -3747,15 +3747,15 @@
       "blockers": []
     },
     "M29": {
-      "status": "AWAITING_REAL_WORLD_PROOF",
+      "status": "PROVEN",
       "started_at": "2026-09-15T09:53:51Z",
       "implementation_finished_at": "2026-09-16T02:39:34Z",
-      "verification_passed_at": "2026-09-16T02:38:47Z",
+      "verification_passed_at": "2026-09-16T02:39:44Z",
       "real_world_proof_captured_at": "2026-09-15T11:16:13.427588Z",
       "human_signed_off_at": "2026-09-16T02:21:38Z",
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
+      "first_proven_at": "2026-09-16T02:39:52Z",
+      "proven_at": "2026-09-16T02:39:52Z",
+      "last_validated_at": "2026-09-16T02:39:52Z",
       "checks": {
         "M29-C1": {
           "result": "PASS",
@@ -3795,8 +3795,8 @@
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-16T02:38:47Z",
-        "git_revision": "af989dd246c4875da00c0bff7f92cbe3cf73e538",
+        "recorded_at": "2026-09-16T02:39:44Z",
+        "git_revision": "874e66df098de8819815d72fb1201c69fd79598c",
         "configuration_fingerprint": "sha256:480f4a09e4a2869f94725d5bd307799729e7cef6f40344f0c15b8dac0f01e246",
         "commands": [
           {
@@ -3808,8 +3808,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M29/20260916T023844Z/governance.stdout.txt",
-            "stderr": "runs/verification/M29/20260916T023844Z/governance.stderr.txt"
+            "stdout": "runs/verification/M29/20260916T023941Z/governance.stdout.txt",
+            "stderr": "runs/verification/M29/20260916T023941Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -3824,8 +3824,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M29/20260916T023844Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M29/20260916T023844Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M29/20260916T023941Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M29/20260916T023941Z/milestone-tests.stderr.txt"
           }
         ]
       },
@@ -3844,7 +3844,7 @@
       "blockers": []
     },
     "M30": {
-      "status": "PLANNED",
+      "status": "READY",
       "started_at": null,
       "implementation_finished_at": null,
       "verification_passed_at": null,
