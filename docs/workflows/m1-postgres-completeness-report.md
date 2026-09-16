@@ -67,8 +67,10 @@ the limitation rather than repairing or dropping it.
 
 The repository now has a pure `forex.m1.completeness-report.v1` builder. It
 accepts only derived envelopes plus a supplied versioned summary capture, and
-does not connect to PostgreSQL or an adapter. The repository still has no
-captured versioned PostgreSQL completeness summary spanning retained receipt
-through projection. Until one is retained, database counts, lag, backlog,
-write failures and joins remain `UNKNOWN`; a synthetic empty summary is only a
-shape test, not a database observation.
+does not connect to PostgreSQL or an adapter. Package B captured two successful
+fixed PostgreSQL outputs, but their declared/latest coverage ends on
+2026-09-11; the retained M1 sample begins on 2026-09-15. They are retained as
+out-of-interval evidence, not converted into an empty interval result. Until a
+parameter-bound read-only completeness summary is captured, database counts,
+lag, backlog, write failures and joins remain `UNKNOWN`; a synthetic empty
+summary is only a shape test, not a database observation.

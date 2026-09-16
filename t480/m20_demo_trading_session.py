@@ -1040,12 +1040,22 @@ def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, l
     }
     digest = "sha256:" + hashlib.sha256(json.dumps(snapshot_body, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     snapshot_id = str(uuid5(NAMESPACE_URL, f"{session['session_id']}:{digest}"))
-    proposal_id = str(uuid5(NAMESPACE_URL, f"{session['session_id']}:{snapshot_id}:assessment"))
+    # A malformed/absent history still needs one safe terminal refusal for the
+    # observed M1 boundary. It must not index a missing bar or invent OHLC.
+    candle_closed_at = (str(m1[-1]["closed_at_utc"]) if m1 else utc(
+        datetime.fromtimestamp(int(parse_utc(observed_at, "observed_at_utc").timestamp()) // 60 * 60, timezone.utc)
+    ))
+    decision_key = "|".join((SERVER, SYMBOL, "M1", candle_closed_at))
+    # The proposal is deliberately keyed by the closed candle, not the quote or
+    # capture time. Later quote polls therefore cannot create another terminal
+    # decision for this M1 candle.
+    proposal_id = str(uuid5(NAMESPACE_URL, f"forex.m1.decision:{decision_key}"))
     selection = {"proposal_id": proposal_id, **selection, "trade_owner_id": proposal_id,
                  "trade_owner_strategy_id": selection["selected_strategy_id"]}
     snapshot = {"snapshot_id": snapshot_id, **snapshot_body, "payload_sha256": digest}
     proposal = {
         "proposal_id": proposal_id, "session_id": session["session_id"], "snapshot_id": snapshot_id,
+        "decision_key": decision_key, "decision_candle_closed_at_utc": candle_closed_at,
         # A decision cannot predate the completed-bar receipt retained above.
         # Keep the broker tick separately as ``observed_at_utc`` while binding
         # the executable proposal to the post-read snapshot capture instant.
@@ -2067,6 +2077,9 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         )
         bridge_payload["multi_timeframe_context"] = multi_timeframe_context
         persisted = _bridge(bridge_payload, "persist-proposal")
+        if persisted["postgres_audit"].get("already_persisted"):
+            reconciliation = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")["reconciliation"]
+            return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "risk_policy": risk_gate, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments, "multi_timeframe_context": multi_timeframe_context, "execution": {"status": "ALREADY_PERSISTED_NO_RESUBMISSION", "proposal_id": proposal["proposal_id"]}, "reconciliation": reconciliation, "postgres_audit": persisted["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
         if proposal["action"] != "NO_TRADE":
             fresh_account = _entry_risk_snapshot(mt5.account_info(), datetime.now(timezone.utc))
             _bridge({"policy": risk_policy, "account": fresh_account}, "enforce-risk-policy")

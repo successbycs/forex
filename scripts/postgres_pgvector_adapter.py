@@ -14,6 +14,7 @@ import hashlib
 import json
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -69,14 +70,15 @@ ASSETS = {"m20_wave1_gap_reconciliation": "sql/operations/w1_reconcile_attempt_6
     "m20_fee_complete_reconciliation_ledger_schema": "sql/migrations/021_m20_fee_complete_reconciliation_ledger.sql",
     "m20_independent_risk_pauses_schema": "sql/migrations/022_m20_independent_risk_pauses.sql",
     "m20_not_submitted_execution_schema": "sql/migrations/023_m20_not_submitted_execution_state.sql",
+    "m1_closed_candle_decision_identity_schema": "sql/migrations/024_m1_closed_candle_decision_identity.sql",
     "m20_strategy_trial_query": "sql/m20_strategy_trial_summary.sql",
     "m20_lifecycle_summary_query": "sql/m20_lifecycle_summary.sql",
     "import": "scripts/build_m2_postgres_import.py",
 }
 M2_SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
 M2_SNAPSHOT_ARTIFACT_SHA256 = "sha256:dc5384732d71091aa2279aaf6d92e8e1780c8021eacde948432ad7bc68fdabaa"
-READ_ONLY = {"forex-m20-wave1-reconciliation-context","preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour", "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-lineage-verify", "forex-m20-audit-verify", "forex-m20-rejection-summary", "forex-m20-lifecycle-summary", "forex-m20-current-lineage-summary", "forex-m20-unresolved-attempt-summary", "forex-m20-strategy-trial-summary", "forex-m20-mtf-context-verify", "forex-m20-mtf-context-summary", "forex-m20-risk-policy-summary"}
-MUTATING = {"forex-m20-stage-wave1-gap-reconciliation", "forex-m20-apply-wave1-gap-reconciliation","forex-m20-stage-listener-release","forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema", "forex-m20-stage-cost-ledger-schema", "forex-m20-apply-cost-ledger-schema", "forex-m20-stage-open-position-schema", "forex-m20-apply-open-position-schema", "forex-m20-stage-continuous-lease-schema", "forex-m20-apply-continuous-lease-schema", "forex-m20-stage-outcome-reconciliation-schema", "forex-m20-apply-outcome-reconciliation-schema", "forex-m20-stage-regime-strategy-schema", "forex-m20-apply-regime-strategy-schema", "forex-m20-stage-projected-cost-schema", "forex-m20-apply-projected-cost-schema", "forex-m20-stage-mtf-context-schema", "forex-m20-apply-mtf-context-schema", "forex-m20-stage-remove-trade-count-cap-schema", "forex-m20-apply-remove-trade-count-cap-schema", "forex-m20-stage-unresolved-execution-schema", "forex-m20-apply-unresolved-execution-schema", "forex-m20-stage-broker-fee-ledger-schema", "forex-m20-apply-broker-fee-ledger-schema", "forex-m20-stage-persistent-risk-policy-schema", "forex-m20-apply-persistent-risk-policy-schema", "forex-m20-stage-risk-resume-audit-schema", "forex-m20-apply-risk-resume-audit-schema", "forex-m20-stage-fee-complete-reconciliation-ledger-schema", "forex-m20-apply-fee-complete-reconciliation-ledger-schema", "forex-m20-stage-strategy-trial-query", "forex-m20-stage-lifecycle-summary-query", "forex-m20-stage-independent-risk-pauses-schema", "forex-m20-apply-independent-risk-pauses-schema", "forex-m20-stage-not-submitted-execution-schema", "forex-m20-apply-not-submitted-execution-schema"}
+READ_ONLY = {"forex-m20-wave1-reconciliation-context","preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour", "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-lineage-verify", "forex-m20-audit-verify", "forex-m20-rejection-summary", "forex-m20-lifecycle-summary", "forex-m20-current-lineage-summary", "forex-m20-unresolved-attempt-summary", "forex-m20-strategy-trial-summary", "forex-m20-mtf-context-verify", "forex-m20-mtf-context-summary", "forex-m20-risk-policy-summary", "forex-m1-postgres-completeness-summary", "forex-m1-closed-candle-decision-identity-verify"}
+MUTATING = {"forex-m20-stage-wave1-gap-reconciliation", "forex-m20-apply-wave1-gap-reconciliation","forex-m20-stage-listener-release","forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema", "forex-m20-stage-cost-ledger-schema", "forex-m20-apply-cost-ledger-schema", "forex-m20-stage-open-position-schema", "forex-m20-apply-open-position-schema", "forex-m20-stage-continuous-lease-schema", "forex-m20-apply-continuous-lease-schema", "forex-m20-stage-outcome-reconciliation-schema", "forex-m20-apply-outcome-reconciliation-schema", "forex-m20-stage-regime-strategy-schema", "forex-m20-apply-regime-strategy-schema", "forex-m20-stage-projected-cost-schema", "forex-m20-apply-projected-cost-schema", "forex-m20-stage-mtf-context-schema", "forex-m20-apply-mtf-context-schema", "forex-m20-stage-remove-trade-count-cap-schema", "forex-m20-apply-remove-trade-count-cap-schema", "forex-m20-stage-unresolved-execution-schema", "forex-m20-apply-unresolved-execution-schema", "forex-m20-stage-broker-fee-ledger-schema", "forex-m20-apply-broker-fee-ledger-schema", "forex-m20-stage-persistent-risk-policy-schema", "forex-m20-apply-persistent-risk-policy-schema", "forex-m20-stage-risk-resume-audit-schema", "forex-m20-apply-risk-resume-audit-schema", "forex-m20-stage-fee-complete-reconciliation-ledger-schema", "forex-m20-apply-fee-complete-reconciliation-ledger-schema", "forex-m20-stage-strategy-trial-query", "forex-m20-stage-lifecycle-summary-query", "forex-m20-stage-independent-risk-pauses-schema", "forex-m20-apply-independent-risk-pauses-schema", "forex-m20-stage-not-submitted-execution-schema", "forex-m20-apply-not-submitted-execution-schema", "forex-m1-stage-closed-candle-decision-identity-schema", "forex-m1-apply-closed-candle-decision-identity-schema"}
 
 
 def remote(body: str) -> dict:
@@ -346,6 +348,60 @@ test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
 docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$file"
 printf 'FOREX_M20_DEMO_AUDIT_SCHEMA_APPLIED sha256:{digest}\\n' '''
     return wrap("forex_m20_apply_schema", remote(body), digest)
+
+
+def apply_m1_closed_candle_decision_identity_schema() -> dict:
+    """Apply only Package D's additive M1 decision-identity migration."""
+    relative, digest = asset("m1_closed_candle_decision_identity_schema")
+    body = f'''file="{REMOTE_FOREX}/{relative}"
+test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$file"
+printf 'FOREX_M1_CLOSED_CANDLE_DECISION_IDENTITY_SCHEMA_APPLIED sha256:{digest}\\n' '''
+    return wrap("forex_m1_apply_closed_candle_decision_identity_schema", remote(body), digest)
+
+
+def stage_m1_closed_candle_decision_identity_schema() -> dict:
+    """Stage only Package D's fixed migration in the T480 Forex checkout."""
+    relative, digest = asset("m1_closed_candle_decision_identity_schema")
+    source = ROOT / relative
+    source_windows = subprocess.run(["wslpath", "-w", str(source)], text=True, capture_output=True, check=True).stdout.strip()
+    filename = "024_m1_closed_candle_decision_identity.sql"
+    staging_directory = r"C:\\Users\\chris\\Documents\\Code\\forex-m1-probe"
+    staging_windows = staging_directory + "\\\\" + filename
+    quote = lambda value: "'" + value.replace("'", "''") + "'"
+    mkdir = subprocess.run(
+        build_ssh_command(TARGET, "$ErrorActionPreference='Stop'; New-Item -ItemType Directory -Force -Path " + quote(staging_directory) + " | Out-Null", SETTINGS),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if mkdir.returncode:
+        return wrap("forex_m1_stage_closed_candle_decision_identity_schema", {"exit_code": mkdir.returncode, "stdout": mkdir.stdout, "stderr": mkdir.stderr, "ok": False}, digest)
+    command = (
+        "$ErrorActionPreference='Stop'; "
+        f"& scp.exe -B -o BatchMode=yes -o StrictHostKeyChecking=yes -- {quote(source_windows)} {quote(TARGET + ':' + staging_windows)}; "
+        "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+    )
+    encoded = base64.b64encode(command.encode("utf-16-le")).decode("ascii")
+    transfer = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded], text=True, capture_output=True, check=False)
+    if transfer.returncode:
+        return wrap("forex_m1_stage_closed_candle_decision_identity_schema", {"exit_code": transfer.returncode, "stdout": transfer.stdout, "stderr": transfer.stderr, "ok": False}, digest)
+    body = f'''source="/mnt/c/Users/chris/Documents/Code/forex-m1-probe/{filename}"
+file="{REMOTE_FOREX}/{relative}"
+test -f "$source" && [[ "$(sha256sum "$source" | head -c 64)" == "{digest}" ]]
+mkdir -p "$(dirname "$file")"
+install -m 0644 "$source" "$file"
+[[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+printf 'FOREX_M1_CLOSED_CANDLE_DECISION_IDENTITY_SCHEMA_STAGED sha256:{digest}\\n' '''
+    return wrap("forex_m1_stage_closed_candle_decision_identity_schema", remote(body), digest)
+
+
+def m1_closed_candle_decision_identity_verify() -> dict:
+    """Read only: confirm Package D's columns and unique decision key exist."""
+    body = '''docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT CASE WHEN
+ (EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='forex' AND table_name='demo_trade_proposal' AND column_name='decision_key') AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='forex' AND table_name='demo_trade_proposal' AND column_name='decision_candle_closed_at_utc') AND EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='forex' AND tablename='demo_trade_proposal' AND indexname='demo_trade_proposal_m1_decision_key_unique'))
+ THEN 'FOREX_M1_CLOSED_CANDLE_DECISION_IDENTITY_SCHEMA_VERIFY_OK' ELSE 'FOREX_M1_CLOSED_CANDLE_DECISION_IDENTITY_SCHEMA_VERIFY_FAILED' END;" | grep -Fx 'FOREX_M1_CLOSED_CANDLE_DECISION_IDENTITY_SCHEMA_VERIFY_OK' '''
+    return wrap("forex_m1_closed_candle_decision_identity_verify", remote(body))
 
 
 def stage_m20_schema() -> dict:
@@ -1023,6 +1079,55 @@ docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "
     return wrap("forex_m20_lifecycle_summary", remote(body), digest)
 
 
+_M1_COMPLETENESS_QUERY = '''WITH bounds AS (
+  SELECT :'from_utc'::timestamptz AS from_utc, :'to_utc'::timestamptz AS to_utc
+), records AS (
+  SELECT p.proposal_id, p.decision_at_utc, p.action, a.attempt_id, a.status,
+         a.submitted_at_utc, l.closed_at_utc, l.reconciliation_status,
+         CASE WHEN a.attempt_id IS NULL THEN 'NO_ATTEMPT' ELSE 'PROJECTED' END AS projection_status
+  FROM forex.demo_trade_proposal p
+  CROSS JOIN bounds b
+  LEFT JOIN forex.demo_execution_attempt a ON a.proposal_id=p.proposal_id
+  LEFT JOIN forex.demo_trade_ledger l ON l.proposal_id=p.proposal_id
+  WHERE p.decision_at_utc >= b.from_utc AND p.decision_at_utc < b.to_utc
+)
+SELECT json_build_object(
+  'schema_version','forex.m1.postgres-completeness-summary.v1',
+  'query_contract_version','forex.m1.postgres-completeness-query.v1',
+  'query_sha256', :'query_sha256',
+  'interval',json_build_object('from_utc', :'from_utc', 'to_utc', :'to_utc', 'bounds','inclusive/exclusive'),
+  'records',COALESCE((SELECT json_agg(row_to_json(records) ORDER BY decision_at_utc, proposal_id) FROM records),'[]'::json)
+);'''
+
+
+def _bounded_utc(value: str) -> str:
+    """Accept one canonical UTC instant; reject arbitrary SQL/shell input."""
+    if not isinstance(value, str) or not value.endswith("Z"):
+        raise ValueError("UTC bound must use an ISO-8601 Z suffix")
+    try:
+        parsed = datetime.fromisoformat(value[:-1] + "+00:00")
+    except ValueError as exc:
+        raise ValueError("UTC bound must be ISO-8601") from exc
+    if parsed.tzinfo != timezone.utc or parsed.microsecond:
+        raise ValueError("UTC bound must be whole-second UTC")
+    return parsed.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def m1_postgres_completeness_summary(from_utc: str, to_utc: str) -> dict:
+    """Return one bounded, fixed, read-only projection summary; no SQL is caller supplied."""
+    start, end = _bounded_utc(from_utc), _bounded_utc(to_utc)
+    if start >= end:
+        raise ValueError("from-utc must precede to-utc")
+    if (datetime.fromisoformat(end[:-1] + "+00:00") - datetime.fromisoformat(start[:-1] + "+00:00")).total_seconds() > 86400:
+        raise ValueError("bounded completeness interval may not exceed 24 hours")
+    digest = hashlib.sha256(_M1_COMPLETENESS_QUERY.encode()).hexdigest()
+    body = f'''docker compose exec -T postgres psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At \\
+  -v from_utc='{start}' -v to_utc='{end}' -v query_sha256='sha256:{digest}' <<'SQL'
+{_M1_COMPLETENESS_QUERY}
+SQL'''
+    return wrap("forex_m1_postgres_completeness_summary", remote(body), digest)
+
+
 def stage_m20_lifecycle_summary_query() -> dict:
     """Stage the fixed lifecycle extract on T480 without touching broker or ledger data."""
     relative, digest = asset("m20_lifecycle_summary_query")
@@ -1151,10 +1256,20 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Fixed Forex M2 PostgreSQL adapter.")
     parser.add_argument("command", choices=sorted(READ_ONLY | MUTATING))
     parser.add_argument("--approve", action="store_true")
+    parser.add_argument("--from-utc")
+    parser.add_argument("--to-utc")
     args = parser.parse_args(argv)
     if args.command in MUTATING and not args.approve:
         parser.error("this mutating operation requires --approve")
-    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-r1-apply-stage-schema": apply_m11_r1_stage_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data, "forex-m11-r1-verify-hour": verify_m11_r1_hour, "forex-m12-quality-probe": m12_quality_probe, "forex-m13-replay-probe": m13_replay_probe, "forex-m14-regime-probe": m14_regime_probe, "forex-m15-baseline-probe": m15_baseline_probe, "forex-m16-walk-forward-probe": m16_walk_forward_probe, "forex-m17-context-probe": m17_context_probe, "forex-m18-ollama-probe": m18_ollama_probe, "forex-m19-apply-schema": apply_m19_schema, "forex-m19-lineage-probe": m19_lineage_probe, "forex-m19-lineage-verify": m19_lineage_verify, "forex-m20-stage-schema": stage_m20_schema, "forex-m20-apply-schema": apply_m20_schema, "forex-m20-stage-ledger-schema": stage_m20_ledger_schema, "forex-m20-apply-ledger-schema": apply_m20_ledger_schema, "forex-m20-stage-cost-ledger-schema": stage_m20_cost_ledger_schema, "forex-m20-apply-cost-ledger-schema": apply_m20_cost_ledger_schema, "forex-m20-stage-open-position-schema": stage_m20_open_position_schema, "forex-m20-apply-open-position-schema": apply_m20_open_position_schema, "forex-m20-stage-continuous-lease-schema": stage_m20_continuous_lease_schema, "forex-m20-apply-continuous-lease-schema": apply_m20_continuous_lease_schema, "forex-m20-stage-outcome-reconciliation-schema": stage_m20_outcome_reconciliation_schema, "forex-m20-apply-outcome-reconciliation-schema": apply_m20_outcome_reconciliation_schema, "forex-m20-stage-regime-strategy-schema": stage_m20_regime_strategy_schema, "forex-m20-apply-regime-strategy-schema": apply_m20_regime_strategy_schema, "forex-m20-stage-projected-cost-schema": stage_m20_projected_cost_schema, "forex-m20-apply-projected-cost-schema": apply_m20_projected_cost_schema, "forex-m20-stage-mtf-context-schema": stage_m20_multi_timeframe_context_schema, "forex-m20-apply-mtf-context-schema": apply_m20_multi_timeframe_context_schema, "forex-m20-stage-strategy-trial-query": stage_m20_strategy_trial_query, "forex-m20-stage-lifecycle-summary-query": stage_m20_lifecycle_summary_query, "forex-m20-audit-verify": m20_audit_verify, "forex-m20-mtf-context-verify": m20_multi_timeframe_context_verify, "forex-m20-mtf-context-summary": m20_multi_timeframe_context_summary}
+    actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-r1-apply-stage-schema": apply_m11_r1_stage_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data, "forex-m11-r1-verify-hour": verify_m11_r1_hour, "forex-m12-quality-probe": m12_quality_probe, "forex-m13-replay-probe": m13_replay_probe, "forex-m14-regime-probe": m14_regime_probe, "forex-m15-baseline-probe": m15_baseline_probe, "forex-m16-walk-forward-probe": m16_walk_forward_probe, "forex-m17-context-probe": m17_context_probe, "forex-m18-ollama-probe": m18_ollama_probe, "forex-m19-apply-schema": apply_m19_schema, "forex-m19-lineage-probe": m19_lineage_probe, "forex-m19-lineage-verify": m19_lineage_verify, "forex-m20-stage-schema": stage_m20_schema, "forex-m20-apply-schema": apply_m20_schema, "forex-m20-stage-ledger-schema": stage_m20_ledger_schema, "forex-m20-apply-ledger-schema": apply_m20_ledger_schema, "forex-m20-stage-cost-ledger-schema": stage_m20_cost_ledger_schema, "forex-m20-apply-cost-ledger-schema": apply_m20_cost_ledger_schema, "forex-m20-open-position-schema": stage_m20_open_position_schema, "forex-m20-apply-open-position-schema": apply_m20_open_position_schema, "forex-m20-stage-continuous-lease-schema": stage_m20_continuous_lease_schema, "forex-m20-apply-continuous-lease-schema": apply_m20_continuous_lease_schema, "forex-m20-stage-outcome-reconciliation-schema": stage_m20_outcome_reconciliation_schema, "forex-m20-apply-outcome-reconciliation-schema": apply_m20_outcome_reconciliation_schema, "forex-m20-stage-regime-strategy-schema": stage_m20_regime_strategy_schema, "forex-m20-apply-regime-strategy-schema": apply_m20_regime_strategy_schema, "forex-m20-stage-projected-cost-schema": stage_m20_projected_cost_schema, "forex-m20-apply-projected-cost-schema": apply_m20_projected_cost_schema, "forex-m20-stage-mtf-context-schema": stage_m20_multi_timeframe_context_schema, "forex-m20-apply-mtf-context-schema": apply_m20_multi_timeframe_context_schema, "forex-m20-stage-strategy-trial-query": stage_m20_strategy_trial_query, "forex-m20-stage-lifecycle-summary-query": stage_m20_lifecycle_summary_query, "forex-m20-audit-verify": m20_audit_verify, "forex-m20-mtf-context-verify": m20_multi_timeframe_context_verify, "forex-m20-mtf-context-summary": m20_multi_timeframe_context_summary}
+    actions.pop("forex-m20-open-position-schema")
+    actions["forex-m20-stage-open-position-schema"] = stage_m20_open_position_schema
+    if args.command == "forex-m1-postgres-completeness-summary":
+        if args.from_utc is None or args.to_utc is None:
+            parser.error("forex-m1-postgres-completeness-summary requires --from-utc and --to-utc")
+        payload = m1_postgres_completeness_summary(args.from_utc, args.to_utc)
+        print(json.dumps(payload, indent=2))
+        return 0 if payload["ok"] else 1
     actions["forex-m20-rejection-summary"] = m20_rejection_summary
     actions["forex-m20-unresolved-attempt-summary"] = m20_unresolved_attempt_summary
     actions["forex-m20-stage-remove-trade-count-cap-schema"] = stage_m20_remove_trade_count_cap_schema
@@ -1179,6 +1294,9 @@ def main(argv: list[str] | None = None) -> int:
     actions["forex-m20-current-lineage-summary"] = m20_current_lineage_summary
     actions["forex-m20-stage-fee-complete-reconciliation-ledger-schema"] = stage_m20_fee_complete_reconciliation_ledger_schema
     actions["forex-m20-apply-fee-complete-reconciliation-ledger-schema"] = apply_m20_fee_complete_reconciliation_ledger_schema
+    actions["forex-m1-stage-closed-candle-decision-identity-schema"] = stage_m1_closed_candle_decision_identity_schema
+    actions["forex-m1-apply-closed-candle-decision-identity-schema"] = apply_m1_closed_candle_decision_identity_schema
+    actions["forex-m1-closed-candle-decision-identity-verify"] = m1_closed_candle_decision_identity_verify
     actions["forex-m20-lifecycle-summary"] = m20_lifecycle_summary
     actions["forex-m20-strategy-trial-summary"] = m20_strategy_trial_summary
     payload = actions[args.command]()

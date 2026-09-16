@@ -89,9 +89,11 @@ def _session(payload: dict[str, Any]) -> dict[str, Any]:
 
 def _proposal(payload: dict[str, Any]) -> dict[str, Any]:
     value = _object(payload, "proposal")
-    required = {"proposal_id", "session_id", "snapshot_id", "decision_at_utc", "expires_at_utc", "selected_timeframe", "action", "proposed_entry", "stop_loss", "take_profit", "notional_usd", "confidence", "rationale", "decision_snapshot_sha256", "strategy_version"}
+    required = {"proposal_id", "session_id", "snapshot_id", "decision_key", "decision_candle_closed_at_utc", "decision_at_utc", "expires_at_utc", "selected_timeframe", "action", "proposed_entry", "stop_loss", "take_profit", "notional_usd", "confidence", "rationale", "decision_snapshot_sha256", "strategy_version"}
     if set(value) != required or value.get("action") not in {"BUY", "SELL", "NO_TRADE"}:
         raise SystemExit("M20 bridge proposal is invalid")
+    if (value["selected_timeframe"] != "M1" or value["decision_key"] != "|".join(("GOMarketsMU-Demo", "EURUSD", "M1", value["decision_candle_closed_at_utc"]))):
+        raise SystemExit("M20 bridge proposal candle identity is invalid")
     return value
 
 
@@ -271,9 +273,12 @@ def persist_proposal(payload: dict[str, Any]) -> dict[str, Any]:
         if session["max_trades"] is not None:
             cursor.execute("INSERT INTO forex.demo_trade_slot (session_id,slot_number) SELECT %s, generate_series(1,%s) ON CONFLICT DO NOTHING", (session["session_id"], session["max_trades"]))
         cursor.execute(
-            "INSERT INTO forex.demo_trade_proposal (proposal_id,session_id,decision_at_utc,expires_at_utc,selected_timeframe,action,proposed_entry,stop_loss,take_profit,notional_usd,confidence,rationale,decision_snapshot_sha256,strategy_version,application_revision,configuration_fingerprint) VALUES (%(proposal_id)s,%(session_id)s,%(decision_at_utc)s,%(expires_at_utc)s,%(selected_timeframe)s,%(action)s,%(proposed_entry)s,%(stop_loss)s,%(take_profit)s,%(notional_usd)s,%(confidence)s,%(rationale)s,%(decision_snapshot_sha256)s,%(strategy_version)s,%(application_revision)s,%(configuration_fingerprint)s)",
+            "INSERT INTO forex.demo_trade_proposal (proposal_id,session_id,decision_key,decision_candle_closed_at_utc,decision_at_utc,expires_at_utc,selected_timeframe,action,proposed_entry,stop_loss,take_profit,notional_usd,confidence,rationale,decision_snapshot_sha256,strategy_version,application_revision,configuration_fingerprint) VALUES (%(proposal_id)s,%(session_id)s,%(decision_key)s,%(decision_candle_closed_at_utc)s,%(decision_at_utc)s,%(expires_at_utc)s,%(selected_timeframe)s,%(action)s,%(proposed_entry)s,%(stop_loss)s,%(take_profit)s,%(notional_usd)s,%(confidence)s,%(rationale)s,%(decision_snapshot_sha256)s,%(strategy_version)s,%(application_revision)s,%(configuration_fingerprint)s) ON CONFLICT (proposal_id) DO NOTHING RETURNING proposal_id",
             {**proposal, "application_revision": revision, "configuration_fingerprint": fingerprint},
         )
+        if cursor.fetchone() is None:
+            receipt = {"session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "snapshot_id": proposal["snapshot_id"], "multi_timeframe_context_id": None}
+            return {"ok": True, "postgres_audit": {**receipt, "execution_attempt_id": None, "already_persisted": True, "record_sha256": _digest({**receipt, "execution_attempt_id": None})}}
         cursor.execute(
             "INSERT INTO forex.demo_decision_snapshot (snapshot_id,proposal_id,observed_at_utc,captured_at_utc,bid,ask,spread_points,m1_closed_bars,m5_closed_bars,news_context,freshness_seconds,payload_sha256) VALUES (%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,%s,%s)",
             (snapshot["snapshot_id"], proposal["proposal_id"], snapshot["observed_at_utc"], snapshot["captured_at_utc"], snapshot["bid"], snapshot["ask"], snapshot["spread_points"], json.dumps(snapshot["m1_closed_bars"]), json.dumps(snapshot["m5_closed_bars"]), json.dumps({"calendar_overlay": snapshot["calendar_overlay"]} if "calendar_overlay" in snapshot else {}), snapshot["freshness_seconds"], snapshot["payload_sha256"]),

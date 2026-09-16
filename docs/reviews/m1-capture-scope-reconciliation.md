@@ -2,19 +2,20 @@
 
 ## Decision
 
-Chris approved the supporting-tooling amendment to M30 on 2026-09-16. The
-local capture package is therefore authorised. M30 remains
-`AWAITING_REAL_WORLD_PROOF`: this amendment does not prove, waive, or alter
-its separate bounded Demo-order requirement. M31 remains planned.
+Chris approved the hybrid-delivery amendment to M30 on 2026-09-16. Retained
+reporting, read-only persistence measurement, measured capture repair,
+candle/refusal handling, final input checks, qualified context and outcome
+reporting may proceed without an old-version Demo trade. M30's final bounded
+Demo-order requirement remains unchanged; M31 remains planned.
 
 ## Contract comparison
 
 | Contract | What it authorises | Fit for stable M1 envelope package |
 | --- | --- | --- |
-| M30 — awaiting real-world proof | One bounded autonomous Demo order, mandatory close and reconciliation using the existing fixed path; plus authorised local, read-only evidence interpretation | Yes, but only for an envelope and report consuming retained artifacts and already-captured PostgreSQL summaries. No runtime or broker path may change. |
+| M30 — hybrid delivery / final proof pending | One bounded autonomous Demo order, mandatory close and reconciliation; plus bounded M1 delivery using existing persistence | Yes. Delivery precedes and is proven by the final-version M30 lifecycle. No migration, scheduler, Live, strategy/risk, generic interface or broker-retry change is authorised. |
 | M31 — next | Evaluate controlled Demo outcomes against predeclared baselines | No, yet. It depends on M30 being PROVEN, which the current state does not show. Its present wording evaluates outcomes; it does not explicitly deliver capture infrastructure. |
 
-The registry amendment authorises this local package. It does not satisfy
+The registry amendment authorises these delivery packages. It does not satisfy
 M31's M30 dependency or change M30's `proven_at` requirement.
 
 ## Proposed bounded package
@@ -52,13 +53,15 @@ review record.
 
 ## Authority disposition
 
-The chosen path is a narrow M30 supporting-tooling amendment. A pure local
-reader/report does not modify the Demo execution surface, so it needs focused
-tests and review but no fresh broker drill. Runtime capture, schema,
-orchestration, deployment, or context-gate changes remain separately scoped.
+The chosen path is the M30 hybrid-delivery amendment. A pure local reader/report
+does not modify the Demo execution surface. Adopted runtime changes require
+targeted tests and are demonstrated by M30's final-version broker proof; they
+do not require a prior old-version drill. Migration, orchestration/deployment
+and scheduler changes remain separately scoped.
 
 ## Current status
 
-The local envelope/report implementation is authorised. Runtime, schema,
-deployment, schedule and broker changes remain blocked. M30 remains awaiting
-real-world proof and M31 remains planned.
+The local envelope/report is complete. Read-only persistence measurement and
+the bounded M1 delivery packages are authorised. Migration, deployment,
+schedule, Prefect/n8n and broker-authority changes remain blocked. M31 remains
+planned until M30 is proven.

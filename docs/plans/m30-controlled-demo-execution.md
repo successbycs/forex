@@ -39,6 +39,12 @@ over a retained M30 evidence bundle.
   local retained-assessment envelope and offline completeness report. This is
   separate from the bounded Demo-order proof: it changes no runtime, schema,
   configuration, schedule, strategy, risk control, or broker authority.
+- [x] (2026-09-16) Chris approved the bounded hybrid-delivery amendment:
+  read-only persistence measurement, measured M1 capture repair, candle/refusal
+  handling, final input checks, qualified context and reporting may be
+  implemented before the M30 proof attempt. The final Demo lifecycle proves
+  the resulting version; it does not authorise migration, scheduling, Live,
+  strategy/risk, generic-interface or broker-retry changes.
 - [x] (2026-09-16) Implemented and focused-tested the local envelope/report
   readers. A retained listener spool record produced a digest-bound `NO_TRADE`
   envelope; a supplied empty summary remained an unmatched report result, not

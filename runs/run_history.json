@@ -13365,6 +13365,37 @@
         "from": "NEEDS_FIX",
         "to": "AWAITING_REAL_WORLD_PROOF"
       }
+    },
+    {
+      "event_id": "E000829",
+      "timestamp": "2026-09-16T05:48:44Z",
+      "milestone_id": "M30",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "AWAITING_REAL_WORLD_PROOF",
+        "to": "NEEDS_FIX",
+        "reason": "Hybrid-delivery amendment adds authorised implementation packages before final M30 proof."
+      }
+    },
+    {
+      "event_id": "E000830",
+      "timestamp": "2026-09-16T05:48:45Z",
+      "milestone_id": "M30",
+      "action": "MILESTONE_READY",
+      "detail": {
+        "from": "NEEDS_FIX",
+        "to": "READY"
+      }
+    },
+    {
+      "event_id": "E000831",
+      "timestamp": "2026-09-16T05:48:45Z",
+      "milestone_id": "M30",
+      "action": "MILESTONE_STARTED",
+      "detail": {
+        "from": "READY",
+        "to": "IN_PROGRESS"
+      }
     }
   ]
 }

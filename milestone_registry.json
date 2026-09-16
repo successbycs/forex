@@ -521,7 +521,8 @@
         "Define a versioned PostgreSQL physical schema, lineage keys, integrity constraints, immutable snapshot boundary, and no-lookahead enforcement for those contracts.",
         "Use the existing private T480 AI Lab PostgreSQL/pgvector service through a fixed Forex-owned T480 operation; apply the M2 migration and import the retained M1 720-bar EUR/USD H1 observation as one verified snapshot.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification.",
-        "Supporting offline evidence interpretation only: define and test a versioned M1 retained-assessment envelope and a read-only completeness report over retained artifacts and previously captured PostgreSQL summaries. This work has no listener, adapter, database, schedule, strategy, risk, or broker authority."
+        "Supporting offline evidence interpretation: define and test a versioned M1 retained-assessment envelope and a read-only completeness report over retained artifacts and previously captured PostgreSQL summaries.",
+        "MVP hybrid M1 delivery: measure existing persistence through fixed read-only evidence, repair measured M1 capture gaps using existing persistence, introduce candle-keyed terminal decision/refusal handling and final pre-submit input refusal checks, integrate qualified point-in-time context, retain M5/H1 provenance, and extend exact-identity outcome reporting. Existing Demo account, one-position cap, sizing, strategy, risk, protection, monitoring, reconciliation and Live prohibition remain unchanged."
       ],
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
@@ -640,7 +641,8 @@
       "out_of_scope": [
         "Live trading and access to GOMarketsMU-Live.",
         "Generic MT5, shell, or source-download command surfaces.",
-        "Any modification to listener runtime payloads, fixed adapter output, PostgreSQL schema, governed configuration, deployment, schedule, strategy, risk policy, or broker authority as part of the supporting offline evidence work.",
+        "Prefect or n8n installation, activation, scheduling, deployment, or migration; those are a separately justified pipeline branch and do not block M1 correctness work.",
+        "Database schema migration, generic SQL/MT5/shell surfaces, new strategy/model/regime rules, M15 execution, changed risk limits or sizing, Live authority, or broker retry behaviour.",
         "Capabilities assigned to later milestones."
       ],
       "operator_config_affected": [
@@ -3817,7 +3819,7 @@
         },
         {
           "id": "M30-C2",
-          "description": "M30-specific verification and governance validation pass with inspectable, versioned artifacts, including focused tests for authorised supporting offline evidence interpretation.",
+          "description": "M30-specific verification and governance validation pass with inspectable artifacts for retained assessment evidence, candle-keyed terminal decision integrity, safe refusal/final-input handling, and the existing audit/reconciliation path. Qualified context, broader reporting and orchestration are deferred MVP work.",
           "kind": "VERIFICATION"
         },
         {
@@ -3879,11 +3881,11 @@
         "A material implementation, dependency, declared surface, schema, source contract, model/prompt, licensing, or governed configuration change.",
         "Evidence exceeding its declared freshness window.",
         "A point-in-time, provenance, or safety-boundary violation.",
-        "A pure local reader or report over already-retained artifacts does not invalidate the M30 Demo execution surface by itself; any change to the listener, adapter, database schema, governed configuration, or broker path remains a material invalidator."
+        "A pure local reader or report over already-retained artifacts does not invalidate the M30 Demo execution surface by itself; an adopted runtime change requires targeted verification and is demonstrated on the final version by M30's existing real-world proof rather than an old-version drill."
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof. MVP amendment 2026-09-16: the bounded capture preflight retains the M30-specific test output and governance validation receipt; unrelated historical repository tests do not gate this proof attempt. Supporting-tooling amendment 2026-09-16: Chris authorised a local, read-only retained-assessment envelope and completeness report. This preserves M30's Demo-order proof surface, does not grant runtime or broker authority, and does not make M30 PROVEN."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof. MVP amendment 2026-09-16: the bounded capture preflight retains the M30-specific test output and governance validation receipt; unrelated historical repository tests do not gate this proof attempt. Supporting-tooling amendment 2026-09-16: Chris authorised a local, read-only retained-assessment envelope and completeness report. Requirements reset 2026-09-17: the MVP is a protected, explainable EURUSD Demo M1 loop with one terminal decision per closed candle and the existing order/close/reconciliation proof. Package D is the remaining MVP build; qualified context, broader reporting, Prefect/n8n and time-frame expansion are deferred. Package D authorisation permits exactly one additive schema migration and matching fixed runtime decision key for Demo account, EURUSD, M1 and closed-candle identity; local implementation and verification are authorised, but staging, applying the migration, deployment, schedules, Live, generic interfaces, strategy/risk changes and broker retries remain excluded."
     },
     {
       "milestone_id": "M31",

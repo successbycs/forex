@@ -61,6 +61,23 @@ entry gates.
 
 Prioritise the smallest reliable implementation that proves the active milestone.
 
+### MVP focus rule
+
+Default to the smallest change that makes the next real Demo workflow more
+reliable, observable, or safe. Planning and governance are supporting work;
+they must not become the primary deliverable.
+
+Before adding infrastructure, process, or a new artifact, state the current MVP
+failure it fixes, the smallest implementation, the observable result it will
+produce, and what remains deferred. Do not add a framework, service, scheduler,
+migration framework, review layer, new skill, or new documentation process
+unless the active milestone cannot advance without it.
+
+Prefer one constraint over a platform, one focused test over a broad test
+programme, one retained observation window over endurance testing, and an
+existing listener, bridge, or report path over new orchestration. Preserve an
+honest `UNKNOWN` rather than adding machinery solely to remove uncertainty.
+
 Do not add production-scale infrastructure unless it is required for:
 
 - data integrity;

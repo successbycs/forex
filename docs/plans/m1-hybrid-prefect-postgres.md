@@ -1,32 +1,33 @@
 # Deliver the hybrid M1 workflow in bounded waves
 
-This ExecPlan follows `PLANS.md`. Chris approved Wave 1 only on 2026-09-16.
-Waves 2–5 remain unauthorised for implementation.
+This ExecPlan follows `PLANS.md`. Chris approved the bounded M1 hybrid-delivery
+packages under M30 on 2026-09-16. M30's Demo lifecycle is the final proof gate,
+not a prerequisite for delivery work.
 Keep Progress, Surprises & Discoveries, Decision Log, and Outcomes current.
 
 ## Purpose / Big Picture
 
 
-Make the EUR/USD Demo platform explainable from captured inputs through each
-trade/no-trade decision to broker-reconciled outcomes. PostgreSQL should show
-what was captured, what is missing, why a decision occurred, and what happened
-afterward. Prefect should coordinate data pipelines; n8n should handle bounded
-external integrations. Neither should replace the protected trading runtime.
+Make the EUR/USD Demo platform explainable from captured inputs through one
+terminal M1 decision per closed candle to broker-reconciled outcomes. The MVP
+uses the existing listener, PostgreSQL audit path and read-only status surfaces.
+It does not need a new orchestration or reporting platform.
 
-The smallest useful first delivery is a measured capture baseline and one
-reliable ingestion pipeline, not a migration of every existing job. The final
-delivery is a candle-keyed M1 workflow with qualified event-risk handling,
-independent position protection, and a joined outcome report.
+The remaining MVP build is candle-keyed M1 decision integrity. The final
+delivery is the existing M30 bounded Demo order, close and reconciliation proof
+on that resulting version.
 
 ## Authority and non-goals
 
 
-This document authorises nothing beyond planning. Do not install services,
-change schedules, migrate databases, change runtime rules, deploy, commit, or
-place orders while it is under review. M30 remains the active formal milestone;
-its bounded Demo proof is governed by `docs/plans/m30-controlled-demo-execution.md`.
-Before implementation, map the approved waves to an explicitly authorised
-milestone contract; do not silently enlarge M30 or assume M31 covers them.
+M30 authorises the bounded delivery packages in this plan. Package D may
+prepare, locally verify, and—under Chris's later explicit active-goal execution
+instruction—stage and apply one additive decision-identity migration and
+matching runtime key. Do not install or activate Prefect/n8n,
+change schedules, make other database migrations, change strategy or risk
+rules, deploy, commit, or place orders under this plan. M30's bounded
+Demo proof remains governed by `docs/plans/m30-controlled-demo-execution.md`.
+M31 is not an implementation authority.
 
 The waves below are delivery packages, not new formal milestones. Preserve
 M29's retained evidence and M30's separate proof. A changed runtime needs only
@@ -44,28 +45,18 @@ an already-authorised registry milestone.
 | --- | --- | --- | --- |
 | M20–M28 | Proven or approved historical exception | Do not reimplement them. Reuse their existing retention, audit and safety surfaces only. | Existing foundation for every wave |
 | M29 | Proven, with its retained-evidence policy | Keep its pinned listener/configuration/recovery surface valid. No repeat drill is required for documentation or a separate local reader. | M30 remains eligible |
-| **M30** | **Awaiting real-world proof** | Complete its existing one bounded Demo order, close and reconciliation proof. Its narrow supporting-tooling amendment also authorises a local, read-only envelope and completeness report; it does not alter the Demo proof surface. | Local envelope/completeness implementation; M31 still waits for M30 proof |
-| **Capture package supporting scope** | **Authorised under M30** | Deliver the stable assessment envelope, operational refusals and read-only completeness report over retained inputs only. | Envelope/completeness implementation before the orchestration pilot |
+| **M30** | **Implementation resumed; final proof pending** | Deliver the bounded hybrid M1 packages using existing persistence, then prove the resulting version through one Demo order, close and reconciliation. | Packages A–E below; M31 still waits for M30 proof |
 | **M31** | **Planned; depends on M30** | Its current contract is evaluation, not infrastructure delivery. After the capture and M1 workflow changes exist, explicitly amend M31 if its evaluation surface must include them. | Controlled baseline comparison of the final implemented M1 workflow |
 | M32 | Planned; depends on M31 | Leave unchanged until M31 is proven. It is forward evaluation/live-readiness assessment, not a build milestone. | Later forward Demo evaluation only |
 
-The proposed order is therefore:
+The delivery and proof paths are deliberately separate:
 
-    M30 supporting local envelope/completeness implementation
-      → M30 Demo proof (independent, still required for M31)
-      → orchestration pilot (Wave 2)
-      → M1 decision-contract implementation (Wave 3)
-      → qualified context and reporting (Wave 4)
-      → amend/use M31 for controlled evaluation of the resulting workflow (Wave 5)
-      → M32 forward evaluation
+    A retained-data reporting → B read-only persistence measurement → C measured capture repair
+                                             └→ D candle/refusal + final-input handling
+    A–D complete → M30 final Demo lifecycle proof → M31 evaluation → M32 forward evaluation
 
-The registry has no current milestone that explicitly delivers Waves 2–4. A
-dedicated capture-package milestone is needed after M30; later decision/context
-work needs either its own contract or an explicit amendment that names its
-runtime, data-contract and proof impact. Do not use M31 merely because it is
-next in numeric order. See
-`docs/reviews/m1-capture-scope-reconciliation.md` for the capture-package
-choice.
+Prefect/n8n is an optional, separately justified branch. It never blocks
+candle identity, decision records, protective monitoring, or outcome reporting.
 
 Excluded: Live trading, new strategies, larger risk limits, dynamic sizing,
 mandatory higher-timeframe confirmation, M15 execution, Kafka, Kubernetes,
@@ -75,17 +66,29 @@ orchestration machinery, not eliminating application Python.
 
 ## Progress
 
+<!-- forex-work-projection:start task=M1-PACKAGE-D schema=forex.execution-work-projection.v1 -->
+<!-- forex-work-item id=scope state=DONE -->
+- [x] scope — Bind Package D to the MVP one-decision-per-candle requirement (DONE)
+<!-- forex-work-item id=identity state=DONE -->
+- [x] identity — Implement deterministic closed-M1-candle identity at listener and session boundaries (DONE)
+<!-- forex-work-item id=persistence state=DONE -->
+- [x] persistence — Prepare additive PostgreSQL uniqueness constraint and idempotent bridge contract (DONE)
+<!-- forex-work-item id=verification state=DONE -->
+- [x] verification — Run focused duplicate, restart, refusal and safety regression checks (DONE)
+<!-- forex-work-projection:end -->
+
 
 - [x] (2026-09-16) Drafted architecture boundaries, waves, dependencies and acceptance criteria for review.
 - [x] (2026-09-16) Added the locally scoped `data-pipeline-orchestration` skill at Chris's request; this does not authorise wave execution.
-- [x] (2026-09-16) Chris approved the read-only Wave 1 goal only; no formal milestone state changed.
+- [x] (2026-09-16) Completed the authorised retained-data envelope/report package.
 - [x] (2026-09-16) Completed the read-only capture baseline and minimal data contract in `docs/reviews/m1-capture-baseline.md` and `docs/workflows/m1-data-contract.md`.
 - [x] (2026-09-16) Reconciled the next capture package against M30/M31 and recorded its scope in `docs/reviews/m1-capture-scope-reconciliation.md`.
-- [x] (2026-09-16) Chris approved M30's narrow supporting-tooling amendment for the local envelope/report only; M30's Demo-order proof and M31 dependency remain unchanged.
-- [ ] Wave 2: prove one Prefect/n8n ingestion pipeline and durable projection.
-- [ ] Wave 3: implement candle identity, durable refusals and final entry checks.
-- [ ] Wave 4: connect qualified calendar context and complete shadow/report lineage.
-- [ ] Wave 5: validate the integrated workflow and hand over operating instructions.
+- [x] (2026-09-16) Chris approved M30's hybrid-delivery amendment: implementation may proceed without an old-version M30 trade; the final Demo proof and M31 dependency remain unchanged.
+- [x] Package B: capture and qualify the available fixed read-only PostgreSQL summaries. They end on 2026-09-11 and do not cover the 2026-09-15 retained M1 interval; all projection facts for that interval remain `UNKNOWN`.
+- [x] Package C: add a fixed, parameter-bound read-only PostgreSQL completeness summary. The retained interval contains 16 persisted `NO_TRADE` proposals and no attempts; all raw-to-projection identities join exactly.
+- [x] Package D: implement and locally verify candle identity, durable refusal handling and no-resubmission on an already-persisted candle. On 2026-09-17, Chris's explicit active-goal instruction authorised the fixed hash-bound Demo PostgreSQL migration application; it was staged, applied, and read-only verified. Listener deployment remains pending a clean committed release.
+- [ ] Package E: deferred after the MVP requirements reset; qualified context and broader reporting are not M30 implementation requirements.
+- [ ] Package F: capture M30's bounded final-version Demo lifecycle proof.
 
 ## Context and Orientation
 
@@ -167,10 +170,10 @@ and identifies the smallest useful repair. Unknown is never reported as zero.
 Freeze source-specific freshness thresholds before evaluating the pilot; do
 not invent one global threshold or tune it after seeing failures.
 
-### Wave 2 — Prove one orchestration and persistence slice
+### Optional pipeline branch — Prefect/n8n pilot
 
 
-Depends on Wave 1. Inspect shared hosting before selecting a Prefect deployment;
+This branch does not block Packages B–E. Inspect shared hosting before selecting a Prefect deployment;
 record endpoint, pinned compatible versions, worker location, authentication
 and ownership without secrets. Any needed shared-platform change is a separate
 owned package in `cs-ai-lab-infra`, not an implicit deployment permission here.
@@ -206,10 +209,11 @@ running trading database. The operator can follow a run to its retained input
 and database output. Stop expanding Prefect if this slice adds more operational
 burden than it removes; report the findings before migrating another pipeline.
 
-### Wave 3 — Make M1 decisions candle-keyed and durable
+### Package D — Make M1 decisions candle-keyed and durable
 
 
-Depends on Wave 1's identity contract and Wave 2's proven persistence pattern.
+Depends on the approved decision contract and existing PostgreSQL persistence;
+it does not depend on the optional Prefect/n8n branch or a prior M30 trade.
 Edit the listener, trading session and fixed PostgreSQL bridge, plus focused
 tests. Introduce a database-enforced decision identity scoped by Demo account,
 symbol, timeframe and candle close. Record configuration/strategy versions as
@@ -238,10 +242,31 @@ unjournaled entry; existing protective monitoring continues and retains its
 outcomes for later reconciliation. Existing sizing, stops, targets and caps
 remain unchanged.
 
-### Wave 4 — Qualified context and useful outcome reporting
+#### Package D execution and controlled application sequence
+
+1. Add one deterministic `decision_key`: `Demo server + EURUSD + M1 + closed
+   candle UTC`. Add one additive unique database constraint for it.
+2. Add focused tests: repeated poll/restart for one candle creates one terminal
+   decision; malformed input safely refuses; an actionable proposal still
+   cannot exceed the existing one-order protections.
+3. Commit when Chris instructs, then apply the migration and deploy the
+   matching listener/bridge together to Demo under an explicit deployment
+   instruction.
+4. Inspect one short retained M1 interval to confirm one terminal decision per
+   closed candle. Do not force an order; M30 remains the later order/close/
+   reconciliation proof.
+
+Chris's later active-goal execution instruction authorised the fixed hash-bound
+Demo PostgreSQL migration application in step 3. The listener release and the
+M30 Demo order remain separately gated by a clean committed release and the
+existing fixed autonomous preflight. There is no new service, scheduler,
+workflow engine, migration framework, review ceremony, or Live capability in
+Package D.
+
+### Package E — Qualified context and useful outcome reporting
 
 
-Depends on Waves 2–3. Wire the existing event-risk evaluator to a validated
+Depends on Package D. Wire the existing event-risk evaluator to a validated
 point-in-time context artifact. Define qualified sources, USD/EUR coverage,
 event identity, impact mapping, source freshness and blackout policy explicitly
 before enabling a blocking gate. A BLS-only feed must not be labelled complete.
@@ -269,10 +294,10 @@ context produce correct reasons; future data cannot affect a past decision;
 missing shadow data has no entry authority; each reported trade joins by exact
 broker identity. M15 stays paused.
 
-### Wave 5 — Integrate and hand over
+### Package F — Integrate, prove and hand over
 
 
-Depends on Waves 1–4. Correct the hybrid diagram and current-workflow document
+Depends on adopted Packages B–E. Correct the hybrid diagram and current-workflow document
 to distinguish implemented from proposed behavior, exactly-one-owner entry,
 pre-submit journaling, submission rejection, unknown responses and recovery.
 Update `docs/architecture.md` and supporting links only to reflect accepted
@@ -307,7 +332,7 @@ These existing focused suites are starting points, not claims of current passes:
     python3 -m pytest -q tests/test_m1_event_risk_gate.py tests/test_m20_multi_timeframe_context.py tests/test_m20_replay_report.py
     python3 scripts/forex_milestones.py validate
 
-Wave 2 adds `python3 -m pytest -q tests/test_calendar_ingestion_flow.py`.
+The optional pipeline branch adds `python3 -m pytest -q tests/test_calendar_ingestion_flow.py`.
 Update this plan with exact read-only observation/report commands and actual
 outputs when Wave 1 discovers deployed interfaces. Do not invent connection
 details. Tests must cover the failure cases specified in each wave; inspect
@@ -337,7 +362,7 @@ capture/replay modules make a wholesale rewrite unnecessary.
 ## Decision Log
 
 
-- Decision: plan first, no implementation. Rationale: Chris explicitly requested review before execution. Date/author: 2026-09-16 / Chris.
+- Decision: separate delivery from proof. Rationale: an old-version Demo trade is not a technical prerequisite for bounded M1 correctness work; the final M30 proof demonstrates the resulting version. Date/author: 2026-09-16 / Chris and Astra review.
 - Decision: Prefect owns migrated data pipelines, n8n bounded integrations, runtime owns trades. Rationale: clear retry authority without putting broker protection behind an orchestrator. Date/author: 2026-09-16 / proposed architecture.
 - Decision: audit then one pilot before migration. Rationale: measure the reported capture problem and constrain MVP complexity. Date/author: 2026-09-16 / proposed delivery sequence.
 - Decision: preserve existing proof except changed surfaces. Rationale: no repeat drills without a material reason. Date/author: 2026-09-16 / Chris direction.
@@ -346,10 +371,10 @@ capture/replay modules make a wholesale rewrite unnecessary.
 ## Outcomes & Retrospective
 
 
-Planning only. No infrastructure, trading behavior, database schema, schedules,
-formal milestone state or deployment changed. Implementation checks and actual
-capture measurements remain pending. Review should settle wave scope before
-execution; hosting details are discoverable Wave 1 work, not guessed here.
+The completed retained-data package is implemented and tested. Remaining
+delivery is independent of M30 proof but stays within the M30 hybrid-delivery
+scope. No infrastructure, database schema, schedules, strategy/risk policy or
+deployment changes are authorised by this plan.
 
 Wave 1 outcome (2026-09-16): local evidence demonstrated a 16-record,
 sequence-contiguous, approximately 104-second listener sample—not continuous
@@ -359,12 +384,11 @@ locally observable and remain `UNKNOWN`. The next smallest repair candidate is
 a stable assessment envelope, not an orchestration installation. See
 `docs/reviews/m1-capture-baseline.md` and `docs/workflows/m1-data-contract.md`.
 
-Capture-package scope outcome (2026-09-16): M30's bounded execution proof does
-not include a source-contract/envelope change, while M31 depends on M30 proof
-and currently states evaluation rather than infrastructure delivery. The pure
-completeness-report interface is documented in
-`docs/workflows/m1-postgres-completeness-report.md`; implementation awaits an
-explicit formal scope choice.
+Hybrid-delivery scope outcome (2026-09-16): M30 now authorises the bounded M1
+delivery packages; its final Demo lifecycle proof remains required and M31
+remains evaluation-only. The pure completeness-report interface is implemented
+in `src/forex/m1_postgres_completeness.py`; it awaits a real retained summary,
+not a prior trade.
 
 Draft checks (2026-09-16): both planning files exist and `git diff --check`
 reported no tracked whitespace errors. No runtime tests were needed or run for
@@ -396,5 +420,6 @@ Design context: [hybrid diagram](../workflows/m1-hybrid-decision-flow.md) and
 [end-state review](../reviews/m1-decision-workflow-end-state.md). Their simplified
 flows are not substitutes for the failure and persistence contracts above.
 
-Revision note (2026-09-16): initial review-only plan packages the hybrid workflow,
-PostgreSQL capture priority and Prefect/n8n split into five bounded waves.
+Revision note (2026-09-16): the initial review-only serial waves were replaced
+by an independent delivery DAG. The optional Prefect/n8n branch no longer gates
+M1 data correctness; M30 proof is the final operational acceptance gate.

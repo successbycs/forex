@@ -627,6 +627,10 @@ def test_m20_runner_builds_the_same_no_trade_shape_accepted_by_the_evidence_cont
     raw_bars = {"M1": bars("M1", 1, (1.1000, 1.1001)), "M5": []}
     tick = {"observed_at_utc": stamp(observed), "freshness_seconds": 2, "bid": 1.1, "ask": 1.1002, "spread_points": 2.0}
     snapshot, proposal, selection, assessments = probe._assessment(session, tick, raw_bars, observed.replace(second=2), {"volume": 0.01, "tick_size": 0.00001, "tick_value_loss": 1.395, "point": 0.00001}, 0.25)
+    _, later_proposal, _, _ = probe._assessment(session, tick, raw_bars, observed.replace(second=7), {"volume": 0.01, "tick_size": 0.00001, "tick_value_loss": 1.395, "point": 0.00001}, 0.25)
+    assert proposal["proposal_id"] == later_proposal["proposal_id"]
+    assert proposal["decision_key"] == "GOMarketsMU-Demo|EURUSD|M1|2026-09-03T00:10:00Z"
+    assert proposal["decision_candle_closed_at_utc"] == "2026-09-03T00:10:00Z"
     digest = "sha256:" + "a" * 64
     payload = {
         "configuration_fingerprint": digest, "session": session, "decision_snapshot": snapshot, "proposal": proposal,
@@ -996,6 +1000,36 @@ def test_m20_capture_same_minute_real_recheck_reaches_order_send(monkeypatch, tm
     with pytest.raises(RuntimeError, match="order_send reached"):
         probe.capture("terminal", tmp_path / "lease.json")
     assert reached == [True]
+
+
+def test_m20_capture_existing_candle_never_reserves_or_resubmits(monkeypatch, tmp_path):
+    probe = _m20_probe_module(monkeypatch)
+    initial = datetime(2026, 9, 9, 6, 0, 20, tzinfo=timezone.utc)
+    _capture_test_environment(monkeypatch, probe, initial=initial, after_capture=initial)
+    calls = []
+
+    def bridge(payload, command):
+        calls.append(command)
+        if command == "enforce-risk-policy":
+            return {"risk": {"entry_allowed": True, "maximum_loss_aud": 100}}
+        if command == "persist-proposal":
+            return {"postgres_audit": {"session_id": "s", "proposal_id": payload["proposal"]["proposal_id"], "snapshot_id": payload["proposal"]["snapshot_id"], "execution_attempt_id": None, "already_persisted": True, "record_sha256": "sha256:" + "e" * 64}}
+        assert command == "reconcile"
+        return {"reconciliation": {"session_id": "s", "proposal_id": payload["proposal_id"], "snapshot_id": "existing", "execution_attempt_id": None, "status": "NO_TRADE_RECONCILED"}}
+
+    monkeypatch.setattr(probe, "_bridge", bridge)
+    monkeypatch.setattr(probe.mt5, "order_send", lambda *_: pytest.fail("existing candle must not submit"), raising=False)
+    result = probe.capture("terminal", tmp_path / "lease.json")
+    assert result["execution"]["status"] == "ALREADY_PERSISTED_NO_RESUBMISSION"
+    assert calls == ["enforce-risk-policy", "persist-proposal", "reconcile"]
+
+
+def test_m1_closed_candle_identity_migration_is_additive_and_unique():
+    migration = (t480_adapter.ROOT / "sql/migrations/024_m1_closed_candle_decision_identity.sql").read_text(encoding="utf-8")
+    assert "ADD COLUMN IF NOT EXISTS decision_key" in migration
+    assert "ADD COLUMN IF NOT EXISTS decision_candle_closed_at_utc" in migration
+    assert "CREATE UNIQUE INDEX IF NOT EXISTS demo_trade_proposal_m1_decision_key_unique" in migration
+    assert "DELETE" not in migration and "UPDATE" not in migration
 
 
 def test_m20_owner_time_exit_runs_before_bad_monitor_history(monkeypatch):

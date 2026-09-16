@@ -1,0 +1,12 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "M1-PACKAGE-C",
+  "authorization": "Chris instructed continuation on 2026-09-17. Package C repairs only Package B's measured missing interval-bound read surface. It permits local code, tests and a read-only capture; it excludes staging, deployment, migrations, schedules, trading and broker actions.",
+  "markdown_plan": "docs/plans/m1-hybrid-prefect-postgres.md",
+  "items": [
+    {"id": "scope", "title": "Bind the repair to Package B's out-of-interval finding", "state": "DONE", "requires": [], "evidence": ["Package B manifest: both available summaries ended before the retained M1 interval."], "blocker": null},
+    {"id": "bounded-reader", "title": "Implement a fixed read-only PostgreSQL completeness summary with strict UTC bounds", "state": "DONE", "requires": ["scope"], "evidence": ["scripts/postgres_pgvector_adapter.py exposes only forex-m1-postgres-completeness-summary with canonical UTC bounds no longer than 24 hours."], "blocker": null},
+    {"id": "capture", "title": "Capture the retained M1 interval through the bounded reader", "state": "DONE", "requires": ["bounded-reader"], "evidence": ["runs/local/m1-package-c/20260917T000000Z/postgres-completeness-summary.json (sha256:ba69b03bf76c48600c95bd39d6067c33cd359aeff2f7b1c9e26b6331f08f7257): 16 persisted NO_TRADE proposals in the declared interval; no attempts."], "blocker": null},
+    {"id": "qa-review", "title": "Verify input validation, read-only query shape and captured result", "state": "DONE", "requires": ["capture"], "evidence": ["2026-09-17: python3 -m pytest -q tests/test_postgres_pgvector_adapter.py tests/test_m1_assessment_envelope.py tests/test_m1_postgres_completeness.py tests/milestones/test_m30.py — 48 passed.", "2026-09-17: python3 scripts/forex_milestones.py validate — milestone governance valid; exact bounded capture and derived completeness report inspected; git diff --check passed."], "blocker": null}
+  ]
+}

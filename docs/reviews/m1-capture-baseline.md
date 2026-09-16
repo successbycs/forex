@@ -9,7 +9,7 @@ The required future comparison is:
     expected source facts → retained raw evidence → validated PostgreSQL facts
       → decision/refusal → attempt → broker lifecycle → reconciliation
 
-This baseline establishes the first two columns where local evidence permits; PostgreSQL observation is explicitly unknown rather than estimated.
+This baseline establishes the first two columns where local evidence permits. Package B later captured two fixed read-only PostgreSQL outputs; neither covers the retained interval, so PostgreSQL facts for that interval remain explicitly unknown rather than estimated.
 
 ## Evidence reviewed
 
@@ -19,7 +19,7 @@ This baseline establishes the first two columns where local evidence permits; Po
 | M1 event annotation | `runs/local/m1-event-reports/m1-event-service-report-20260916T021026263Z-f7d1b430833538589dd7bf7200a19672f2ab9e62387e357d544c1612bdc5b47a.json` | Inputs are attached or refused with a reason | An event veto is enabled; it remains annotation-only |
 | BLS retained calendar | `runs/local/bls-event-store/`, `src/forex/event_capture_store.py`, BLS n8n assets | Raw, metadata and journal records are retained | Complete EUR/USD event coverage or active n8n deployment |
 | M20 lifecycle history | `runs/local/m20-history-captures/` and fixed history/reconciliation tooling | Historical execution and reconciliation outcomes are retained | Current account state or database rows |
-| PostgreSQL contract | `sql/migrations/006_m20_demo_trading_audit.sql`, later M20 migrations, `t480/m20_postgres_audit_bridge.py` | Intended durable proposal-to-outcome model and fixed write actions | Current table contents, write lag, backlog or duplicates |
+| PostgreSQL fixed read | `runs/local/m1-package-b/20260916T0549Z/{lifecycle-summary,current-lineage-summary}.json` | Both reads succeeded and their exact coverage bounds are retained | PostgreSQL facts for the retained 2026-09-15 M1 interval |
 
 ## Observed measurements
 
@@ -36,7 +36,7 @@ The sample begins at `2026-09-15T03:11:03Z` and ends at `2026-09-15T03:12:46Z`: 
 | Missing records inside retained sequence | 0 | Measured only after sequence 37511 begins |
 | Duplicate local capture identities | 0 observed | Measured only in this 16-record sample |
 | Capture delay / backlog | Unknown; source receipt and local retention time are not comparable metrics yet | Unknown |
-| Database projection or write failure | Unknown; no live PostgreSQL query was authorised or available | Unknown |
+| Database projection or write failure | Unknown for the retained interval. Package B's lifecycle read has 70 rows from 2026-09-03T07:42:02Z through 2026-09-11T09:41:17Z; its lineage read declares 2026-09-10T06:00:00Z through 2026-09-11T00:00:00Z. Both end before the 2026-09-15 retained M1 sample. | Measured out-of-interval, therefore unknown |
 
 The source reader deliberately permits its first record to be a baseline. It cannot claim anything about records before 37511. This is an expected absence of evidence, not proof that 37,510 records were missing.
 
@@ -61,7 +61,7 @@ The retained historical M20 lifecycle summary contains **70** rows: 60 closed an
 | Expected absence | No retained evidence before the first spool sequence | Keep the baseline boundary; do not call it a gap |
 | Confirmed gap | 33/38 annotation inputs refused for explicit format/schema/clock reasons | Preserve refusal reasons and define a stable assessment envelope |
 | Confirmed limitation | 16 records cover only about 104 seconds | Do not claim continuous coverage; measure a declared market-open interval later |
-| Unknown | Current PostgreSQL counts, duplicate facts, write failures, lag and backlog | Obtain a fixed read-only projection report before Wave 2 cutover |
+| Confirmed gap | The two available fixed PostgreSQL reports cannot bind a caller-declared M1 interval | Add one parameter-bound, read-only projection report; until then current PostgreSQL counts, duplicate facts, write failures, lag and backlog are `UNKNOWN` for the retained sample |
 | Unknown | Live timer/host health | Observe its declared health surface without altering schedules |
 | Out of scope | Broker execution availability and profitability | Do not infer either from retention records |
 
@@ -85,4 +85,6 @@ Owned paths: this review, `docs/workflows/m1-data-contract.md`, and the Wave 1 p
 
 Read-only checks: source/path inventory; local sequence/receipt inspection; retained annotation report inspection; BLS object-count comparison; migration and bridge review. The existing default continuation checker currently refuses because its default plan resolves to the repository directory; that unrelated issue was not changed under this read-only audit.
 
-Limitations: no live database, host-health, broker or n8n observation was performed. No raw evidence was altered.
+Package B verification: `PYTHONPATH=src python3 -m pytest -q tests/test_m1_assessment_envelope.py tests/test_m1_postgres_completeness.py tests/milestones/test_m30.py` passed (28 tests); `python3 scripts/forex_milestones.py validate` reported valid governance. The two raw PostgreSQL outputs, their hashes and the derived `UNKNOWN` report were inspected. No raw evidence was altered.
+
+Limitations: no PostgreSQL summary covers the retained M1 interval, and no host-health, broker or n8n observation was performed. No raw evidence was altered.

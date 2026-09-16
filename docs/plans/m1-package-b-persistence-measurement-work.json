@@ -1,0 +1,49 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "M1-PACKAGE-B",
+  "authorization": "Chris instructed execution on 2026-09-16 after approving the M30 hybrid-delivery amendment. This package permits only fixed read-only PostgreSQL evidence capture and local report interpretation.",
+  "markdown_plan": "docs/plans/m1-hybrid-prefect-postgres.md",
+  "items": [
+    {
+      "id": "scope",
+      "title": "Record Package B read-only scope and M30 hybrid-delivery authority",
+      "state": "DONE",
+      "requires": [],
+      "evidence": ["M30 hybrid-delivery amendment and the corrected dependency map in docs/plans/m1-hybrid-prefect-postgres.md."],
+      "blocker": null
+    },
+    {
+      "id": "capture-summary",
+      "title": "Capture one fixed read-only PostgreSQL lifecycle and lineage summary",
+      "state": "DONE",
+      "requires": ["scope"],
+      "evidence": [
+        "runs/local/m1-package-b/20260916T0549Z/lifecycle-summary.json (sha256:7fcb9c2cc7b910c06a429ee721256353f63dd04f951dbe97ca9dae90ba94fc39; 70 rows; 2026-09-03T07:42:02Z through 2026-09-11T09:41:17Z)",
+        "runs/local/m1-package-b/20260916T0549Z/current-lineage-summary.json (sha256:ddd93b4c47e92348f784bbe695aac626742df9b801e37af00394476d08c1b393; declared 2026-09-10T06:00:00Z through 2026-09-11T00:00:00Z)"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "compare-report",
+      "title": "Compare the retained M1 interval to the captured summary without inferring missing facts",
+      "state": "DONE",
+      "requires": ["capture-summary"],
+      "evidence": [
+        "runs/local/m1-package-b/20260916T0549Z/measurement-manifest.json (sha256:67f00e962b5f9704886b91046ab806c8ac2a2560bff357132f3240fcfad5d859): both fixed captures are OUT_OF_INTERVAL for the retained 2026-09-15T03:11:03Z to 2026-09-15T03:12:47Z sample.",
+        "runs/local/m1-package-b/20260916T0549Z/completeness-report-unknown.json (sha256:e26b7c215da161a7839d4824e6798b5273e4f691d0cc6e405ad6e8082a80c509): 16 retained terminal NO_TRADE envelopes; PostgreSQL projection, lag, backlog, write failure and joins remain UNKNOWN."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "qa-review",
+      "title": "Verify the retained evidence, report output and stated limitations",
+      "state": "DONE",
+      "requires": ["compare-report"],
+      "evidence": [
+        "2026-09-16: PYTHONPATH=src python3 -m pytest -q tests/test_m1_assessment_envelope.py tests/test_m1_postgres_completeness.py tests/milestones/test_m30.py — 28 passed.",
+        "2026-09-16: python3 scripts/forex_milestones.py validate — milestone governance valid; derived report and manifest inspected; git diff --check passed."
+      ],
+      "blocker": null
+    }
+  ]
+}

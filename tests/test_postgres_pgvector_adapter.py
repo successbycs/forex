@@ -34,7 +34,34 @@ def test_adapter_exposes_only_fixed_forex_operations():
         "forex-m20-apply-not-submitted-execution-schema",
     })
     expected.add("forex-m20-current-lineage-summary")
+    expected.add("forex-m1-postgres-completeness-summary")
+    expected.update({
+        "forex-m1-stage-closed-candle-decision-identity-schema",
+        "forex-m1-apply-closed-candle-decision-identity-schema",
+        "forex-m1-closed-candle-decision-identity-verify",
+    })
     assert postgres_pgvector_adapter.READ_ONLY | postgres_pgvector_adapter.MUTATING == expected
+
+
+def test_m1_closed_candle_identity_schema_operations_are_fixed_and_hash_bound():
+    migration = "sql/migrations/024_m1_closed_candle_decision_identity.sql"
+    transfer = mock.Mock(returncode=0, stdout="", stderr="")
+    conversion = mock.Mock(stdout=r"\\wsl.localhost\Ubuntu\home\chris\projects\forex\sql\migrations\024_m1_closed_candle_decision_identity.sql\n")
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=(migration, "a" * 64)), mock.patch.object(postgres_pgvector_adapter, "subprocess") as process, mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+        process.run.side_effect = [conversion, mock.Mock(returncode=0, stdout="", stderr=""), transfer]
+        assert postgres_pgvector_adapter.stage_m1_closed_candle_decision_identity_schema()["ok"]
+    staged = remote.call_args.args[0]
+    assert "024_m1_closed_candle_decision_identity.sql" in staged
+    assert "sha256sum" in staged and "install -m 0644" in staged
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=(migration, "a" * 64)), mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+        assert postgres_pgvector_adapter.apply_m1_closed_candle_decision_identity_schema()["ok"]
+    assert "sha256sum" in remote.call_args.args[0]
+    with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+        assert postgres_pgvector_adapter.m1_closed_candle_decision_identity_verify()["ok"]
+    query = remote.call_args.args[0]
+    assert "decision_key" in query
+    assert "decision_candle_closed_at_utc" in query
+    assert "demo_trade_proposal_m1_decision_key_unique" in query
 
 
 def test_m20_unresolved_execution_schema_staging_and_application_are_hash_bound():
@@ -178,6 +205,22 @@ def test_m20_lifecycle_summary_is_hash_bound_read_only_and_keeps_lifecycle_state
         postgres_pgvector_adapter.SETTINGS,
     )
     assert len(command[-1]) < 8191
+
+
+def test_m1_completeness_summary_is_bounded_read_only_and_rejects_unsafe_bounds():
+    with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True, "stdout": "{}", "stderr": ""}) as remote:
+        assert postgres_pgvector_adapter.m1_postgres_completeness_summary("2026-09-15T03:11:03Z", "2026-09-15T03:12:47Z")["ok"]
+    query = remote.call_args.args[0]
+    for required in ("demo_trade_proposal", "demo_execution_attempt", "demo_trade_ledger", "from_utc", "to_utc", "forex.m1.postgres-completeness-summary.v1"):
+        assert required in query
+    assert "INSERT" not in query and "UPDATE" not in query and "password" not in query.lower()
+    for invalid in (("not-a-date", "2026-09-15T03:12:47Z"), ("2026-09-15T03:12:47Z", "2026-09-15T03:11:03Z"), ("2026-09-15T03:11:03Z", "2026-09-16T03:11:04Z"), ("2026-09-15T03:11:03Z'; DROP TABLE x;--", "2026-09-15T03:12:47Z")):
+        try:
+            postgres_pgvector_adapter.m1_postgres_completeness_summary(*invalid)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"unsafe bounds accepted: {invalid}")
 
 
 def test_m20_lifecycle_summary_query_staging_is_hash_bound():
