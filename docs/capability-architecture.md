@@ -34,6 +34,8 @@ component must name the capability it belongs to; otherwise it is deferred.
 
 The current evidence-based readiness assessment and update format are kept in
 [Demo autonomy readiness scorecard](demo-autonomy-readiness.md).
+The ordered M1 operational loop and the rules for adding M15 or other decision
+timeframes are kept in [M1 Demo decision workflow](workflows/m1-demo-decision-workflow.md).
 
 | # | Product capability | Owns | Consumes | Produces | Must not do | MVP priority |
 | --- | --- | --- | --- | --- | --- | --- |

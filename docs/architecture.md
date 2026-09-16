@@ -67,6 +67,11 @@ The implementation map and staged repository-structure target are in
 starting point for all new capabilities; it does not replace a milestone
 contract or claim deployment status.
 
+The current M1 decision loop, active gates, and stated M15/timeframe-expansion
+rules are in [M1 Demo decision workflow](workflows/m1-demo-decision-workflow.md).
+It describes operational behaviour; this document continues to own component
+boundaries and deployment architecture.
+
 ## High-level system diagram
 
 ![High-level Forex repository architecture](assets/forex-architecture-overview.png)
@@ -107,6 +112,9 @@ lineage; it does not provide a general download, database, MT5, shell,
 account, or order interface.
 
 ## M20 target operating architecture
+
+For the ordered operational loop and the distinction between active gates and
+shadow context, see the [M1 Demo decision workflow](workflows/m1-demo-decision-workflow.md).
 
 ```text
 T16 / VS Code → read-only M20 terminal dashboard

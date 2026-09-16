@@ -13096,6 +13096,43 @@
         "from": "READY",
         "to": "IN_PROGRESS"
       }
+    },
+    {
+      "event_id": "E000821",
+      "timestamp": "2026-09-16T05:22:03Z",
+      "milestone_id": "M30",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": false,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M30/20260916T052156Z/governance.stdout.txt",
+            "stderr": "runs/verification/M30/20260916T052156Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m30.py"
+            ],
+            "exit_code": 1,
+            "passed": false,
+            "stdout": "runs/verification/M30/20260916T052156Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M30/20260916T052156Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
     }
   ]
 }

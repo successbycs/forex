@@ -44,7 +44,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-16T02:42:40Z",
+  "last_updated_at": "2026-09-16T05:22:03Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -3844,7 +3844,7 @@
       "blockers": []
     },
     "M30": {
-      "status": "IN_PROGRESS",
+      "status": "NEEDS_FIX",
       "started_at": "2026-09-16T02:42:40Z",
       "implementation_finished_at": null,
       "verification_passed_at": null,
@@ -3855,7 +3855,40 @@
       "last_validated_at": null,
       "checks": {},
       "evidence": [],
-      "verification": null,
+      "verification": {
+        "passed": false,
+        "recorded_at": "2026-09-16T05:22:03Z",
+        "git_revision": "3b9c819c499567994bc3d84b9ad7395103103a07",
+        "configuration_fingerprint": "sha256:480f4a09e4a2869f94725d5bd307799729e7cef6f40344f0c15b8dac0f01e246",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M30/20260916T052156Z/governance.stdout.txt",
+            "stderr": "runs/verification/M30/20260916T052156Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m30.py"
+            ],
+            "exit_code": 1,
+            "passed": false,
+            "stdout": "runs/verification/M30/20260916T052156Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M30/20260916T052156Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
       "human_signoff": null,
       "blockers": []
     },

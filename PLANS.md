@@ -136,6 +136,25 @@ surface, raw evidence, independent verification, and required review route.
 Passing tests or a local demonstration can validate implementation but cannot
 support a claim that the milestone is complete.
 
+Every material Forex ExecPlan must include a **Formal milestone dependency
+map**. It must identify, in one place:
+
+* every existing registry milestone that is a prerequisite, its current state,
+  and what (if anything) must still be implemented or proven;
+* the active milestone and whether the plan's implementation actually fits its
+  declared scope and proof surface;
+* each planned, amended, or new milestone/contract needed by later plan waves;
+  and
+* the exact delivery wave blocked until that contract is explicitly authorised.
+
+Do not imply that a numerically next milestone authorises the work. If no
+existing contract fits a material implementation, the ExecPlan must say that a
+new or amended contract is required before runtime, schema, deployment, or
+broker work begins. A plan may propose a contract; it cannot create one,
+advance its state, or waive an entry gate. Mark already-proven prerequisite
+work as reusable rather than listing it as implementation work unless the
+declared invalidation rules actually require it again.
+
 Purpose and intent come first. Begin by explaining, in a few sentences, why the work matters from a user's perspective: what someone can do after this change that they could not do before, and how to see it working. Then guide the reader through the exact steps to achieve that outcome, including what to edit, what to run, and what they should observe.
 
 The agent executing your plan can list files, read files, search, run the project, and run tests. It does not know any prior context and cannot infer what you meant from earlier milestones. Repeat any assumption you rely on. Do not point to external blogs or docs; if knowledge is required, embed it in the plan itself in your own words. A checked-in prior ExecPlan may be cited as a supplementary record, but repeat all information needed to perform the new work safely.
@@ -202,6 +221,15 @@ Prefer additive code changes followed by subtractions that keep tests passing. P
     ## Purpose / Big Picture
 
     Explain in a few sentences what someone gains after this change and how they can see it working. State the user-visible behavior you will enable.
+
+    ## Formal milestone dependency map
+
+    Name every existing formal milestone needed by the plan, its current state,
+    whether it must be implemented, proven, or merely remain valid, and the
+    plan waves it unlocks. Name the active contract and explain why the first
+    proposed implementation fits it. If it does not fit, name the required new
+    or amended contract and mark the affected wave blocked until explicit
+    authorisation. Do not use a milestone number as a proxy for scope.
 
     ## Progress
 
