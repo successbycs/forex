@@ -2,19 +2,20 @@
 
 ## Decision
 
-The approved capture package is not within M30's current formal contract, and
-M31 cannot yet authorise it. Implementation must wait for an explicit formal
-scope decision. Design and read-only contract work may continue.
+Chris approved the supporting-tooling amendment to M30 on 2026-09-16. The
+local capture package is therefore authorised. M30 remains
+`AWAITING_REAL_WORLD_PROOF`: this amendment does not prove, waive, or alter
+its separate bounded Demo-order requirement. M31 remains planned.
 
 ## Contract comparison
 
 | Contract | What it authorises | Fit for stable M1 envelope package |
 | --- | --- | --- |
-| M30 — active | One bounded autonomous Demo order, mandatory close and reconciliation using the existing fixed path | No. A new retained-assessment envelope/source contract and completeness surface are capability changes outside its stated proof surface. |
+| M30 — awaiting real-world proof | One bounded autonomous Demo order, mandatory close and reconciliation using the existing fixed path; plus authorised local, read-only evidence interpretation | Yes, but only for an envelope and report consuming retained artifacts and already-captured PostgreSQL summaries. No runtime or broker path may change. |
 | M31 — next | Evaluate controlled Demo outcomes against predeclared baselines | No, yet. It depends on M30 being PROVEN, which the current state does not show. Its present wording evaluates outcomes; it does not explicitly deliver capture infrastructure. |
 
-The user's goal authorises this package as a delivery objective, but does not
-by itself amend `milestone_registry.json` or satisfy M31's M30 dependency.
+The registry amendment authorises this local package. It does not satisfy
+M31's M30 dependency or change M30's `proven_at` requirement.
 
 ## Proposed bounded package
 
@@ -49,25 +50,15 @@ tested and documented, but does not by itself change the declared M30 execution
 surface. This distinction must be preserved in the implementation plan and
 review record.
 
-## Required authority before implementation
+## Authority disposition
 
-Choose one of these explicit paths:
-
-1. **Dedicated follow-on capture milestone:** add a new contract after M30,
-   with this package's source/projection proof surface. This preserves M30's
-   focused execution proof.
-2. **Amend M30:** explicitly add the envelope/completeness scope and accept a
-   fresh affected M30 proof after the change. This is slower and conflates
-   capture infrastructure with the bounded Demo-order proof.
-3. **Defer implementation:** retain this design until M30 is proven and M31 is
-   explicitly amended to include the capture package.
-
-Recommendation: option 1. It keeps the existing MVP proof narrow and gives the
-capture package a clear, testable surface without a needless repeat of
-unaffected evidence.
+The chosen path is a narrow M30 supporting-tooling amendment. A pure local
+reader/report does not modify the Demo execution surface, so it needs focused
+tests and review but no fresh broker drill. Runtime capture, schema,
+orchestration, deployment, or context-gate changes remain separately scoped.
 
 ## Current status
 
-Design is ready. Runtime, schema, deployment, schedule and broker changes are
-blocked pending one of the above formal scope decisions. No formal state has
-been changed by this document.
+The local envelope/report implementation is authorised. Runtime, schema,
+deployment, schedule and broker changes remain blocked. M30 remains awaiting
+real-world proof and M31 remains planned.

@@ -35,6 +35,15 @@ over a retained M30 evidence bundle.
   unrelated stale historical-state tests and did not test M30's Demo surface.
   The amended suite has 23 passing tests, including refusal of a missing
   targeted-verification receipt; registry validation passes.
+- [x] (2026-09-16) Chris approved a narrow supporting-tooling amendment for a
+  local retained-assessment envelope and offline completeness report. This is
+  separate from the bounded Demo-order proof: it changes no runtime, schema,
+  configuration, schedule, strategy, risk control, or broker authority.
+- [x] (2026-09-16) Implemented and focused-tested the local envelope/report
+  readers. A retained listener spool record produced a digest-bound `NO_TRADE`
+  envelope; a supplied empty summary remained an unmatched report result, not
+  a claim about PostgreSQL. Unsupported retained input is preserved as an
+  explicit operational refusal. M30 remains awaiting its separate Demo proof.
 - [ ] Validate the implementation, record M30-C2/C4 as applicable, and obtain
   an independent read-only review.
 - [ ] When the existing autonomous preflight is eligible, perform the bounded

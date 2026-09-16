@@ -4,6 +4,17 @@
 
 This contract defines the minimum durable records required to trace an EUR/USD M1 Demo decision from observed data to reconciliation. It is a Wave 1 design contract: it documents target fields and invariants for later authorised changes. It does not change the listener, database schema, schedule or broker authority.
 
+## Current local supporting reader
+
+The authorised M30 supporting-tooling package provides
+`forex.m1.assessment-envelope.v1` as a pure reader over one retained source
+artifact. It binds the exact source reference and SHA-256 digest and emits
+either a derived terminal `BUY`, `SELL`, or `NO_TRADE` decision, or an
+`OPERATIONAL_REFUSAL` with a stable reason code. It never changes the source
+bytes, listener, database, schedule, strategy, risk policy, or broker path.
+This is not yet a candle-keyed runtime guarantee; historical artifacts without
+the required shape or provenance remain explicit refusals.
+
 The current system retains many of these fields in M20 proposals, snapshots and audit tables. It does not yet guarantee one terminal decision per completed candle. A field marked **required** is required before that future claim can be made; it is not a claim that every historical artifact has it.
 
 ## Authority boundary

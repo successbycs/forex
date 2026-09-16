@@ -65,8 +65,10 @@ the limitation rather than repairing or dropping it.
 
 ## Current gap
 
-The repository has fixed lifecycle and lineage summaries, but no captured
-versioned PostgreSQL completeness summary spanning retained receipt through
-projection. Wave 1 therefore reports PostgreSQL counts, lag, backlog, write
-failures and joins as `UNKNOWN`. The first authorised implementation should add
-only this bounded reader/builder surface after formal scope reconciliation.
+The repository now has a pure `forex.m1.completeness-report.v1` builder. It
+accepts only derived envelopes plus a supplied versioned summary capture, and
+does not connect to PostgreSQL or an adapter. The repository still has no
+captured versioned PostgreSQL completeness summary spanning retained receipt
+through projection. Until one is retained, database counts, lag, backlog,
+write failures and joins remain `UNKNOWN`; a synthetic empty summary is only a
+shape test, not a database observation.

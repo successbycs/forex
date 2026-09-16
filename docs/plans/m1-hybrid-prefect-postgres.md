@@ -44,15 +44,15 @@ an already-authorised registry milestone.
 | --- | --- | --- | --- |
 | M20–M28 | Proven or approved historical exception | Do not reimplement them. Reuse their existing retention, audit and safety surfaces only. | Existing foundation for every wave |
 | M29 | Proven, with its retained-evidence policy | Keep its pinned listener/configuration/recovery surface valid. No repeat drill is required for documentation or a separate local reader. | M30 remains eligible |
-| **M30** | **In progress** | Complete its existing one bounded Demo order, close and reconciliation proof. Do not add capture-envelope features to M30 by implication. | A new post-M30 capture milestone and M31 entry gate |
-| **Capture package contract — new or explicitly amended** | **Not yet created** | Authorise the stable assessment envelope, operational refusals and read-only completeness report; declare its local/raw/DB proof surface and affected M30 evidence policy. | Envelope/completeness implementation before the orchestration pilot |
+| **M30** | **Awaiting real-world proof** | Complete its existing one bounded Demo order, close and reconciliation proof. Its narrow supporting-tooling amendment also authorises a local, read-only envelope and completeness report; it does not alter the Demo proof surface. | Local envelope/completeness implementation; M31 still waits for M30 proof |
+| **Capture package supporting scope** | **Authorised under M30** | Deliver the stable assessment envelope, operational refusals and read-only completeness report over retained inputs only. | Envelope/completeness implementation before the orchestration pilot |
 | **M31** | **Planned; depends on M30** | Its current contract is evaluation, not infrastructure delivery. After the capture and M1 workflow changes exist, explicitly amend M31 if its evaluation surface must include them. | Controlled baseline comparison of the final implemented M1 workflow |
 | M32 | Planned; depends on M31 | Leave unchanged until M31 is proven. It is forward evaluation/live-readiness assessment, not a build milestone. | Later forward Demo evaluation only |
 
 The proposed order is therefore:
 
-    M30 proof
-      → dedicated capture-package contract and envelope/completeness implementation
+    M30 supporting local envelope/completeness implementation
+      → M30 Demo proof (independent, still required for M31)
       → orchestration pilot (Wave 2)
       → M1 decision-contract implementation (Wave 3)
       → qualified context and reporting (Wave 4)
@@ -80,7 +80,8 @@ orchestration machinery, not eliminating application Python.
 - [x] (2026-09-16) Added the locally scoped `data-pipeline-orchestration` skill at Chris's request; this does not authorise wave execution.
 - [x] (2026-09-16) Chris approved the read-only Wave 1 goal only; no formal milestone state changed.
 - [x] (2026-09-16) Completed the read-only capture baseline and minimal data contract in `docs/reviews/m1-capture-baseline.md` and `docs/workflows/m1-data-contract.md`.
-- [x] (2026-09-16) Reconciled the next capture package against M30/M31 and recorded that runtime/schema implementation needs a new or amended formal contract in `docs/reviews/m1-capture-scope-reconciliation.md`.
+- [x] (2026-09-16) Reconciled the next capture package against M30/M31 and recorded its scope in `docs/reviews/m1-capture-scope-reconciliation.md`.
+- [x] (2026-09-16) Chris approved M30's narrow supporting-tooling amendment for the local envelope/report only; M30's Demo-order proof and M31 dependency remain unchanged.
 - [ ] Wave 2: prove one Prefect/n8n ingestion pipeline and durable projection.
 - [ ] Wave 3: implement candle identity, durable refusals and final entry checks.
 - [ ] Wave 4: connect qualified calendar context and complete shadow/report lineage.
