@@ -3732,7 +3732,7 @@
           "scripts/verify_m29_evidence.sh",
           "{bundle}"
         ],
-        "freshness_hours": 24,
+        "freshness_hours": 10,
         "success_markers": [
           "FOREX_M29_PROOF_OK"
         ]

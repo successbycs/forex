@@ -58,7 +58,7 @@ Suggested replacement acceptance details:
   bad release/configuration binding, future or stale timestamps, wrong server,
   non-flat exposure, released hold, failed/inconclusive protocol, and duplicate
   worker evidence.
-- C3: the capture must occur inside the contract’s 24-hour window with
+- C3: the capture must occur inside the contract’s 10-hour window with
   nonfuture timestamps, clean tracked revision, current governed configuration
   fingerprint, exact listener release ID, application revision, payload hashes,
   protocol schema version, and verifier hash. The manifest must bind every raw
