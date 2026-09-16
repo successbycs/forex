@@ -88,6 +88,15 @@ def _shadow_context_lines(context: Any) -> list[str]:
 
 
 def render(status: dict[str, Any]) -> str:
+    if status.get("state") == "UNAVAILABLE":
+        return "\n".join([
+            "M20 Demo Listener — live assessment dashboard",
+            "=" * 47,
+            "Listener status is temporarily unavailable.",
+            f"Detail: {_value(status.get('detail'))}",
+            "The dashboard will retry automatically; no trading action was taken by this view.",
+            "Ctrl+C exits. Data is Demo-only and the dashboard is read-only.",
+        ])
     result = status.get("last_result") or {}
     proposal = result.get("proposal") or {}
     metrics = result.get("assessment_metrics") or {}

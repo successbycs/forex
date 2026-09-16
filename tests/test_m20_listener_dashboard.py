@@ -11,6 +11,13 @@ def test_dashboard_status_timeout_remains_refreshable():
     assert "exceeded eight seconds" in status["detail"]
 
 
+def test_dashboard_renders_a_clear_unavailable_state_instead_of_blank_fields():
+    screen = render({"state": "UNAVAILABLE", "detail": "T480 listener-status check exceeded eight seconds; dashboard will retry."})
+    assert "Listener status is temporarily unavailable." in screen
+    assert "exceeded eight seconds" in screen
+    assert "M1 decision:" not in screen
+
+
 def test_dashboard_renders_decision_and_candle_metrics():
     screen = render({
         "state": "RUNNING", "iteration": 7, "heartbeat_at_utc": "2026-09-03T09:33:00Z", "heartbeat_at_nzst": "03/09/26 21:33:00 NZST",
