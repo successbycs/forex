@@ -3772,7 +3772,7 @@
     {
       "milestone_id": "M30",
       "title": "Controlled MT5 Demo execution and reconciliation proven",
-      "objective": "Only after all prior gates, prove a human-approved GOMarketsMU-Demo order and its complete reconciliation.",
+      "objective": "Only after all prior gates, prove one bounded autonomous GOMarketsMU-Demo order and its complete reconciliation.",
       "delivery_type": "CAPABILITY_DELIVERING",
       "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": [
@@ -3785,8 +3785,8 @@
       "from_state": "The milestone capability is not yet proven.",
       "to_state": "Controlled MT5 Demo execution and reconciliation proven",
       "scope": [
-        "Only after all prior gates, prove a human-approved GOMarketsMU-Demo order and its complete reconciliation.",
-        "For the one-position intraday strategy, prove human-approved Demo entry, mandatory close by the configured cutoff or earlier risk exit, and complete reconciliation of both actions.",
+        "Only after all prior gates, prove one bounded autonomous GOMarketsMU-Demo order and its complete reconciliation.",
+        "For the one-position intraday strategy, prove autonomous Demo entry within existing fixed safety limits, mandatory close by the configured cutoff or earlier risk exit, and complete reconciliation of both actions.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -3806,7 +3806,7 @@
       "acceptance_criteria": [
         {
           "id": "M30-C1",
-          "description": "The capability works on the declared surface: human-approved GOMarketsMU-Demo intraday entry, mandatory close, and complete reconciliation surface.",
+          "description": "The capability works on the declared surface: bounded autonomous GOMarketsMU-Demo intraday entry, mandatory close, and complete reconciliation surface.",
           "kind": "CAPABILITY"
         },
         {
