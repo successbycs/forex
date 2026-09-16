@@ -11,7 +11,7 @@ mkdir "$bundle"
 
 material_changes="$(git status --porcelain --untracked-files=all | awk 'substr($0,4) != "project_state.json" && substr($0,4) != "runs/run_history.json"')"
 test -z "$material_changes"
-python3 -m pytest -q tests/milestones/test_m30.py >"$bundle/tests.txt" 2>&1
+python3 -m pytest -o addopts='' -q tests/milestones/test_m30.py >"$bundle/tests.txt" 2>&1
 python3 scripts/forex_milestones.py validate >"$bundle/governance.txt" 2>&1
 bash scripts/verify_project.sh >"$bundle/repository-verification.txt" 2>&1
 python3 scripts/validate_config.py --root "$root" --json >"$bundle/configuration.json"
@@ -28,7 +28,9 @@ PY
 # The sole broker-capable action. Its committed fixed operation owns account,
 # symbol, risk gates, position cap, mandatory close, and reconciliation.
 python3 scripts/t480_adapter.py execute --operation m20_demo_trading_session >"$bundle/demo-trading-operation.json"
-python3 scripts/postgres_pgvector_adapter.py forex-m20-lifecycle-summary >"$bundle/lifecycle-summary.json"
+# The executor returns OPEN_MONITORING. Observe that exact attempt until the
+# existing monitor has closed it; this command cannot submit or retry an order.
+python3 scripts/m30_evidence_contract.py wait-for-close --root "$root" --bundle "$bundle"
 python3 scripts/t480_adapter.py execute --operation m20_listener_diagnostics >"$bundle/listener-diagnostics.json"
 python3 scripts/t480_adapter.py execute --operation m20_listener_status >"$bundle/listener-status.json"
 git rev-parse HEAD >"$bundle/revision.txt"

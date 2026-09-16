@@ -23,9 +23,13 @@ over a retained M30 evidence bundle.
   the authoritative account was flat on GOMarketsMU-Demo/AUD, while the
   listener remained in `MAINTENANCE_HOLD` and its deployed application revision
   was `aa416361930e86d4346c33499491b20d14058d09`.
-- [ ] Add the M30 capture and offline verifier that bind the persisted proposal,
+- [x] (2026-09-16) Add the M30 capture and offline verifier that bind the persisted proposal,
   raw operation output, source revision, configuration fingerprint, lifecycle, broker
   history, and reconciliation.
+- [x] (2026-09-16) Independent Astra implementation review identified and
+  repaired asynchronous entry handling, exact lifecycle selection, manifest
+  surface mismatch, and suppressed pytest summaries. The 22 focused M30 tests
+  pass, including a complete synthetic bundle and semantic negative controls.
 - [ ] Validate the implementation, record M30-C2/C4 as applicable, and obtain
   an independent read-only review.
 - [ ] When the existing autonomous preflight is eligible, perform the bounded
@@ -36,6 +40,20 @@ over a retained M30 evidence bundle.
 
 ## Surprises & Discoveries
 
+- Observation: a successful fixed entry returns `OPEN_MONITORING`, not a
+  terminal reconciliation. The original M30 capture/verifier therefore could
+  not accept the real executor output. Also its manifest surface differed
+  from the registry, and doubled pytest quiet flags suppressed the required
+  passing-test summary.
+  Evidence: `t480/m20_demo_trading_session.py` returns a scheduled monitor;
+  `tests/milestones/test_m30.py` now exercises that response and exact final
+  lifecycle through capture and the offline verifier.
+- Observation: the owner monitor sends a time-stop close at the configured
+  deadline. A broker fill after that deadline cannot prove the literal M30
+  requirement to close by the cutoff. Earlier protected exits can prove it.
+  Evidence: `_monitor_open_position` and `OWNER_MAX_HOLD_SECONDS` in
+  `t480/m20_demo_trading_session.py`. No runtime timing or contract tolerance
+  was changed by this tooling repair.
 - Observation: M20's executor already persists a proposal and has fixed
   one-position, Demo-only entry and close logic, but its capture contract has
   no M30 evidence bundle.
@@ -64,7 +82,9 @@ over a retained M30 evidence bundle.
 
 ## Outcomes & Retrospective
 
-Not complete. No M30 order, hold release, or external mutation has occurred.
+Local tooling is repaired and the 22 focused M30 synthetic tests pass. No M30
+order, hold release, or external mutation was performed by this review.
+Real-system proof, deployment readiness, and formal closeout remain pending.
 
 ## Context and Orientation
 
@@ -93,7 +113,11 @@ First, add `scripts/capture_m30_evidence.sh`,
 `scripts/m30_evidence_contract.py`, `scripts/verify_m30_evidence.sh`,
 `docs/milestones/M30-proof.md`, and `tests/milestones/test_m30.py`. Capture
 must first ensure a clean material revision and pass M30 tests/governance.
-After the fixed action reports a terminal closed lifecycle, it must retain the raw
+The fixed action reports an accepted entry with `OPEN_MONITORING`. Preserve
+that raw response and poll only the read-only lifecycle summary for its exact
+proposal and attempt, retaining each response once under a distinct filename.
+Stop polling after 15 minutes without retrying entry or stopping its existing
+monitor. Once the matching terminal closed lifecycle is observed, retain the raw
 operation result, lifecycle/history/reconciliation reports, listener
 diagnostics, configuration, source revision, test outputs, redaction
 declaration, hashes, manifest, and `FOREX_M30_PROOF_OK` summary. The verifier
@@ -101,6 +125,13 @@ must be offline and fail closed for any changed artifact, stale evidence,
 wrong server/symbol, persisted-proposal/revision/config mismatch, open or
 unresolved position, missing mandatory close evidence, or incomplete broker
 reconciliation.
+
+The close-by-cutoff check uses the latest broker closing-deal timestamp and
+the current source-bound owner's maximum holding period, measured from entry
+submission. No grace interval is added. The separate observation timeout
+allows collection latency and does not change a trading rule or prove a late
+close. The raw asynchronous reconciliation remains `OPEN_MONITORING` in the
+entry artifact; the final independently observed lifecycle supplies closure.
 
 Second, run focused tests and the contract verification over synthetic fixture
 bundles. Record exact outputs in this document. Use the QA verification skill
@@ -183,3 +214,9 @@ network or adapter calls. The
 only execution interface remains the pre-existing no-argument fixed T480
 operation. `GOMarketsMU-Live`, generic MT5, generic shell, arbitrary SQL, and
 automatic approval are prohibited.
+
+Review amendment (2026-09-16): updated the collector to observe the existing
+asynchronous monitor instead of requiring a synchronous close, and bound the
+manifest, proposal, attempt, snapshot, owner, position, cutoff and reconciled
+broker facts. This repairs proof tooling without changing trading authority,
+runtime payloads, strategy limits, or retained external evidence.
