@@ -37,14 +37,17 @@ def test_m30_capture_and_verifier_are_bound_to_fixed_demo_operation():
     assert "ensure_no_live_reference" in source
     assert "m20_demo_trading_session" in capture
     assert "m20_listener_disable_maintenance_hold" not in capture
+    assert "FOREX_M30_TARGETED_VERIFICATION_OK" in capture
+    assert "verify_project.sh" not in capture
 
 
 def fixture(tmp_path):
     root, prior = m20_fixture(tmp_path)
     bundle = root / "runs/evidence/M30/fixture"
     bundle.mkdir(parents=True)
-    for name in contract.REQUIRED - {"manifest.json", "summary.txt", "m30-audit.json"}:
+    for name in contract.REQUIRED - {"manifest.json", "summary.txt", "m30-audit.json", "m30-verification.txt"}:
         (bundle / name).write_bytes((prior / name).read_bytes())
+    (bundle / "m30-verification.txt").write_text("FOREX_M30_TARGETED_VERIFICATION_OK\n", encoding="utf-8")
     wrapper = json.loads((bundle / "demo-trading-operation.json").read_text())
     payload = json.loads(wrapper["result"]["stdout"])
     payload["operation"] = "m20_demo_trading_session"
@@ -202,6 +205,15 @@ def test_m30_rejects_tampering_and_refuses_to_overwrite_evidence(tmp_path):
     assert before == {path.name: path.read_bytes() for path in bundle.iterdir()}
     (bundle / "summary.txt").write_text("tampered")
     assert "digest mismatch" in verify(root, bundle).stderr
+
+
+def test_m30_rejects_missing_targeted_verification_receipt(tmp_path):
+    root, bundle = fixture(tmp_path)
+    (bundle / "m30-verification.txt").write_text("not verified\n", encoding="utf-8")
+    rehash(bundle)
+    result = verify(root, bundle)
+    assert result.returncode == 2
+    assert "M30 targeted verification did not pass" in result.stderr
 
 
 def test_m30_wait_observes_exact_attempt_without_repeating_entry(tmp_path, monkeypatch):

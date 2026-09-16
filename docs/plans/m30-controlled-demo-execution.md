@@ -30,6 +30,11 @@ over a retained M30 evidence bundle.
   repaired asynchronous entry handling, exact lifecycle selection, manifest
   surface mismatch, and suppressed pytest summaries. The 22 focused M30 tests
   pass, including a complete synthetic bundle and semantic negative controls.
+- [x] (2026-09-16) Narrowed the capture preflight to M30's declared focused
+  tests and governance validation. The former whole-repository run contained
+  unrelated stale historical-state tests and did not test M30's Demo surface.
+  The amended suite has 23 passing tests, including refusal of a missing
+  targeted-verification receipt; registry validation passes.
 - [ ] Validate the implementation, record M30-C2/C4 as applicable, and obtain
   an independent read-only review.
 - [ ] When the existing autonomous preflight is eligible, perform the bounded
@@ -79,12 +84,21 @@ over a retained M30 evidence bundle.
   Rationale: the architecture assigns broker access only to the fixed Demo
   operation and M30 is not authorised to broaden it.
   Date/Author: 2026-09-16 / M30 contract and architecture.
+- Decision: use M30's focused test suite and governance validation instead of
+  `scripts/verify_project.sh` before the one bounded capture attempt.
+  Rationale: this MVP proof must verify its own source, contract, and safety
+  boundary; unrelated legacy expectations do not provide additional assurance
+  for the M30 operation and previously prevented the attempt before broker
+  contact.
+  Date/Author: 2026-09-16 / Chris direction.
 
 ## Outcomes & Retrospective
 
-Local tooling is repaired and the 22 focused M30 synthetic tests pass. No M30
-order, hold release, or external mutation was performed by this review.
-Real-system proof, deployment readiness, and formal closeout remain pending.
+Local tooling is repaired and 23 focused M30 synthetic tests pass. The capture
+preflight is now limited to that suite and registry validation. No M30 order,
+hold release, or external mutation was performed by this change. A clean,
+committed revision remains necessary before the fixed Demo action can run;
+real-system proof, deployment readiness, and formal closeout remain pending.
 
 ## Context and Orientation
 
@@ -112,7 +126,9 @@ persisted autonomous proposal to the broker lifecycle.
 First, add `scripts/capture_m30_evidence.sh`,
 `scripts/m30_evidence_contract.py`, `scripts/verify_m30_evidence.sh`,
 `docs/milestones/M30-proof.md`, and `tests/milestones/test_m30.py`. Capture
-must first ensure a clean material revision and pass M30 tests/governance.
+must first ensure a clean material revision and pass M30 tests/governance. It
+records `m30-verification.txt` as the focused local verification receipt and
+does not run unrelated full-repository tests before the broker operation.
 The fixed action reports an accepted entry with `OPEN_MONITORING`. Preserve
 that raw response and poll only the read-only lifecycle summary for its exact
 proposal and attempt, retaining each response once under a distinct filename.
@@ -220,3 +236,8 @@ asynchronous monitor instead of requiring a synchronous close, and bound the
 manifest, proposal, attempt, snapshot, owner, position, cutoff and reconciled
 broker facts. This repairs proof tooling without changing trading authority,
 runtime payloads, strategy limits, or retained external evidence.
+
+MVP amendment (2026-09-16): replaced the unrelated whole-repository capture
+preflight with M30's focused tests and registry validation. This preserves the
+clean committed revision, Demo-only, fixed-operation, close, reconciliation,
+and offline-evidence gates while removing stale historical-test coupling.

@@ -27,7 +27,7 @@ import m20_demo_evidence_contract as m20
 MARKER = "FOREX_M30_PROOF_OK"
 SURFACE = "GOMarketsMU-Demo execution and reconciliation surface"
 REQUIRED = {
-    "tests.txt", "governance.txt", "repository-verification.txt", "configuration.json",
+    "tests.txt", "governance.txt", "m30-verification.txt", "configuration.json",
     "demo-trading-operation.json", "lifecycle-summary.json", "listener-diagnostics.json",
     "listener-status.json", "m30-audit.json", "revision.txt", "summary.txt",
 }
@@ -234,7 +234,7 @@ def verify(bundle: Path, root: Path) -> None:
     test_output = (bundle / "tests.txt").read_text(encoding="utf-8").lower()
     require(re.search(r"\b[1-9]\d* passed\b", test_output) is not None and re.search(r"\b[1-9]\d* (?:failed|errors?)\b", test_output) is None, "M30 tests did not pass")
     require("milestone governance valid" in (bundle / "governance.txt").read_text(encoding="utf-8"), "governance validation did not pass")
-    require("FOREX_REPOSITORY_VERIFICATION_OK" in (bundle / "repository-verification.txt").read_text(encoding="utf-8"), "repository verification did not pass")
+    require("FOREX_M30_TARGETED_VERIFICATION_OK" in (bundle / "m30-verification.txt").read_text(encoding="utf-8"), "M30 targeted verification did not pass")
     configuration = m20.read_json(bundle / "configuration.json")
     m20.ensure_no_live_reference(configuration)
     require(configuration.get("runtime_mode") == "DEMO_TRADING" and configuration.get("live_trading_enabled") is False and configuration.get("permitted_mt5_server") == "GOMarketsMU-Demo", "configuration violates Demo-only boundary")

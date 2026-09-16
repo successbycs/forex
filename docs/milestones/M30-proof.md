@@ -9,7 +9,10 @@ claim.
 The raw capture command is `bash scripts/capture_m30_evidence.sh`. It invokes
 only the existing fixed `m20_demo_trading_session` operation after a clean,
 committed, deployed source revision and existing autonomous safety gates are
-valid. The offline verifier is `bash scripts/verify_m30_evidence.sh <bundle>`.
+valid. Before it can invoke the operation, it runs M30's focused synthetic
+suite and registry validation, retaining an `m30-verification.txt` receipt.
+It does not make a whole-repository test run a prerequisite for this bounded
+Demo proof. The offline verifier is `bash scripts/verify_m30_evidence.sh <bundle>`.
 The entry operation returns `OPEN_MONITORING`; its raw response remains
 unchanged. Capture polls only the fixed read-only PostgreSQL lifecycle summary
 for up to 15 minutes and retains each observation separately, then binds the
@@ -33,3 +36,8 @@ bundle plus refusal, identity, cutoff, provenance, and integrity failures.
 These tests validate tooling, not the real broker surface.
 
 No M30 real-world evidence has been captured yet.
+
+MVP amendment (2026-09-16): M30 uses its declared milestone suite and
+governance validation as its local verification gate. Unrelated historical
+test expectations remain normal maintenance work but cannot block this one
+Demo proof attempt.

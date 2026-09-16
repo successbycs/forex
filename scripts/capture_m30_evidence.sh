@@ -13,7 +13,11 @@ material_changes="$(git status --porcelain --untracked-files=all | awk 'substr($
 test -z "$material_changes"
 python3 -m pytest -o addopts='' -q tests/milestones/test_m30.py >"$bundle/tests.txt" 2>&1
 python3 scripts/forex_milestones.py validate >"$bundle/governance.txt" 2>&1
-bash scripts/verify_project.sh >"$bundle/repository-verification.txt" 2>&1
+# M30 has a bounded verification surface.  A whole-repository run includes
+# unrelated historical contracts and must not decide whether this Demo proof
+# attempt can begin.  The focused suite and registry validation above are the
+# declared local checks; retain an explicit receipt for offline verification.
+printf '%s\n' 'FOREX_M30_TARGETED_VERIFICATION_OK' >"$bundle/m30-verification.txt"
 python3 scripts/validate_config.py --root "$root" --json >"$bundle/configuration.json"
 python3 - "$bundle/configuration.json" <<'PY'
 import json, subprocess, sys

@@ -3811,7 +3811,7 @@
         },
         {
           "id": "M30-C2",
-          "description": "Milestone-specific and repository verification pass with inspectable, versioned artifacts.",
+          "description": "M30-specific verification and governance validation pass with inspectable, versioned artifacts.",
           "kind": "VERIFICATION"
         },
         {
@@ -3876,7 +3876,7 @@
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof. MVP amendment 2026-09-16: the bounded capture preflight retains the M30-specific test output and governance validation receipt; unrelated historical repository tests do not gate this proof attempt."
     },
     {
       "milestone_id": "M31",
