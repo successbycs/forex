@@ -1,7 +1,7 @@
 {
   "schema_version": "forex.execution-work.v1",
   "task_id": "M30-WAVE-2-ACCOUNT-PROFILE",
-  "authorization": "Chris authorised hybrid Wave 2 execution. Scope is exactly one M1_EURUSD_DEMO local account profile and fail-closed binding checks before executable assessment and before execution reservation. Continuous Demo operation stays active on its current reviewed release unless a later explicitly authorised deployment requires a short maintenance hold. No forced order, new strategy, risk change, M15, multi-account routing, portfolio layer, Live access, push, commit, formal closeout, or external mutation is authorised by this work record.",
+  "authorization": "Chris authorised hybrid Wave 2 execution. Scope is exactly one M1_EURUSD_DEMO local account profile and fail-closed binding checks before executable assessment and before execution reservation. Chris later explicitly authorised GitHub publication, T480-local profile provisioning, a short maintenance hold, and deployment of the reviewed Demo release. No forced order, new strategy, risk change, M15, multi-account routing, portfolio layer, Live access, or formal closeout is authorised.",
   "markdown_plan": "docs/plans/m30-wave-2-account-profile.md",
   "items": [
     {
@@ -45,7 +45,8 @@
       "state": "DONE",
       "requires": ["verification"],
       "evidence": [
-        "2026-09-17 Astra read-only re-review: APPROVED. It confirmed the final check is adjacent to order_send, the pre-reservation check remains, profile-ignore protection is present, and no multi-account, strategy, risk, M15, or Live scope expanded."
+        "2026-09-17 Astra read-only re-review: APPROVED. It confirmed the final check is adjacent to order_send, the pre-reservation check remains, profile-ignore protection is present, and no multi-account, strategy, risk, M15, or Live scope expanded.",
+        "2026-09-17 final Astra read-only deployment review: APPROVED. Commit 005f0ca allowlists only the profile environment field in the service; the runner still requires the exact five-field profile before assessment, before reservation, and adjacent to order_send. It independently observed release a9ff090f0a566849 RUNNING with maintenance hold false and a fresh reconciled M1 NO_TRADE."
       ],
       "blocker": null
     },
@@ -55,9 +56,9 @@
       "state": "DONE",
       "requires": ["independent-review"],
       "evidence": [
-        "2026-09-17T01:59Z fixed read-only status: the existing Wave 1 listener is RUNNING with maintenance_hold=false and completed a fresh M1 NO_TRADE assessment; no trading interruption occurred.",
-        "2026-09-17T01:59Z fixed account identity: GOMarketsMU-Demo/AUD, expected current account scope sha256:4b12a2cebac68fadc4009c52f46e1cda20bd3c731ef94428ed2b47a2d29faabf, and zero open positions.",
-        "Local readiness is NO-GO for deployment: the Wave 2 revision is uncommitted, no T480-local m1_eurusd_demo_profile.local.json has been installed, and no explicit deployment/maintenance-hold authority has been granted. The current listener remains the verified Wave 1 release and must not be replaced until these prerequisites are deliberately satisfied."
+        "2026-09-17T03:19Z fixed diagnostics: deployed release a9ff090f0a566849 is RUNNING with application revision 005f0caffbcb0b6479cc3db70e4b60f80737d2d6, configuration fingerprint sha256:3e10616b635f494fbb664a8168e1eeb4d0fe888bc248c5102684c02d797c1071, and hash-verified payloads.",
+        "2026-09-17T03:19Z fixed account identity: GOMarketsMU-Demo/AUD, expected scope sha256:4b12a2cebac68fadc4009c52f46e1cda20bd3c731ef94428ed2b47a2d29faabf, and zero open positions.",
+        "The single local profile was provisioned and independently validated under the authorised maintenance hold. The hold was then removed only after the new release produced a fresh heartbeat. The resumed listener completed a fresh closed-M1 NO_TRADE assessment; no order was forced or submitted."
       ],
       "blocker": null
     }

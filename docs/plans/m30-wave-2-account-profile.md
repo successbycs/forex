@@ -11,6 +11,16 @@ is implemented and verified. A later deployment needs separate explicit
 authority and a short fixed maintenance hold only if the fixed installer needs
 one. No order is ever forced to prove this profile.
 
+## Deployment record
+
+On 2026-09-17, after explicit operator authority, the fixed T480 procedure
+provisioned and validated the ignored local profile, installed release
+`a9ff090f0a566849` at application revision `005f0ca`, and removed the short
+maintenance hold only after a fresh release-bound heartbeat. The listener then
+completed a fresh closed-M1 `NO_TRADE` assessment on `GOMarketsMU-Demo`/AUD.
+This is deployment evidence, not an assertion of profitability or a forced
+trade proof.
+
 ## Acceptance
 
 - The runner accepts only a locally held profile whose exact fields are the
