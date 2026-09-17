@@ -115,7 +115,7 @@ def test_catalog_and_adapter_operations_match():
     t480_adapter.validate_contract()
     catalog = json.loads(t480_adapter.CATALOG_PATH.read_text(encoding="utf-8"))
     assert {entry["id"] for entry in catalog["operations"]} == set(t480_adapter.OPERATIONS)
-    assert "m20_listener_runner_stage_80" in t480_adapter.OPERATIONS
+    assert "m20_listener_runner_stage_96" in t480_adapter.OPERATIONS
 
 
 def test_adapter_emits_the_governed_project_fingerprint_for_evidence_binding():
@@ -236,6 +236,14 @@ def test_h_slow_preflight_embedded_probe_compiles_and_enforces_one_position_cap(
     assert "len(ps)<=1" in command
 
 
+def test_h_slow_preflight_fits_the_t480_encoded_transport_limit():
+    from t480_core import build_ssh_command
+
+    command = t480_adapter.OPERATIONS["h_slow_demo_preflight"].powershell_command or ""
+    outer = build_ssh_command("OEM@192.168.0.210", command, t480_adapter.TRANSPORT_SETTINGS)[-1]
+    assert len(outer) < 7_500
+
+
 def test_h_slow_reconciliation_snapshot_is_fixed_read_only_and_compiles():
     command = t480_adapter.OPERATIONS["h_slow_demo_reconciliation_snapshot"].powershell_command or ""
     assert "Documents\\Code\\forex-h-slow\\mt5.local.json" in command
@@ -328,7 +336,7 @@ def test_m20_listener_profile_validation_and_configuration_fit_t480_transport_li
     for operation_id in (
         "m20_listener_validate_account_profile", "m20_listener_configure",
         "m30_demo_execution_drill", "m20_listener_stage_1",
-        "m20_listener_stage_48",
+        "m20_listener_stage_48", "m20_listener_terminal_identity",
     ):
         command = t480_adapter.OPERATIONS[operation_id].powershell_command or ""
         outer = build_ssh_command("OEM@192.168.0.210", command, t480_adapter.TRANSPORT_SETTINGS)[-1]
@@ -657,7 +665,7 @@ def test_m20_listener_staging_is_split_and_hash_checked():
 
 def test_m20_listener_runner_and_bridge_staging_are_fixed_and_hash_checked():
     runner_first = t480_adapter.OPERATIONS["m20_listener_runner_stage_1"].powershell_command
-    runner_final = t480_adapter.OPERATIONS["m20_listener_runner_stage_80"].powershell_command
+    runner_final = t480_adapter.OPERATIONS["m20_listener_runner_stage_96"].powershell_command
     runner_verify = t480_adapter.OPERATIONS["m20_listener_runner_verify"].powershell_command
     bridge_first = t480_adapter.OPERATIONS["m20_listener_bridge_stage_1"].powershell_command
     bridge_final = t480_adapter.OPERATIONS["m20_listener_bridge_stage_48"].powershell_command
@@ -670,7 +678,7 @@ def test_m20_listener_runner_and_bridge_staging_are_fixed_and_hash_checked():
             assert "WriteAllText" in first
             assert "WriteAllText" in final
             assert "ReadAllText" in runner_verify and "Get-FileHash" in runner_verify
-            assert "$fragments.Count -ne 80" in runner_verify
+            assert "$fragments.Count -ne 96" in runner_verify
         else:
             assert "WriteAllText" in first and "WriteAllText" in final
             assert "ReadAllText" in bridge_verify and "Get-FileHash" in bridge_verify
@@ -1987,6 +1995,62 @@ def test_m20_terminal_capability_operation_is_read_only_and_reports_submission_f
     assert "GOMarketsMU-Demo" in command
     assert "order_send" not in command
     assert "positions_get" not in command
+
+
+def test_m20_terminal_identity_is_fixed_redacted_and_cannot_trade():
+    command = t480_adapter.OPERATIONS["m20_listener_terminal_identity"].powershell_command or ""
+    assert "runtime_binding" in command
+    assert "listener_process_id" in command
+    assert "Get-ScheduledTask" in command
+    assert "heartbeat_fresh" in command
+    assert "runtime_binding_fresh" in command
+    assert "Get-CimInstance" in command
+    assert "MAPPED" in command and "AMBIGUOUS" in command and "UNAVAILABLE" in command
+    assert "MetaTrader5" not in command
+    assert "initialize(" not in command
+    assert "order_send" not in command
+    assert "positions_get" not in command
+    assert "history_deals_get" not in command
+
+
+def test_m20_terminal_runtime_binding_reports_listener_worker_context_without_order_submission(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    account = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", trade_allowed=True, trade_expert=True)
+    terminal = types.SimpleNamespace(path="terminal", data_path="profile", connected=True,
+                                     trade_allowed=True, tradeapi_disabled=False)
+    calls = []
+    probe.mt5.initialize = lambda **kwargs: calls.append(kwargs) or True
+    probe.mt5.shutdown = lambda: calls.append("shutdown")
+    probe.mt5.account_info = lambda: account
+    probe.mt5.terminal_info = lambda: terminal
+    probe.mt5.order_send = lambda *_: pytest.fail("runtime binding must never submit an order")
+    result = probe.terminal_runtime_binding("terminal")
+    assert result["state"] == "MAPPED"
+    assert result["submission_permitted"] is True
+    assert result["configured_terminal_path_sha256"].startswith("sha256:")
+    assert result["connected_terminal_data_path_sha256"].startswith("sha256:")
+    assert calls == [{"path": "terminal"}, "shutdown"]
+
+
+def test_m20_terminal_runtime_binding_fails_closed_when_mt5_is_unavailable(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    probe.mt5.initialize = lambda **_: False
+    probe.mt5.last_error = lambda: (1, "not available")
+    probe.mt5.order_send = lambda *_: pytest.fail("runtime binding must never submit an order")
+    result = probe.terminal_runtime_binding("terminal")
+    assert result == {"marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "UNAVAILABLE",
+                      "reason": "MT5_INITIALIZE_FAILED", "mt5_error": "(1, 'not available')"}
+
+
+def test_m20_terminal_runtime_binding_refuses_a_configured_path_mismatch(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    probe.mt5.initialize = lambda **_: True
+    probe.mt5.shutdown = lambda: None
+    probe.mt5.account_info = lambda: types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD")
+    probe.mt5.terminal_info = lambda: types.SimpleNamespace(path="different", data_path="profile")
+    result = probe.terminal_runtime_binding("terminal")
+    assert result == {"marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "UNAVAILABLE",
+                      "reason": "TERMINAL_PATH_OR_PROFILE_UNAVAILABLE"}
 
 
 def test_m30_execution_drill_operation_is_fixed_and_serialises_listener_entries():

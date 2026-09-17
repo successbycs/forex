@@ -1178,6 +1178,54 @@ def quote_identity(terminal_path: str) -> dict[str, Any]:
         mt5.shutdown()
 
 
+def terminal_runtime_binding(terminal_path: str) -> dict[str, Any]:
+    """Report the terminal context of a listener-owned worker without trading.
+
+    This is deliberately invoked by the permanent listener as one of its own
+    child processes.  A separately SSH-launched Python process is not evidence
+    of the Scheduled Task's MT5 context, so it must not be used for this
+    observation.  Paths are hashed before leaving this worker.
+    """
+    digest = lambda value: "sha256:" + hashlib.sha256(str(value).encode()).hexdigest() if value else None
+    if not mt5.initialize(path=terminal_path):
+        return {"marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "UNAVAILABLE",
+                "reason": "MT5_INITIALIZE_FAILED", "mt5_error": str(mt5.last_error())}
+    try:
+        terminal = mt5.terminal_info()
+        account = mt5.account_info()
+        if not terminal or not account or account.server != SERVER or getattr(account, "currency", "") != "AUD":
+            return {"marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "UNAVAILABLE",
+                    "reason": "DEMO_ACCOUNT_OR_TERMINAL_UNAVAILABLE"}
+        terminal_allowed = getattr(terminal, "trade_allowed", None)
+        api_disabled = getattr(terminal, "tradeapi_disabled", None)
+        account_allowed = getattr(account, "trade_allowed", None)
+        expert_allowed = getattr(account, "trade_expert", None)
+        configured_path = digest(terminal_path)
+        connected_path = digest(getattr(terminal, "path", None))
+        data_path = digest(getattr(terminal, "data_path", None))
+        if not configured_path or configured_path != connected_path or not data_path:
+            return {"marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "UNAVAILABLE",
+                    "reason": "TERMINAL_PATH_OR_PROFILE_UNAVAILABLE"}
+        return {
+            "marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "MAPPED",
+            "server": account.server, "currency": account.currency,
+            "configured_terminal_path_sha256": configured_path,
+            "connected_terminal_path_sha256": connected_path,
+            "connected_terminal_data_path_sha256": data_path,
+            "terminal_connected": getattr(terminal, "connected", None),
+            "terminal_trade_allowed": terminal_allowed,
+            "terminal_tradeapi_disabled": api_disabled,
+            "account_trade_allowed": account_allowed,
+            "account_trade_expert": expert_allowed,
+            "submission_permitted": bool(
+                getattr(terminal, "connected", None) is True and terminal_allowed is True
+                and api_disabled is False and account_allowed is True and expert_allowed is True
+            ),
+        }
+    finally:
+        mt5.shutdown()
+
+
 def risk_refusal_drill(terminal_path: str, session_path: Path) -> dict[str, Any]:
     """Prove the exact temporary AUD 0.01 boundary with live Demo metadata.
 
@@ -2407,6 +2455,8 @@ if __name__ == "__main__":
         print(json.dumps(recover_open_positions(sys.argv[1]), separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--quote-identity":
         print(json.dumps(quote_identity(sys.argv[1]), separators=(",", ":")))
+    elif len(sys.argv) == 4 and sys.argv[3] == "--terminal-runtime-binding":
+        print(json.dumps(terminal_runtime_binding(sys.argv[1]), separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--financing-preview":
         print(json.dumps(financing_preview(sys.argv[1]), separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--risk-refusal-drill":

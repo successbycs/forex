@@ -156,6 +156,18 @@ def _m20_listener_terminal_capability_command() -> str:
     return "$ErrorActionPreference='Stop'; $state='C:\\ProgramData\\ForexListener\\state'; $c=gc -Raw (Join-Path $state 'm20_demo_listener_service.local.json')|ConvertFrom-Json; if ([string]::IsNullOrWhiteSpace($c.python_path) -or !(Test-Path -LiteralPath $c.python_path) -or [string]::IsNullOrWhiteSpace($c.terminal_path) -or !(Test-Path -LiteralPath $c.terminal_path)) { throw 'M20 deployed listener terminal configuration is absent' }; & $c.python_path -c '" + code.replace("'", "''") + "' $c.terminal_path; exit $LASTEXITCODE"
 
 
+def _m20_listener_terminal_identity_command() -> str:
+    """Read listener-published binding and task process identity; never opens MT5."""
+    return (
+        "$ErrorActionPreference='Stop';$state='C:\\ProgramData\\ForexListener\\state';"
+        "$h=gc -Raw (Join-Path $state 'm20_demo_listener_status.local.json')|ConvertFrom-Json;"
+        "$task=Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener' -ErrorAction SilentlyContinue;"
+        "$release=[string]$h.release_id;$pattern='*\\ProgramData\\ForexListener\\releases\\'+$release+'\\m20_demo_listener_service.payload*';$binding=$h.runtime_binding;$service=@(Get-CimInstance Win32_Process|Where-Object {$_.Name -match '^python(w)?\\.exe$' -and $_.CommandLine -like $pattern}|ForEach-Object {[pscustomobject]@{process_id=[int]$_.ProcessId;parent_process_id=[int]$_.ParentProcessId;session_id=[int]$_.SessionId;creation_date=[string]$_.CreationDate}});"
+        "$terminals=@(Get-CimInstance Win32_Process|Where-Object {$_.Name -in @('terminal.exe','terminal64.exe')}|ForEach-Object {[pscustomobject]@{process_id=[int]$_.ProcessId;session_id=[int]$_.SessionId}});"
+        "$fresh=$false;$bindingFresh=$false;try{$age=((Get-Date).ToUniversalTime()-([datetime]::Parse([string]$h.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds;$bindingAge=((Get-Date).ToUniversalTime()-([datetime]::Parse([string]$binding.captured_at_utc)).ToUniversalTime()).TotalSeconds;$fresh=($age -ge 0 -and $age -lt 30);$bindingFresh=($bindingAge -ge 0 -and $bindingAge -lt 35)}catch{};$state='UNAVAILABLE';if($binding -and $binding.state -eq 'MAPPED' -and $binding.listener_process_id -and $fresh -and $bindingFresh -and $task -and $task.State.ToString() -eq 'Running' -and @($service|Where-Object {$_.process_id -eq [int]$binding.listener_process_id}).Count -eq 1){$state='MAPPED'}elseif($binding -and $binding.state -eq 'MAPPED'){$state='AMBIGUOUS'};[pscustomobject]@{observation=$state;listener_release_id=$h.release_id;heartbeat_fresh=$fresh;runtime_binding_fresh=$bindingFresh;task_state=if($task){$task.State.ToString()}else{'ABSENT'};runtime_binding=$binding;listener_processes=$service;terminal_processes=$terminals;broker_mutation='NONE'}|ConvertTo-Json -Compress -Depth 8"
+    )
+
+
 def _m20_unresolved_history_probe_command() -> str:
     """Read a fixed narrow Demo EURUSD deal window for unresolved-attempt attribution."""
     code = (
@@ -217,9 +229,9 @@ def _h_slow_demo_preflight_command() -> str:
     )
     return (
         "$ErrorActionPreference='Stop';$c=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-h-slow\\mt5.local.json';"
-        "if(!(Test-Path -LiteralPath $c)){throw 'H_SLOW fixed local configuration is absent'};"
+        "if(!(Test-Path $c)){throw 'H_SLOW config absent'};"
         "$s=gc -Raw -LiteralPath $c|ConvertFrom-Json;"
-        "if([string]::IsNullOrWhiteSpace($s.python_path)-or !(Test-Path -LiteralPath $s.python_path)){throw 'H_SLOW configured Python interpreter is absent'};"
+        "if(!(Test-Path $s.python_path)){throw 'H_SLOW Python absent'};"
         "& $s.python_path -c '" + code.replace("'", "''") + "' $c;exit $LASTEXITCODE"
     )
 
@@ -897,11 +909,11 @@ def _m20_listener_install_command() -> str:
     release_id = hashlib.sha256(service + runner + bridge + discord).hexdigest()[:16]
     service_digest = hashlib.sha256(service).hexdigest()
     return (
-        "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; $state=Join-Path $base 'state'; $service=Join-Path $root 'm20_demo_listener_service.payload'; $task='Forex-M20-Demo-Listener'; "
-        "$c=Get-Content -Raw (Join-Path $state 'm20_demo_listener_service.local.json')|ConvertFrom-Json; $prepared=Get-Content -Raw (Join-Path $state 'm20_demo_listener_prepared.local.json')|ConvertFrom-Json; if (!(Test-Path -LiteralPath $service) -or $prepared.release_id -ne '" + release_id + "' -or $prepared.service_sha256 -ne 'sha256:" + service_digest + "') { throw 'M20 release was not prepared and hash-bound' }; "
-        "$previous=$null; try { $previous=Export-ScheduledTask -TaskName $task -ErrorAction Stop } catch {}; if ($null -ne $previous) { [IO.File]::WriteAllText((Join-Path $state 'previous-task.xml'),$previous,(New-Object Text.UTF8Encoding($false))) }; "
-        "$action=New-ScheduledTaskAction -Execute $c.python_path -Argument ('\"'+$service+'\"'); $trigger=New-ScheduledTaskTrigger -AtStartup; $principal=New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U -RunLevel Highest; $settings=New-ScheduledTaskSettingsSet -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero); "
-        "try { if ($null -ne $previous) { Stop-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue }; Get-CimInstance Win32_Process | Where-Object { $_.Name -match '^python(w)?\\.exe$' -and $_.CommandLine -like '*\\ProgramData\\ForexListener\\releases\\*m20_demo_listener_service.payload*' } | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch { if ($_.FullyQualifiedErrorId -notlike 'NoProcessFoundForGivenId,*') { throw } } }; Register-ScheduledTask -TaskName $task -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force|Out-Null;Start-ScheduledTask -TaskName $task; Start-Sleep -Seconds 5; $h=Get-Content -Raw (Join-Path $state 'm20_demo_listener_status.local.json')|ConvertFrom-Json; $age=((Get-Date).ToUniversalTime()-([datetime]::Parse($h.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds; if (($h.release_id -ne '" + release_id + "') -or ($age -ge 30) -or ($h.state -eq 'STARTUP_FAILED')) { throw 'new listener did not produce a fresh ProgramData heartbeat' } } catch { $failure=$_.Exception.Message; if ($null -ne $previous) { Stop-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue; Register-ScheduledTask -TaskName $task -Xml $previous -Force|Out-Null; Start-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue }; throw ('M20 deployment rolled back: '+$failure) }; "
+        "$ErrorActionPreference='Stop';$base='C:\\ProgramData\\ForexListener';$root=Join-Path $base 'releases\\" + release_id + "';$state=Join-Path $base state;$v=Join-Path $root 'm20_demo_listener_service.payload';$task='Forex-M20-Demo-Listener';"
+        "$c=gc -Raw (Join-Path $state 'm20_demo_listener_service.local.json')|ConvertFrom-Json;$d=gc -Raw (Join-Path $state 'm20_demo_listener_prepared.local.json')|ConvertFrom-Json;if(!(Test-Path $v)-or $d.release_id -ne '" + release_id + "'-or $d.service_sha256 -ne 'sha256:" + service_digest + "'){throw 'M20 release was not prepared and hash-bound'};"
+        "$p=$null;try{$p=Export-ScheduledTask -TaskName $task -ea Stop}catch{};if($p){[IO.File]::WriteAllText((Join-Path $state 'previous-task.xml'),$p,(New-Object Text.UTF8Encoding($false)))};"
+        "$action=New-ScheduledTaskAction -Execute $c.python_path -Argument ('\"'+$v+'\"');$trigger=New-ScheduledTaskTrigger -AtStartup;$principal=New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U -RunLevel Highest;$settings=New-ScheduledTaskSettingsSet -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero);"
+        "try{if($p){Stop-ScheduledTask -TaskName $task -ea SilentlyContinue};Get-CimInstance Win32_Process|Where-Object {$_.Name -match '^python(w)?\\.exe$' -and $_.CommandLine -like '*\\ProgramData\\ForexListener\\releases\\*m20_demo_listener_service.payload*'}|ForEach-Object{try{Stop-Process -Id $_.ProcessId -Force -ea Stop}catch{if($_.FullyQualifiedErrorId -notlike 'NoProcessFoundForGivenId,*'){throw}}};Register-ScheduledTask -TaskName $task -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force|Out-Null;Start-ScheduledTask -TaskName $task;Start-Sleep 5;$h=gc -Raw (Join-Path $state 'm20_demo_listener_status.local.json')|ConvertFrom-Json;$age=((Get-Date).ToUniversalTime()-([datetime]::Parse($h.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds;if($h.release_id -ne '" + release_id + "'-or $age -ge 30 -or $h.state -eq 'STARTUP_FAILED'){throw 'M20 no fresh heartbeat'}}catch{$f=$_.Exception.Message;if($p){Stop-ScheduledTask -TaskName $task -ea SilentlyContinue;Register-ScheduledTask -TaskName $task -Xml $p -Force|Out-Null;Start-ScheduledTask -TaskName $task -ea SilentlyContinue};throw ('M20 deployment rolled back: '+$f)};"
         "[pscustomobject]@{installed=$true;task=$task;release_id='" + release_id + "';service_sha256='sha256:" + service_digest + "'}|ConvertTo-Json -Compress"
     )
 
@@ -1078,6 +1090,7 @@ OPERATIONS: dict[str, Operation] = {
     "m20_demo_account_liquidity": Operation("m20_demo_account_liquidity", "Read fixed GOMarketsMU-Demo account liquidity fields without trading.", powershell_command=_m20_demo_account_liquidity_command()),
     "m20_listener_account_identity": Operation("m20_listener_account_identity", "Read only the deployed M20 listener's redacted Demo-account binding and liquidity fields.", powershell_command=_m20_listener_account_identity_command()),
     "m20_listener_terminal_capability": Operation("m20_listener_terminal_capability", "Read the deployed M20 Demo terminal and account submission-permission flags without assessing or trading.", powershell_command=_m20_listener_terminal_capability_command()),
+    "m20_listener_terminal_identity": Operation("m20_listener_terminal_identity", "Read the listener-published MT5 runtime binding and correlate it to the scheduled listener process without opening MT5 or trading.", powershell_command=_m20_listener_terminal_identity_command()),
     "m20_terminal_history_diagnostics": Operation("m20_terminal_history_diagnostics", "Inspect bounded terminal history error lines and Demo exposure without trading.", powershell_command=_m20_terminal_history_diagnostics_command(), timeout_seconds=60),
     "m20_close_duplicate_terminal": Operation("m20_close_duplicate_terminal", "Close duplicate interactive configured MT5 instances only while Demo is flat and the listener is held and stopped.", powershell_command=_m20_close_duplicate_terminal_command(), timeout_seconds=60),
     "m20_financing_preview": Operation("m20_financing_preview", "Run the hash-bound deployed Demo financing calculator without placing orders.", powershell_command=_m20_demo_trading_session_command().replace("$c.terminal_path $lease;", "$c.terminal_path $lease --financing-preview;"), timeout_seconds=60),
@@ -1362,9 +1375,10 @@ def _m20_listener_runner_stage_command(index: int) -> str:
         + (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()
     ).hexdigest()[:16]
     encoded = base64.b64encode(source).decode("ascii")
-    # Eighty fixed fragments remain below the observed Windows SSH command
-    # limit; the former 64-way runner payload was rejected before execution.
-    parts = 80
+    # Ninety-six fixed fragments keep the fully encoded SSH command below the
+    # hard 7,500-character T480 envelope.  Eighty was no longer sufficient
+    # after the listener-owned runtime-binding addition.
+    parts = 96
     chunk_size = ((len(encoded) + (parts * 4) - 1) // (parts * 4)) * 4
     chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
     prefix = "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; New-Item -ItemType Directory -Force $root|Out-Null; $payload=Join-Path $root 'm20_demo_trading_session.payload'; "
@@ -1373,8 +1387,8 @@ def _m20_listener_runner_stage_command(index: int) -> str:
     raise ValueError("M20 listener runner stage index is invalid")
 
 
-for _index in range(1, 81):
-    _final = _index == 80
+for _index in range(1, 97):
+    _final = _index == 96
     OPERATIONS[f"m20_listener_runner_stage_{_index}"] = Operation(
         f"m20_listener_runner_stage_{_index}",
         ("Stage and verify" if _final else "Stage") + f" fixed M20 listener runner payload part {_index}.",
@@ -1395,7 +1409,7 @@ OPERATIONS["m20_listener_runner_verify"] = Operation(
         "$root=Join-Path $base 'releases\\" + _runner_release_id + "'; "
         "$file=Join-Path $root 'm20_demo_trading_session.payload'; "
         "$fragments=@(Get-ChildItem -LiteralPath $root|Where-Object {$_.Name -match '^m20_demo_trading_session\\.part\\d{2}$'}|Sort-Object Name|ForEach-Object {$_.FullName}); "
-        "if ($fragments.Count -ne 80) { throw ('M20 listener runner fragments are incomplete: '+$fragments.Count) }; "
+        "if ($fragments.Count -ne 96) { throw ('M20 listener runner fragments are incomplete: '+$fragments.Count) }; "
         "$encoded=(($fragments|ForEach-Object {[IO.File]::ReadAllText($_)}) -join ''); "
         "[IO.File]::WriteAllBytes($file,[Convert]::FromBase64String($encoded)); "
         "if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -ne '" + _runner_source_digest + "') { throw 'M20 listener runner staged source hash failed' }; "

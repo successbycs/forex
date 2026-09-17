@@ -5,18 +5,6 @@
   "markdown_plan": "docs/plans/m30-wave-4-final-proof.md",
   "items": [
     {
-      "id": "execution-drill",
-      "title": "Deploy and run the fixed one-shot Demo terminal-to-broker diagnostic; retain its distinct result without treating it as M30 proof",
-      "state": "IN_PROGRESS",
-      "requires": ["final-release"],
-      "evidence": [
-        "2026-09-17 Chris authorised a separate fixed Demo execution diagnostic because natural strategy setups cannot reliably validate terminal-to-broker wiring.",
-        "The drill is bound to GOMarketsMU-Demo, EURUSD, 0.01 volume, protective stop, immediate close, and broker-history read-back. It is not a strategy trade or M30 proof.",
-        "Deployment requirement: before every T480 staging, release, or drill invocation, read docs/t480-deployment.md and pass the encoded-command-length regression check. A command-length failure is a NO-GO until the fixed adapter is shortened or the logic is moved into a hash-bound payload."
-      ],
-      "blocker": null
-    },
-    {
       "id": "release-preflight",
       "title": "Stage and verify every immutable final listener payload without interrupting the running Demo listener",
       "state": "DONE",
@@ -43,6 +31,21 @@
       "blocker": null
     },
     {
+      "id": "execution-drill",
+      "title": "Run the fixed one-shot Demo terminal-to-broker diagnostic and retain its distinct outcome without treating it as M30 proof",
+      "state": "DONE",
+      "requires": ["final-release"],
+      "evidence": [
+        "2026-09-17 Chris authorised a separate fixed Demo execution diagnostic because natural strategy setups cannot reliably validate terminal-to-broker wiring.",
+        "The drill is bound to GOMarketsMU-Demo, EURUSD, 0.01 volume, protective stop, immediate close, and broker-history read-back. It is not a strategy trade or M30 proof.",
+        "Deployment requirement: before every T480 staging, release, or drill invocation, read docs/t480-deployment.md and pass the encoded-command-length regression check. A command-length failure is a NO-GO until the fixed adapter is shortened or the logic is moved into a hash-bound payload.",
+        "2026-09-17T06:04Z: release 98d33531346f1c6a executed the shortened hash-bound diagnostic to MT5. It returned FOREX_M30_DEMO_EXECUTION_DRILL_REFUSED with order_submitted=false and reason M1_TERMINAL_TRADING_DISABLED; no broker order was sent.",
+        "2026-09-17T06:42Z onward: the T480 SSH endpoint at 192.168.0.210:22 repeatedly timed out, preventing a subsequent capability observation or execution attempt.",
+        "2026-09-17T08:08Z: T480 reachability recovered. The fixed read-only capability check again reported connected=true and account permissions true, but terminal_trade_allowed=false and submission_permitted=false; no broker action was attempted."
+      ],
+      "blocker": null
+    },
+    {
       "id": "natural-lifecycle",
       "title": "Retain one naturally eligible final-version Demo order, close, and broker reconciliation without forcing or retrying an order",
       "state": "BLOCKED",
@@ -50,12 +53,16 @@
       "evidence": [
         "2026-09-17 final-version read-only observation: release 07b2ac258c6da945, sequence 54251, closed candle 2026-09-17T04:55:00Z, terminal NO_TRADE, no selected owner, no attempt, and no execution lifecycle. This confirms normal operation but is not the required eligible order/close/reconciliation proof.",
         "2026-09-17 fixed read-only m20_listener_terminal_capability observation: connected=true, terminal_trade_allowed=false, terminal_tradeapi_disabled=false, account_trade_allowed=true, account_trade_expert=true, submission_permitted=false. No assessment, order, modification, or retry was performed.",
-        "2026-09-17 Chris deferred repository-controlled terminal-setting deployment and test. The human operator owns the MT5 AutoTrading setting; the listener and its read-only check remain fail-closed."
+        "2026-09-17 Chris deferred repository-controlled terminal-setting deployment and test. The human operator owns the MT5 AutoTrading setting; the listener and its read-only check remain fail-closed.",
+        "2026-09-17T08:43Z: the authorised read-only capability recheck could not reach T480 because SSH to 192.168.0.210 timed out. No terminal, listener, broker, or configuration state was changed.",
+        "2026-09-17T08:45Z: a second authorised read-only capability recheck timed out during SSH banner exchange. Follow-up ICMP and TCP/22 probes received no response. This indicates T480 is currently unreachable from the repository host; no remote state was changed.",
+        "2026-09-17T08:48Z: the shared cs-ai-lab-infra T480 transport preflight was run using the existing machine-local target. Its local strict-host-key and batch-mode checks passed, but its remote SSH check timed out. This independently confirms an unavailable T480 SSH surface, not a Forex catalog or operation defect.",
+        "2026-09-17T08:55Z: shared transport preflight and the fixed Forex listener status recovered. The listener was RUNNING on 98d33531346f1c6a with a fresh EURUSD quote and an M1 trend-pullback SELL candidate, but it correctly persisted NO_TRADE_RECONCILED because terminal_trade_allowed=false and the persistent Option B risk policy paused new entries with EXTERNAL_CASH_FLOW."
       ],
       "blocker": {
         "source": "Current MT5 terminal capability observation on the bound T480 Demo terminal",
-        "reason": "terminal_trade_allowed is false, so submission_permitted is false even though the connected Demo account and API/account permissions are valid.",
-        "unblock_action": "After the T480 reboot, the human operator enables AutoTrading/trading permission in the exact MT5 Demo terminal instance. Then rerun the fixed read-only m20_listener_terminal_capability observation and require submission_permitted=true. Repository-controlled terminal configuration is explicitly deferred."
+        "reason": "terminal_trade_allowed is false, so submission_permitted is false even though the connected Demo account and API/account permissions are valid; the persistent Option B risk policy also pauses new entries with EXTERNAL_CASH_FLOW.",
+        "unblock_action": "The human operator enables AutoTrading/trading permission in the exact MT5 Demo terminal instance, then investigates and resolves or explicitly resumes the persistent Option B EXTERNAL_CASH_FLOW pause through its fixed governed path. Rerun the fixed read-only capability and listener observations and require submission_permitted=true plus no active entry pause. Repository-controlled terminal configuration remains deferred."
       }
     },
     {

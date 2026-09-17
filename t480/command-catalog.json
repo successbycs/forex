@@ -73,6 +73,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_terminal_identity",
+      "purpose": "Read the listener-published MT5 runtime binding and correlate it to the scheduled listener process without opening MT5, trading, or exposing credentials.",
+      "approval_required": false
+    },
+    {
       "id": "h_slow_demo_preflight",
       "purpose": "Read the fixed H1 GOMarketsMU-Demo EURUSD terminal/account preflight without credentials, mutation, caller parameters, or order capability.",
       "approval_required": false
@@ -1027,7 +1032,23 @@
     {"id":"m20_listener_runner_stage_77","purpose":"Stage fixed M20 listener runner payload part 77.","approval_required":false},
     {"id":"m20_listener_runner_stage_78","purpose":"Stage fixed M20 listener runner payload part 78.","approval_required":false},
     {"id":"m20_listener_runner_stage_79","purpose":"Stage fixed M20 listener runner payload part 79.","approval_required":false},
-    {"id":"m20_listener_runner_stage_80","purpose":"Stage and verify fixed M20 listener runner payload part 80.","approval_required":false},
+    {"id":"m20_listener_runner_stage_80","purpose":"Stage fixed M20 listener runner payload part 80.","approval_required":false},
+    {"id":"m20_listener_runner_stage_81","purpose":"Stage fixed M20 listener runner payload part 81.","approval_required":false},
+    {"id":"m20_listener_runner_stage_82","purpose":"Stage fixed M20 listener runner payload part 82.","approval_required":false},
+    {"id":"m20_listener_runner_stage_83","purpose":"Stage fixed M20 listener runner payload part 83.","approval_required":false},
+    {"id":"m20_listener_runner_stage_84","purpose":"Stage fixed M20 listener runner payload part 84.","approval_required":false},
+    {"id":"m20_listener_runner_stage_85","purpose":"Stage fixed M20 listener runner payload part 85.","approval_required":false},
+    {"id":"m20_listener_runner_stage_86","purpose":"Stage fixed M20 listener runner payload part 86.","approval_required":false},
+    {"id":"m20_listener_runner_stage_87","purpose":"Stage fixed M20 listener runner payload part 87.","approval_required":false},
+    {"id":"m20_listener_runner_stage_88","purpose":"Stage fixed M20 listener runner payload part 88.","approval_required":false},
+    {"id":"m20_listener_runner_stage_89","purpose":"Stage fixed M20 listener runner payload part 89.","approval_required":false},
+    {"id":"m20_listener_runner_stage_90","purpose":"Stage fixed M20 listener runner payload part 90.","approval_required":false},
+    {"id":"m20_listener_runner_stage_91","purpose":"Stage fixed M20 listener runner payload part 91.","approval_required":false},
+    {"id":"m20_listener_runner_stage_92","purpose":"Stage fixed M20 listener runner payload part 92.","approval_required":false},
+    {"id":"m20_listener_runner_stage_93","purpose":"Stage fixed M20 listener runner payload part 93.","approval_required":false},
+    {"id":"m20_listener_runner_stage_94","purpose":"Stage fixed M20 listener runner payload part 94.","approval_required":false},
+    {"id":"m20_listener_runner_stage_95","purpose":"Stage fixed M20 listener runner payload part 95.","approval_required":false},
+    {"id":"m20_listener_runner_stage_96","purpose":"Stage and verify fixed M20 listener runner payload part 96.","approval_required":false},
     {
       "id": "m20_listener_bridge_stage_25",
       "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 25.",

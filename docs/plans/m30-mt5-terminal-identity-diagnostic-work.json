@@ -1,0 +1,48 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "M30-MT5-TERMINAL-IDENTITY",
+  "authorization": "Chris authorised the corrected M30 runtime-binding diagnostic. It is limited to the existing GOMarketsMU-Demo listener configuration and cannot alter MT5 settings, place orders, access Live, change strategies, or change risk policy.",
+  "markdown_plan": "docs/plans/m30-mt5-terminal-identity-diagnostic.md",
+  "items": [
+    {
+      "id": "runtime-binding",
+      "title": "Implement listener-owned MT5 runtime binding and fixed read-only correlation",
+      "state": "DONE",
+      "requires": [],
+      "evidence": [
+        "2026-09-17: t480/m20_demo_listener_service.py starts one fixed child runtime-binding observation in the Scheduled Task context and publishes only redacted result plus listener PID.",
+        "2026-09-17: scripts/t480_adapter.py m20_listener_terminal_identity now reads the published binding and process topology without MetaTrader5.initialize."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "behavioural-tests",
+      "title": "Test binding results, failure paths, no-order boundary and transport size",
+      "state": "DONE",
+      "requires": ["runtime-binding"],
+      "evidence": [
+        "2026-09-17: focused adapter tests passed: 6 passed.",
+        "2026-09-17: focused listener-service tests passed: 2 passed.",
+        "2026-09-17: fixed identity command measured 1248 characters, below the T480 7500-character boundary.",
+        "2026-09-17: independent review required and verified fresh heartbeat/binding evidence, exact active-release PID correlation, bounded refresh, and typed digest validation.",
+        "2026-09-17: release-readiness repair reduced the fixed installer to 6970 characters and runner staging to at most 7298 encoded characters by using 96 hash-verified fragments; all release-critical stage, prepare, configure and install commands are below 7500."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "deployed-observation",
+      "title": "Release and observe the actual listener runtime binding",
+      "state": "BLOCKED",
+      "requires": ["behavioural-tests"],
+      "evidence": [
+        "The prior 2026-09-17 observation is invalid for listener attribution because it was made by an SSH-launched MT5 process.",
+        "2026-09-17T10:05Z: the running, unheld prior release 98d33531346f1c6a correctly returned UNAVAILABLE because it has no runtime_binding field. The fixed capability read remained Demo/AUD connected with terminal_trade_allowed=false and submission_permitted=false. No broker or listener mutation occurred."
+      ],
+      "blocker": {
+        "source": "Chris's explicit no-maintenance-hold instruction and M30 release-readiness requirement",
+        "reason": "The current deployment procedure stops and replaces the listener. A no-hold release procedure has not been authorised or verified, so deploying this runtime payload would conflict with the standing instruction.",
+        "unblock_action": "Use release-readiness to establish an approved no-hold deployment method, then deploy and run m20_listener_terminal_identity."
+      }
+    }
+  ]
+}

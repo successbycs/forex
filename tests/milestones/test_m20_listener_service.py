@@ -99,6 +99,34 @@ def test_listener_module_loads_without_mt5_dependency():
     assert module._nzst("2026-09-03T09:30:00Z") == "03/09/26 21:30:00 NZST"
 
 
+def test_listener_runtime_binding_is_child_owned_and_rejects_ambiguous_output(monkeypatch):
+    spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
+    assert spec and spec.loader
+    service = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(service)
+    monkeypatch.setattr(service.os, "getpid", lambda: 42)
+    valid = {
+        "marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "MAPPED",
+        "server": "GOMarketsMU-Demo", "currency": "AUD",
+        "configured_terminal_path_sha256": "sha256:" + "a" * 64,
+        "connected_terminal_path_sha256": "sha256:" + "a" * 64,
+        "connected_terminal_data_path_sha256": "sha256:" + "c" * 64,
+        "terminal_connected": True, "terminal_trade_allowed": False,
+        "terminal_tradeapi_disabled": False, "account_trade_allowed": True,
+        "account_trade_expert": True, "submission_permitted": False,
+    }
+    calls = []
+    monkeypatch.setattr(service.subprocess, "run", lambda argv, **_: calls.append(argv) or type("R", (), {"returncode": 0, "stdout": json.dumps(valid)})())
+    result = service._terminal_runtime_binding({"python_path": "python", "terminal_path": "terminal"})
+    assert result["state"] == "MAPPED" and result["listener_process_id"] == 42
+    assert result["captured_at_utc"].endswith("Z")
+    assert calls == [["python", str(service.RUNNER_PATH), "terminal", str(service.LEASE_PATH), "--terminal-runtime-binding"]]
+    monkeypatch.setattr(service.subprocess, "run", lambda *_, **__: type("R", (), {"returncode": 0, "stdout": "{}"})())
+    assert service._terminal_runtime_binding({"python_path": "python", "terminal_path": "terminal"}) == {
+        "state": "UNAVAILABLE", "reason": "RUNTIME_BINDING_INVALID", "listener_process_id": 42,
+    }
+
+
 def test_latest_assessment_retention_is_replace_only_and_never_listener_critical(tmp_path, monkeypatch):
     spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
     assert spec and spec.loader

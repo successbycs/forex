@@ -66,6 +66,7 @@ RUNNER_PATH = ROOT / "m20_demo_trading_session.payload"
 POLL_SECONDS = 1
 ASSESSMENT_INTERVAL_SECONDS = 5
 MONITOR_RETRY_SECONDS = 10
+RUNTIME_BINDING_REFRESH_SECONDS = 30
 RESTART_DRILL_OBSERVATION = "NOT_CHECKED"
 CONTINUITY_WINDOW_SECONDS = 30 * 60
 CONTINUITY_SAMPLE_SECONDS = 5
@@ -544,6 +545,54 @@ def _quote_identity(values: dict[str, str]) -> dict[str, Any]:
     return value
 
 
+def _terminal_runtime_binding(values: dict[str, str]) -> dict[str, Any]:
+    """Capture the MT5 context from a child owned by this Scheduled Task.
+
+    The child inherits this listener's task context.  The function returns an
+    explicit unavailable result rather than treating an SSH-side MT5 query as
+    a substitute.  It is read-only and has no assessment or order path.
+    """
+    try:
+        completed = subprocess.run(
+            [str(values["python_path"]), str(RUNNER_PATH), str(values["terminal_path"]), str(LEASE_PATH),
+             "--terminal-runtime-binding"],
+            text=True, capture_output=True, check=False, env=os.environ.copy(), timeout=5,
+        )
+    except subprocess.TimeoutExpired:
+        return {"state": "UNAVAILABLE", "reason": "RUNTIME_BINDING_TIMEOUT",
+                "listener_process_id": os.getpid()}
+    try:
+        value = json.loads(completed.stdout)
+    except json.JSONDecodeError:
+        return {"state": "UNAVAILABLE", "reason": "RUNTIME_BINDING_INVALID_OUTPUT",
+                "listener_process_id": os.getpid()}
+    required = {
+        "marker", "state", "server", "currency", "configured_terminal_path_sha256",
+        "connected_terminal_path_sha256", "connected_terminal_data_path_sha256", "terminal_connected",
+        "terminal_trade_allowed", "terminal_tradeapi_disabled", "account_trade_allowed",
+        "account_trade_expert", "submission_permitted",
+    }
+    valid_digest = lambda candidate: (isinstance(candidate, str) and len(candidate) == 71
+                                      and candidate.startswith("sha256:")
+                                      and all(char in "0123456789abcdef" for char in candidate[7:]))
+    if (completed.returncode != 0 or not isinstance(value, dict) or set(value) != required
+            or value.get("marker") != "FOREX_M20_TERMINAL_RUNTIME_BINDING"
+            or value.get("state") != "MAPPED" or value.get("server") != "GOMarketsMU-Demo"
+            or value.get("currency") != "AUD"
+            or value.get("configured_terminal_path_sha256") != value.get("connected_terminal_path_sha256")
+            or any(not valid_digest(value.get(key))
+                   for key in ("configured_terminal_path_sha256", "connected_terminal_path_sha256",
+                               "connected_terminal_data_path_sha256"))
+            or any(not isinstance(value.get(key), bool) for key in (
+                "terminal_connected", "terminal_trade_allowed", "terminal_tradeapi_disabled",
+                "account_trade_allowed", "account_trade_expert", "submission_permitted"))):
+        return {"state": "UNAVAILABLE", "reason": "RUNTIME_BINDING_INVALID",
+                "listener_process_id": os.getpid()}
+    return {key: value[key] for key in required if key != "marker"} | {
+        "listener_process_id": os.getpid(), "captured_at_utc": _utc_now(),
+    }
+
+
 def _quote_key(quote: dict[str, Any]) -> str:
     """Include MT5 time and price so a cached quote cannot trigger twice."""
     return f"{quote['tick_time_msc']}:{quote['bid']}:{quote['ask']}"
@@ -632,14 +681,20 @@ def run() -> None:
     monitor_initialized = False
     last_assessment_completed_at_utc: str | None = None
     last_assessment_duration_ms: int | None = None
+    runtime_binding = _terminal_runtime_binding(values)
+    next_runtime_binding_refresh = time.monotonic() + RUNTIME_BINDING_REFRESH_SECONDS
     # Publish a release-bound liveness record before the first bounded broker
     # recovery pass.  Deployment health checks prove the supervisor is alive
     # independently of any slow or failed historical reconciliation.
     _write_status({"state": "STARTING", "iteration": iteration, "last_result": last_result,
                    "next_assessment_at_utc": None, "monitor": monitor_state,
+                   "runtime_binding": runtime_binding,
                    "detail": "Supervisor started; broker-backed open-position recovery is pending."})
     while not STOP_PATH.exists():
         now = time.monotonic()
+        if now >= next_runtime_binding_refresh:
+            runtime_binding = _terminal_runtime_binding(values)
+            next_runtime_binding_refresh = time.monotonic() + RUNTIME_BINDING_REFRESH_SECONDS
         maintenance_hold = _maintenance_hold()
         if maintenance_hold["active"]:
             monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
@@ -649,6 +704,7 @@ def run() -> None:
                            "assessment_completed_at_utc": last_assessment_completed_at_utc,
                            "assessment_duration_ms": last_assessment_duration_ms,
                            "monitor": monitor_state, "quote": last_quote,
+                           "runtime_binding": runtime_binding,
                            "maintenance_hold": maintenance_hold,
                            "detail": "Coordinated maintenance hold is active; open-position monitoring continues but no assessment or Demo order is permitted."})
             time.sleep(POLL_SECONDS)
@@ -662,6 +718,7 @@ def run() -> None:
                            "assessment_completed_at_utc": last_assessment_completed_at_utc,
                            "assessment_duration_ms": last_assessment_duration_ms,
                            "monitor": monitor_state, "quote": last_quote,
+                           "runtime_binding": runtime_binding,
                            "execution_drill_lock": execution_drill_lock,
                            "detail": "M30 execution drill owns the broker path; monitoring continues and no new listener assessment or Demo order is permitted."})
             time.sleep(POLL_SECONDS)
@@ -674,6 +731,7 @@ def run() -> None:
                            "assessment_completed_at_utc": last_assessment_completed_at_utc,
                            "assessment_duration_ms": last_assessment_duration_ms,
                            "monitor": monitor_state, "quote": last_quote,
+                           "runtime_binding": runtime_binding,
                            "detail": "Service is alive; no tick capture or Demo order is permitted without an active Demo lease."})
             time.sleep(POLL_SECONDS)
             continue
@@ -689,6 +747,7 @@ def run() -> None:
                                "assessment_completed_at_utc": last_assessment_completed_at_utc,
                                "assessment_duration_ms": last_assessment_duration_ms,
                                "monitor": monitor_state, "quote": last_quote,
+                               "runtime_binding": runtime_binding,
                                "detail": "Durable open-position reconciliation is unavailable; no assessment or order is submitted."})
                 time.sleep(POLL_SECONDS)
                 continue
@@ -702,6 +761,7 @@ def run() -> None:
                            "assessment_completed_at_utc": last_assessment_completed_at_utc,
                            "assessment_duration_ms": last_assessment_duration_ms,
                            "monitor": monitor_state, "quote": last_quote,
+                           "runtime_binding": runtime_binding,
                            "protected_restart_drill": restart_drill,
                            "detail": "Protected-restart drill marker is unavailable; monitoring continues but no assessment or Demo order is permitted."})
             time.sleep(POLL_SECONDS)
@@ -716,6 +776,7 @@ def run() -> None:
                            "assessment_completed_at_utc": last_assessment_completed_at_utc,
                            "assessment_duration_ms": last_assessment_duration_ms,
                            "monitor": monitor_state, "protected_restart_drill": restart_drill,
+                           "runtime_binding": runtime_binding,
                            "detail": "Waiting for the five-second minimum before accepting the next MT5 quote update."})
             # Monitoring is bounded but can still consume the remaining
             # assessment interval.  A negative sleep would terminate this
@@ -730,6 +791,7 @@ def run() -> None:
                            "assessment_completed_at_utc": last_assessment_completed_at_utc,
                            "assessment_duration_ms": last_assessment_duration_ms,
                            "monitor": monitor_state, "quote": quote, "protected_restart_drill": restart_drill,
+                           "runtime_binding": runtime_binding,
                            "detail": "Waiting for a readable fresh Demo EURUSD quote; no assessment or order is submitted."})
             time.sleep(POLL_SECONDS)
             continue
@@ -741,6 +803,7 @@ def run() -> None:
                            "assessment_completed_at_utc": last_assessment_completed_at_utc,
                            "assessment_duration_ms": last_assessment_duration_ms,
                            "monitor": monitor_state, "quote": quote, "protected_restart_drill": restart_drill,
+                           "runtime_binding": runtime_binding,
                            "detail": "The five-second interval has elapsed; waiting for the next MT5 quote update before assessing again."})
             time.sleep(POLL_SECONDS)
             continue
@@ -789,6 +852,7 @@ def run() -> None:
                        "assessment_duration_ms": assessment_duration_ms,
                        "next_assessment_at_utc": datetime.fromtimestamp(time.time() + max(0, next_assessment_at - time.monotonic()), timezone.utc).isoformat().replace("+00:00", "Z"),
                        "monitor": monitor_state, "quote": quote, "protected_restart_drill": restart_drill,
+                       "runtime_binding": runtime_binding,
                        "detail": "This assessment started from a fresh MT5 quote. The next needs a later quote update and the five-second minimum; decisions use completed M1 candles."})
     _write_status({"state": "STOPPED", "iteration": iteration, "last_result": last_result,
                    "next_assessment_at_utc": None, "monitor": monitor_state, "detail": "Stop sentinel observed."})
