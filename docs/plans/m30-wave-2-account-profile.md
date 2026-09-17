@@ -22,6 +22,10 @@ one. No order is ever forced to prove this profile.
   reservation and cannot call the broker order API.
 - The local profile value is never committed; the fixed deploy configuration
   hand-off rejects an absent or invalid local file.
+- The fixed provisioning operation accepts only a separately supplied valid
+  hash, creates only this ignored profile file, and refuses to replace a
+  different existing binding. It does not contact MT5 or derive the expected
+  value from the account it protects.
 
 ## Progress
 
@@ -42,6 +46,7 @@ one. No order is ever forced to prove this profile.
 
 - `t480/m20_demo_trading_session.py`
 - `scripts/t480_adapter.py`
+- `t480/command-catalog.json`
 - `tests/test_t480_adapter.py`
 - `docs/workflows/m1-demo-decision-workflow.md`
 - this plan and its execution-work record

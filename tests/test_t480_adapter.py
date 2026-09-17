@@ -316,6 +316,20 @@ def test_m20_listener_configuration_requires_the_local_account_profile():
     assert "FOREX_M20_ACCOUNT_EXECUTION_PROFILE" in command
 
 
+def test_m20_listener_profile_provisioning_is_fixed_and_requires_a_valid_expected_hash():
+    expected = "sha256:" + "a" * 64
+    command = t480_adapter._m20_listener_provision_account_profile_command(expected)
+    assert "m1_eurusd_demo_profile.local.json" in command
+    assert "M1_EURUSD_DEMO" in command
+    assert expected in command
+    assert "MetaTrader5" not in command
+    assert "already exists with a different binding" in command
+    with pytest.raises(ValueError, match="account scope must be"):
+        t480_adapter._m20_listener_provision_account_profile_command("not-a-hash")
+    with pytest.raises(ValueError, match="--account-scope-sha256 is required"):
+        t480_adapter.execute("m20_listener_provision_account_profile")
+
+
 def test_m20_local_account_profile_is_ignored():
     ignored = (t480_adapter.ROOT / ".gitignore").read_text(encoding="utf-8")
     assert "**/m1_eurusd_demo_profile.local.json" in ignored

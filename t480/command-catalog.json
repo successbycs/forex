@@ -233,6 +233,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_provision_account_profile",
+      "purpose": "Create only the fixed ignored M1_EURUSD_DEMO local expected-account profile.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_install",
       "purpose": "Install or update the fixed hash-checked permanent M20 Demo listener Scheduled Task and start it immediately.",
       "approval_required": false

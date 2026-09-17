@@ -823,6 +823,25 @@ def _m20_listener_configure_command() -> str:
     )
 
 
+def _m20_listener_provision_account_profile_command(account_scope_sha256: str) -> str:
+    """Create only the fixed ignored Demo account-profile file, without MT5 access."""
+    if not re.fullmatch(r"sha256:[0-9a-f]{64}", account_scope_sha256):
+        raise ValueError("account scope must be a sha256:<64 lowercase hex> value")
+    return (
+        "$ErrorActionPreference='Stop';$l=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe';"
+        "if(!(Test-Path -LiteralPath $l)){throw 'M1_EURUSD_DEMO local profile directory is absent'};"
+        "$path=Join-Path $l 'm1_eurusd_demo_profile.local.json';"
+        "$profile=[ordered]@{profile_id='M1_EURUSD_DEMO';server='GOMarketsMU-Demo';currency='AUD';symbol='EURUSD';account_scope_sha256='" + account_scope_sha256 + "'};"
+        "if(Test-Path -LiteralPath $path){$existing=gc -Raw $path|ConvertFrom-Json;$keys=@($existing.PSObject.Properties.Name|Sort-Object);"
+        "$expected=@('account_scope_sha256','currency','profile_id','server','symbol');"
+        "if(($keys -join ',') -ne ($expected -join ',') -or $existing.profile_id -ne $profile.profile_id -or $existing.server -ne $profile.server -or $existing.currency -ne $profile.currency -or $existing.symbol -ne $profile.symbol -or $existing.account_scope_sha256 -ne $profile.account_scope_sha256){throw 'M1_EURUSD_DEMO local profile already exists with a different binding'};"
+        "[pscustomobject]@{profile_id='M1_EURUSD_DEMO';provisioned=$false;detail='Matching local profile already exists'}|ConvertTo-Json -Compress;exit 0};"
+        "$tmp=$path+'.tmp';[IO.File]::WriteAllText($tmp,($profile|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false)));"
+        "Move-Item -LiteralPath $tmp -Destination $path -ErrorAction Stop;"
+        "[pscustomobject]@{profile_id='M1_EURUSD_DEMO';provisioned=$true}|ConvertTo-Json -Compress"
+    )
+
+
 def _m20_listener_install_command() -> str:
     """Activate the exact prepared release and restore the old task on failure."""
     service = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
@@ -1172,6 +1191,12 @@ OPERATIONS: dict[str, Operation] = {
         powershell_command=_m20_listener_configure_command(),
         timeout_seconds=60,
     ),
+    "m20_listener_provision_account_profile": Operation(
+        "m20_listener_provision_account_profile",
+        "Create only the fixed ignored M1_EURUSD_DEMO local expected-account profile.",
+        powershell_command="",
+        timeout_seconds=60,
+    ),
     "m20_listener_install": Operation(
         "m20_listener_install",
         "Install or update the fixed permanent M20 Demo listener Scheduled Task.",
@@ -1426,7 +1451,8 @@ def requirements() -> dict[str, Any]:
     }
 
 
-def execute(operation_id: str, *, after_assessment_sequence: int | None = None) -> dict[str, Any]:
+def execute(operation_id: str, *, after_assessment_sequence: int | None = None,
+            account_scope_sha256: str | None = None) -> dict[str, Any]:
     operation = OPERATIONS.get(operation_id)
     if operation is None:
         raise ValueError(f"Unknown operation: {operation_id}")
@@ -1435,6 +1461,14 @@ def execute(operation_id: str, *, after_assessment_sequence: int | None = None) 
             raise ValueError("spool page cursor is valid only for the fixed spool-page operation")
         operation = Operation(operation_id, operation.purpose,
                               powershell_command=_m20_listener_spool_page_command(after_assessment_sequence))
+    if account_scope_sha256 is not None:
+        if operation_id != "m20_listener_provision_account_profile":
+            raise ValueError("account scope is valid only for fixed M1_EURUSD_DEMO profile provisioning")
+        operation = Operation(operation_id, operation.purpose,
+                              powershell_command=_m20_listener_provision_account_profile_command(account_scope_sha256),
+                              timeout_seconds=operation.timeout_seconds)
+    elif operation_id == "m20_listener_provision_account_profile":
+        raise ValueError("--account-scope-sha256 is required for fixed M1_EURUSD_DEMO profile provisioning")
     payload = execute_operation(operation, target=target(), settings=TRANSPORT_SETTINGS)
     payload["tool_id"] = TOOL_ID
     return payload
@@ -1448,6 +1482,7 @@ def parser() -> argparse.ArgumentParser:
     )
     command_parser.add_argument("--operation", choices=sorted(OPERATIONS))
     command_parser.add_argument("--after-assessment-sequence", type=int)
+    command_parser.add_argument("--account-scope-sha256")
     return command_parser
 
 
@@ -1469,8 +1504,12 @@ def main(argv: list[str] | None = None) -> int:
         require_dependency(APP_CONFIG)
         if not args.operation:
             raise SystemExit("--operation is required for execute and verify")
-        payload = (execute(args.operation) if args.after_assessment_sequence is None
-                   else execute(args.operation, after_assessment_sequence=args.after_assessment_sequence))
+        execution_arguments: dict[str, Any] = {}
+        if args.after_assessment_sequence is not None:
+            execution_arguments["after_assessment_sequence"] = args.after_assessment_sequence
+        if args.account_scope_sha256 is not None:
+            execution_arguments["account_scope_sha256"] = args.account_scope_sha256
+        payload = execute(args.operation, **execution_arguments)
         if args.operation == "m1_mt5_demo_probe" and payload.get("ok"):
             payload["proof_marker"] = "FOREX_M1_PROOF_OK"
         if args.command == "verify":
