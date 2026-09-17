@@ -228,6 +228,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_disable_discord",
+      "purpose": "Pause optional M20 Discord notifications without exposing or modifying the T480-local webhook secret.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_configure",
       "purpose": "Write the governed non-secret M20 listener configuration after release verification.",
       "approval_required": false

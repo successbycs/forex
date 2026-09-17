@@ -803,6 +803,13 @@ def _m20_listener_enable_discord_from_existing_secret_command() -> str:
     )
 
 
+def _m20_listener_disable_discord_command() -> str:
+    """Disable optional Discord notifications without exposing or changing the secret."""
+    return (
+        "$ErrorActionPreference='Stop';$state='C:\\ProgramData\\ForexListener\\state';$active=Join-Path $state 'm20_demo_listener_service.local.json';if(!(Test-Path -LiteralPath $active)){throw 'M20 listener configuration is absent'};$c=gc -Raw -LiteralPath $active|ConvertFrom-Json;$c|Add-Member -NotePropertyName FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED -NotePropertyValue 'false' -Force;$tmp=$active+'.tmp';[IO.File]::WriteAllText($tmp,($c|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false)));Move-Item $tmp $active -Force;[pscustomobject]@{configured=$false;detail='Discord notifications are paused; the local secret was not returned or changed.'}|ConvertTo-Json -Compress"
+    )
+
+
 def _m20_listener_validate_account_profile_command() -> str:
     """Validate and retain the one fixed local Demo-account binding.
 
@@ -1196,6 +1203,11 @@ OPERATIONS: dict[str, Operation] = {
         "m20_listener_enable_discord_from_existing_secret",
         "Enable M20 Discord open alerts from an approved existing T480-local secret without returning it.",
         powershell_command=_m20_listener_enable_discord_from_existing_secret_command(),
+    ),
+    "m20_listener_disable_discord": Operation(
+        "m20_listener_disable_discord",
+        "Pause optional M20 Discord notifications without exposing or modifying the local webhook secret.",
+        powershell_command=_m20_listener_disable_discord_command(),
     ),
     "m20_listener_configure": Operation(
         "m20_listener_configure",

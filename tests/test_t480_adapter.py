@@ -1968,6 +1968,14 @@ def test_m20_discord_enable_operation_reads_only_approved_local_secret_sources()
     assert "discordapp" in command
 
 
+def test_m20_discord_disable_operation_pauses_notifications_without_reading_secret():
+    command = t480_adapter.OPERATIONS["m20_listener_disable_discord"].powershell_command or ""
+    assert "FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED" in command
+    assert "NotePropertyValue 'false'" in command
+    assert "Discord notifications are paused" in command
+    assert "FOREX_M20_DISCORD_WEBHOOK_URL" not in command
+
+
 @pytest.mark.parametrize('action', ['BUY', 'SELL'])
 def test_m20_minimum_lot_refused_without_tightening_technical_stop(monkeypatch, action):
     probe = _m20_probe_module(monkeypatch)
