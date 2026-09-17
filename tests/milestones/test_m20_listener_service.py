@@ -232,6 +232,59 @@ def test_listener_blocks_assessment_but_keeps_monitoring_during_maintenance(tmp_
     assert module._restart_drill_state()["state"] == "RECOVERED"
 
 
+def test_listener_continues_to_the_next_fresh_quote_after_a_normal_no_trade(tmp_path, monkeypatch):
+    """A normal terminal refusal is evidence, not a service-wide entry pause."""
+    spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "STOP_PATH", tmp_path / "listener.stop")
+    monkeypatch.setattr(module, "STATUS_PATH", tmp_path / "listener-status.json")
+    monkeypatch.setattr(module, "ASSESSMENT_TOTAL_PATH", tmp_path / "assessment-total.json")
+    monkeypatch.setattr(module, "ASSESSMENT_GATE_PATH", tmp_path / "assessment-gate.json")
+    monkeypatch.setattr(module, "LATEST_ASSESSMENT_PATH", tmp_path / "latest.json")
+    monkeypatch.setattr(module, "ASSESSMENT_SPOOL_PATH", tmp_path / "spool")
+    monkeypatch.setattr(module, "PROTECTED_RESTART_DRILL_PATH", tmp_path / "restart-drill.json")
+    monkeypatch.setattr(module, "MAINTENANCE_HOLD_PATH", tmp_path / "maintenance-hold.json")
+    monkeypatch.setattr(module, "POLL_SECONDS", 0)
+    monkeypatch.setattr(module, "ASSESSMENT_INTERVAL_SECONDS", 0)
+    monkeypatch.setattr(module, "_load_environment", lambda: {"python_path": "python", "terminal_path": "terminal"})
+    monkeypatch.setattr(module, "_active_lease", lambda: True)
+    monkeypatch.setattr(module, "_maintenance_hold", lambda: {"active": False, "reason": "NONE"})
+    monkeypatch.setattr(module, "_monitor_update", lambda values, previous, retry_at: ({"state": "IDLE"}, retry_at))
+
+    quote_count = 0
+    def quote(values):
+        nonlocal quote_count
+        quote_count += 1
+        if quote_count > 2:
+            module.STOP_PATH.write_text("stop", encoding="utf-8")
+            return {"error": "test complete"}
+        return {"marker": "FOREX_M20_DEMO_QUOTE_IDENTITY_OK", "server": "GOMarketsMU-Demo",
+                "symbol": "EURUSD", "tick_time_msc": quote_count, "bid": 1.1, "ask": 1.1001}
+    monkeypatch.setattr(module, "_quote_identity", quote)
+
+    runner_calls = []
+    output = {
+        "marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1",
+        "operation": "m20_demo_trading_session", "server": "GOMarketsMU-Demo", "symbol": "EURUSD",
+        "captured_at_utc": "2026-09-17T00:00:01Z", "configuration_fingerprint": "sha256:" + "a" * 64,
+        "tick_timestamp_offset_seconds": 0,
+        "decision_snapshot": {"m1_closed_bars": [], "bid": 1.1, "ask": 1.1001, "spread_points": 10},
+        "proposal": {"proposal_id": "proposal", "action": "NO_TRADE"},
+    }
+    def runner(argv, **kwargs):
+        runner_calls.append(argv)
+        return type("Completed", (), {"returncode": 0, "stdout": json.dumps(output), "stderr": ""})()
+    monkeypatch.setattr(module.subprocess, "run", runner)
+
+    module.run()
+
+    assert [call[-1] for call in runner_calls] == ["1", "2"]
+    assert not module.MAINTENANCE_HOLD_PATH.exists()
+    assert json.loads(module.LATEST_ASSESSMENT_PATH.read_text())["assessment"]["proposal"]["action"] == "NO_TRADE"
+
+
 def test_listener_reconciles_durable_positions_before_its_first_assessment(tmp_path, monkeypatch):
     spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
     assert spec and spec.loader

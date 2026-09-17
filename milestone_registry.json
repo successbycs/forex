@@ -3792,6 +3792,7 @@
       "scope": [
         "Only after all prior gates, prove one bounded autonomous GOMarketsMU-Demo order and its complete reconciliation.",
         "For the one-position intraday strategy, prove autonomous Demo entry within existing fixed safety limits, mandatory close by the configured cutoff or earlier risk exit, and complete reconciliation of both actions.",
+        "Use continuous fresh completed-M1-candle Demo evaluation as the evidence-producing operating method: a normal persisted NO_TRADE continues to a later fresh candle, while unknown broker state, account mismatch, unresolved exposure, risk pause, or failed durable journalling blocks new entries and preserves existing position protection.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -3810,7 +3811,9 @@
         "docs/workflows/m1-data-contract.md",
         "docs/workflows/m1-postgres-completeness-report.md",
         "tests/test_m1_assessment_envelope.py",
-        "tests/test_m1_postgres_completeness.py"
+        "tests/test_m1_postgres_completeness.py",
+        "docs/plans/m30-wave-1-continuous-demo-work.json",
+        "scripts/capture_m30_natural_lifecycle_evidence.sh"
       ],
       "acceptance_criteria": [
         {
@@ -3860,7 +3863,8 @@
         "surface": "GOMarketsMU-Demo execution and reconciliation surface",
         "capture_command": [
           "bash",
-          "scripts/capture_m30_evidence.sh"
+          "scripts/capture_m30_natural_lifecycle_evidence.sh",
+          "{proposal_id}"
         ],
         "verifier_command": [
           "bash",
@@ -3886,7 +3890,7 @@
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof. MVP amendment 2026-09-16: the bounded capture preflight retains the M30-specific test output and governance validation receipt; unrelated historical repository tests do not gate this proof attempt. Supporting-tooling amendment 2026-09-16: Chris authorised a local, read-only retained-assessment envelope and completeness report. Requirements reset 2026-09-17: the MVP is a protected, explainable EURUSD Demo M1 loop with one terminal decision per closed candle and the existing order/close/reconciliation proof. Package D is the remaining MVP build; qualified context, broader reporting, Prefect/n8n and time-frame expansion are deferred. Package D authorisation permits exactly one additive schema migration and matching fixed runtime decision key for Demo account, EURUSD, M1 and closed-candle identity; local implementation and verification are authorised, but staging, applying the migration, deployment, schedules, Live, generic interfaces, strategy/risk changes and broker retries remain excluded. Chris's 2026-09-17 amendment defers financing, rollover-calendar, and UTC entry-hour policy from Demo to later Live readiness. The final M30 proof must bind this explicit DEFERRED_FOR_DEMO configuration; no Live or overnight authority is granted."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof. MVP amendment 2026-09-16: the bounded capture preflight retains the M30-specific test output and governance validation receipt; unrelated historical repository tests do not gate this proof attempt. Supporting-tooling amendment 2026-09-16: Chris authorised a local, read-only retained-assessment envelope and completeness report. Requirements reset 2026-09-17: the MVP is a protected, explainable EURUSD Demo M1 loop with one terminal decision per closed candle and the existing order/close/reconciliation proof. Package D is complete; qualified context, broader reporting, Prefect/n8n and time-frame expansion are deferred. Package D authorisation permitted exactly one additive schema migration and matching fixed runtime decision key for Demo account, EURUSD, M1 and closed-candle identity. Chris's 2026-09-17 amendment defers financing, rollover-calendar, and UTC entry-hour policy from Demo to later Live readiness. The final M30 proof must bind this explicit DEFERRED_FOR_DEMO configuration; no Live or overnight authority is granted. Continuous-Demo amendment 2026-09-17: continuous fresh completed-M1-candle assessment is M30's evidence-producing method, not an additional milestone or a trade-frequency requirement. A normal NO_TRADE continues to the next fresh candle. It does not permit replay of old candles, broker retries, strategy/risk changes, account ambiguity, or a release without focused verification and release-readiness. The first naturally eligible protected and reconciled lifecycle on the final deployed version remains the sole M30 real-world proof surface."
     },
     {
       "milestone_id": "M31",

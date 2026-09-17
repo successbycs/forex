@@ -1,0 +1,90 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "M30-WAVE-1-CONTINUOUS-DEMO",
+  "authorization": "Chris authorised the 2026-09-17 M30 continuous-Demo operating-method amendment, creation of this work record, and Wave 1 execution. Scope: prove and, only if necessary, repair continuous next-fresh-candle assessment after a normal NO_TRADE. No deployment, maintenance-hold release, broker action, strategy/risk change, broker retry, Live access, commit, push, or formal milestone closeout is authorised.",
+  "markdown_plan": "docs/plans/m30-controlled-demo-execution.md",
+  "items": [
+    {
+      "id": "contract-alignment",
+      "title": "Record M30 continuous-Demo authority and hybrid wave ordering",
+      "state": "DONE",
+      "requires": [],
+      "evidence": [
+        "milestone_registry.json M30 scope and notes",
+        "docs/plans/m30-controlled-demo-execution.md",
+        "docs/plans/m1-hybrid-prefect-postgres.md",
+        "docs/reviews/hybrid-milestone-alignment-review-2026-09-17.md"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "listener-mode-design",
+      "title": "Define the smallest maintenance-hold versus ordinary-NO_TRADE listener contract",
+      "state": "DONE",
+      "requires": ["contract-alignment"],
+      "evidence": [
+        "2026-09-17 source review: t480/m20_demo_listener_service.py only enters MAINTENANCE_HOLD when the independently written maintenance record is active; normal runner output does not write that record.",
+        "The listener continues its while-loop after any successful runner result and waits only for a later quote plus the configured minimum interval."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "listener-mode-implementation",
+      "title": "Implement continuous next-fresh-candle assessment without changing strategy, risk, or broker boundaries",
+      "state": "DONE",
+      "requires": ["listener-mode-design"],
+      "evidence": [
+        "No production listener change was necessary: the existing permanent listener already has the required next-fresh-candle behaviour.",
+        "tests/milestones/test_m20_listener_service.py::test_listener_continues_to_the_next_fresh_quote_after_a_normal_no_trade proves two fresh quote triggers execute after NO_TRADE without a maintenance-hold record."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "focused-verification",
+      "title": "Verify normal NO_TRADE continuation and all safety-stop, duplicate, persistence, and protection regressions",
+      "state": "DONE",
+      "requires": ["listener-mode-implementation"],
+      "evidence": [
+        "2026-09-17: python3 -m pytest -q tests/test_t480_adapter.py tests/milestones/test_m20_listener_service.py tests/milestones/test_m20_demo_trading.py tests/test_postgres_pgvector_adapter.py tests/test_m1_assessment_envelope.py tests/test_m1_postgres_completeness.py tests/milestones/test_m30.py — 189 passed.",
+        "The listener continuation test proves normal NO_TRADE proceeds to a later fresh quote; retained Package D and session/adapter tests separately cover candle identity, no-resubmission, invalid-M1 refusal, risk-pause refusal, persistence, and protection."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "independent-review",
+      "title": "Obtain read-only review of the changed listener contract and focused verification evidence",
+      "state": "DONE",
+      "requires": ["focused-verification"],
+      "evidence": [
+        "2026-09-17 Astra independent read-only review: APPROVE for Wave 1 local verification scope. It confirmed no production listener rewrite is needed and required the legacy submitting collector to be marked ineligible for continuous-mode proof.",
+        "The M30 contract and plan now name future read-only natural-lifecycle extraction as Wave 4 work."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "release-readiness",
+      "title": "Assess release readiness for the reviewed Wave 1 result without changing remote state",
+      "state": "DONE",
+      "requires": ["independent-review"],
+      "evidence": [
+        "2026-09-17T01:32Z fixed read-only diagnostics: the Scheduled Task is running under maintenance hold; deployed revision is ba6573969b8be0d8b23276aa564aa5cb41b0a8d9 with configuration fingerprint sha256:f4cda442b8b0daee9d198d03fa027dc34dcee6356321a1c7e318cff06af46f3d.",
+        "2026-09-17T01:32Z fixed read-only account identity: GOMarketsMU-Demo/AUD, expected redacted account scope SHA-256, balance/equity AUD 100989.59, and zero observed open positions.",
+        "2026-09-17T01:34Z fixed read-only terminal diagnostics: two configured MT5 processes were present (service session 0 and interactive session 2); terminal logs record EURUSD history file-lock errors [32] and synchronization failures. The terminal also reported zero positions and zero orders.",
+        "NO-GO: the reviewed Wave 1 change is uncommitted and therefore cannot match the deployed release; maintenance hold is active as expected before deployment; a duplicate terminal is producing EURUSD history file-lock errors; listener status retains a LAST_KNOWN_UNVERIFIED historic protection record. No deployment or hold removal occurred."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "deployment",
+      "title": "Deploy the reviewed release and remove maintenance hold only on explicit instruction",
+      "state": "BLOCKED",
+      "requires": ["release-readiness"],
+      "evidence": [],
+      "blocker": {
+        "source": "M30 deployment boundary",
+        "reason": "Release readiness is NO-GO: deployed revision/configuration do not match the reviewed local source, maintenance hold is active, a duplicate configured MT5 terminal is producing EURUSD history file-lock errors, and the listener status retains a LAST_KNOWN_UNVERIFIED historic protection record. Explicit deployment instruction is also required.",
+        "unblock_action": "Commit the reviewed paths; with Chris's explicit instruction, use only the fixed duplicate-terminal repair operation while held and flat; confirm a single service terminal and clean history diagnostics; rerun release-readiness against the intended committed release; then obtain Chris's explicit deployment instruction."
+      }
+    }
+  ]
+}

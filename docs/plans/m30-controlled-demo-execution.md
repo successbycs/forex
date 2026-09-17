@@ -2,18 +2,38 @@
 
 This ExecPlan is a living document and follows `PLANS.md`. It implements only
 M30's declared Demo proof surface. It does not enable Live trading, expand the
-fixed T480 adapter, change trading rules or risk limits, or release the current
-maintenance hold until existing fixed autonomous preconditions are met.
+fixed T480 adapter, or change trading rules or risk limits. The continuous-Demo
+operating-method amendment requires focused implementation verification and
+release-readiness before maintenance hold may be released.
 
 ## Purpose / Big Picture
 
-M30 will give the operator a reproducible record showing one deliberate
-EUR/USD GOMarketsMU-Demo trade from a fixed autonomous proposal through broker-confirmed
-closure and reconciliation. The outcome is an integration proof, not evidence
-of a profitable strategy. The operator will be able to run an offline verifier
-over a retained M30 evidence bundle.
+M30 will operate the protected EUR/USD GOMarketsMU-Demo listener across fresh
+completed M1 candles and retain one naturally eligible trade from fixed
+autonomous proposal through broker-confirmed closure and reconciliation. A
+normal `NO_TRADE` is recorded and evaluation continues at the next fresh candle;
+it never causes a broker retry or forced entry. The resulting lifecycle is an
+integration proof, not evidence of a profitable strategy. The operator will be
+able to run an offline verifier over the retained M30 evidence bundle.
 
 ## Progress
+
+<!-- forex-work-projection:start task=M30-WAVE-1-CONTINUOUS-DEMO schema=forex.execution-work-projection.v1 -->
+<!-- forex-work-item id=contract-alignment state=DONE -->
+- [x] contract-alignment — Record M30 continuous-Demo authority and hybrid wave ordering (DONE)
+<!-- forex-work-item id=listener-mode-design state=DONE -->
+- [x] listener-mode-design — Define the smallest maintenance-hold versus ordinary-NO_TRADE listener contract (DONE)
+<!-- forex-work-item id=listener-mode-implementation state=DONE -->
+- [x] listener-mode-implementation — Implement continuous next-fresh-candle assessment without changing strategy, risk, or broker boundaries (DONE)
+<!-- forex-work-item id=focused-verification state=DONE -->
+- [x] focused-verification — Verify normal NO_TRADE continuation and all safety-stop, duplicate, persistence, and protection regressions (DONE)
+<!-- forex-work-item id=independent-review state=DONE -->
+- [x] independent-review — Obtain read-only review of the changed listener contract and focused verification evidence (DONE)
+<!-- forex-work-item id=release-readiness state=DONE -->
+- [x] release-readiness — Assess release readiness for the reviewed Wave 1 result without changing remote state (DONE)
+<!-- forex-work-item id=deployment state=BLOCKED -->
+- [ ] deployment — Deploy the reviewed release and remove maintenance hold only on explicit instruction (BLOCKED)
+<!-- forex-work-projection:end -->
 
 - [x] (2026-09-16 02:42Z) Started M30 after M29 became proven.
 - [x] (2026-09-16) Inspected the contract, fixed executor, M20 evidence
@@ -84,6 +104,36 @@ over a retained M30 evidence bundle.
   `699b9538-3729-4584-9b24-f1d27a1ff3fe`, cleared the pause list, and left
   maintenance hold active. A future entry still requires its ordinary fresh
   risk check, market gates, and M30's no-retry capture rule.
+- [x] (2026-09-17) Completed the targeted hybrid milestone alignment review.
+  Chris approved the M30 operating-method amendment: continuous fresh-candle
+  Demo evaluation will produce evidence; a normal `NO_TRADE` proceeds to the
+  next candle, while safety stops still block new entries.
+- [x] (2026-09-17) Wave 1 source review and focused verification established
+  that the permanent listener already continues after a normal `NO_TRADE`; no
+  production listener rewrite was required. A regression test now proves two
+  successive fresh-quote assessments after `NO_TRADE`. The focused listener,
+  fixed-session, adapter, persistence, and M30 suites passed (189 tests).
+  Astra independently approved this local result. The old submitting M30
+  collector is explicitly legacy-only; read-only proof extraction remains
+  Wave 4.
+- [x] (2026-09-17 01:32Z) Read-only Wave 1 release-readiness assessment was
+  NO-GO. The deployed listener is running but held, binding revision
+  `ba6573969b8be0d8b23276aa564aa5cb41b0a8d9` and fingerprint
+  `sha256:f4cda442b8b0daee9d198d03fa027dc34dcee6356321a1c7e318cff06af46f3d`.
+  The observed account was correctly GOMarketsMU-Demo/AUD, flat, and matched
+  the redacted expected scope hash, but the local Wave 1 change is not a clean
+  deployed revision and the status retains a `LAST_KNOWN_UNVERIFIED` historic
+  protection record. No hold release or order occurred.
+- [x] (2026-09-17 01:34Z) A further fixed read-only terminal diagnostic found
+  two configured MT5 processes (one service-session and one interactive) and
+  EURUSD history file-lock errors with synchronization failures. The terminal
+  still reported zero positions and zero orders. This is a release blocker;
+  closing the duplicate terminal is a separate fixed mutation requiring
+  Chris's explicit instruction while maintenance hold remains active.
+- [ ] Implement and focused-test Wave 1's listener-mode separation. This must
+  preserve the fixed one-candle decision identity, all existing gates,
+  journal-before-submission rule, one-position cap, protection, and no-retry
+  rule. It does not itself release maintenance hold.
 - [ ] Validate the implementation, record M30-C2/C4 as applicable, and obtain
   an independent read-only review.
 - [ ] When the existing autonomous preflight is eligible, perform the bounded
@@ -210,24 +260,41 @@ persisted autonomous proposal to the broker lifecycle.
 
 ## Plan of Work
 
-First, add `scripts/capture_m30_evidence.sh`,
-`scripts/m30_evidence_contract.py`, `scripts/verify_m30_evidence.sh`,
-`docs/milestones/M30-proof.md`, and `tests/milestones/test_m30.py`. Capture
-must first ensure a clean material revision and pass M30 tests/governance. It
-records `m30-verification.txt` as the focused local verification receipt and
-does not run unrelated full-repository tests before the broker operation.
-The fixed action reports an accepted entry with `OPEN_MONITORING`. Preserve
-that raw response and poll only the read-only lifecycle summary for its exact
-proposal and attempt, retaining each response once under a distinct filename.
-Stop polling after 15 minutes without retrying entry or stopping its existing
-monitor. Once the matching terminal closed lifecycle is observed, retain the raw
-operation result, lifecycle/history/reconciliation reports, listener
-diagnostics, configuration, source revision, test outputs, redaction
-declaration, hashes, manifest, and `FOREX_M30_PROOF_OK` summary. The verifier
-must be offline and fail closed for any changed artifact, stale evidence,
-wrong server/symbol, persisted-proposal/revision/config mismatch, open or
-unresolved position, missing mandatory close evidence, or incomplete broker
-reconciliation.
+### Continuous-Demo operating method
+
+Wave 1 changes the M30 collection method, not the strategy or proof outcome.
+The running listener must distinguish a deliberate deployment maintenance hold
+from an ordinary terminal decision. When the active Demo lease and every
+existing safety gate pass, it assesses each new completed M1 candle. A
+persisted `NO_TRADE`, unsuitable spread, or occupied position is an ordinary
+outcome: record it and wait for the next fresh candle. Unknown broker state,
+account-binding failure, active risk pause, failed durable persistence, or
+unresolved exposure blocks new entries and leaves position monitoring active.
+
+No implementation or deployment is authorised by this wording alone. Wave 1
+must pass focused tests, independent review, and release-readiness. The
+release gate is separate from normal per-candle autonomous execution. Once
+released, the first naturally eligible complete lifecycle is collected
+read-only for M30; the collector does not submit a second order merely to make
+a proof bundle.
+
+The legacy `scripts/capture_m30_evidence.sh` remains retained only as the
+historical one-shot collector. It invokes `m20_demo_trading_session` and can
+submit an order, so it is **not** permitted for continuous-mode proof capture.
+Wave 4 must add `scripts/capture_m30_natural_lifecycle_evidence.sh`, accepting
+one already-persisted proposal ID. That collector must first ensure a clean
+material revision and pass M30 tests/governance, then read only the exact
+listener, attempt, lifecycle, history, and reconciliation records for that
+proposal. It records `m30-verification.txt` as the focused local verification
+receipt and does not run unrelated full-repository tests or submit, retry,
+modify, or close an order. Once the matching terminal closed lifecycle is
+observed, retain raw listener/attempt observations, lifecycle/history/
+reconciliation reports, listener diagnostics, configuration, source revision,
+test outputs, redaction declaration, hashes, manifest, and
+`FOREX_M30_PROOF_OK` summary. The verifier must be offline and fail closed for
+any changed artifact, stale evidence, wrong server/symbol,
+persisted-proposal/revision/config mismatch, open or unresolved position,
+missing mandatory close evidence, or incomplete broker reconciliation.
 
 The close-by-cutoff check uses the latest broker closing-deal timestamp and
 the current source-bound owner's maximum holding period, measured from entry
@@ -241,17 +308,15 @@ bundles. Record exact outputs in this document. Use the QA verification skill
 before treating the implementation as complete; it validates the code and
 fixtures but cannot prove M30's real-world surface.
 
-Third, after an independent read-only implementation review, perform the
-smallest remote sequence only when existing autonomous entry gates are
-eligible: verify
-the account is still GOMarketsMU-Demo and flat; release maintenance only when
-the fixed autonomous sequence's preconditions are satisfied and a deployed
-release matches the committed M30 source; invoke the one fixed operation once;
-leave monitoring and broker
-protection active until the position closes by cutoff or earlier risk exit;
-then retain the resulting immutable evidence. A refusal, changed market input,
-missing close, or reconciliation failure ends the attempt without retrying or
-manufacturing evidence.
+Third, after an independent read-only implementation review and
+release-readiness, release maintenance only when the deployed revision matches
+the reviewed source, the account is still GOMarketsMU-Demo, and the existing
+fixed preflight passes. The listener then evaluates fresh completed M1 candles
+under its existing autonomous gates. Preserve monitoring and broker protection
+until any accepted position closes by cutoff or earlier risk exit. A normal
+refusal is journalled and the next fresh candle may be assessed; changed market
+input, missing close, unknown broker outcome, or reconciliation failure never
+retries an order or manufactures evidence.
 
 Finally, run the offline verifier and the registry verification, record each
 criterion with the evidence path, finish implementation, collect the current
@@ -269,8 +334,10 @@ Run every local command from `/home/chris/projects/forex`.
 
 After implementation, run the relevant QA verification commands named by the
 new tests and inspect the parsed manifest and reconciliation output. Before an
-external attempt, do not run `capture_m30_evidence.sh` until the existing
-autonomous preflight and all fixed Demo safety gates pass.
+external continuous-Demo release, do not run the legacy
+`capture_m30_evidence.sh`. Wave 4's future read-only natural-lifecycle
+collector may run only after release-readiness and all fixed Demo safety gates
+pass; it must not initiate an attempt.
 
 Expected successful eventual verifier output is:
 
@@ -305,7 +372,8 @@ the existing monitoring/reconciliation path.
 
 ## Artifacts and Notes
 
-Owned paths are M30 proof documentation, M30 capture/verifier scripts, focused
+Owned paths are M30 proof documentation, the future read-only natural-lifecycle
+capture/verifier scripts, focused
 tests, this evidence brief and plan, and M30 state/history changes. Existing
 raw evidence and unrelated H5 continuation metadata are not owned by this
 plan.

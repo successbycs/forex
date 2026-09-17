@@ -13476,6 +13476,86 @@
         ],
         "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
       }
+    },
+    {
+      "event_id": "E000834",
+      "timestamp": "2026-09-17T01:22:53Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:4591e4a87e822f2f8d102a5f634f3523361c32e9b1edd5b031baf23b184a2bae",
+        "current": "sha256:4591e4a87e822f2f8d102a5f634f3523361c32e9b1edd5b031baf23b184a2bae",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19",
+          "M21",
+          "M22",
+          "M23",
+          "M24",
+          "M25",
+          "M26",
+          "M27",
+          "M28",
+          "M29"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
+    },
+    {
+      "event_id": "E000835",
+      "timestamp": "2026-09-17T01:33:40Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:4591e4a87e822f2f8d102a5f634f3523361c32e9b1edd5b031baf23b184a2bae",
+        "current": "sha256:4591e4a87e822f2f8d102a5f634f3523361c32e9b1edd5b031baf23b184a2bae",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19",
+          "M21",
+          "M22",
+          "M23",
+          "M24",
+          "M25",
+          "M26",
+          "M27",
+          "M28",
+          "M29"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
     }
   ]
 }

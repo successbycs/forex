@@ -13,9 +13,10 @@ terminal M1 decision per closed candle to broker-reconciled outcomes. The MVP
 uses the existing listener, PostgreSQL audit path and read-only status surfaces.
 It does not need a new orchestration or reporting platform.
 
-The remaining MVP build is candle-keyed M1 decision integrity. The final
-delivery is the existing M30 bounded Demo order, close and reconciliation proof
-on that resulting version. For the Demo MVP, financing, rollover-calendar, and
+The immediate MVP build is continuous protected M1 Demo operation on top of
+the completed candle-keyed decision integrity. The final delivery is the first
+naturally eligible M30 Demo order, close and reconciliation proof on that
+resulting version. For the Demo MVP, financing, rollover-calendar, and
 UTC entry-hour qualification are explicitly deferred to later Live readiness;
 they are not current entry vetoes. Existing Demo risk, cost, position,
 protection, monitoring, and reconciliation gates remain in force.
@@ -23,13 +24,13 @@ protection, monitoring, and reconciliation gates remain in force.
 ## Authority and non-goals
 
 
-M30 authorises the bounded delivery packages in this plan. Package D may
-prepare, locally verify, and—under Chris's later explicit active-goal execution
-instruction—stage and apply one additive decision-identity migration and
-matching runtime key. Do not install or activate Prefect/n8n,
-change schedules, make other database migrations, change strategy or risk
-rules, deploy, commit, or place orders under this plan. M30's bounded
-Demo proof remains governed by `docs/plans/m30-controlled-demo-execution.md`.
+M30 authorises the bounded delivery packages in this plan. Package D is
+complete. Wave 1 may implement and locally verify only the listener-mode
+separation needed for continuous fresh-candle assessment; it must not install
+or activate Prefect/n8n, change schedules, add database migrations, change
+strategy or risk rules, broaden broker interfaces, or place orders. Deployment
+and maintenance release remain separately gated by release-readiness and the
+M30 controlled-Demo plan.
 M31 is not an implementation authority.
 
 The waves below are delivery packages, not new formal milestones. Preserve
@@ -46,7 +47,8 @@ an already-authorised registry milestone.
 
 | Formal milestone or contract | Current state | What must happen | Delivery work it unlocks |
 | --- | --- | --- | --- |
-| M20–M28 | Proven or approved historical exception | Do not reimplement them. Reuse their existing retention, audit and safety surfaces only. | Existing foundation for every wave |
+| M20 | Human revalidation exception | Reuse the existing listener/executor design but do not describe M20 as current proof. No repeat drill is required solely for this plan. | Existing Demo execution foundation |
+| M21–M28 | Proven | Do not reimplement them. Reuse their existing retention, audit and safety surfaces only. | Existing foundation for every wave |
 | M29 | Proven, with its retained-evidence policy | Keep its pinned listener/configuration/recovery surface valid. No repeat drill is required for documentation or a separate local reader. | M30 remains eligible |
 | **M30** | **Implementation resumed; final proof pending** | Deliver the bounded hybrid M1 packages using existing persistence, then prove the resulting version through one Demo order, close and reconciliation. | Packages A–E below; M31 still waits for M30 proof |
 | **M31** | **Planned; depends on M30** | Its current contract is evaluation, not infrastructure delivery. After the capture and M1 workflow changes exist, explicitly amend M31 if its evaluation surface must include them. | Controlled baseline comparison of the final implemented M1 workflow |
@@ -54,9 +56,9 @@ an already-authorised registry milestone.
 
 The delivery and proof paths are deliberately separate:
 
-    A retained-data reporting → B read-only persistence measurement → C measured capture repair
-                                             └→ D candle/refusal + final-input handling
-    A–D complete → M30 final Demo lifecycle proof → M31 evaluation → M32 forward evaluation
+    Completed A–D foundations → Wave 1 continuous protected Demo operation
+                              → Wave 2 account profile → Wave 3 evidence view
+                              → Wave 4 M30 natural lifecycle proof → M31 → M32
 
 Prefect/n8n is an optional, separately justified branch. It never blocks
 candle identity, decision records, protective monitoring, or outcome reporting.
@@ -80,7 +82,6 @@ orchestration machinery, not eliminating application Python.
 - [x] verification — Run focused duplicate, restart, refusal and safety regression checks (DONE)
 <!-- forex-work-projection:end -->
 
-
 - [x] (2026-09-16) Drafted architecture boundaries, waves, dependencies and acceptance criteria for review.
 - [x] (2026-09-16) Added the locally scoped `data-pipeline-orchestration` skill at Chris's request; this does not authorise wave execution.
 - [x] (2026-09-16) Completed the authorised retained-data envelope/report package.
@@ -90,8 +91,11 @@ orchestration machinery, not eliminating application Python.
 - [x] Package B: capture and qualify the available fixed read-only PostgreSQL summaries. They end on 2026-09-11 and do not cover the 2026-09-15 retained M1 interval; all projection facts for that interval remain `UNKNOWN`.
 - [x] Package C: add a fixed, parameter-bound read-only PostgreSQL completeness summary. The retained interval contains 16 persisted `NO_TRADE` proposals and no attempts; all raw-to-projection identities join exactly.
 - [x] Package D: implement and locally verify candle identity, durable refusal handling and no-resubmission on an already-persisted candle. On 2026-09-17, Chris's explicit active-goal instruction authorised the fixed hash-bound Demo PostgreSQL migration application; it was staged, applied, and read-only verified. The clean committed listener release was deployed and binding-verified.
-- [ ] Package E: deferred after the MVP requirements reset; qualified context and broader reporting are not M30 implementation requirements.
-- [ ] Package F: capture M30's bounded final-version Demo lifecycle proof.
+- [ ] Wave 1: implement and locally verify continuous protected Demo operation.
+- [ ] Wave 2: add one fixed account execution profile and binding refusal.
+- [ ] Wave 3: add a bounded read-only evidence view.
+- [ ] Wave 4: capture M30's first natural final-version Demo lifecycle proof.
+- [ ] Package E: deferred after the MVP requirements reset; qualified context, broader reporting beyond Wave 3, and M5/H1 provenance are not M30 implementation requirements.
 
 ## Context and Orientation
 
@@ -149,7 +153,7 @@ but must not stop protective exits.
 ## Plan of Work
 
 
-### Wave 1 — Measure and define capture
+### Completed foundation — measure and define capture
 
 
 Inventory actual databases, source collectors, schedules, spool/drain paths,
@@ -176,7 +180,7 @@ not invent one global threshold or tune it after seeing failures.
 ### Optional pipeline branch — Prefect/n8n pilot
 
 
-This branch does not block Packages B–E. Inspect shared hosting before selecting a Prefect deployment;
+This branch does not block Waves 1–4. Inspect shared hosting before selecting a Prefect deployment;
 record endpoint, pinned compatible versions, worker location, authentication
 and ownership without secrets. Any needed shared-platform change is a separate
 owned package in `cs-ai-lab-infra`, not an implicit deployment permission here.
@@ -297,10 +301,46 @@ context produce correct reasons; future data cannot affect a past decision;
 missing shadow data has no entry authority; each reported trade joins by exact
 broker identity. M15 stays paused.
 
-### Package F — Integrate, prove and hand over
+### Wave 1 — Continuous protected Demo operation
+
+Depends on completed Package D and the M30 continuous-Demo amendment. Modify
+only the listener's treatment of normal completed-candle outcomes. A deliberate
+maintenance hold remains a deployment control. A normal persisted `NO_TRADE`,
+unsuitable spread, absent strategy owner, or occupied one-position cap remains
+a terminal result for that candle and permits assessment of a later fresh
+candle. Unknown broker response, account-binding mismatch, durable-persistence
+failure, active risk pause, or unresolved exposure blocks new entries while
+existing position protection continues.
+
+Do not alter the five M1 strategies, deterministic owner precedence, session
+breakout's own 07:00–20:00 UTC rule, sizing, stops, targets, risk caps, or
+broker retry rules. Do not replay old candles. The deployed listener must
+continue to create at most one terminal decision per completed candle.
+
+Acceptance: focused tests demonstrate normal `NO_TRADE` then a new-candle
+assessment, and separately demonstrate that every safety stop continues to
+block entries. A read-only status observation exposes the operational mode and
+latest decision. Independent review and release-readiness are mandatory before
+deployment or maintenance release.
+
+### Wave 2 — Fixed Demo account profile
+
+Add one named `M1_EURUSD_DEMO` profile with a locally held expected account
+hash. Verify it before executable assessment and immediately before submission.
+A mismatch must not create a reservation or broker order. No multi-account
+routing, profile scheduler, portfolio layer, or database repartitioning is in
+scope.
+
+### Wave 3 — Bounded read-only evidence view
+
+Extend an existing read-only report to display the closed-candle time, all five
+signals, selected owner, refusal reason, proposal/attempt, lifecycle, actual
+outcome/costs and unresolved joins. Unobserved facts remain `UNKNOWN`.
+
+### Wave 4 — Integrate, prove and hand over
 
 
-Depends on adopted Packages B–E. Correct the hybrid diagram and current-workflow document
+Depends on completed Package D and adopted Waves 1–3. Correct the hybrid diagram and current-workflow document
 to distinguish implemented from proposed behavior, exactly-one-owner entry,
 pre-submit journaling, submission rejection, unknown responses and recovery.
 Update `docs/architecture.md` and supporting links only to reflect accepted
