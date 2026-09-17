@@ -45,6 +45,7 @@ def test_permanent_listener_is_a_bounded_m1_supervisor_with_status_and_stop():
     assert "FOREX_M20_POSTGRES_DSN\"" not in source.split("required =", 1)[1].split("if not", 1)[0]
     assert '"FOREX_M20_MINIMUM_NET_PROFIT_AUD"' in source
     assert '"FOREX_M20_DISCORD_WEBHOOK_URL"' in source
+    assert '"FOREX_M20_ACCOUNT_EXECUTION_PROFILE"' in source
     assert "order_send" not in source
 
 

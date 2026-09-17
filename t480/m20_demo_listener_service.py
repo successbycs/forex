@@ -443,7 +443,10 @@ def _load_environment() -> None:
         "FOREX_M20_FINANCING_POLICY",
         "FOREX_M20_APPLICATION_REVISION", "python_path", "terminal_path",
     }
-    optional = {"FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED", "FOREX_M20_DISCORD_WEBHOOK_URL"}
+    optional = {
+        "FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED", "FOREX_M20_DISCORD_WEBHOOK_URL",
+        "FOREX_M20_ACCOUNT_EXECUTION_PROFILE",
+    }
     if not isinstance(values, dict) or not required <= set(values) or not set(values) <= required | optional:
         raise SystemExit("M20 listener service local configuration fields are invalid")
     os.environ.update({key: str(value) for key, value in values.items() if key.startswith("FOREX_M20_")})
