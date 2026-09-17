@@ -1,180 +1,161 @@
-# Project brain
+# Project Brain — Demo Trading
 
-Forex is a solo-operator EUR/USD Demo trading platform. Its active mission is
-to reach a bounded autonomous Demo-only decision-and-outcome loop quickly,
-without weakening the safety boundaries that make its decisions meaningful.
-The permanent T480 listener assesses fresh EUR/USD M1 data every ten seconds,
-records a proposal, candle metrics, and reason, may act only inside a capped
-Demo session, then reconciles the result. `NO TRADE`, `WAIT`, and
-`INSUFFICIENT DATA` remain valid results; lack of a pre-proven edge is not a
-reason to defer an otherwise authorised Demo hypothesis trial.
+## Purpose and use
 
-The approximately USD 300 monthly figure is an aspiration only. It is not a
-quota, acceptance criterion, sizing input, or profitability claim. For the
-Demo critical path, a good trading decision is one made by a frozen,
-explainable strategy on fresh permitted inputs and correctly protected,
-costed, retained and reconciled. Capital preservation, data integrity, safety,
-reproducibility, and explainability are non-negotiable; speculative strategy
-optimisation and resilience work beyond those boundaries are deferred until
-the loop operates.
+This is the concise navigation map for the Forex repository. It tells an
+operator or agent what the product is for, which boundaries are non-negotiable,
+and where to find authoritative current detail. It is not a milestone contract,
+execution plan, runtime status record, or proof artifact.
 
-Current state is authoritative in `project_state.json`; the milestone registry is the fixed contract. The roadmap retains its three phases, while the active M20 MVP brings forward one narrow real-time Demo function: fresh tick plus closed M1/M5 data, a persisted `BUY`/`SELL`/`NO_TRADE` proposal, fixed session-capped Demo execution, and PostgreSQL reconciliation. It neither creates live access nor a reusable broker-control interface.
+Use it first to orient yourself, then follow the linked sources of truth before
+making a material change or claiming a capability is complete.
 
-M2 has persisted the retained M1 EUR/USD H1 historical observation in the
-private T480 shared PostgreSQL service. Its verified evidence records one
-`DEMO_ONLY` source, one raw observation, one immutable snapshot, and 720 bars
-with lineage and no-lookahead checks. This is historical research data only:
-it neither creates a live feed nor permits orders. M2 requires its declared
-proof and explicit human sign-off; the Review Board is reserved for phase
-gates M16, M27, and M32.
+## Mission
 
-Administrators can inspect the price-data database directly from the home LAN;
-see [`docs/database_access.md`](database_access.md). This is direct PostgreSQL
-client access to the T480, not a new trading application or order surface.
+Build an evidence-led EUR/USD Forex decision and execution platform. The MVP
+must make one deterministic and explainable `BUY`, `SELL`, or `NO_TRADE`
+decision for each completed M1 candle on the authorised Demo account, retain
+the inputs and decision, and reconcile any accepted Demo trade with broker
+outcomes.
 
-## Architecture knowledge
+The MVP question is:
 
-The maintained visual overview is
-[`docs/assets/forex-architecture-overview.png`](assets/forex-architecture-overview.png).
-It records the intended three-zone boundary: Forex owns its application
-contracts, evidence tooling, and catalog-locked adapter; `cs-ai-lab-infra`
-owns shared T480 transport and platform services; Windows T480 hosts the
-fixed M20 Demo-only MetaTrader 5 surface. It also records the current
-self-attested evidence path and four-role Triad-plus-domain review.
+> For this completed M1 candle, what did the system decide, why, did it reach
+> the broker, and what outcome was recorded?
 
-The diagram is explanatory rather than an assertion that every shown future or
-shared component is deployed. `docs/architecture.md` is the narrative source
-of truth for the design, while the milestone registry and project state retain
-their respective contract and execution roles.
+The repository does not guarantee or imply profitability. A Demo result proves
+only the observed implementation and hypothesis under its recorded conditions.
 
-The [capability architecture](capability-architecture.md) defines which
-components own evidence, durable SQL state, deterministic Python logic, n8n
-automation, host scheduling and protected broker access. Use it to classify
-new work before adding a component or moving an existing one.
+## Non-negotiable operating boundary
 
-The four-role Review Board is retained for the three phase gates only: M16,
-M27, and M32. M20 instead needs a current Triad-plus-domain completion
-recommendation and has no human sign-off gate. There is no separate
-Builder/Reviewer workflow or automated reviewer runner.
+- The current execution scope is `EURUSD` on `GOMarketsMU-Demo` through the
+  fixed `M1_EURUSD_DEMO` account profile. Live-account interaction is
+  prohibited.
+- Deterministic Python code behind the fixed T480 adapter is the only broker
+  operation path. A dashboard, database query, n8n workflow, notification, or
+  AI output cannot place, amend, or close an order.
+- Every new entry must pass data, account, broker, lease, duplicate, position,
+  exposure, loss, cost, risk, and terminal-capability gates. Missing or unsafe
+  facts fail closed for a new entry; protective monitoring must continue.
+- A refusal or `NO_TRADE` is a valid result. The system must never force or
+  retry an order merely to collect proof.
+- Raw evidence is immutable. PostgreSQL contains validated, queryable facts;
+  it is not an arbitrary broker command channel.
 
-The design-only prompt for the proposed historical market-intelligence and
-Ollama-assisted research capability is retained in
-[`docs/prompts/advanced-market-intelligence-milestone-prompt.md`](prompts/advanced-market-intelligence-milestone-prompt.md).
+## Current delivery focus
 
-### M11 GDELT experimental context data
+Read [project_state.json](../project_state.json) and
+[milestone_registry.json](../milestone_registry.json) for current formal state
+and proof requirements. The current delivery focus is M30's bounded M1 hybrid
+workflow. Its final proof remains a natural, final-version Demo lifecycle:
+eligible order, close, and broker reconciliation. Do not force an order to
+satisfy this proof.
 
-M11's sentiment prototype uses GDELT raw GKG files. Forex stores only
-attributable derived aggregates—UTC H1 article count and mean tone—alongside
-a source URL, source-file hash, retrieval/availability time, fixed query
-definition and uncertainty label. It does not retain article text or create a
-sentiment-driven trading claim.
+The current work sequence and progress are in:
 
-The target research join is an H1 UTC join between these aggregates and EUR/USD
-price bars. A GDELT value is eligible only when it was available before the
-decision cutoff; evaluation targets a later bar or session result. This gives
-historical replay and future daily collection the same no-lookahead shape.
+- [M30 controlled Demo execution plan](plans/m30-controlled-demo-execution.md)
+- [M1 hybrid delivery plan](plans/m1-hybrid-prefect-postgres.md)
 
-The T480 shared n8n service is the scheduler/operator surface using the
-existing Autonomous-Framework-derived adapter. The future workflow uses n8n
-nodes for schedule, download, ZIP extraction, aggregation and PostgreSQL
-persistence; it does not launch a Python scheduler or depend on a mounted
-Forex worktree. It is not active until an explicit workflow import, PostgreSQL
-credential setup and observed T480 execution.
-[`system_design.md`](system_design.md) is the technical design and
-[`architecture.md`](architecture.md) is the maintained overview.
+M31 and later work do not authorise M30 implementation. They remain planned
+until their own contracts become active.
 
-## Inspected sources
+## M1 Demo workflow at a glance
 
-Inspected on 2026-08-17:
+```text
+completed M1 candle
+  -> validate market data, account binding and safety conditions
+  -> assess the five fixed M1 strategies on the same snapshot
+  -> deterministically select at most one executable owner
+  -> calculate entry, stop, target, capped size and cost coverage
+  -> persist exactly one BUY / SELL / NO_TRADE proposal
+  -> submit only an eligible persisted proposal to MT5 Demo
+  -> monitor accepted positions, reconcile broker history and journal outcome
+  -> retain immutable evidence and validated PostgreSQL lifecycle facts
+```
 
-- `mp4-to-transcript`, local `main` at `85af3a6`: explicit job lifecycle, persistent failures, verification, and human review patterns.
-- `options-learning-kb`, local `main` at `dc12e04`: registry/state separation, dependency gates, evidence freshness, hashing, and independent verification.
-- `cs-ai-lab-infra`, local `main` at `e11c27d`: real-world checks, `proven_at`, T480 evidence bundles, and shared transport ownership. Pre-existing edits to its milestone registry and documentation were preserved.
-- Autonomous Framework, inspected current `main` at `174226df` through its available checkout/repository material: transition contracts, definition of done, proof-value audit, and human sign-off policy. The local reference directory is not currently a Git checkout, so its present local revision cannot be independently re-read with `git`.
+The executable operational specification is the
+[M1 Demo decision workflow](workflows/m1-demo-decision-workflow.md). The
+[M1 hybrid decision flow](workflows/m1-hybrid-decision-flow.md) describes the
+target shape, while the [M1 data contract](workflows/m1-data-contract.md)
+defines identities, provenance, and retention expectations.
 
-No reference repository was modified as part of M0 governance hardening.
-## M20 operational knowledge base
+M5/H1 are shadow context only today: they are recorded after an M1 decision
+and cannot create, reject, or own a trade. M15 and other timeframes require a
+separate versioned workflow, runtime implementation, tests, and milestone
+authority before they alter M1 behaviour.
 
-## Demo listener operating model
+## System and authority map
 
-The M20 listener is a permanent T480 Scheduled Task. It runs the immutable,
-hash-checked release under `C:\ProgramData\ForexListener\releases`, while
-machine-local lease, status, recovery and configuration state live under
-`C:\ProgramData\ForexListener\state`. The listener updates a redacted
-heartbeat every second. After its five-second minimum interval, a new MT5
-EURUSD quote triggers one assessment; it cannot assess the same quote twice.
-It is restricted to
-`GOMarketsMU-Demo`; it has no Live-account or generic MT5 command surface.
+```text
+MT5 Demo / approved external source
+  -> immutable raw evidence and receipt
+  -> validation and provenance checks
+  -> PostgreSQL validated facts and lifecycle joins
+  -> deterministic Python decision, risk and reconciliation
+  -> fixed T480 Demo-only broker operation
+  -> read-only dashboard or optional notification
+```
 
-The dashboard on T16 is read-only: `python3 scripts/m20_listener_dashboard.py`.
-It shows UTC/NZST heartbeat, cadence, candle metrics, decision rationale, and
-five strategy rows. All five are available to the M20.11 controlled Demo
-trial, but deterministic regime precedence can make **only one** row
-`EXECUTABLE` for an assessment. The other four are `SIGNAL ONLY`, `NO SIGNAL`,
-or `BLOCKED` context: their BUY/SELL/NO_TRADE observations cannot create a
-second Demo order. A non-selected signal is not a failed execution or a
-missed trade.
+The [architecture](architecture.md) and
+[capability architecture](capability-architecture.md) define component
+ownership. In short: Python owns deterministic domain logic; PostgreSQL owns
+validated lifecycle facts; immutable files own original evidence; T480 owns the
+narrow broker boundary; n8n is limited to bounded integrations/notifications;
+and Prefect is an optional later data-pipeline branch, not a dependency of the
+M1 listener.
 
-The separate read-only trade ledger dashboard is
-`python3 scripts/m20_trade_ledger_dashboard.py`. It shows the last ten Demo
-attempts as BUY or SELL, their entry, SL, TP, lot size, monitoring state, and
-only a broker-reconciled realised profit or loss. A missing P&L is shown as
-`Pending`, never guessed.
+## Sources of truth
 
-### M20 SL, profit target, and exit rule
+| Question | Authoritative source |
+| --- | --- |
+| Non-negotiable repository boundary and user authority | [AGENTS.md](../AGENTS.md) and current user instruction |
+| Current formal milestone state | [project_state.json](../project_state.json) |
+| Milestone scope, entry gates and proof requirements | [milestone_registry.json](../milestone_registry.json) |
+| Authorised plan, work records and continuation rules | [PLANS.md](../PLANS.md) and the active ExecPlan |
+| Component boundaries and deployment design | [architecture.md](architecture.md) |
+| Current M1 operational behaviour | [M1 Demo decision workflow](workflows/m1-demo-decision-workflow.md) and governed runtime configuration |
+| Evidence policy and raw-versus-derived rules | [evidence and milestones](evidence_and_milestones.md) |
+| Agent roles, review and verification practice | [agent workflow](agent-workflow.md) |
+| Protected runtime interfaces | `t480/` and `scripts/t480_adapter.py`, after reading the documents above |
 
-For every selected strategy, the executor sets broker-side SL and TP at
-submission. The common A$100 loss cap may tighten the strategy's technical
-stop. Momentum and Session use the opposite side of the preceding range;
-Compression uses the compression boundary; Trend Pullback uses the pullback
-swing; Range Reversion uses the rejected range edge. The default target is
-1.5R, except Range Reversion targets the range midpoint. A trade is refused if
-its selected target cannot clear the conservative cost gate.
+When sources conflict, apply this precedence: explicit user instruction and
+`AGENTS.md`; then formal state, contract, and evidence policy; then active
+ExecPlan; then architecture and workflow; then this navigation document. Record
+and repair documentation drift rather than inferring a broader permission.
 
-After +1R, the monitor requests a broker-side breakeven stop. MT5 closes at
-SL or TP when reached; otherwise the owning strategy exits after two opposite
-completed M1 candles or its fixed owner time stop: Range Reversion six
-minutes, Compression Breakout eight minutes, and the other three strategies
-ten minutes. PostgreSQL records the broker-confirmed exit and realised AUD
-P&L only after reconciliation.
+## Where to start by task
 
-Every proposal, broker attempt, position event, cost component, and closed
-P&L outcome is persisted in PostgreSQL. A Demo order is not evidence of a
-successful M20 closeout until its lifecycle is reconciled through `CLOSED` and
-an immutable outcome record.
+| Task | Read first | Required guidance |
+| --- | --- | --- |
+| Change M1 decision, reason codes, strategy selection, or execution gate | M1 workflow and active plan | `trade-decision-engine` |
+| Change ingestion, retention, PostgreSQL projection, Prefect, or n8n | Architecture and active plan | `data-pipeline-orchestration` |
+| Make a material implementation, integration, dashboard, or safety change | Active plan and affected workflow | `qa-verification` |
+| Deploy or enable autonomous Demo execution | Active plan, contract, and runtime status | `release-readiness` |
+| Introduce market, strategy, risk, economic-data, or product claims | Evidence policy and active plan | `research-evidence` |
 
-### M20 six-step operating procedure
+## Deliberate MVP deferrals
 
-1. **Read the market.** The listener reads a fresh Demo EURUSD quote and only
-   completed M1 candles. A quote can be a new MT5 update even when its displayed
-   bid and ask are unchanged; the MT5 tick time prevents reuse of a cached quote.
-2. **Classify and select before any order.** The listener applies the safety
-   gates, categorises the closed-candle market, and selects at most one of the
-   five fixed strategy contracts. In M20.11, deterministic regime precedence
-   makes exactly one selected fixed rule executable only after its complete
-   entry, target, cost, lease, and one-position gates pass. All unselected
-   rules remain context and cannot submit an order.
+The current MVP does not require Live trading, new strategies, dynamic sizing,
+larger limits, M15 execution, higher-timeframe entry authority, mandatory
+economic-event/financing/rollover gates, broad reporting, or deployment of
+Prefect/n8n for the trading loop. Discord notifications are optional and are
+not a decision, execution, or proof dependency.
 
-   The fixed hierarchy is: `UNSAFE_OR_UNTRADEABLE` → Compression Breakout →
-   Trend Pullback → Range Reversion → Session Breakout → Momentum Breakout →
-   `NO_CLEAR_REGIME`. A selected strategy with an invalid plan is displayed as
-   `BLOCKED`, not executable.
-3. **Open one protected trade when eligible.** A qualifying BUY or SELL uses
-   the selected owner's current executable price, broker-side stop loss and
-   take profit. The stop is based on that owner's candle invalidation rule and
-   capped to the A$100 planned-loss limit; the target follows its owned contract.
-   A trade may also exit after two opposite completed M1 candles or its
-   owner-specific fixed time stop.
-4. **Record the lifecycle.** PostgreSQL receives the assessment, proposal,
-   reservation, broker response, opening event, stop/target changes, close,
-   costs, exit price, and realised AUD P&L. Rejections are terminal non-trades;
-   no automatic retry is permitted.
-5. **Add a read-only outcome hypothesis later.** A future post-close analysis
-   agent should append a separate hypothesis record beside the immutable ledger,
-   not change the trade record. It should state its evidence, confidence, and
-   `UNTESTED`, `SUPPORTED`, or `REJECTED` status for wins as well as losses.
-   This is planned work, not an active M20 execution authority.
-6. **Refine rules through versioned experiments.** Keep the live rule fixed;
-   run candidate rules in shadow mode against the same assessments, compare
-   closed post-cost outcomes, then promote one tested rule version at a time.
-   A rule refinement never edits past assessments or trades.
+## Definition of success
+
+The MVP is meaningful when an operator can inspect a completed M1 candle and
+reliably answer:
+
+> What was the terminal decision, what evidence and strategy produced it, did
+> it reach MT5, and what broker-reconciled outcome followed?
+
+Success requires traceable inputs, one decision per closed candle, explicit
+refusals, protected Demo execution where eligible, and durable outcome records.
+It does not require a profitable result, a specific trade count, or Live
+trading.
+
+## Maintenance rule
+
+Update this document only when a stable mission, boundary, workflow route, or
+source-of-truth map changes. Link to mutable state and evidence instead of
+copying them here. Last reviewed: 2026-09-17.
