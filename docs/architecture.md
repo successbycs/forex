@@ -142,6 +142,11 @@ not stall later observations. The T16 dashboard is read-only.
 
 ### How M20 code is intended to deploy to T480
 
+Before every T480 deployment, follow the mandatory [T480 deployment transport
+constraint](t480-deployment.md). The SSH endpoint has a strict encoded command
+limit: payloads use hash-checked fragments and operational launchers run from
+the released payload rather than embedding large commands.
+
 The repository must not copy arbitrary code to MT5. The target fixed T480
 adapter stages exactly three reviewed payloads into a new immutable ProgramData
 release:

@@ -97,6 +97,11 @@ if not 0.10 <= MINIMUM_NET_PROFIT_AUD <= 5.00:
 # This is a one-off, operator-approved W1.4 refusal drill, not an adjustable
 # risk setting.  The normal continuous Demo lease remains fixed at AUD 100.
 REFUSAL_DRILL_MAXIMUM_LOSS_AUD = 0.01
+# This is a separately labelled terminal-to-broker diagnostic. It is not a
+# strategy decision and cannot support M30's natural-lifecycle proof.
+EXECUTION_DRILL_MAGIC = 20260330
+EXECUTION_DRILL_VOLUME = 0.01
+EXECUTION_DRILL_MAXIMUM_LOSS_AUD = 1.00
 
 
 RISK_POLICY_REQUIRED = {"policy_version", "reporting_currency", "maximum_risk_per_trade_percent", "maximum_risk_per_trade_aud", "daily_loss_limit_percent", "weekly_loss_limit_percent", "peak_equity_drawdown_limit_percent", "loss_budget_timezone", "daily_pause_reset", "manual_resume_reasons", "require_known_external_cashflow"}
@@ -1263,7 +1268,7 @@ def _execution_result_state(result: Any) -> tuple[bool, bool]:
     )
 
 
-def _wait_for_position() -> Any:
+def _wait_for_position(*, magic: int = EXECUTOR_MAGIC) -> Any:
     """Return the sole fixed-executor EURUSD position or fail closed.
 
     An accepted market order is not treated as a completed M20 action until
@@ -1273,7 +1278,7 @@ def _wait_for_position() -> Any:
     deadline = time.monotonic() + CLOSE_TIMEOUT_SECONDS
     while time.monotonic() < deadline:
         positions = _positions_or_fail(context="accepted-order", symbol=SYMBOL)
-        owned = [position for position in positions if int(getattr(position, "magic", -1)) == EXECUTOR_MAGIC]
+        owned = [position for position in positions if int(getattr(position, "magic", -1)) == magic]
         if len(owned) == 1:
             return owned[0]
         if len(owned) > 1:
@@ -1401,7 +1406,7 @@ def _closed_position_costs(*, position: Any, submitted_at: datetime, proposed_en
     return exit_price, costs
 
 
-def _close_accepted_position(*, position: Any, submitted_at: datetime, proposed_entry: float, entry_spread: float, risk: dict[str, float]) -> tuple[str, float, dict[str, Any]]:
+def _close_accepted_position(*, position: Any, submitted_at: datetime, proposed_entry: float, entry_spread: float, risk: dict[str, float], magic: int = EXECUTOR_MAGIC, close_comment: str = "forex-m20-demo-close") -> tuple[str, float, dict[str, Any]]:
     """Close one monitor-owned position and derive its MT5-backed P&L."""
     ticket = int(getattr(position, "ticket", 0))
     volume = float(getattr(position, "volume", 0))
@@ -1424,8 +1429,8 @@ def _close_accepted_position(*, position: Any, submitted_at: datetime, proposed_
         "position": ticket,
         "price": close_price,
         "deviation": 20,
-        "magic": EXECUTOR_MAGIC,
-        "comment": "forex-m20-demo-close",
+        "magic": magic,
+        "comment": close_comment,
         "type_time": mt5.ORDER_TIME_GTC,
         "type_filling": mt5.ORDER_FILLING_IOC,
     }
@@ -1447,6 +1452,69 @@ def _close_accepted_position(*, position: Any, submitted_at: datetime, proposed_
         expected_exit_price=close_price,
     )
     return str(getattr(close_result, "order", "")), exit_price, costs
+
+
+def execution_drill(terminal_path: str, session_path: Path) -> dict[str, Any]:
+    """Run the one-shot fixed Demo broker round-trip diagnostic."""
+    load_session_lease(session_path, datetime.now(timezone.utc))
+    marker_path = session_path.with_name("m30_demo_execution_drill.local.json")
+    lock_path = session_path.with_name("m30_demo_execution_drill.lock.json")
+    if marker_path.exists():
+        raise SystemExit("M30 Demo execution drill already has a submitted or completed marker")
+    if not lock_path.exists():
+        raise SystemExit("M30 Demo execution drill requires its fixed listener broker-path lock")
+    submitted = False
+    resolved = False
+    if not mt5.initialize(path=terminal_path):
+        raise SystemExit(f"M30 Demo execution drill could not initialize MT5: {mt5.last_error()}")
+    try:
+        account = mt5.account_info()
+        _require_account_execution_profile(account)
+        refusal = _terminal_submission_refusal(account)
+        if refusal:
+            return {"marker": "FOREX_M30_DEMO_EXECUTION_DRILL_REFUSED", "classification": "EXECUTION_DRILL", "server": getattr(account, "server", None), "symbol": SYMBOL, "order_submitted": False, "reason": refusal}
+        if _positions_or_fail(context="execution-drill-preflight", symbol=SYMBOL):
+            return {"marker": "FOREX_M30_DEMO_EXECUTION_DRILL_REFUSED", "classification": "EXECUTION_DRILL", "server": account.server, "symbol": SYMBOL, "order_submitted": False, "reason": "M30 execution drill requires a flat EURUSD Demo position state."}
+        symbol = mt5.symbol_info(SYMBOL)
+        tick = mt5.symbol_info_tick(SYMBOL)
+        if not symbol or not tick or getattr(symbol, "name", None) != SYMBOL:
+            raise SystemExit("M30 Demo execution drill has no fixed EURUSD metadata or quote")
+        volume, tick_size = float(symbol.volume_min), float(symbol.trade_tick_size)
+        tick_value_loss, point = float(symbol.trade_tick_value_loss), float(symbol.point)
+        bid, ask = float(tick.bid), float(tick.ask)
+        quote_at = datetime.fromtimestamp(int(getattr(tick, "time", 0)), timezone.utc) - timedelta(seconds=tick_time_offset_seconds())
+        now = datetime.now(timezone.utc)
+        quote_age = (now - quote_at).total_seconds()
+        if (not all(math.isfinite(value) for value in (volume, tick_size, tick_value_loss, point, bid, ask))
+                or not math.isclose(volume, EXECUTION_DRILL_VOLUME, abs_tol=1e-9)
+                or min(tick_size, tick_value_loss, point, bid, ask) <= 0 or ask < bid
+                or not 0 <= quote_age <= MAX_TICK_AGE_SECONDS):
+            raise SystemExit("M30 Demo execution drill has invalid fixed EURUSD broker metadata or a stale quote")
+        stop, take, notional = _risk_levels(action="BUY", entry=ask, volume=volume, tick_size=tick_size, tick_value_loss=tick_value_loss, point=point, maximum_loss_aud=EXECUTION_DRILL_MAXIMUM_LOSS_AUD)
+        marker_path.write_text(json.dumps({"schema_version": "forex.m30.demo-execution-drill.v1", "state": "SUBMISSION_STARTED", "classification": "EXECUTION_DRILL", "submitted_at_utc": utc(now)}, separators=(",", ":")), encoding="utf-8")
+        lock_path.write_text(json.dumps({"schema_version": "forex.m30.execution-drill-lock.v1", "state": "SUBMISSION_STARTED"}, separators=(",", ":")), encoding="utf-8")
+        submitted = True
+        request = {"action": mt5.TRADE_ACTION_DEAL, "symbol": SYMBOL, "volume": volume, "type": mt5.ORDER_TYPE_BUY, "price": ask, "sl": stop, "tp": take, "deviation": 20, "magic": EXECUTION_DRILL_MAGIC, "comment": "forex-m30-execution-drill", "type_time": mt5.ORDER_TIME_GTC, "type_filling": mt5.ORDER_FILLING_IOC}
+        result = mt5.order_send(request)
+        full_fill, partial_fill = _execution_result_state(result)
+        if not full_fill:
+            marker_path.write_text(json.dumps({"schema_version": "forex.m30.demo-execution-drill.v1", "state": "SUBMISSION_REJECTED", "classification": "EXECUTION_DRILL", "submitted_at_utc": utc(now), "retcode": getattr(result, "retcode", None), "broker_comment": str(getattr(result, "comment", ""))[:160]}, separators=(",", ":")), encoding="utf-8")
+            resolved = True
+            return {"marker": "FOREX_M30_DEMO_EXECUTION_DRILL_REJECTED", "classification": "EXECUTION_DRILL", "server": account.server, "symbol": SYMBOL, "order_submitted": True, "partial_fill": partial_fill, "broker_retcode": getattr(result, "retcode", None), "broker_comment": str(getattr(result, "comment", ""))[:160]}
+        position = _wait_for_position(magic=EXECUTION_DRILL_MAGIC)
+        close_order, exit_price, costs = _close_accepted_position(position=position, submitted_at=now, proposed_entry=ask, entry_spread=ask - bid, risk={"tick_size": tick_size, "tick_value_loss": tick_value_loss}, magic=EXECUTION_DRILL_MAGIC, close_comment="forex-m30-execution-drill-close")
+        marker_path.write_text(json.dumps({"schema_version": "forex.m30.demo-execution-drill.v1", "state": "CLOSED_MATCHED", "classification": "EXECUTION_DRILL", "submitted_at_utc": utc(now), "position_ticket": int(position.ticket), "open_order": str(getattr(result, "order", "")), "close_order": close_order}, separators=(",", ":")), encoding="utf-8")
+        resolved = True
+        return {"marker": "FOREX_M30_DEMO_EXECUTION_DRILL_OK", "classification": "EXECUTION_DRILL", "server": account.server, "symbol": SYMBOL, "order_submitted": True, "volume": volume, "maximum_loss_aud": EXECUTION_DRILL_MAXIMUM_LOSS_AUD, "notional_usd": round(notional, 2), "position_ticket": int(position.ticket), "open_order": str(getattr(result, "order", "")), "close_order": close_order, "exit_price": exit_price, "costs": costs}
+    finally:
+        mt5.shutdown()
+        # An unresolved broker request keeps the narrow lock in place. Pre-
+        # submission refusals and completed terminal outcomes release it.
+        if not submitted or resolved:
+            try:
+                lock_path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
 
 
@@ -2343,6 +2411,8 @@ if __name__ == "__main__":
         print(json.dumps(financing_preview(sys.argv[1]), separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--risk-refusal-drill":
         print(json.dumps(risk_refusal_drill(sys.argv[1], Path(sys.argv[2])), separators=(",", ":")))
+    elif len(sys.argv) == 4 and sys.argv[3] == "--execution-drill":
+        print(json.dumps(execution_drill(sys.argv[1], Path(sys.argv[2])), separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--reconcile-retained-history":
         print(json.dumps(reconcile_historical_retained_positions(sys.argv[1]), separators=(",", ":")))
     else:

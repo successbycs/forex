@@ -25,6 +25,8 @@ the sources relevant to the task:
 - `milestone_registry.json` — active milestone contract, entry gates, and proof
   requirements.
 - `docs/evidence_and_milestones.md` — evidence model and milestone policy.
+- `docs/t480-deployment.md` — mandatory transport constraint and release
+  procedure for every T480 deployment.
 - Active ExecPlan — scope, acceptance criteria, risks, and verification steps.
 - `.codex/skills/research-evidence/SKILL.md` — use before planning work based on
   external claims, strategy ideas, market behaviour, or research.

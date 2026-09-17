@@ -1,0 +1,78 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "M30-WAVE-4-FINAL-PROOF",
+  "authorization": "Chris created the active goal to complete outstanding Demo Trading activities, milestones, and waves. This record authorises only the current M30 Wave 4 final-version Demo proof path: fixed T480 release preparation/deployment, normal protected Demo observation, retained evidence, verification, and independent review. It does not authorise Live trading, forced/retried orders, strategy/risk changes, M15 authority, or later milestone work.",
+  "markdown_plan": "docs/plans/m30-wave-4-final-proof.md",
+  "items": [
+    {
+      "id": "execution-drill",
+      "title": "Deploy and run the fixed one-shot Demo terminal-to-broker diagnostic; retain its distinct result without treating it as M30 proof",
+      "state": "IN_PROGRESS",
+      "requires": ["final-release"],
+      "evidence": [
+        "2026-09-17 Chris authorised a separate fixed Demo execution diagnostic because natural strategy setups cannot reliably validate terminal-to-broker wiring.",
+        "The drill is bound to GOMarketsMU-Demo, EURUSD, 0.01 volume, protective stop, immediate close, and broker-history read-back. It is not a strategy trade or M30 proof.",
+        "Deployment requirement: before every T480 staging, release, or drill invocation, read docs/t480-deployment.md and pass the encoded-command-length regression check. A command-length failure is a NO-GO until the fixed adapter is shortened or the logic is moved into a hash-bound payload."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "release-preflight",
+      "title": "Stage and verify every immutable final listener payload without interrupting the running Demo listener",
+      "state": "DONE",
+      "requires": [],
+      "evidence": [
+        "2026-09-17 T480 diagnostics: the running listener is unheld and bound to release a9ff090f0a566849, application revision 005f0caffbcb0b6479cc3db70e4b60f80737d2d6, configuration fingerprint sha256:3e10616b635f494fbb664a8168e1eeb4d0fe888bc248c5102684c02d797c1071, and GOMarketsMU-Demo/EURUSD lease.",
+        "2026-09-17 fixed m20_listener_prepare observation refused the candidate release because m20_postgres_audit_bridge.payload was not yet hash-valid. No installation or listener interruption occurred.",
+        "2026-09-17 bridge staging fragments 1 through 16 completed through fixed m20_listener_bridge_stage operations. Remaining bridge fragments and candidate release payload verification are still required.",
+        "2026-09-17: m20_listener_stage_verify, m20_listener_bridge_verify, and m20_listener_runner_verify each returned verified=true; m20_listener_prepare then returned prepared=true for release 07b2ac258c6da945 and service hash sha256:33032827ea8d306b00505841d62302edceb60e3ec40f3a372f0954cddd31001d."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "final-release",
+      "title": "Hold, install, and verify the final hash-bound Demo listener release, then release the hold only after a healthy heartbeat",
+      "state": "DONE",
+      "requires": ["release-preflight"],
+      "evidence": [
+        "2026-09-17: focused terminal-capability/listener regression suite passed 38 tests; validate_config and forex_milestones validate passed before install.",
+        "2026-09-17: m20_listener_enable_maintenance_hold, m20_listener_configure, and m20_listener_install completed through fixed T480 operations. The installer returned installed=true for release 07b2ac258c6da945.",
+        "2026-09-17 T480 diagnostics after configuration: hold=true, task Running, application revision ddfc6a346acd68abd6c5766978e9445cd1ed083f, configuration fingerprint sha256:d8d2e104e32a5b62feec974f6fca25a24ce1a6acecf273d184067aef868e1e3a, and runner SHA-256 sha256:728a2ebae57978c628bf1b8b61a7ed06a18b2d4942670106df9d517ff7e05587.",
+        "2026-09-17 after fixed hold release: status reported running=true, state=WAITING_FOR_FRESH_MT5_QUOTE, release_id=07b2ac258c6da945, heartbeat age 1.1 seconds, assessment_total=54247, current decision=NO_TRADE, and Discord alerts disabled."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "natural-lifecycle",
+      "title": "Retain one naturally eligible final-version Demo order, close, and broker reconciliation without forcing or retrying an order",
+      "state": "BLOCKED",
+      "requires": ["final-release"],
+      "evidence": [
+        "2026-09-17 final-version read-only observation: release 07b2ac258c6da945, sequence 54251, closed candle 2026-09-17T04:55:00Z, terminal NO_TRADE, no selected owner, no attempt, and no execution lifecycle. This confirms normal operation but is not the required eligible order/close/reconciliation proof.",
+        "2026-09-17 fixed read-only m20_listener_terminal_capability observation: connected=true, terminal_trade_allowed=false, terminal_tradeapi_disabled=false, account_trade_allowed=true, account_trade_expert=true, submission_permitted=false. No assessment, order, modification, or retry was performed.",
+        "2026-09-17 Chris deferred repository-controlled terminal-setting deployment and test. The human operator owns the MT5 AutoTrading setting; the listener and its read-only check remain fail-closed."
+      ],
+      "blocker": {
+        "source": "Current MT5 terminal capability observation on the bound T480 Demo terminal",
+        "reason": "terminal_trade_allowed is false, so submission_permitted is false even though the connected Demo account and API/account permissions are valid.",
+        "unblock_action": "After the T480 reboot, the human operator enables AutoTrading/trading permission in the exact MT5 Demo terminal instance. Then rerun the fixed read-only m20_listener_terminal_capability observation and require submission_permitted=true. Repository-controlled terminal configuration is explicitly deferred."
+      }
+    },
+    {
+      "id": "proof-verification",
+      "title": "Verify the retained proof against M30 acceptance, exact revision, configuration fingerprint, and safety boundaries",
+      "state": "PENDING",
+      "requires": ["natural-lifecycle"],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "independent-review",
+      "title": "Obtain independent read-only review and record the M30 closeout recommendation or remaining defect",
+      "state": "PENDING",
+      "requires": ["proof-verification"],
+      "evidence": [],
+      "blocker": null
+    }
+  ]
+}

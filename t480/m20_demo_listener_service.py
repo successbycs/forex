@@ -49,6 +49,9 @@ ASSESSMENT_SPOOL_PATH = STATE_ROOT / "m20_demo_assessment_spool" / ROOT.name
 # maintenance. A malformed record fails closed: monitoring remains available
 # for an existing position but entry processing stays disabled.
 MAINTENANCE_HOLD_PATH = STATE_ROOT / "m20_demo_maintenance_hold.local.json"
+# Narrow diagnostic lock: monitoring remains active; only new listener entries
+# pause while the fixed terminal-to-broker drill owns the broker path.
+EXECUTION_DRILL_LOCK_PATH = STATE_ROOT / "m30_demo_execution_drill.lock.json"
 # One bounded Wave 1 drill: the first naturally accepted protected Demo position
 # restarts the listener through its Scheduled Task, then startup recovery must
 # reclaim the same durable position. The terminal record prevents any repeat.
@@ -429,6 +432,20 @@ def _maintenance_hold() -> dict[str, str | bool]:
         return {"active": True, "reason": "MAINTENANCE_HOLD_UNREADABLE"}
 
 
+def _execution_drill_lock() -> dict[str, str | bool]:
+    """Read the narrow M30 broker-path lock; malformed state fails closed."""
+    if not EXECUTION_DRILL_LOCK_PATH.exists():
+        return {"active": False, "state": "NONE"}
+    try:
+        lock = json.loads(EXECUTION_DRILL_LOCK_PATH.read_text(encoding="utf-8-sig"))
+        if (lock.get("schema_version") != "forex.m30.execution-drill-lock.v1"
+                or lock.get("state") not in {"REQUESTED", "SUBMISSION_STARTED"}):
+            raise ValueError("invalid execution drill lock")
+        return {"active": True, "state": str(lock["state"])}
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return {"active": True, "state": "UNREADABLE"}
+
+
 def _load_environment() -> None:
     """Load secret-bearing service configuration from an ignored local file."""
     try:
@@ -636,6 +653,19 @@ def run() -> None:
                            "detail": "Coordinated maintenance hold is active; open-position monitoring continues but no assessment or Demo order is permitted."})
             time.sleep(POLL_SECONDS)
             continue
+        execution_drill_lock = _execution_drill_lock()
+        if execution_drill_lock["active"]:
+            monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
+            _record_protected_restart_recovery(monitor_state)
+            _write_status({"state": "EXECUTION_DRILL_LOCKED", "iteration": iteration,
+                           "last_result": last_result, "next_assessment_at_utc": None,
+                           "assessment_completed_at_utc": last_assessment_completed_at_utc,
+                           "assessment_duration_ms": last_assessment_duration_ms,
+                           "monitor": monitor_state, "quote": last_quote,
+                           "execution_drill_lock": execution_drill_lock,
+                           "detail": "M30 execution drill owns the broker path; monitoring continues and no new listener assessment or Demo order is permitted."})
+            time.sleep(POLL_SECONDS)
+            continue
         if not _active_lease():
             monitor_state, monitor_retry_at = _monitor_update(values, monitor_state, monitor_retry_at)
             _record_protected_restart_recovery(monitor_state)
@@ -800,6 +830,33 @@ def run_guarded() -> None:
             except OSError:
                 pass
             raise
+
+
+def run_execution_drill() -> int:
+    """Launch only the fixed runner diagnostic from the hash-bound release.
+
+    Keeping this short entrypoint in the released payload avoids the T480 SSH
+    command-length limit.  It inherits the same local configuration and
+    runner digest that the permanent listener uses; it is not a general shell
+    or trading interface.
+    """
+    values = _load_environment()
+    expected = str(values["FOREX_M20_DEMO_TRADING_SESSION_SHA256"])
+    if not expected.startswith("sha256:"):
+        expected = "sha256:" + expected
+    actual = "sha256:" + hashlib.sha256(RUNNER_PATH.read_bytes()).hexdigest()
+    if expected != actual:
+        raise SystemExit("M30 execution drill runner hash does not match local configuration")
+    completed = subprocess.run(
+        [str(values["python_path"]), str(RUNNER_PATH), str(values["terminal_path"]),
+         str(LEASE_PATH), "--execution-drill"],
+        text=True, capture_output=True, check=False, env=os.environ.copy(), timeout=45,
+    )
+    if completed.stdout:
+        print(completed.stdout.strip())
+    if completed.returncode and completed.stderr:
+        print(completed.stderr.strip(), file=sys.stderr)
+    return int(completed.returncode)
 
 
 def _load_continuity_protocol() -> dict[str, Any]:
@@ -1114,5 +1171,7 @@ if __name__ == "__main__":
         raise SystemExit(run_continuity_protocol())
     elif len(sys.argv) == 2 and sys.argv[1] == "--arm-continuity-protocol":
         raise SystemExit(arm_continuity_protocol())
+    elif len(sys.argv) == 2 and sys.argv[1] == "--execution-drill":
+        raise SystemExit(run_execution_drill())
     else:
-        raise SystemExit("M20 listener service accepts no arguments or --continuity-protocol")
+        raise SystemExit("M20 listener service accepts no arguments, --continuity-protocol, or --execution-drill")

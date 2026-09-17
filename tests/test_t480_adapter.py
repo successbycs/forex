@@ -325,7 +325,11 @@ def test_m20_listener_profile_validation_and_configuration_fit_t480_transport_li
     """T480 expands commands into UTF-16 Base64 before the SSH hop."""
     from t480_core import build_ssh_command
 
-    for operation_id in ("m20_listener_validate_account_profile", "m20_listener_configure"):
+    for operation_id in (
+        "m20_listener_validate_account_profile", "m20_listener_configure",
+        "m30_demo_execution_drill", "m20_listener_stage_1",
+        "m20_listener_stage_48",
+    ):
         command = t480_adapter.OPERATIONS[operation_id].powershell_command or ""
         outer = build_ssh_command("OEM@192.168.0.210", command, t480_adapter.TRANSPORT_SETTINGS)[-1]
         assert len(outer) < 7_500
@@ -643,11 +647,11 @@ def test_m20_listener_prepare_verifies_all_payloads_before_activation():
 
 def test_m20_listener_staging_is_split_and_hash_checked():
     first = t480_adapter.OPERATIONS["m20_listener_stage_1"].powershell_command
-    final = t480_adapter.OPERATIONS["m20_listener_stage_32"].powershell_command
+    final = t480_adapter.OPERATIONS["m20_listener_stage_48"].powershell_command
     verify = t480_adapter.OPERATIONS["m20_listener_stage_verify"].powershell_command
     assert len(first) < 4000 and len(final) < 4000
     assert "WriteAllText" in first and "part01" in first
-    assert "WriteAllText" in final and "part32" in final
+    assert "WriteAllText" in final and "part48" in final
     assert "WriteAllBytes" in verify and "Get-FileHash" in verify
 
 
@@ -1974,6 +1978,96 @@ def test_m20_discord_disable_operation_pauses_notifications_without_reading_secr
     assert "NotePropertyValue 'false'" in command
     assert "Discord notifications are paused" in command
     assert "FOREX_M20_DISCORD_WEBHOOK_URL" not in command
+
+
+def test_m20_terminal_capability_operation_is_read_only_and_reports_submission_flags():
+    command = t480_adapter.OPERATIONS["m20_listener_terminal_capability"].powershell_command or ""
+    assert "terminal_info()" in command
+    assert "submission_permitted" in command
+    assert "GOMarketsMU-Demo" in command
+    assert "order_send" not in command
+    assert "positions_get" not in command
+
+
+def test_m30_execution_drill_operation_is_fixed_and_serialises_listener_entries():
+    command = t480_adapter.OPERATIONS["m30_demo_execution_drill"].powershell_command or ""
+    assert "--execution-drill" in command
+    assert "m30_demo_execution_drill.lock.json" in command
+    assert "EXECUTION_DRILL_LOCKED" in command
+    assert "m20_demo_maintenance_hold.local.json" not in command
+    assert "m20_demo_listener_service.payload" in command
+    assert "Forex-M20-Demo-Listener" in command
+    assert "order_send" not in command
+    assert "GOMarketsMU-Live" not in command
+
+
+def test_m30_execution_drill_lock_cleanup_refuses_any_submitted_or_unknown_state():
+    command = t480_adapter.OPERATIONS["m30_demo_execution_drill_clear_unsubmitted_lock"].powershell_command or ""
+    assert "REQUESTED" in command
+    assert "Remove-Item" in command
+    assert "order_send" not in command
+
+
+def test_m30_execution_drill_refuses_disabled_terminal_without_order(monkeypatch, tmp_path):
+    probe = _m20_probe_module(monkeypatch)
+    account = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", login=1,
+                                    trade_allowed=True, trade_expert=True)
+    probe.mt5.initialize = lambda **_: True
+    probe.mt5.shutdown = lambda: None
+    probe.mt5.account_info = lambda: account
+    probe.mt5.terminal_info = lambda: types.SimpleNamespace(connected=True, trade_allowed=False, tradeapi_disabled=False)
+    probe.mt5.order_send = lambda *_: pytest.fail("disabled terminal reached order submission")
+    monkeypatch.setattr(probe, "load_session_lease", lambda *_: {})
+    (tmp_path / "m30_demo_execution_drill.lock.json").write_text('{"schema_version":"forex.m30.execution-drill-lock.v1","state":"REQUESTED"}')
+    result = probe.execution_drill("/fixed/demo/terminal", tmp_path / "lease.json")
+    assert result["marker"] == "FOREX_M30_DEMO_EXECUTION_DRILL_REFUSED"
+    assert result["order_submitted"] is False
+    assert "TRADING_DISABLED" in result["reason"]
+    assert not (tmp_path / "m30_demo_execution_drill.local.json").exists()
+    assert not (tmp_path / "m30_demo_execution_drill.lock.json").exists()
+
+
+def test_m30_execution_drill_submits_exact_one_protected_minimum_demo_order(monkeypatch, tmp_path):
+    probe = _m20_probe_module(monkeypatch)
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    account = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", login=1,
+                                    trade_allowed=True, trade_expert=True)
+    symbol = types.SimpleNamespace(name="EURUSD", volume_min=.01, trade_tick_size=.00001,
+                                   trade_tick_value_loss=1.4, point=.00001)
+    tick = types.SimpleNamespace(bid=1.1, ask=1.10005, time=int(now.timestamp()))
+    position = types.SimpleNamespace(ticket=999, magic=probe.EXECUTION_DRILL_MAGIC)
+    submitted = []
+    probe.mt5.initialize = lambda **_: True
+    probe.mt5.shutdown = lambda: None
+    probe.mt5.account_info = lambda: account
+    probe.mt5.terminal_info = lambda: types.SimpleNamespace(connected=True, trade_allowed=True, tradeapi_disabled=False)
+    probe.mt5.symbol_info = lambda _: symbol
+    probe.mt5.symbol_info_tick = lambda _: tick
+    probe.mt5.TRADE_ACTION_DEAL = 1
+    probe.mt5.ORDER_TYPE_BUY = 0
+    probe.mt5.ORDER_TIME_GTC = 0
+    probe.mt5.ORDER_FILLING_IOC = 1
+    probe.mt5.TRADE_RETCODE_DONE = 10009
+    probe.mt5.TRADE_RETCODE_DONE_PARTIAL = 10010
+    probe.mt5.order_send = lambda request: submitted.append(request) or types.SimpleNamespace(retcode=10009, order=123, comment="done")
+    monkeypatch.setattr(probe, "load_session_lease", lambda *_: {})
+    (tmp_path / "m30_demo_execution_drill.lock.json").write_text('{"schema_version":"forex.m30.execution-drill-lock.v1","state":"REQUESTED"}')
+    monkeypatch.setattr(probe, "tick_time_offset_seconds", lambda: 0)
+    monkeypatch.setattr(probe, "_positions_or_fail", lambda **_: ())
+    monkeypatch.setattr(probe, "_wait_for_position", lambda **_: position)
+    monkeypatch.setattr(probe, "_close_accepted_position", lambda **kwargs: ("456", 1.1, {"realized_pnl_account": -0.1, "broker_history": {}}))
+    result = probe.execution_drill("/fixed/demo/terminal", tmp_path / "lease.json")
+    assert result["marker"] == "FOREX_M30_DEMO_EXECUTION_DRILL_OK"
+    assert result["classification"] == "EXECUTION_DRILL"
+    assert result["volume"] == pytest.approx(.01)
+    assert len(submitted) == 1
+    request = submitted[0]
+    assert request["magic"] == probe.EXECUTION_DRILL_MAGIC
+    assert request["comment"] == "forex-m30-execution-drill"
+    assert request["symbol"] == "EURUSD" and request["volume"] == pytest.approx(.01)
+    marker = json.loads((tmp_path / "m30_demo_execution_drill.local.json").read_text())
+    assert marker["state"] == "CLOSED_MATCHED"
+    assert not (tmp_path / "m30_demo_execution_drill.lock.json").exists()
 
 
 @pytest.mark.parametrize('action', ['BUY', 'SELL'])

@@ -68,6 +68,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_terminal_capability",
+      "purpose": "Read the deployed M20 Demo terminal and account submission-permission flags without assessing or trading.",
+      "approval_required": false
+    },
+    {
       "id": "h_slow_demo_preflight",
       "purpose": "Read the fixed H1 GOMarketsMU-Demo EURUSD terminal/account preflight without credentials, mutation, caller parameters, or order capability.",
       "approval_required": false
@@ -105,6 +110,16 @@
     {
       "id": "m20_demo_trading_session",
       "purpose": "Run one fixed bounded Demo-only EURUSD M1 assessment and, only when eligible, its capped auditable execution and monitoring lifecycle.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_demo_execution_drill",
+      "purpose": "Run exactly one fixed protected GOMarketsMU-Demo EURUSD terminal-to-broker execution drill under a narrow broker-path lock while listener monitoring continues; it is not a strategy trade or M30 proof.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_demo_execution_drill_clear_unsubmitted_lock",
+      "purpose": "Clear only a stale unsubmitted M30 Demo execution-drill broker-path lock; it cannot submit, modify, or close an order.",
       "approval_required": false
     },
     {
@@ -410,6 +425,86 @@
     {
       "id": "m20_listener_stage_32",
       "purpose": "Stage fixed M20 listener payload part 32.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_33",
+      "purpose": "Stage fixed M20 listener payload part 33.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_34",
+      "purpose": "Stage fixed M20 listener payload part 34.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_35",
+      "purpose": "Stage fixed M20 listener payload part 35.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_36",
+      "purpose": "Stage fixed M20 listener payload part 36.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_37",
+      "purpose": "Stage fixed M20 listener payload part 37.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_38",
+      "purpose": "Stage fixed M20 listener payload part 38.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_39",
+      "purpose": "Stage fixed M20 listener payload part 39.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_40",
+      "purpose": "Stage fixed M20 listener payload part 40.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_41",
+      "purpose": "Stage fixed M20 listener payload part 41.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_42",
+      "purpose": "Stage fixed M20 listener payload part 42.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_43",
+      "purpose": "Stage fixed M20 listener payload part 43.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_44",
+      "purpose": "Stage fixed M20 listener payload part 44.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_45",
+      "purpose": "Stage fixed M20 listener payload part 45.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_46",
+      "purpose": "Stage fixed M20 listener payload part 46.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_47",
+      "purpose": "Stage fixed M20 listener payload part 47.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_stage_48",
+      "purpose": "Stage fixed M20 listener payload part 48.",
       "approval_required": false
     },
     {

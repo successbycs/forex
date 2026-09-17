@@ -3793,6 +3793,7 @@
         "Only after all prior gates, prove one bounded autonomous GOMarketsMU-Demo order and its complete reconciliation.",
         "For the one-position intraday strategy, prove autonomous Demo entry within existing fixed safety limits, mandatory close by the configured cutoff or earlier risk exit, and complete reconciliation of both actions.",
         "Use continuous fresh completed-M1-candle Demo evaluation as the evidence-producing operating method: a normal persisted NO_TRADE continues to a later fresh candle, while unknown broker state, account mismatch, unresolved exposure, risk pause, or failed durable journalling blocks new entries and preserves existing position protection.",
+        "One separately labelled, fixed M30 Demo execution drill may validate the deployed terminal-to-broker round trip under a narrow listener broker-path lock while monitoring remains running. It uses only the bound GOMarketsMU-Demo EURUSD minimum volume, protective stop, mandatory close and broker history. It is diagnostic evidence only: it is not a strategy result, does not test profitability, and cannot satisfy the natural autonomous M30 proof surface.",
         "Retain source, revision, configuration, and artifact provenance sufficient for reproducible verification."
       ],
       "out_of_scope": [
@@ -3814,6 +3815,7 @@
         "tests/test_m1_postgres_completeness.py",
         "docs/plans/m30-wave-1-continuous-demo-work.json",
         "scripts/capture_m30_natural_lifecycle_evidence.sh"
+        ,"docs/plans/m30-demo-execution-drill.md"
       ],
       "acceptance_criteria": [
         {

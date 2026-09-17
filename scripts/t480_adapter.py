@@ -150,6 +150,12 @@ def _m20_listener_account_identity_command() -> str:
     return "$ErrorActionPreference='Stop'; $state='C:\\ProgramData\\ForexListener\\state'; $c=gc -Raw (Join-Path $state 'm20_demo_listener_service.local.json')|ConvertFrom-Json; if ([string]::IsNullOrWhiteSpace($c.python_path) -or !(Test-Path -LiteralPath $c.python_path) -or [string]::IsNullOrWhiteSpace($c.terminal_path) -or !(Test-Path -LiteralPath $c.terminal_path)) { throw 'M20 deployed listener terminal configuration is absent' }; & $c.python_path -c '" + code.replace("'", "''") + "' $c.terminal_path; exit $LASTEXITCODE"
 
 
+def _m20_listener_terminal_capability_command() -> str:
+    """Read current MT5 submission permissions without assessing or trading."""
+    code = "import json,sys;import MetaTrader5 as m;p=sys.argv[1];initialized=m.initialize(path=p);t=m.terminal_info() if initialized else None;a=m.account_info() if initialized else None;binding=bool(a) and a.server=='GOMarketsMU-Demo' and a.currency=='AUD';connected=getattr(t,'connected',None);terminal_allowed=getattr(t,'trade_allowed',None);api_disabled=getattr(t,'tradeapi_disabled',None);account_allowed=getattr(a,'trade_allowed',None);expert_allowed=getattr(a,'trade_expert',None);permitted=bool(binding and connected is True and terminal_allowed is True and api_disabled is False and account_allowed is True and expert_allowed is True);result={'ok':bool(initialized and binding and t is not None),'server':getattr(a,'server',None),'currency':getattr(a,'currency',None),'terminal_connected':connected,'terminal_trade_allowed':terminal_allowed,'terminal_tradeapi_disabled':api_disabled,'account_trade_allowed':account_allowed,'account_trade_expert':expert_allowed,'submission_permitted':permitted,'mt5_error':None if initialized and t is not None and a is not None else str(m.last_error())};print(json.dumps(result,separators=(',',':')));m.shutdown() if initialized else None;sys.exit(0 if result['ok'] else 3)"
+    return "$ErrorActionPreference='Stop'; $state='C:\\ProgramData\\ForexListener\\state'; $c=gc -Raw (Join-Path $state 'm20_demo_listener_service.local.json')|ConvertFrom-Json; if ([string]::IsNullOrWhiteSpace($c.python_path) -or !(Test-Path -LiteralPath $c.python_path) -or [string]::IsNullOrWhiteSpace($c.terminal_path) -or !(Test-Path -LiteralPath $c.terminal_path)) { throw 'M20 deployed listener terminal configuration is absent' }; & $c.python_path -c '" + code.replace("'", "''") + "' $c.terminal_path; exit $LASTEXITCODE"
+
+
 def _m20_unresolved_history_probe_command() -> str:
     """Read a fixed narrow Demo EURUSD deal window for unresolved-attempt attribution."""
     code = (
@@ -449,6 +455,27 @@ def _m20_demo_trading_session_command() -> str:
         "$lease=Join-Path $state 'm20_demo_session.local.json'; "
         "foreach($k in @('FOREX_M20_DEMO_TRADING_SESSION_SHA256','FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256','FOREX_M20_CONFIGURATION_FINGERPRINT','FOREX_M20_TICK_TIME_OFFSET_SECONDS','FOREX_M20_MINIMUM_NET_PROFIT_AUD','FOREX_M20_FINANCING_POLICY','FOREX_M20_PERSISTENT_RISK_POLICY','FOREX_M20_APPLICATION_REVISION')){[Environment]::SetEnvironmentVariable($k,[string]$c.$k,'Process')}; "
         "& $c.python_path $p $c.terminal_path $lease; exit $LASTEXITCODE"
+    )
+
+
+def _m30_demo_execution_drill_command() -> str:
+    """Run the fixed one-shot M30 Demo terminal-to-broker diagnostic only."""
+    return (
+        "$ErrorActionPreference='Stop';$state='C:\\ProgramData\\ForexListener\\state';"
+        "$task=Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener';if($task.State -ne 'Running'){throw 'M30 execution drill requires the listener monitor task to remain running'};"
+        "$lock=Join-Path $state 'm30_demo_execution_drill.lock.json';if(Test-Path -LiteralPath $lock){throw 'M30 execution drill lock already exists'};"
+        "$record=[ordered]@{schema_version='forex.m30.execution-drill-lock.v1';state='REQUESTED';requested_at_utc=(Get-Date).ToUniversalTime().ToString('o')};$tmp=$lock+'.tmp';[IO.File]::WriteAllText($tmp,($record|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false)));Move-Item -LiteralPath $tmp -Destination $lock;"
+        "$status=Join-Path $state 'm20_demo_listener_status.local.json';$observed=$false;foreach($i in 1..20){Start-Sleep -Seconds 1;try{$h=gc -Raw $status|ConvertFrom-Json;if($h.state -eq 'EXECUTION_DRILL_LOCKED'){$observed=$true;break}}catch{}};if(!$observed){Remove-Item -LiteralPath $lock -Force -ErrorAction SilentlyContinue;throw 'M30 execution drill listener did not observe the broker-path lock'};"
+        "$c=gc -Raw (Join-Path $state 'm20_demo_listener_service.local.json')|ConvertFrom-Json;$r=[string]$h.release_id;$p=Join-Path ('C:\\ProgramData\\ForexListener\\releases\\'+$r) 'm20_demo_listener_service.payload';& $c.python_path $p --execution-drill;$code=$LASTEXITCODE;if($code -ne 0){try{$current=gc -Raw $lock|ConvertFrom-Json;if($current.state -eq 'REQUESTED'){Remove-Item -LiteralPath $lock -Force}}catch{}};exit $code"
+    )
+
+
+def _m30_demo_execution_drill_clear_unsubmitted_lock_command() -> str:
+    """Clear only a stale pre-submission drill lock; never touch submitted work."""
+    return (
+        "$ErrorActionPreference='Stop';$p='C:\\ProgramData\\ForexListener\\state\\m30_demo_execution_drill.lock.json';"
+        "if(!(Test-Path -LiteralPath $p)){[pscustomobject]@{cleared=$false;reason='ABSENT'}|ConvertTo-Json -Compress;exit 0};"
+        "$v=gc -Raw $p|ConvertFrom-Json;if($v.schema_version -ne 'forex.m30.execution-drill-lock.v1'-or $v.state -ne 'REQUESTED'){throw 'M30 drill lock is submitted, malformed, or not safe to clear'};Remove-Item -LiteralPath $p -Force;[pscustomobject]@{cleared=$true;reason='UNSUBMITTED'}|ConvertTo-Json -Compress"
     )
 
 
@@ -884,10 +911,10 @@ def _m20_listener_stage_command(index: int) -> str:
     source = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
     release_id = hashlib.sha256(source + (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes() + (ROOT / "t480" / "m20_postgres_audit_bridge.py").read_bytes() + (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()).hexdigest()[:16]
     # Raw Base64 decoding is accepted by the T480 endpoint; in-process gzip
-    # expansion is not. Thirty-two bounded fixed fragments stay below the
+    # expansion is not. Forty-eight bounded fixed fragments stay below the
     # observed T480 command cap and match the catalogued release protocol.
     encoded = base64.b64encode(source).decode("ascii")
-    chunk_size = ((len(encoded) + (32 * 4) - 1) // (32 * 4)) * 4
+    chunk_size = ((len(encoded) + (48 * 4) - 1) // (48 * 4)) * 4
     chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
     if index not in range(1, len(chunks) + 1):
         raise ValueError("M20 listener stage index is invalid")
@@ -1050,6 +1077,7 @@ OPERATIONS: dict[str, Operation] = {
     ),
     "m20_demo_account_liquidity": Operation("m20_demo_account_liquidity", "Read fixed GOMarketsMU-Demo account liquidity fields without trading.", powershell_command=_m20_demo_account_liquidity_command()),
     "m20_listener_account_identity": Operation("m20_listener_account_identity", "Read only the deployed M20 listener's redacted Demo-account binding and liquidity fields.", powershell_command=_m20_listener_account_identity_command()),
+    "m20_listener_terminal_capability": Operation("m20_listener_terminal_capability", "Read the deployed M20 Demo terminal and account submission-permission flags without assessing or trading.", powershell_command=_m20_listener_terminal_capability_command()),
     "m20_terminal_history_diagnostics": Operation("m20_terminal_history_diagnostics", "Inspect bounded terminal history error lines and Demo exposure without trading.", powershell_command=_m20_terminal_history_diagnostics_command(), timeout_seconds=60),
     "m20_close_duplicate_terminal": Operation("m20_close_duplicate_terminal", "Close duplicate interactive configured MT5 instances only while Demo is flat and the listener is held and stopped.", powershell_command=_m20_close_duplicate_terminal_command(), timeout_seconds=60),
     "m20_financing_preview": Operation("m20_financing_preview", "Run the hash-bound deployed Demo financing calculator without placing orders.", powershell_command=_m20_demo_trading_session_command().replace("$c.terminal_path $lease;", "$c.terminal_path $lease --financing-preview;"), timeout_seconds=60),
@@ -1090,6 +1118,17 @@ OPERATIONS: dict[str, Operation] = {
         "Run the fixed bounded GOMarketsMU-Demo EURUSD M1/M5 session; a hash-bound PostgreSQL audit bridge must persist before any transaction.",
         powershell_command=_m20_demo_trading_session_command(),
         timeout_seconds=720,
+    ),
+    "m30_demo_execution_drill": Operation(
+        "m30_demo_execution_drill",
+        "Run one fixed one-shot protected GOMarketsMU-Demo EURUSD terminal-to-broker execution drill while the listener is held; it is not a strategy trade or M30 proof.",
+        powershell_command=_m30_demo_execution_drill_command(),
+        timeout_seconds=60,
+    ),
+    "m30_demo_execution_drill_clear_unsubmitted_lock": Operation(
+        "m30_demo_execution_drill_clear_unsubmitted_lock",
+        "Clear only a stale unsubmitted M30 Demo execution-drill broker-path lock.",
+        powershell_command=_m30_demo_execution_drill_clear_unsubmitted_lock_command(),
     ),
     "m20_listener_diagnostics": Operation(
         "m20_listener_diagnostics",
@@ -1240,10 +1279,10 @@ OPERATIONS: dict[str, Operation] = {
     "m20_listener_stage_5": Operation("m20_listener_stage_5", "Stage fixed M20 listener payload part five.", powershell_command=_m20_listener_stage_command(5)),
 }
 
-for _index in range(6, 33):
+for _index in range(6, 49):
     OPERATIONS[f"m20_listener_stage_{_index}"] = Operation(
         f"m20_listener_stage_{_index}",
-        ("Stage and verify" if _index == 32 else "Stage") + f" fixed M20 listener payload part {_index}.",
+        ("Stage and verify" if _index == 48 else "Stage") + f" fixed M20 listener payload part {_index}.",
         powershell_command=_m20_listener_stage_command(_index),
     )
 
@@ -1263,7 +1302,7 @@ OPERATIONS["m20_listener_stage_verify"] = Operation(
         "$root=Join-Path $base 'releases\\" + _listener_release_id + "'; "
         "$file=Join-Path $root 'm20_demo_listener_service.payload'; "
         "$fragments=@(Get-ChildItem -LiteralPath $root|Where-Object {$_.Name -match '^m20_demo_listener_service\\.part\\d{2}$'}|Sort-Object Name|ForEach-Object {$_.FullName}); "
-        "if ($fragments.Count -ne 32) { throw ('M20 listener fragments are incomplete: '+$fragments.Count) }; "
+        "if ($fragments.Count -ne 48) { throw ('M20 listener fragments are incomplete: '+$fragments.Count) }; "
         "$encoded=(($fragments|ForEach-Object {[IO.File]::ReadAllText($_)}) -join ''); "
         "[IO.File]::WriteAllBytes($file,[Convert]::FromBase64String($encoded)); "
         "if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -ne '" + _listener_source_digest + "') { throw 'M20 listener staged source hash failed' }; "
