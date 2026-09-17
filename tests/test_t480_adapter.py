@@ -311,9 +311,22 @@ def test_m20_session_operation_is_fixed_demo_only_fresh_data_capture():
 
 def test_m20_listener_configuration_requires_the_local_account_profile():
     command = t480_adapter.OPERATIONS["m20_listener_configure"].powershell_command or ""
-    assert "m1_eurusd_demo_profile.local.json" in command
-    assert "M1_EURUSD_DEMO local account profile is absent" in command
+    validate = t480_adapter.OPERATIONS["m20_listener_validate_account_profile"].powershell_command or ""
+    assert "m1_eurusd_demo_profile.local.json" in validate
+    assert "M1_EURUSD_DEMO local account profile is absent" in validate
+    assert "m20_demo_account_execution_profile.local.json" in validate
+    assert "m20_demo_account_execution_profile.local.json" in command
     assert "FOREX_M20_ACCOUNT_EXECUTION_PROFILE" in command
+
+
+def test_m20_listener_profile_validation_and_configuration_fit_t480_transport_limit():
+    """T480 expands commands into UTF-16 Base64 before the SSH hop."""
+    from t480_core import build_ssh_command
+
+    for operation_id in ("m20_listener_validate_account_profile", "m20_listener_configure"):
+        command = t480_adapter.OPERATIONS[operation_id].powershell_command or ""
+        outer = build_ssh_command("OEM@192.168.0.210", command, t480_adapter.TRANSPORT_SETTINGS)[-1]
+        assert len(outer) < 7_500
 
 
 def test_m20_listener_profile_provisioning_is_fixed_and_requires_a_valid_expected_hash():

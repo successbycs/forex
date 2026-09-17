@@ -803,6 +803,21 @@ def _m20_listener_enable_discord_from_existing_secret_command() -> str:
     )
 
 
+def _m20_listener_validate_account_profile_command() -> str:
+    """Validate and retain the one fixed local Demo-account binding.
+
+    This intentionally precedes configuration because the T480 SSH transport
+    expands PowerShell commands into UTF-16 Base64.  Keeping the profile
+    validation in its own fixed operation prevents the configuration command
+    exceeding the observed Windows command-line boundary.
+    """
+    return (
+        "$ErrorActionPreference='Stop';$b='C:\\ProgramData\\ForexListener';$s=Join-Path $b state;$l=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe';"
+        "$path=Join-Path $l 'm1_eurusd_demo_profile.local.json';if(!(Test-Path -LiteralPath $path)){throw 'M1_EURUSD_DEMO local account profile is absent'};$raw=gc -Raw -LiteralPath $path|ConvertFrom-Json;$keys=@($raw.PSObject.Properties.Name|Sort-Object);$expected=@('account_scope_sha256','currency','profile_id','server','symbol');if(($keys -join ',') -ne ($expected -join ',') -or $raw.profile_id -ne 'M1_EURUSD_DEMO' -or $raw.server -ne 'GOMarketsMU-Demo' -or $raw.currency -ne 'AUD' -or $raw.symbol -ne 'EURUSD' -or [string]$raw.account_scope_sha256 -notmatch '^sha256:[0-9a-f]{64}$'){throw 'M1_EURUSD_DEMO local account profile is invalid'};"
+        "$profile=[ordered]@{profile_id='M1_EURUSD_DEMO';server='GOMarketsMU-Demo';currency='AUD';symbol='EURUSD';account_scope_sha256=[string]$raw.account_scope_sha256};ni -it d -fo $s|out-null;$tmp=Join-Path $s 'm20_demo_account_execution_profile.local.json.tmp';[IO.File]::WriteAllText($tmp,($profile|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false)));Move-Item -LiteralPath $tmp -Destination (Join-Path $s 'm20_demo_account_execution_profile.local.json') -Force;[pscustomobject]@{profile_id=$profile.profile_id;validated=$true}|ConvertTo-Json -Compress"
+    )
+
+
 def _m20_listener_configure_command() -> str:
     """Write only the governed non-secret configuration after payload verification."""
     service = (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
@@ -815,7 +830,7 @@ def _m20_listener_configure_command() -> str:
     return (
         "$ErrorActionPreference='Stop';$b='C:\\ProgramData\\ForexListener';$s=Join-Path $b state;$l=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe';"
         "$m=gc -Raw (Join-Path $s 'm20_demo_listener_prepared.local.json')|ConvertFrom-Json;if($m.release_id -ne '" + release_id + "'-or $m.configuration_fingerprint -ne '" + fingerprint + "'-or $m.application_revision -ne '" + revision + "'){throw 'M20 verified release binding is absent or stale'};"
-        "$x=gc -Raw (Join-Path $l 'mt5.local.json')|ConvertFrom-Json;$profilePath=Join-Path $l 'm1_eurusd_demo_profile.local.json';if(!(Test-Path -LiteralPath $profilePath)){throw 'M1_EURUSD_DEMO local account profile is absent'};$profile=gc -Raw $profilePath|ConvertFrom-Json;$profileKeys=@($profile.PSObject.Properties.Name|Sort-Object);$expectedKeys=@('account_scope_sha256','currency','profile_id','server','symbol');if(($profileKeys -join ',') -ne ($expectedKeys -join ',') -or $profile.profile_id -ne 'M1_EURUSD_DEMO' -or $profile.server -ne 'GOMarketsMU-Demo' -or $profile.currency -ne 'AUD' -or $profile.symbol -ne 'EURUSD' -or [string]$profile.account_scope_sha256 -notmatch '^sha256:[0-9a-f]{64}$'){throw 'M1_EURUSD_DEMO local account profile is invalid'};$active=Join-Path $s 'm20_demo_listener_service.local.json';if(!(Test-Path -LiteralPath $active)){throw 'M20 existing governed listener configuration is absent'};$previous=gc -Raw $active|ConvertFrom-Json;$keep=@('FOREX_M20_TICK_TIME_OFFSET_SECONDS','FOREX_M20_MINIMUM_NET_PROFIT_AUD','FOREX_M20_FINANCING_POLICY','FOREX_M20_PERSISTENT_RISK_POLICY');foreach($key in $keep){if([string]::IsNullOrWhiteSpace([string]$previous.$key)){throw ('M20 existing governed setting is absent: '+$key)}};$c=[ordered]@{FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "';FOREX_M20_TICK_TIME_OFFSET_SECONDS=[string]$previous.FOREX_M20_TICK_TIME_OFFSET_SECONDS;FOREX_M20_MINIMUM_NET_PROFIT_AUD=[string]$previous.FOREX_M20_MINIMUM_NET_PROFIT_AUD;FOREX_M20_FINANCING_POLICY=[string]$previous.FOREX_M20_FINANCING_POLICY;FOREX_M20_PERSISTENT_RISK_POLICY=[string]$previous.FOREX_M20_PERSISTENT_RISK_POLICY;FOREX_M20_APPLICATION_REVISION='" + revision + "';FOREX_M20_ACCOUNT_EXECUTION_PROFILE=($profile|ConvertTo-Json -Compress);python_path=$x.python_path;terminal_path=$x.terminal_path};foreach($key in @('FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED','FOREX_M20_DISCORD_WEBHOOK_URL')){if($previous.PSObject.Properties.Name -contains $key){$c[$key]=[string]$previous.$key}};"
+        "$x=gc -Raw (Join-Path $l 'mt5.local.json')|ConvertFrom-Json;$profilePath=Join-Path $s 'm20_demo_account_execution_profile.local.json';if(!(Test-Path -LiteralPath $profilePath)){throw 'M20 verified profile absent'};$profile=gc -Raw -LiteralPath $profilePath|ConvertFrom-Json;$active=Join-Path $s 'm20_demo_listener_service.local.json';$previous=gc -Raw $active|ConvertFrom-Json;$keep=@('FOREX_M20_TICK_TIME_OFFSET_SECONDS','FOREX_M20_MINIMUM_NET_PROFIT_AUD','FOREX_M20_FINANCING_POLICY','FOREX_M20_PERSISTENT_RISK_POLICY');if($keep|Where-Object{[string]::IsNullOrWhiteSpace([string]$previous.$_)}){throw 'M20 existing governed setting is absent'};$c=[ordered]@{FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "';FOREX_M20_TICK_TIME_OFFSET_SECONDS=[string]$previous.FOREX_M20_TICK_TIME_OFFSET_SECONDS;FOREX_M20_MINIMUM_NET_PROFIT_AUD=[string]$previous.FOREX_M20_MINIMUM_NET_PROFIT_AUD;FOREX_M20_FINANCING_POLICY=[string]$previous.FOREX_M20_FINANCING_POLICY;FOREX_M20_PERSISTENT_RISK_POLICY=[string]$previous.FOREX_M20_PERSISTENT_RISK_POLICY;FOREX_M20_APPLICATION_REVISION='" + revision + "';FOREX_M20_ACCOUNT_EXECUTION_PROFILE=($profile|ConvertTo-Json -Compress);python_path=$x.python_path;terminal_path=$x.terminal_path};foreach($key in @('FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED','FOREX_M20_DISCORD_WEBHOOK_URL')){if($previous.PSObject.Properties.Name -contains $key){$c[$key]=[string]$previous.$key}};"
         "if(!(Test-Path (Join-Path $s 'm20_demo_session.local.json'))){Copy-Item (Join-Path $l 'm20_demo_session.local.json') (Join-Path $s 'm20_demo_session.local.json') -ea SilentlyContinue};$t=Join-Path $s 'm20_demo_listener_service.local.json.tmp';[IO.File]::WriteAllText($t,($c|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false)));Move-Item $t $active -Force;[pscustomobject]@{configured=$true;release_id=$m.release_id}|ConvertTo-Json -Compress"
     )
 
@@ -1186,6 +1201,12 @@ OPERATIONS: dict[str, Operation] = {
         "m20_listener_configure",
         "Write the governed non-secret M20 listener configuration after release verification.",
         powershell_command=_m20_listener_configure_command(),
+        timeout_seconds=60,
+    ),
+    "m20_listener_validate_account_profile": Operation(
+        "m20_listener_validate_account_profile",
+        "Validate and retain only the fixed M1_EURUSD_DEMO local expected-account profile before listener configuration.",
+        powershell_command=_m20_listener_validate_account_profile_command(),
         timeout_seconds=60,
     ),
     "m20_listener_provision_account_profile": Operation(
