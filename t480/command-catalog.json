@@ -63,6 +63,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_account_identity",
+      "purpose": "Read the deployed M20 listener's redacted Demo-account binding and liquidity fields without trading or exposing credentials.",
+      "approval_required": false
+    },
+    {
       "id": "h_slow_demo_preflight",
       "purpose": "Read the fixed H1 GOMarketsMU-Demo EURUSD terminal/account preflight without credentials, mutation, caller parameters, or order capability.",
       "approval_required": false

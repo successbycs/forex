@@ -144,6 +144,12 @@ def _m20_demo_account_liquidity_command() -> str:
     return "$ErrorActionPreference='Stop'; $s=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json; if ([string]::IsNullOrWhiteSpace($s.python_path) -or !(Test-Path -LiteralPath $s.python_path)) { throw 'M20 configured Python interpreter is absent' }; & $s.python_path -c '" + code.replace("'", "''") + "' $s.terminal_path; exit $LASTEXITCODE"
 
 
+def _m20_listener_account_identity_command() -> str:
+    """Read the deployed M20 listener's redacted Demo-account binding only."""
+    code = "import hashlib,json,sys;import MetaTrader5 as m;p=sys.argv[1];ok=m.initialize(path=p);a=m.account_info() if ok else None;bad=(not a or a.server!='GOMarketsMU-Demo' or a.currency!='AUD' or not isinstance(getattr(a,'login',None),int) or a.login<=0);positions=m.positions_get() if not bad else None;scope=hashlib.sha256((a.server+':'+str(a.login)).encode()).hexdigest() if not bad else None;result={'ok':not bad and positions is not None,'binding_label':'M20_DEPLOYED_LISTENER','server':getattr(a,'server',None),'currency':getattr(a,'currency',None),'account_scope_sha256':'sha256:'+scope if scope else None,'balance':getattr(a,'balance',None),'equity':getattr(a,'equity',None),'open_positions':len(positions) if positions is not None else None};print(json.dumps(result,separators=(',',':')));m.shutdown() if ok else None;sys.exit(0 if result['ok'] else 3)"
+    return "$ErrorActionPreference='Stop'; $state='C:\\ProgramData\\ForexListener\\state'; $c=gc -Raw (Join-Path $state 'm20_demo_listener_service.local.json')|ConvertFrom-Json; if ([string]::IsNullOrWhiteSpace($c.python_path) -or !(Test-Path -LiteralPath $c.python_path) -or [string]::IsNullOrWhiteSpace($c.terminal_path) -or !(Test-Path -LiteralPath $c.terminal_path)) { throw 'M20 deployed listener terminal configuration is absent' }; & $c.python_path -c '" + code.replace("'", "''") + "' $c.terminal_path; exit $LASTEXITCODE"
+
+
 def _m20_unresolved_history_probe_command() -> str:
     """Read a fixed narrow Demo EURUSD deal window for unresolved-attempt attribution."""
     code = (
@@ -1005,6 +1011,7 @@ OPERATIONS: dict[str, Operation] = {
         timeout_seconds=60,
     ),
     "m20_demo_account_liquidity": Operation("m20_demo_account_liquidity", "Read fixed GOMarketsMU-Demo account liquidity fields without trading.", powershell_command=_m20_demo_account_liquidity_command()),
+    "m20_listener_account_identity": Operation("m20_listener_account_identity", "Read only the deployed M20 listener's redacted Demo-account binding and liquidity fields.", powershell_command=_m20_listener_account_identity_command()),
     "m20_terminal_history_diagnostics": Operation("m20_terminal_history_diagnostics", "Inspect bounded terminal history error lines and Demo exposure without trading.", powershell_command=_m20_terminal_history_diagnostics_command(), timeout_seconds=60),
     "m20_close_duplicate_terminal": Operation("m20_close_duplicate_terminal", "Close duplicate interactive configured MT5 instances only while Demo is flat and the listener is held and stopped.", powershell_command=_m20_close_duplicate_terminal_command(), timeout_seconds=60),
     "m20_financing_preview": Operation("m20_financing_preview", "Run the hash-bound deployed Demo financing calculator without placing orders.", powershell_command=_m20_demo_trading_session_command().replace("$c.terminal_path $lease;", "$c.terminal_path $lease --financing-preview;"), timeout_seconds=60),

@@ -50,6 +50,40 @@ over a retained M30 evidence bundle.
   envelope; a supplied empty summary remained an unmatched report result, not
   a claim about PostgreSQL. Unsupported retained input is preserved as an
   explicit operational refusal. M30 remains awaiting its separate Demo proof.
+- [x] (2026-09-17) Amended the Demo policy: financing, rollover-calendar, and
+  UTC entry-hour qualification are deferred to later Live readiness. The
+  deployed `ba65739` configuration reports `DEFERRED_FOR_DEMO`; existing
+  Demo risk, cost, position, protection, monitoring, and reconciliation gates
+  remain mandatory.
+- [x] (2026-09-17) Performed M30's one declared capture attempt on the
+  deployed deferred-policy revision. It produced `NO_TRADE` (no fixed strategy
+  selected); no broker order was submitted. The capture contract refused to
+  manufacture evidence, the account remained flat, and maintenance hold was
+  restored. Raw refusal artifacts: `runs/evidence/M30/20260917T001033Z/`.
+- [x] (2026-09-17 00:22Z) Read the durable risk state and current Demo account.
+  The account was flat (`open_positions: 0`) with no unresolved execution
+  attempts; observed balance/equity and risk `expected_balance` each equalled
+  AUD 100,989.59. The only entry pause remained `EXTERNAL_CASH_FLOW`.
+  The fixed resume action is deliberately append-only and requires a current
+  operator-reviewed attribution of the balance movement before it may be used;
+  the earlier review applies only to its recorded historical movement.
+- [x] (2026-09-17 00:45Z) Added and exercised a fixed read-only account-binding
+  diagnostic. The deployed M20 listener, persistent M30 risk state, and
+  complete bounded broker-history export all returned the same redacted
+  `GOMarketsMU-Demo:<login>` SHA-256 binding
+  (`4b12a2cebac68fadc4009c52f46e1cda20bd3c731ef94428ed2b47a2d29faabf`).
+  Therefore the observed balance history belongs to M30's active Demo account;
+  the paused H1 configuration is absent and must not be used to infer a
+  different active account.
+- [x] (2026-09-17 00:47Z) Attributed the M30 risk balance movement directly
+  from fixed broker history: from the AUD 100,995.51 risk baseline at
+  `2026-09-07T00:42:49Z`, 33 closed broker deals totalled AUD -5.92, with
+  AUD 0.00 commission, swap, and fee. Current balance was AUD 100,989.59,
+  leaving AUD 0.00 unexplained; no balance/credit entry occurred after the
+  baseline. The fixed append-only resume action recorded
+  `699b9538-3729-4584-9b24-f1d27a1ff3fe`, cleared the pause list, and left
+  maintenance hold active. A future entry still requires its ordinary fresh
+  risk check, market gates, and M30's no-retry capture rule.
 - [ ] Validate the implementation, record M30-C2/C4 as applicable, and obtain
   an independent read-only review.
 - [ ] When the existing autonomous preflight is eligible, perform the bounded
@@ -97,6 +131,35 @@ over a retained M30 evidence bundle.
   later Live-policy input. Existing Demo-only, risk, cost-coverage, position,
   protection, monitoring, and reconciliation gates remain unchanged.
   Date/Author: 2026-09-17 / Chris.
+
+- Decision: amend the active M1 MVP goal to reflect the deployed Demo policy.
+  Package D is complete. Package F/M30 remains a real-world proof requirement,
+  but can only succeed on an authentic eligible M1 setup and a permitted risk
+  state; it must not force or retry an order after a valid `NO_TRADE` result.
+  Rationale: the policy restriction was removed, while the decision engine's
+  no-trade outcome and safety gates remain part of the MVP's intended function.
+  Date/Author: 2026-09-17 / Chris.
+
+- Decision: do not automatically clear the current `EXTERNAL_CASH_FLOW` pause.
+  Rationale: matching current expected and observed balance proves there is no
+  ongoing mismatch, but does not attribute the historical movement that first
+  latched the pause. The fixed resume operation records an operator review and
+  must not be substituted with an inference or a prior review for a different
+  balance difference. Date/Author: 2026-09-17 / Codex from durable risk,
+  account, and unresolved-attempt observations.
+
+- Decision: use the redacted `server:login` binding, not an account-label or
+  repository workstream name, to attribute M30 operational evidence.
+  Rationale: the H1 configuration is paused/absent, while the direct binding
+  comparison proves the active M20 terminal, risk state, and broker history
+  are the same account. Date/Author: 2026-09-17 / Codex observation.
+
+- Decision: resolve the `EXTERNAL_CASH_FLOW` pause through the existing
+  append-only fixed resume operation after exact broker-history attribution.
+  Rationale: the AUD -5.92 balance movement exactly equals the 33 recorded
+  closed-deal outcomes, so no unaccounted cash movement remains. The action
+  did not submit, modify, or close a broker order and maintenance hold remains
+  in place. Date/Author: 2026-09-17 / Chris's active M30 MVP goal.
 
 - Decision: retain the fixed autonomous entry gates and bind their persisted
   proposal to the M30 evidence bundle.

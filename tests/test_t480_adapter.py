@@ -376,6 +376,18 @@ def test_m20_liquidity_does_not_describe_a_failed_position_read_as_flat():
     assert "open_positions':len(m.positions_get() or ())" not in command
 
 
+def test_m20_listener_account_identity_is_redacted_read_only_and_uses_deployed_configuration():
+    command = t480_adapter.OPERATIONS["m20_listener_account_identity"].powershell_command or ""
+    assert "m20_demo_listener_service.local.json" in command
+    assert "M20_DEPLOYED_LISTENER" in command
+    assert "account_scope_sha256" in command
+    assert "a.login" in command
+    assert "GOMarketsMU-Live" not in command
+    assert "order_send" not in command
+    assert "Start-ScheduledTask" not in command
+    assert "Stop-ScheduledTask" not in command
+
+
 def test_m20_listener_recovery_is_fixed_to_the_listener_task_only():
     command = t480_adapter.OPERATIONS["m20_listener_recover"].powershell_command
     assert "Get-ScheduledTask -TaskName 'Forex-M20-Demo-Listener'" in command

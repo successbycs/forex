@@ -15,7 +15,10 @@ It does not need a new orchestration or reporting platform.
 
 The remaining MVP build is candle-keyed M1 decision integrity. The final
 delivery is the existing M30 bounded Demo order, close and reconciliation proof
-on that resulting version.
+on that resulting version. For the Demo MVP, financing, rollover-calendar, and
+UTC entry-hour qualification are explicitly deferred to later Live readiness;
+they are not current entry vetoes. Existing Demo risk, cost, position,
+protection, monitoring, and reconciliation gates remain in force.
 
 ## Authority and non-goals
 
@@ -86,7 +89,7 @@ orchestration machinery, not eliminating application Python.
 - [x] (2026-09-16) Chris approved M30's hybrid-delivery amendment: implementation may proceed without an old-version M30 trade; the final Demo proof and M31 dependency remain unchanged.
 - [x] Package B: capture and qualify the available fixed read-only PostgreSQL summaries. They end on 2026-09-11 and do not cover the 2026-09-15 retained M1 interval; all projection facts for that interval remain `UNKNOWN`.
 - [x] Package C: add a fixed, parameter-bound read-only PostgreSQL completeness summary. The retained interval contains 16 persisted `NO_TRADE` proposals and no attempts; all raw-to-projection identities join exactly.
-- [x] Package D: implement and locally verify candle identity, durable refusal handling and no-resubmission on an already-persisted candle. On 2026-09-17, Chris's explicit active-goal instruction authorised the fixed hash-bound Demo PostgreSQL migration application; it was staged, applied, and read-only verified. Listener deployment remains pending a clean committed release.
+- [x] Package D: implement and locally verify candle identity, durable refusal handling and no-resubmission on an already-persisted candle. On 2026-09-17, Chris's explicit active-goal instruction authorised the fixed hash-bound Demo PostgreSQL migration application; it was staged, applied, and read-only verified. The clean committed listener release was deployed and binding-verified.
 - [ ] Package E: deferred after the MVP requirements reset; qualified context and broader reporting are not M30 implementation requirements.
 - [ ] Package F: capture M30's bounded final-version Demo lifecycle proof.
 
