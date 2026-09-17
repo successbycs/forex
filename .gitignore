@@ -3,6 +3,8 @@
 !.env.example
 reports/*.html
 t480/mt5.local.json
+m1_eurusd_demo_profile.local.json
+**/m1_eurusd_demo_profile.local.json
 t480/m20_demo_session.local.json
 t480/m20_demo_listener_service.local.json
 t480/m20_demo_listener_status.local.json

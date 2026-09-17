@@ -17,6 +17,11 @@ from scripts import t480_adapter
 def _m20_probe_module(monkeypatch):
     fake_mt5 = types.SimpleNamespace(TIMEFRAME_M1=1, TIMEFRAME_M5=5, TIMEFRAME_H1=60)
     monkeypatch.setitem(sys.modules, "MetaTrader5", fake_mt5)
+    expected_scope = "sha256:" + hashlib.sha256(b"GOMarketsMU-Demo:1").hexdigest()
+    monkeypatch.setenv("FOREX_M20_ACCOUNT_EXECUTION_PROFILE", json.dumps({
+        "profile_id": "M1_EURUSD_DEMO", "server": "GOMarketsMU-Demo",
+        "currency": "AUD", "symbol": "EURUSD", "account_scope_sha256": expected_scope,
+    }))
     path = t480_adapter.ROOT / "t480" / "m20_demo_trading_session.py"
     spec = importlib.util.spec_from_file_location("m20_demo_trading_session_test", path)
     assert spec and spec.loader
@@ -302,6 +307,33 @@ def test_m20_session_operation_is_fixed_demo_only_fresh_data_capture():
     assert capture_source.index('"reserve-execution"') < capture_source.index("order_send")
     assert "positions_get" in probe
     assert t480_adapter.OPERATIONS["m20_demo_trading_session"].approval_required is False
+
+
+def test_m20_listener_configuration_requires_the_local_account_profile():
+    command = t480_adapter.OPERATIONS["m20_listener_configure"].powershell_command or ""
+    assert "m1_eurusd_demo_profile.local.json" in command
+    assert "M1_EURUSD_DEMO local account profile is absent" in command
+    assert "FOREX_M20_ACCOUNT_EXECUTION_PROFILE" in command
+
+
+def test_m20_local_account_profile_is_ignored():
+    ignored = (t480_adapter.ROOT / ".gitignore").read_text(encoding="utf-8")
+    assert "**/m1_eurusd_demo_profile.local.json" in ignored
+
+
+def test_m20_execution_profile_requires_one_named_matching_demo_account(monkeypatch):
+    probe = _m20_probe_module(monkeypatch)
+    account = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", login=1)
+    probe._require_account_execution_profile(account)
+    monkeypatch.setenv("FOREX_M20_ACCOUNT_EXECUTION_PROFILE", json.dumps({
+        "profile_id": "M1_EURUSD_DEMO", "server": "GOMarketsMU-Demo",
+        "currency": "AUD", "symbol": "EURUSD", "account_scope_sha256": "sha256:" + "0" * 64,
+    }))
+    calls = []
+    monkeypatch.setattr(probe, "_bridge", lambda payload, command: calls.append(command) or {})
+    with pytest.raises(SystemExit, match="account execution profile mismatch"):
+        probe._require_account_execution_profile(account)
+    assert calls == ["pause-unknown-account-state"]
 
 
 def test_m20_listener_status_is_fixed_and_redacted():
@@ -946,6 +978,75 @@ def test_m20_capture_persists_invalid_m1_as_no_trade_without_order(monkeypatch, 
     assert result["proposal"]["rationale"].startswith("M1_INPUT_INVALID_OR_INSUFFICIENT")
     assert result["decision_snapshot"]["m1_closed_bars"] == []
     assert [name for name, _ in calls].count("persist-proposal") == 1
+
+
+def test_m20_capture_profile_mismatch_cannot_reserve_or_submit(monkeypatch, tmp_path):
+    """A wrong local account scope fails before executable assessment work."""
+    probe = _m20_probe_module(monkeypatch)
+    initial = datetime(2026, 9, 9, 6, 0, 30, tzinfo=timezone.utc)
+    _capture_test_environment(monkeypatch, probe, initial=initial, after_capture=initial)
+    monkeypatch.setenv("FOREX_M20_ACCOUNT_EXECUTION_PROFILE", json.dumps({
+        "profile_id": "M1_EURUSD_DEMO", "server": "GOMarketsMU-Demo",
+        "currency": "AUD", "symbol": "EURUSD", "account_scope_sha256": "sha256:" + "f" * 64,
+    }))
+    calls = []
+    monkeypatch.setattr(probe, "_bridge", lambda payload, command: calls.append(command) or {})
+    monkeypatch.setattr(probe.mt5, "order_send", lambda *_: pytest.fail("profile mismatch must not submit"), raising=False)
+    with pytest.raises(SystemExit, match="account execution profile mismatch"):
+        probe.capture("terminal", tmp_path / "lease.json")
+    assert calls == ["pause-unknown-account-state"]
+
+
+def test_m20_capture_rechecks_profile_before_reservation(monkeypatch, tmp_path):
+    """An account change after proposal persistence cannot claim a reservation."""
+    probe = _m20_probe_module(monkeypatch)
+    initial = datetime(2026, 9, 9, 6, 0, 30, tzinfo=timezone.utc)
+    _capture_test_environment(monkeypatch, probe, initial=initial, after_capture=initial)
+    first = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=1)
+    changed = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=2)
+    accounts = iter((first, changed))
+    probe.mt5.account_info = lambda: next(accounts)
+    calls = []
+    def bridge(payload, command):
+        calls.append(command)
+        if command == "enforce-risk-policy":
+            return {"risk": {"entry_allowed": True, "maximum_loss_aud": 100}}
+        if command == "persist-proposal":
+            return {"postgres_audit": {"session_id": "s", "proposal_id": "proposal", "snapshot_id": "snapshot", "execution_attempt_id": None, "record_sha256": "sha256:" + "e" * 64}}
+        assert command == "pause-unknown-account-state"
+        return {}
+    monkeypatch.setattr(probe, "_bridge", bridge)
+    monkeypatch.setattr(probe.mt5, "order_send", lambda *_: pytest.fail("profile mismatch must not submit"), raising=False)
+    with pytest.raises(SystemExit, match="account execution profile mismatch"):
+        probe.capture("terminal", tmp_path / "lease.json")
+    assert calls == ["enforce-risk-policy", "persist-proposal", "pause-unknown-account-state"]
+
+
+def test_m20_capture_rechecks_profile_immediately_before_order(monkeypatch, tmp_path):
+    """A post-reservation account change cannot reach the broker order call."""
+    probe = _m20_probe_module(monkeypatch)
+    initial = datetime(2026, 9, 9, 6, 0, 30, tzinfo=timezone.utc)
+    _capture_test_environment(monkeypatch, probe, initial=initial, after_capture=initial)
+    first = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=1)
+    changed = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=2)
+    accounts = iter((first, first, first, changed))
+    probe.mt5.account_info = lambda: next(accounts)
+    calls = []
+    def bridge(payload, command):
+        calls.append(command)
+        if command == "enforce-risk-policy":
+            return {"risk": {"entry_allowed": True, "maximum_loss_aud": 100}}
+        if command == "persist-proposal":
+            return {"postgres_audit": {"session_id": "s", "proposal_id": "proposal", "snapshot_id": "snapshot", "execution_attempt_id": None, "record_sha256": "sha256:" + "e" * 64}}
+        if command == "reserve-execution":
+            return {"reservation": {"slot_number": None}, "postgres_audit": {"session_id": "s", "proposal_id": "proposal", "snapshot_id": "snapshot", "execution_attempt_id": "attempt", "record_sha256": "sha256:" + "e" * 64}}
+        assert command == "pause-unknown-account-state"
+        return {}
+    monkeypatch.setattr(probe, "_bridge", bridge)
+    monkeypatch.setattr(probe.mt5, "order_send", lambda *_: pytest.fail("final profile mismatch must not submit"), raising=False)
+    with pytest.raises(SystemExit, match="account execution profile mismatch"):
+        probe.capture("terminal", tmp_path / "lease.json")
+    assert calls == ["enforce-risk-policy", "persist-proposal", "enforce-risk-policy", "reserve-execution", "pause-unknown-account-state"]
 
 
 def test_m20_capture_crossing_assessed_minute_records_terminal_non_submission(monkeypatch, tmp_path):

@@ -18,7 +18,7 @@ starts it and retains the user-visible status.
 
 ```text
 New completed M1 candle available
-  -> validate EURUSD quote, completed bars, freshness, and Demo account identity
+  -> validate EURUSD quote, completed bars, freshness, and the fixed local M1_EURUSD_DEMO account profile
   -> confirm lease, position, duplicate, loss, exposure, and broker safety gates
   -> evaluate the five fixed M1 strategies on the same immutable snapshot
   -> select at most one executable M1 owner by deterministic regime precedence
@@ -34,6 +34,12 @@ The resulting records contain the snapshot, strategy comparison, selected
 owner, proposal, risk results, broker attempt, lifecycle, and reconciliation.
 They are available through the read-only dashboard and retained audit/evidence
 paths.
+
+`M1_EURUSD_DEMO` is one locally held profile for the current Demo account. Its
+expected account-scope hash is T480-local, not tracked in this repository. A
+missing, malformed, or mismatching profile fails closed before executable
+assessment and before execution reservation; it cannot create a reservation or
+submit an order. This is account binding, not multi-account routing.
 
 The proposed target ordering is visualised in the
 [M1 hybrid decision flow](m1-hybrid-decision-flow.md). Its intended end state,

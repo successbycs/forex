@@ -1,0 +1,65 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "M30-WAVE-2-ACCOUNT-PROFILE",
+  "authorization": "Chris authorised hybrid Wave 2 execution. Scope is exactly one M1_EURUSD_DEMO local account profile and fail-closed binding checks before executable assessment and before execution reservation. Continuous Demo operation stays active on its current reviewed release unless a later explicitly authorised deployment requires a short maintenance hold. No forced order, new strategy, risk change, M15, multi-account routing, portfolio layer, Live access, push, commit, formal closeout, or external mutation is authorised by this work record.",
+  "markdown_plan": "docs/plans/m30-wave-2-account-profile.md",
+  "items": [
+    {
+      "id": "profile-contract",
+      "title": "Define the one fixed local M1_EURUSD_DEMO profile contract and its configuration hand-off",
+      "state": "DONE",
+      "requires": [],
+      "evidence": [
+        "The local-only file contract is m1_eurusd_demo_profile.local.json beside the ignored T480 mt5.local.json. Its exact fields are profile_id, server, currency, symbol, and account_scope_sha256.",
+        "The fixed configure operation rejects a missing or malformed local profile and injects it only as FOREX_M20_ACCOUNT_EXECUTION_PROFILE into the prepared listener environment."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "runtime-binding",
+      "title": "Enforce the profile before executable assessment and before execution reservation",
+      "state": "DONE",
+      "requires": ["profile-contract"],
+      "evidence": [
+        "t480/m20_demo_trading_session.py validates only M1_EURUSD_DEMO/GOMarketsMU-Demo/AUD/EURUSD plus a sha256 account scope.",
+        "capture() invokes the profile check before symbol/candle assessment and rechecks it before the execution reservation boundary. A failure records the existing UNKNOWN_ACCOUNT_STATE pause and raises before reservation or order submission."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "verification",
+      "title": "Prove matching and mismatching profile behaviour, including no reservation and no broker order on mismatch",
+      "state": "DONE",
+      "requires": ["runtime-binding"],
+      "evidence": [
+        "2026-09-17: python3 -m pytest -q tests/test_t480_adapter.py tests/milestones/test_m20_listener_service.py tests/milestones/test_m20_demo_trading.py passed (143 tests).",
+        "tests/test_t480_adapter.py::test_m20_capture_profile_mismatch_cannot_reserve_or_submit proves a mismatching profile calls only pause-unknown-account-state; reserve-execution and order_send are unreachable.",
+        "python3 scripts/check_execution_work_projection.py --work-plan docs/plans/m30-wave-2-account-profile-work.json reported CONSISTENT.",
+        "Repair verification: the focused suite passed again (146 tests). The final account-change test reaches reserve-execution but then only pause-unknown-account-state; it cannot call order_send. The pre-reservation mismatch test still reaches neither reservation nor order submission."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "independent-review",
+      "title": "Obtain an independent read-only review of the profile boundary and focused checks",
+      "state": "DONE",
+      "requires": ["verification"],
+      "evidence": [
+        "2026-09-17 Astra read-only re-review: APPROVED. It confirmed the final check is adjacent to order_send, the pre-reservation check remains, profile-ignore protection is present, and no multi-account, strategy, risk, M15, or Live scope expanded."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "release-readiness",
+      "title": "Record local release readiness and any external deployment prerequisite",
+      "state": "DONE",
+      "requires": ["independent-review"],
+      "evidence": [
+        "2026-09-17T01:59Z fixed read-only status: the existing Wave 1 listener is RUNNING with maintenance_hold=false and completed a fresh M1 NO_TRADE assessment; no trading interruption occurred.",
+        "2026-09-17T01:59Z fixed account identity: GOMarketsMU-Demo/AUD, expected current account scope sha256:4b12a2cebac68fadc4009c52f46e1cda20bd3c731ef94428ed2b47a2d29faabf, and zero open positions.",
+        "Local readiness is NO-GO for deployment: the Wave 2 revision is uncommitted, no T480-local m1_eurusd_demo_profile.local.json has been installed, and no explicit deployment/maintenance-hold authority has been granted. The current listener remains the verified Wave 1 release and must not be replaced until these prerequisites are deliberately satisfied."
+      ],
+      "blocker": null
+    }
+  ]
+}

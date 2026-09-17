@@ -17,6 +17,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import time
@@ -99,6 +100,9 @@ REFUSAL_DRILL_MAXIMUM_LOSS_AUD = 0.01
 
 
 RISK_POLICY_REQUIRED = {"policy_version", "reporting_currency", "maximum_risk_per_trade_percent", "maximum_risk_per_trade_aud", "daily_loss_limit_percent", "weekly_loss_limit_percent", "peak_equity_drawdown_limit_percent", "loss_budget_timezone", "daily_pause_reset", "manual_resume_reasons", "require_known_external_cashflow"}
+ACCOUNT_EXECUTION_PROFILE_ENV = "FOREX_M20_ACCOUNT_EXECUTION_PROFILE"
+ACCOUNT_EXECUTION_PROFILE_ID = "M1_EURUSD_DEMO"
+ACCOUNT_EXECUTION_PROFILE_FIELDS = {"profile_id", "server", "currency", "symbol", "account_scope_sha256"}
 
 M1_EVENT_RISK_POLICY_PATH = Path(__file__).resolve().parents[1] / "config" / "m1_event_risk_gate.json"
 _M1_EVENT_RISK_POLICY_FIELDS = {"schema_version", "enabled", "scope", "required_context_state", "blackout_before_seconds", "blackout_after_seconds", "execution_authority", "activation_requirement"}
@@ -217,6 +221,38 @@ def risk_account_snapshot(account: Any, captured_at: datetime) -> dict[str, Any]
     scope = hashlib.sha256(f"{SERVER}:{login}".encode()).hexdigest()
     local = captured_at.astimezone(ZoneInfo(policy["loss_budget_timezone"]))
     return {"balance": balance, "equity": equity, "account_scope_sha256": scope, "auckland_date": local.date().isoformat(), "auckland_week_start": (local.date() - timedelta(days=local.weekday())).isoformat()}
+
+
+def _account_execution_profile() -> dict[str, str]:
+    """Load the one local M1 execution profile; its account hash is never tracked."""
+    try:
+        profile = json.loads(os.environ[ACCOUNT_EXECUTION_PROFILE_ENV])
+    except (KeyError, json.JSONDecodeError) as error:
+        raise SystemExit("M20 M1_EURUSD_DEMO account execution profile is absent or unreadable") from error
+    if (not isinstance(profile, dict) or set(profile) != ACCOUNT_EXECUTION_PROFILE_FIELDS
+            or profile.get("profile_id") != ACCOUNT_EXECUTION_PROFILE_ID
+            or profile.get("server") != SERVER or profile.get("currency") != "AUD"
+            or profile.get("symbol") != SYMBOL):
+        raise SystemExit("M20 M1_EURUSD_DEMO account execution profile is invalid")
+    scope = profile.get("account_scope_sha256")
+    if not isinstance(scope, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", scope) is None:
+        raise SystemExit("M20 M1_EURUSD_DEMO account execution profile scope is invalid")
+    return {key: profile[key] for key in ACCOUNT_EXECUTION_PROFILE_FIELDS}
+
+
+def _require_account_execution_profile(account: Any) -> None:
+    """Fail closed unless the observed account is the local M1 execution profile."""
+    try:
+        login = getattr(account, "login", None)
+        if (getattr(account, "server", None) != SERVER or getattr(account, "currency", None) != "AUD"
+                or type(login) is not int or login <= 0):
+            raise ValueError("observed account identity is invalid")
+        actual = "sha256:" + hashlib.sha256(f"{SERVER}:{login}".encode()).hexdigest()
+        if _account_execution_profile()["account_scope_sha256"] != actual:
+            raise ValueError("observed account differs from M1_EURUSD_DEMO")
+    except (TypeError, ValueError, SystemExit) as error:
+        _bridge({}, "pause-unknown-account-state")
+        raise SystemExit(f"M20 account execution profile mismatch: {error}") from error
 
 
 def _entry_risk_snapshot(account: Any, captured_at: datetime) -> dict[str, Any]:
@@ -1915,6 +1951,9 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         if getattr(account, "currency", "") != "AUD":
             _bridge({}, "pause-unknown-account-state")
             raise SystemExit("M20 AUD loss-cap executor requires an AUD Demo account")
+        # This must precede all executable M1 assessment work. A mismatch has
+        # no proposal reservation or broker-order path.
+        _require_account_execution_profile(account)
         symbol = mt5.symbol_info(SYMBOL)
         if not symbol or symbol.name != SYMBOL or float(symbol.point) <= 0:
             raise SystemExit("required EURUSD symbol is unavailable")
@@ -2092,6 +2131,9 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
             reconciliation = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")["reconciliation"]
             return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "risk_policy": risk_gate, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments, "multi_timeframe_context": multi_timeframe_context, "execution": {"status": "ALREADY_PERSISTED_NO_RESUBMISSION", "proposal_id": proposal["proposal_id"]}, "reconciliation": reconciliation, "postgres_audit": persisted["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
         if proposal["action"] != "NO_TRADE":
+            # The reservation is the execution boundary. Re-checking here
+            # prevents an account mismatch from claiming a slot or order.
+            _require_account_execution_profile(mt5.account_info())
             fresh_account = _entry_risk_snapshot(mt5.account_info(), datetime.now(timezone.utc))
             _bridge({"policy": risk_policy, "account": fresh_account}, "enforce-risk-policy")
             financing = risk["financing_by_side"][proposal["action"]]
@@ -2138,6 +2180,9 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                 if reconciliation.get("status") != "NOT_SUBMITTED_RECONCILED":
                     raise SystemExit("M20 stale submission refusal was not reconciled")
                 return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "risk_policy": risk_gate, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments, "multi_timeframe_context": multi_timeframe_context, "execution": {"status": "NOT_SUBMITTED_AFTER_RESERVATION", "attempt_id": attempt_id, "session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "idempotency_key": reservation["idempotency_key"], "submitted_at_utc": submitted_at, "open_positions_before": 0, "cumulative_notional_before_usd": 0}, "reconciliation": reconciliation, "postgres_audit": reserved["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
+            # The earlier check protects the reservation boundary. This final
+            # check is deliberately adjacent to the only broker order call.
+            _require_account_execution_profile(mt5.account_info())
             order_type = mt5.ORDER_TYPE_BUY if proposal["action"] == "BUY" else mt5.ORDER_TYPE_SELL
             request = {"action": mt5.TRADE_ACTION_DEAL, "symbol": SYMBOL, "volume": risk["volume"], "type": order_type,
                        "price": proposal["proposed_entry"], "sl": proposal["stop_loss"], "tp": proposal["take_profit"],

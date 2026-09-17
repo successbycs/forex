@@ -82,6 +82,7 @@ orchestration machinery, not eliminating application Python.
 - [x] verification — Run focused duplicate, restart, refusal and safety regression checks (DONE)
 <!-- forex-work-projection:end -->
 
+
 - [x] (2026-09-16) Drafted architecture boundaries, waves, dependencies and acceptance criteria for review.
 - [x] (2026-09-16) Added the locally scoped `data-pipeline-orchestration` skill at Chris's request; this does not authorise wave execution.
 - [x] (2026-09-16) Completed the authorised retained-data envelope/report package.

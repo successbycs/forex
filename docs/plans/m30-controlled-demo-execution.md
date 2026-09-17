@@ -31,8 +31,8 @@ able to run an offline verifier over the retained M30 evidence bundle.
 - [x] independent-review — Obtain read-only review of the changed listener contract and focused verification evidence (DONE)
 <!-- forex-work-item id=release-readiness state=DONE -->
 - [x] release-readiness — Assess release readiness for the reviewed Wave 1 result without changing remote state (DONE)
-<!-- forex-work-item id=deployment state=BLOCKED -->
-- [ ] deployment — Deploy the reviewed release and remove maintenance hold only on explicit instruction (BLOCKED)
+<!-- forex-work-item id=deployment state=DONE -->
+- [x] deployment — Deploy the reviewed release and remove maintenance hold only on explicit instruction (DONE)
 <!-- forex-work-projection:end -->
 
 - [x] (2026-09-16 02:42Z) Started M30 after M29 became proven.
