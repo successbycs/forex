@@ -1,0 +1,53 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "M30-WAVE-3-EVIDENCE-VIEW",
+  "authorization": "Chris authorised execution of hybrid Wave 3. Scope is a terminal-only, read-only view of the latest retained M1 assessment and its exact PostgreSQL lifecycle join. No listener, strategy, risk, broker, configuration, database schema, scheduler, account, M15, Live, or deployment change is authorised.",
+  "markdown_plan": "docs/plans/m30-wave-3-evidence-view.md",
+  "items": [
+    {
+      "id": "bounded-view",
+      "title": "Render the latest retained M1 assessment with all five signals and terminal decision fields",
+      "state": "DONE",
+      "requires": [],
+      "evidence": [
+        "scripts/m20_listener_evidence_view.py reads only m20_listener_latest_assessment and forex-m20-lifecycle-summary, and has no listener or broker command path.",
+        "The terminal view renders closed-candle time, five signals, selected owner, refusal reason, proposal and attempt fields; absent facts are UNKNOWN."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "exact-lifecycle-join",
+      "title": "Display lifecycle, actual outcome, costs and unresolved join state only when proposal identity matches exactly",
+      "state": "DONE",
+      "requires": ["bounded-view"],
+      "evidence": [
+        "Lifecycle data are matched only when exactly one row has the same proposal_id; no match is UNRESOLVED, multiple matches UNKNOWN, and terminal NO_TRADE is explicitly not applicable.",
+        "A lifecycle row shows recorded close, reconciliation, and cost fields without derived values."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "verification",
+      "title": "Run focused tests and an actual read-only observation",
+      "state": "DONE",
+      "requires": ["exact-lifecycle-join"],
+      "evidence": [
+        "2026-09-17: python3 -m pytest -q tests/test_m20_listener_evidence_view.py tests/test_m20_listener_dashboard.py tests/test_m20_trade_ledger_dashboard.py — 19 passed.",
+        "2026-09-17: python3 scripts/check_execution_work_projection.py --work-plan docs/plans/m30-wave-3-evidence-view-work.json — CONSISTENT.",
+        "2026-09-17 read-only observation: release a9ff090f0a566849, sequence 53669, current closed M1 NO_TRADE. It displayed five signals, no execution lifecycle, N/A costs, and no unresolved join. No order was submitted by the view."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "independent-review",
+      "title": "Obtain independent read-only review of the view and evidence",
+      "state": "DONE",
+      "requires": ["verification"],
+      "evidence": [
+        "2026-09-17 Astra independent read-only review initially rejected one unsupported NO_TRADE reconciliation fallback. The required repair changed an absent reconciliation to UNKNOWN and added a targeted test.",
+        "2026-09-17 Astra re-review: APPROVED. It independently reran the 20 focused evidence/dashboard tests and observed a fresh current closed-M1 NO_TRADE with five signals, reconciliation UNKNOWN, no execution lifecycle, and N/A no-order costs. It confirmed exact-proposal joining and no mutation authority."
+      ],
+      "blocker": null
+    }
+  ]
+}

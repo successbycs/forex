@@ -23,7 +23,7 @@ New completed M1 candle available
   -> evaluate the five fixed M1 strategies on the same immutable snapshot
   -> select at most one executable M1 owner by deterministic regime precedence
   -> calculate broker-valid entry, stop, target, capped size, and cost coverage
-  -> apply the final risk, cost-coverage, and execution gates
+  -> apply the final risk, cost-coverage, terminal-capability, and execution gates
   -> persist exactly one BUY, SELL, or NO_TRADE proposal and its audit record
   -> submit only an actionable persisted proposal through the fixed Demo path
   -> monitor any accepted position through close and reconcile broker history
@@ -64,6 +64,11 @@ broker charges nor grants overnight or Live authority. Quote freshness, account
 state, broker identity, cost coverage, position limits, and risk limits remain
 active entry gates. If any required fact is stale, missing, invalid, or unsafe,
 the outcome is `NO_TRADE` or a fail-closed refusal.
+
+Immediately before the sole fixed order submission, the runner reads MT5's
+terminal/API and account trading-permission flags. A disabled or unavailable
+capability is journalled as `NOT_SUBMITTED`; it never toggles a terminal
+setting, retries a rejected proposal, or creates broker exposure.
 
 ## Timeframe expansion
 

@@ -50,13 +50,15 @@ def _capture_test_environment(monkeypatch, probe, *, initial, after_capture):
             return value if tz is None else value.astimezone(tz)
 
     monkeypatch.setattr(probe, "datetime", FrozenDatetime)
-    account = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=1)
+    account = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=1,
+                                    trade_allowed=True, trade_expert=True)
     symbol = types.SimpleNamespace(name="EURUSD", point=.00001, volume_min=.01, trade_tick_size=.00001,
                                    trade_tick_value_loss=1.4, volume_max=100, volume_step=.01)
     tick = types.SimpleNamespace(time=int(initial.timestamp()), bid=1.1, ask=1.10005)
     probe.mt5.initialize = lambda **_: True
     probe.mt5.shutdown = lambda: None
     probe.mt5.account_info = lambda: account
+    probe.mt5.terminal_info = lambda: types.SimpleNamespace(connected=True, trade_allowed=True, tradeapi_disabled=False)
     probe.mt5.symbol_info = lambda _: symbol
     probe.mt5.symbol_info_tick = lambda _: tick
     rates = []
@@ -1029,8 +1031,8 @@ def test_m20_capture_rechecks_profile_before_reservation(monkeypatch, tmp_path):
     probe = _m20_probe_module(monkeypatch)
     initial = datetime(2026, 9, 9, 6, 0, 30, tzinfo=timezone.utc)
     _capture_test_environment(monkeypatch, probe, initial=initial, after_capture=initial)
-    first = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=1)
-    changed = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=2)
+    first = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=1, trade_allowed=True, trade_expert=True)
+    changed = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=2, trade_allowed=True, trade_expert=True)
     accounts = iter((first, changed))
     probe.mt5.account_info = lambda: next(accounts)
     calls = []
@@ -1054,9 +1056,9 @@ def test_m20_capture_rechecks_profile_immediately_before_order(monkeypatch, tmp_
     probe = _m20_probe_module(monkeypatch)
     initial = datetime(2026, 9, 9, 6, 0, 30, tzinfo=timezone.utc)
     _capture_test_environment(monkeypatch, probe, initial=initial, after_capture=initial)
-    first = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=1)
-    changed = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=2)
-    accounts = iter((first, first, first, changed))
+    first = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=1, trade_allowed=True, trade_expert=True)
+    changed = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", balance=1000, equity=1000, login=2, trade_allowed=True, trade_expert=True)
+    accounts = iter((first, first, first, first, changed))
     probe.mt5.account_info = lambda: next(accounts)
     calls = []
     def bridge(payload, command):
@@ -1140,6 +1142,35 @@ def test_m20_capture_same_minute_real_recheck_reaches_order_send(monkeypatch, tm
     with pytest.raises(RuntimeError, match="order_send reached"):
         probe.capture("terminal", tmp_path / "lease.json")
     assert reached == [True]
+
+
+@pytest.mark.parametrize("terminal", [
+    None,
+    types.SimpleNamespace(connected=False, trade_allowed=True, tradeapi_disabled=False),
+    types.SimpleNamespace(connected=True, trade_allowed=False, tradeapi_disabled=False),
+    types.SimpleNamespace(connected=True, trade_allowed=True, tradeapi_disabled=None),
+])
+def test_m20_capture_disabled_terminal_records_not_submitted_and_never_calls_order_send(monkeypatch, tmp_path, terminal):
+    probe = _m20_probe_module(monkeypatch)
+    initial = datetime(2026, 9, 9, 6, 0, 30, tzinfo=timezone.utc)
+    _capture_test_environment(monkeypatch, probe, initial=initial, after_capture=initial)
+    probe.mt5.terminal_info = lambda: terminal
+    calls = []
+    def bridge(payload, command):
+        calls.append((command, payload))
+        if command == "enforce-risk-policy": return {"risk": {"entry_allowed": True, "maximum_loss_aud": 100}}
+        if command == "persist-proposal": return {"postgres_audit": {"session_id":"s", "proposal_id":"proposal", "snapshot_id":"snapshot", "execution_attempt_id":None, "record_sha256":"sha256:" + "e" * 64}}
+        if command == "reserve-execution": return {"reservation": {"slot_number": None}, "postgres_audit": {"session_id":"s", "proposal_id":"proposal", "snapshot_id":"snapshot", "execution_attempt_id":"attempt", "record_sha256":"sha256:" + "e" * 64}}
+        if command == "record-result": return {"ok": True}
+        if command == "reconcile": return {"reconciliation": {"status":"NOT_SUBMITTED_RECONCILED"}}
+        pytest.fail(command)
+    monkeypatch.setattr(probe, "_bridge", bridge)
+    monkeypatch.setattr(probe.mt5, "order_send", lambda *_: pytest.fail("disabled terminal must not order"), raising=False)
+    result = probe.capture("terminal", tmp_path / "lease.json")
+    assert result["execution"]["status"] == "NOT_SUBMITTED_AFTER_RESERVATION"
+    event = next(payload["result"] for command, payload in calls if command == "record-result")
+    assert event["event_type"] == "NOT_SUBMITTED"
+    assert event["payload"]["reason"].startswith("M1_TERMINAL_")
 
 
 def test_m20_capture_existing_candle_never_reserves_or_resubmits(monkeypatch, tmp_path):

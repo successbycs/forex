@@ -255,6 +255,21 @@ def _require_account_execution_profile(account: Any) -> None:
         raise SystemExit(f"M20 account execution profile mismatch: {error}") from error
 
 
+def _terminal_submission_refusal(account: Any) -> str | None:
+    """Return a safe entry refusal before the sole MT5 order call."""
+    try:
+        terminal = mt5.terminal_info()
+    except Exception:
+        return "M1_TERMINAL_CAPABILITY_UNAVAILABLE: MT5 terminal capability is unavailable at submission recheck."
+    if terminal is None or getattr(terminal, "connected", None) is not True:
+        return "M1_TERMINAL_CAPABILITY_UNAVAILABLE: MT5 terminal capability is unavailable at submission recheck."
+    if getattr(terminal, "trade_allowed", None) is not True or getattr(terminal, "tradeapi_disabled", None) is not False:
+        return "M1_TERMINAL_TRADING_DISABLED: MT5 terminal AutoTrading or API trading is disabled."
+    if getattr(account, "trade_allowed", None) is not True or getattr(account, "trade_expert", None) is not True:
+        return "M1_ACCOUNT_TRADING_DISABLED: MT5 account trading permission is disabled."
+    return None
+
+
 def _entry_risk_snapshot(account: Any, captured_at: datetime) -> dict[str, Any]:
     try:
         return risk_account_snapshot(account, captured_at)
@@ -2163,6 +2178,8 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                                                                for row in raw_bars["M1"]], sort_keys=True,
                                                               separators=(",", ":")).encode()).hexdigest(),
             )
+            if submission_refusal is None:
+                submission_refusal = _terminal_submission_refusal(mt5.account_info())
             if submission_refusal:
                 validation_at = utc(datetime.now(timezone.utc))
                 non_submission_context = {

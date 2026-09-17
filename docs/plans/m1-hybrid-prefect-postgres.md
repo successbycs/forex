@@ -92,9 +92,9 @@ orchestration machinery, not eliminating application Python.
 - [x] Package B: capture and qualify the available fixed read-only PostgreSQL summaries. They end on 2026-09-11 and do not cover the 2026-09-15 retained M1 interval; all projection facts for that interval remain `UNKNOWN`.
 - [x] Package C: add a fixed, parameter-bound read-only PostgreSQL completeness summary. The retained interval contains 16 persisted `NO_TRADE` proposals and no attempts; all raw-to-projection identities join exactly.
 - [x] Package D: implement and locally verify candle identity, durable refusal handling and no-resubmission on an already-persisted candle. On 2026-09-17, Chris's explicit active-goal instruction authorised the fixed hash-bound Demo PostgreSQL migration application; it was staged, applied, and read-only verified. The clean committed listener release was deployed and binding-verified.
-- [ ] Wave 1: implement and locally verify continuous protected Demo operation.
-- [ ] Wave 2: add one fixed account execution profile and binding refusal.
-- [ ] Wave 3: add a bounded read-only evidence view.
+- [x] Wave 1: continuous protected Demo operation is deployed and verified; see `docs/plans/m30-wave-1-continuous-demo-work.json`.
+- [x] Wave 2: one fixed `M1_EURUSD_DEMO` profile and binding refusal are deployed and verified; see `docs/plans/m30-wave-2-account-profile-work.json`.
+- [x] Wave 3: bounded read-only evidence view is verified; see `docs/plans/m30-wave-3-evidence-view-work.json`.
 - [ ] Wave 4: capture M30's first natural final-version Demo lifecycle proof.
 - [ ] Package E: deferred after the MVP requirements reset; qualified context, broader reporting beyond Wave 3, and M5/H1 provenance are not M30 implementation requirements.
 
