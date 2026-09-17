@@ -566,6 +566,20 @@ def _terminal_runtime_binding(values: dict[str, str]) -> dict[str, Any]:
     except json.JSONDecodeError:
         return {"state": "UNAVAILABLE", "reason": "RUNTIME_BINDING_INVALID_OUTPUT",
                 "listener_process_id": os.getpid()}
+    # The child owns the MT5 connection.  Retain only its small, enumerated
+    # failure reason so an operator can distinguish a connection, account, or
+    # profile mismatch without exposing MT5 errors, paths, or child output.
+    child_failure_reasons = {
+        "MT5_INITIALIZE_FAILED",
+        "DEMO_ACCOUNT_OR_TERMINAL_UNAVAILABLE",
+        "TERMINAL_PATH_OR_PROFILE_UNAVAILABLE",
+    }
+    if (completed.returncode == 0 and isinstance(value, dict)
+            and value.get("marker") == "FOREX_M20_TERMINAL_RUNTIME_BINDING"
+            and value.get("state") == "UNAVAILABLE"
+            and value.get("reason") in child_failure_reasons):
+        return {"state": "UNAVAILABLE", "reason": value["reason"],
+                "listener_process_id": os.getpid()}
     required = {
         "marker", "state", "server", "currency", "configured_terminal_path_sha256",
         "connected_terminal_path_sha256", "connected_terminal_data_path_sha256", "terminal_connected",
