@@ -159,11 +159,11 @@
         "rollovers"
       ],
       "properties": {
-        "qualification_basis": {"enum": ["BROKER_CALENDAR", "DEMO_CONSERVATIVE_INTRADAY"]},
+        "qualification_basis": {"enum": ["BROKER_CALENDAR", "DEMO_CONSERVATIVE_INTRADAY", "DEFERRED_FOR_DEMO"]},
         "entry_start_hour_utc": {"type": "integer", "minimum": 6, "maximum": 17},
         "exit_by_hour_utc": {"type": "integer", "minimum": 7, "maximum": 18},
         "policy_version": {
-          "const": "forex.m20.financing.v1"
+          "enum": ["forex.m20.financing.v1", "forex.m20.financing.v2"]
         },
         "exit_mode": {
           "const": "EXISTING_OWNER_EXITS"

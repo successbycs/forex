@@ -123,3 +123,30 @@ def test_demo_estimate_never_waives_missing_inputs(runner, inputs, change):
     if change == 'long_hold': inputs['horizon'] += timedelta(seconds=1)
     if change == 'unknown_basis': inputs['policy']['qualification_basis'] = 'GUESS'
     assert runner.project_financing(**inputs)['status'] == 'UNKNOWN'
+
+
+def test_demo_financing_deferral_removes_calendar_and_hour_veto_without_assuming_costs(runner, inputs):
+    """The later Live policy cannot silently become a Demo calendar veto."""
+    now = datetime(2026, 9, 13, 23, 55, tzinfo=timezone.utc)  # Sunday, outside the old window.
+    inputs.update(now=now, horizon=now + timedelta(minutes=10), terms={})
+    inputs['policy'] = {
+        'policy_version': 'forex.m20.financing.v2',
+        'qualification_basis': 'DEFERRED_FOR_DEMO',
+        'exit_mode': 'EXISTING_OWNER_EXITS',
+        'maximum_quote_age_seconds': 10,
+        'calendar_valid_from_utc': None,
+        'calendar_valid_until_utc': None,
+        'calendar_source': None,
+        'rollovers': [],
+        'round_trip_charge_aud_per_lot': None,
+        'charge_source': None,
+    }
+    result = runner.project_financing(**inputs)
+    assert result['status'] == 'DEFERRED_FOR_DEMO'
+    assert result['reason'] == 'FINANCING_POLICY_DEFERRED_FOR_DEMO'
+    assert result['expected_swap_aud'] == result['commission_allowance_aud'] == result['adverse_financing_aud'] == 0.0
+    coverage = runner._project_cost_coverage(
+        action='BUY', entry=1.1, take_profit=1.101,
+        risk={'volume': .01, 'tick_size': .00001, 'tick_value_loss': 1.4, 'observed_spread': .00002, 'financing': result},
+    )
+    assert coverage['cost_coverage_status'] == 'FEASIBLE'

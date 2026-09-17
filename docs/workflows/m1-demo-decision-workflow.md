@@ -23,7 +23,7 @@ New completed M1 candle available
   -> evaluate the five fixed M1 strategies on the same immutable snapshot
   -> select at most one executable M1 owner by deterministic regime precedence
   -> calculate broker-valid entry, stop, target, capped size, and cost coverage
-  -> apply the final risk, financing, and execution gates
+  -> apply the final risk, cost-coverage, and execution gates
   -> persist exactly one BUY, SELL, or NO_TRADE proposal and its audit record
   -> submit only an actionable persisted proposal through the fixed Demo path
   -> monitor any accepted position through close and reconcile broker history
@@ -52,10 +52,12 @@ It is informative and cannot create, reject, or take ownership of an M1
 trade. It must not be described as an active higher-timeframe entry gate until
 the runtime contract, tests, and configuration explicitly make it one.
 
-The listener's configured financing window, quote freshness, account state,
-broker identity, cost coverage, position limits, and risk limits are active
-entry gates. If any required fact is stale, missing, invalid, or unsafe, the
-outcome is `NO_TRADE` or a fail-closed refusal.
+Financing and rollover qualification are explicitly deferred from the current
+Demo M1 gate and recorded as `DEFERRED_FOR_DEMO`; this neither assumes zero
+broker charges nor grants overnight or Live authority. Quote freshness, account
+state, broker identity, cost coverage, position limits, and risk limits remain
+active entry gates. If any required fact is stale, missing, invalid, or unsafe,
+the outcome is `NO_TRADE` or a fail-closed refusal.
 
 ## Timeframe expansion
 
@@ -83,8 +85,8 @@ current enforcement are:
 - `t480/m20_demo_trading_session.py` for M1 assessment, risk, execution,
   monitoring, and reconciliation;
 - `t480/m20_demo_listener_service.py` for the scheduled listener and status;
-- `config/risk.yaml`, `config/execution.yaml`, and `config/agent.yaml` for
-  governed configuration; and
+- `config/risk.yaml`, `config/execution.yaml`, `config/agent.yaml`, and
+  `config/runtime.yaml` for governed configuration; and
 - `milestone_registry.json` for the active milestone's proof requirements.
 
 If the document and executable runtime disagree, treat the runtime and its

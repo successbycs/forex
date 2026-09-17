@@ -89,6 +89,15 @@ over a retained M30 evidence bundle.
 
 ## Decision Log
 
+- Decision: defer financing, rollover-calendar, and UTC entry-hour policy from
+  the Demo M1 path to a later Live-readiness policy. Demo decisions retain an
+  explicit `DEFERRED_FOR_DEMO` status and no assumed swap or commission.
+  Rationale: Chris directed removal of the expired temporary Demo restriction;
+  the final M30 proof must exercise the current Demo MVP rather than wait for a
+  later Live-policy input. Existing Demo-only, risk, cost-coverage, position,
+  protection, monitoring, and reconciliation gates remain unchanged.
+  Date/Author: 2026-09-17 / Chris.
+
 - Decision: retain the fixed autonomous entry gates and bind their persisted
   proposal to the M30 evidence bundle.
   Rationale: the repository is an autonomous Demo-trading platform; existing

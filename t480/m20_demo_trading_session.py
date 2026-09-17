@@ -733,10 +733,10 @@ def _market_selection(*, tick: dict[str, Any], m1: list[dict[str, Any]], assessm
 
 
 def financing_policy() -> dict[str, Any]:
-    """Missing mandate refuses entries; it never changes existing exits."""
+    """Load the explicit Demo or later-Live financing policy; never alter exits."""
     try:
         policy = json.loads(os.environ['FOREX_M20_FINANCING_POLICY'])
-        if policy['policy_version'] != 'forex.m20.financing.v1' or policy['exit_mode'] != 'EXISTING_OWNER_EXITS':
+        if policy['policy_version'] not in {'forex.m20.financing.v1', 'forex.m20.financing.v2'} or policy['exit_mode'] != 'EXISTING_OWNER_EXITS':
             raise ValueError('unsupported mandate')
         return policy
     except (KeyError, ValueError, TypeError) as error:
@@ -762,6 +762,18 @@ def project_financing(*, terms: dict[str, Any], action: str, volume: float,
             return value
         if action not in {'BUY', 'SELL'} or horizon < now: raise ValueError('invalid action/horizon')
         volume = finite(volume, True)
+        basis = policy.get('qualification_basis', 'BROKER_CALENDAR')
+        if basis == 'DEFERRED_FOR_DEMO':
+            if policy.get('policy_version') != 'forex.m20.financing.v2':
+                raise ValueError('unsupported deferred Demo financing policy')
+            # Chris explicitly deferred financing and rollover qualification to
+            # Live readiness. This fixed Demo-only runner records that fact and
+            # never invents a fee, swap, calendar, or overnight authority.
+            result.update(status='DEFERRED_FOR_DEMO', expected_swap_aud=0.0,
+                          commission_allowance_aud=0.0, adverse_financing_aud=0.0,
+                          multiplier=0, reason='FINANCING_POLICY_DEFERRED_FOR_DEMO',
+                          calendar_source=None, charge_source=None)
+            return result
         age = (now - parse_utc(terms['captured_at_utc'], 'financing capture')).total_seconds()
         quote_age = (now - parse_utc(terms['conversion_at_utc'], 'conversion quote')).total_seconds()
         maximum_age = finite(policy['maximum_quote_age_seconds'], True)
@@ -779,7 +791,6 @@ def project_financing(*, terms: dict[str, Any], action: str, volume: float,
             raise ValueError('unqualified rollover calendar coverage')
         fee_per_lot = finite(policy['round_trip_charge_aud_per_lot'])
         if fee_per_lot < 0 or not policy['charge_source']: raise ValueError('unqualified commission/fee terms')
-        basis = policy.get('qualification_basis', 'BROKER_CALENDAR')
         if basis not in {'BROKER_CALENDAR', 'DEMO_CONSERVATIVE_INTRADAY'}:
             raise ValueError('unsupported qualification basis')
         if basis == 'DEMO_CONSERVATIVE_INTRADAY':
@@ -893,7 +904,7 @@ def _project_cost_coverage(*, action: str, entry: float, take_profit: float, ris
     exit_spread = spread * EXPECTED_EXIT_SPREAD_MULTIPLIER * value_per_price
     slippage = spread * EXPECTED_SLIPPAGE_SPREAD_MULTIPLIER * value_per_price
     financing = risk.get("financing", {})
-    if financing.get("status") not in {"QUALIFIED_INPUTS", "DEMO_ESTIMATE"}:
+    if financing.get("status") not in {"QUALIFIED_INPUTS", "DEMO_ESTIMATE", "DEFERRED_FOR_DEMO"}:
         return {**_project_cost_coverage(action="NO_TRADE", entry=entry, take_profit=take_profit, risk=risk), "cost_coverage_status": "NOT_FEASIBLE"}
     commission = float(financing["commission_allowance_aud"])
     signed_swap = float(financing["expected_swap_aud"])
@@ -1005,7 +1016,7 @@ def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, l
     candidate_side = signals.get(executable_strategy_id, "NO_TRADE")
     financing = risk.get("financing_by_side", {}).get(candidate_side, {"status": "UNKNOWN"})
     risk = {**risk, "financing": financing}
-    financing_allowed = financing.get("status") in {"QUALIFIED_INPUTS", "DEMO_ESTIMATE"}
+    financing_allowed = financing.get("status") in {"QUALIFIED_INPUTS", "DEMO_ESTIMATE", "DEFERRED_FOR_DEMO"}
     if not financing_allowed:
         executable_strategy_id = None
     action, entry, stop, take, notional, reason = _strategy_trade_plan(
@@ -2088,7 +2099,7 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
             fresh_terms = _financing_terms(mt5.symbol_info(SYMBOL), datetime.now(timezone.utc))
             fresh_now = datetime.now(timezone.utc)
             fresh_financing = project_financing(terms=fresh_terms, action=proposal["action"], volume=risk["volume"], now=fresh_now, horizon=fresh_now + timedelta(seconds=max(OWNER_MAX_HOLD_SECONDS.values())), policy=mandate)
-            if fresh_financing.get("status") not in {"QUALIFIED_INPUTS", "DEMO_ESTIMATE"} or any(fresh_financing[k] != financing[k] for k in ("status", "expected_swap_aud", "commission_allowance_aud", "adverse_financing_aud")):
+            if fresh_financing.get("status") not in {"QUALIFIED_INPUTS", "DEMO_ESTIMATE", "DEFERRED_FOR_DEMO"} or any(fresh_financing[k] != financing[k] for k in ("status", "expected_swap_aud", "commission_allowance_aud", "adverse_financing_aud")):
                 raise SystemExit("M20 financing changed before reservation; fresh assessment required")
             planned_loss = _planned_stop_loss(float(proposal["proposed_entry"]), float(proposal["stop_loss"]), {**risk, "observed_spread": float(tick_record["ask"]) - float(tick_record["bid"])})
             submitted_at = utc(datetime.now(timezone.utc))

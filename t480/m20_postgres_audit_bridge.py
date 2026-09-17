@@ -106,7 +106,7 @@ def _snapshot(payload: dict[str, Any], proposal: dict[str, Any]) -> dict[str, An
         required |= financing_fields
         if not all(isinstance(value.get(key), dict) for key in financing_fields):
             raise SystemExit("M20 financing snapshot fields are invalid")
-        if proposal.get("action") in {"BUY", "SELL"} and value["financing"].get("status") not in {"QUALIFIED_INPUTS", "DEMO_ESTIMATE"}:
+        if proposal.get("action") in {"BUY", "SELL"} and value["financing"].get("status") not in {"QUALIFIED_INPUTS", "DEMO_ESTIMATE", "DEFERRED_FOR_DEMO"}:
             raise SystemExit("M20 actionable proposal has unqualified financing")
     if calendar_fields & set(value):
         required |= calendar_fields

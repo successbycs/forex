@@ -2476,7 +2476,7 @@
       "to_state": "Continuous cap-constrained automated GOMarketsMU-Demo trading MVP proven",
       "scope": [
         "Use an adaptive fixed Demo-only EUR/USD M1 live-price listener that retains no tick stream and captures only the decision tick plus closed M1 candles through a fixed adapter.",
-        "Operator amendment 2026-09-10: permit an explicitly labelled DEMO_ESTIMATE using the published AUD 6 round-turn per-lot commission allowance, valid only for weekday UTC 06:00 entries whose existing maximum ten-minute owner horizon ends strictly before 18:00, and only within the dated canonical source-validity window. This replaces the proposed 15-minute cutoff with a wider rollover exclusion under both published UTC+2/+3 offsets. Account tariff and holiday settlement remain unqualified; no overnight authority or actual-cost proof is inferred. Existing Option B, owner exits, protection, unresolved-execution and reconciliation gates remain mandatory.",
+        "Operator amendment 2026-09-17: financing, rollover-calendar and UTC-hour qualification are deferred from the fixed GOMarketsMU-Demo M1 path to a later Live-readiness policy. Demo decisions record DEFERRED_FOR_DEMO with no assumed commission or swap; this is not an account-tariff, rollover, holiday, overnight, profitability, or Live-authority claim. Existing Option B, owner exits, protection, cost coverage, unresolved-execution and reconciliation gates remain mandatory.",
         "Operate the fixed listener as a permanent T480 Scheduled Task with a redacted heartbeat and a read-only T16 dashboard showing its latest five-second assessment.",
         "Provide a separate read-only T16 terminal dashboard that shows the latest Demo BUY/SELL lifecycle, monitoring or sold state, and broker-reconciled realised P&L without an order-control surface.",
         "Publish compact, human-readable candle and spread metrics with each read-only assessment status so a NO_TRADE conclusion is inspectable.",
@@ -3458,7 +3458,8 @@
       "operator_config_affected": [
         "config/risk.yaml",
         "config/execution.yaml",
-        "config/agent.yaml"
+        "config/agent.yaml",
+        "config/runtime.yaml"
       ],
       "expected_artifacts": [
         "docs/milestones/M27-proof.md",
@@ -3885,7 +3886,7 @@
       ],
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
-      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof. MVP amendment 2026-09-16: the bounded capture preflight retains the M30-specific test output and governance validation receipt; unrelated historical repository tests do not gate this proof attempt. Supporting-tooling amendment 2026-09-16: Chris authorised a local, read-only retained-assessment envelope and completeness report. Requirements reset 2026-09-17: the MVP is a protected, explainable EURUSD Demo M1 loop with one terminal decision per closed candle and the existing order/close/reconciliation proof. Package D is the remaining MVP build; qualified context, broader reporting, Prefect/n8n and time-frame expansion are deferred. Package D authorisation permits exactly one additive schema migration and matching fixed runtime decision key for Demo account, EURUSD, M1 and closed-candle identity; local implementation and verification are authorised, but staging, applying the migration, deployment, schedules, Live, generic interfaces, strategy/risk changes and broker retries remain excluded."
+      "notes": "Three-phase historical-first roadmap. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof. MVP amendment 2026-09-16: the bounded capture preflight retains the M30-specific test output and governance validation receipt; unrelated historical repository tests do not gate this proof attempt. Supporting-tooling amendment 2026-09-16: Chris authorised a local, read-only retained-assessment envelope and completeness report. Requirements reset 2026-09-17: the MVP is a protected, explainable EURUSD Demo M1 loop with one terminal decision per closed candle and the existing order/close/reconciliation proof. Package D is the remaining MVP build; qualified context, broader reporting, Prefect/n8n and time-frame expansion are deferred. Package D authorisation permits exactly one additive schema migration and matching fixed runtime decision key for Demo account, EURUSD, M1 and closed-candle identity; local implementation and verification are authorised, but staging, applying the migration, deployment, schedules, Live, generic interfaces, strategy/risk changes and broker retries remain excluded. Chris's 2026-09-17 amendment defers financing, rollover-calendar, and UTC entry-hour policy from Demo to later Live readiness. The final M30 proof must bind this explicit DEFERRED_FOR_DEMO configuration; no Live or overnight authority is granted."
     },
     {
       "milestone_id": "M31",

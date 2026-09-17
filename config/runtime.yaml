@@ -31,18 +31,17 @@ demo_session_limits:
   require_persisted_proposal: true
   require_idempotency_key: true
 
-# Existing 6–10 minute owner exits remain authoritative. Unknown broker terms
-# block entries; this mandate does not enable overnight holding or new exits.
+# Financing/rollover qualification is deferred until a separately governed
+# Live-readiness policy. It is not a Demo entry veto and it never grants Live
+# or overnight authority; existing owner exits remain authoritative.
 financing_policy:
-  policy_version: forex.m20.financing.v1
-  qualification_basis: DEMO_CONSERVATIVE_INTRADAY
-  entry_start_hour_utc: 6
-  exit_by_hour_utc: 18
+  policy_version: forex.m20.financing.v2
+  qualification_basis: DEFERRED_FOR_DEMO
   exit_mode: EXISTING_OWNER_EXITS
   maximum_quote_age_seconds: 10
-  calendar_valid_from_utc: '2026-09-10T00:00:00Z'
-  calendar_valid_until_utc: '2026-09-17T00:00:00Z'
-  calendar_source: 'Research/2026-09-10-w1-broker-blocker-resolution.md#sources-and-conclusions'
+  calendar_valid_from_utc: null
+  calendar_valid_until_utc: null
+  calendar_source: null
   rollovers: []
-  round_trip_charge_aud_per_lot: 6.0
-  charge_source: 'Research/2026-09-10-w1-broker-blocker-resolution.md#implemented-resolution'
+  round_trip_charge_aud_per_lot: null
+  charge_source: null
