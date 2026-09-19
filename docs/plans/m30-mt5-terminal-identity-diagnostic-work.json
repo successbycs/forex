@@ -36,12 +36,14 @@
       "requires": ["behavioural-tests"],
       "evidence": [
         "The prior 2026-09-17 observation is invalid for listener attribution because it was made by an SSH-launched MT5 process.",
-        "2026-09-17T10:05Z: the running, unheld prior release 98d33531346f1c6a correctly returned UNAVAILABLE because it has no runtime_binding field. The fixed capability read remained Demo/AUD connected with terminal_trade_allowed=false and submission_permitted=false. No broker or listener mutation occurred."
+        "2026-09-17T10:05Z: the running, unheld prior release 98d33531346f1c6a correctly returned UNAVAILABLE because it has no runtime_binding field. The fixed capability read remained Demo/AUD connected with terminal_trade_allowed=false and submission_permitted=false. No broker or listener mutation occurred.",
+        "2026-09-19: releases 09aae5b2e103cdac and 85f68e164746e52e were prepared from hash-verified payloads and installed without a maintenance hold. Diagnostics bound the final release to application revision d1f564d4073202b7f33f56fa26d2da619c2a359c and configuration fingerprint sha256:920d4616303d9cd4225bedfc96f2516c9491eb53f369e22cf03220582c9e64e8.",
+        "2026-09-19T02:00Z: the listener-owned child in final release 85f68e164746e52e returned TERMINAL_EXECUTABLE_PATH_MISMATCH. The Scheduled Task was Running and the listener PID was 10788. No broker mutation occurred. Canonical Windows path comparison eliminates case and slash spelling as the cause."
       ],
       "blocker": {
-        "source": "Chris's explicit no-maintenance-hold instruction and M30 release-readiness requirement",
-        "reason": "The current deployment procedure stops and replaces the listener. A no-hold release procedure has not been authorised or verified, so deploying this runtime payload would conflict with the standing instruction.",
-        "unblock_action": "Use release-readiness to establish an approved no-hold deployment method, then deploy and run m20_listener_terminal_identity."
+        "source": "Listener-owned runtime binding on T480 final release 85f68e164746e52e",
+        "reason": "The Scheduled Task child attaches to an MT5 executable different from the configured executable. There are two terminal processes; selecting or rewriting a terminal profile without identifying the intended M1_EURUSD_DEMO terminal would be an unsupported configuration change. The separate SSH capability result is not listener attribution.",
+        "unblock_action": "Identify the intended GOMarketsMU-Demo/AUD M1 terminal executable and profile on T480, update the owner-managed mt5.local.json terminal_path through an explicitly approved fixed configuration route, then deploy/reconfigure and require MAPPED with fresh timestamps before evaluating terminal_trade_allowed."
       }
     }
   ]

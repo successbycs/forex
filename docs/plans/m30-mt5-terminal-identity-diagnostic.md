@@ -64,13 +64,12 @@ not a claimed profile mapping.
    T480 encoded-command limit. The runner uses 96 fragments; this is transport
    packaging only and does not alter its trading logic.
 5. Before any release, use release-readiness and retain a material-change
-   impact decision. Deployment is not performed by this package because the
-   existing listener must not be put on a maintenance hold merely for this
-   diagnostic.
-6. After a separately authorised no-hold release method is available, observe
-   the released listener binding. If `MAPPED`, inspect the reported permission
-   state. The separate `EXTERNAL_CASH_FLOW` risk pause remains an independent
-   M30 blocker and is not altered here.
+   impact decision. A separately authorised release may restart the task, but
+   must not create a maintenance hold merely for this diagnostic.
+6. Observe the released listener binding. If `MAPPED`, inspect the reported
+   permission state. Any executable/profile mismatch is a configuration
+   selection blocker; the separate `EXTERNAL_CASH_FLOW` risk pause remains an
+   independent M30 blocker and is not altered here.
 
 ## Validation and acceptance
 
@@ -108,6 +107,12 @@ instruction to change a GUI setting.
 - Release readiness initially found the runner's former 80 fragments and the
   installer exceeded T480's encoded command boundary. The release-critical
   commands now fit; paused H1 commands remain outside this M30 release path.
+- 2026-09-19: final release `85f68e164746e52e` proved that the listener's
+  configured executable and its child MT5 connection differ even after
+  canonical Windows-path comparison. The listener remains running and no
+  maintenance hold or broker action was introduced. This is a configuration
+  selection blocker, not evidence that the visible terminal's Algo Trading
+  control governs the listener.
 
 ## Decision log
 
@@ -118,11 +123,15 @@ instruction to change a GUI setting.
   release/PID correlation, and bounded refresh before `MAPPED` is allowed.
 - 2026-09-17, Astra: use 96 hash-verified runner fragments and compact the
   fixed installer rather than retrying an overlong command or widening SSH.
+- 2026-09-19, Terra: retain `TERMINAL_EXECUTABLE_PATH_MISMATCH` as a
+  listener-owned blocker. Do not select between the two terminal processes or
+  rewrite the owner-managed MT5 configuration by inference.
 
 ## Outcomes & retrospective
 
 The previous statement that Session 0 was the listener terminal and required
 an Algo Trading setting change is withdrawn. Local implementation and tests
-are complete. No claim about the deployed listener, terminal profile, Auto
-Trading state, M30 proof, or risk-pause resolution is made until the new
-release is observed on T480.
+are complete. The final deployed observation proves a terminal executable
+mismatch, not a terminal profile or Auto Trading state. No claim about M30
+proof or risk-pause resolution is made until the owner identifies the intended
+M1 Demo terminal and a future binding returns `MAPPED`.
