@@ -12,6 +12,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 import hashlib
+import ntpath
 import importlib.machinery
 import importlib.util
 import json
@@ -1186,7 +1187,13 @@ def terminal_runtime_binding(terminal_path: str) -> dict[str, Any]:
     of the Scheduled Task's MT5 context, so it must not be used for this
     observation.  Paths are hashed before leaving this worker.
     """
-    digest = lambda value: "sha256:" + hashlib.sha256(str(value).encode()).hexdigest() if value else None
+    # MT5 may return the same Windows executable with a different case or
+    # slash spelling.  Bind the canonical Windows path, not its presentation.
+    def digest(value: Any) -> str | None:
+        if not value:
+            return None
+        canonical = ntpath.normcase(ntpath.normpath(str(value)))
+        return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
     if not mt5.initialize(path=terminal_path):
         return {"marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "UNAVAILABLE",
                 "reason": "MT5_INITIALIZE_FAILED", "mt5_error": str(mt5.last_error())}
@@ -1203,9 +1210,12 @@ def terminal_runtime_binding(terminal_path: str) -> dict[str, Any]:
         configured_path = digest(terminal_path)
         connected_path = digest(getattr(terminal, "path", None))
         data_path = digest(getattr(terminal, "data_path", None))
-        if not configured_path or configured_path != connected_path or not data_path:
+        if not data_path:
             return {"marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "UNAVAILABLE",
-                    "reason": "TERMINAL_PATH_OR_PROFILE_UNAVAILABLE"}
+                    "reason": "TERMINAL_DATA_PROFILE_UNAVAILABLE"}
+        if not configured_path or configured_path != connected_path:
+            return {"marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "UNAVAILABLE",
+                    "reason": "TERMINAL_EXECUTABLE_PATH_MISMATCH"}
         return {
             "marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "MAPPED",
             "server": account.server, "currency": account.currency,

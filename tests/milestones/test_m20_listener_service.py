@@ -127,11 +127,11 @@ def test_listener_runtime_binding_is_child_owned_and_rejects_ambiguous_output(mo
     }
     unavailable = {
         "marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "UNAVAILABLE",
-        "reason": "MT5_INITIALIZE_FAILED",
+        "reason": "TERMINAL_EXECUTABLE_PATH_MISMATCH",
     }
     monkeypatch.setattr(service.subprocess, "run", lambda *_, **__: type("R", (), {"returncode": 0, "stdout": json.dumps(unavailable)})())
     assert service._terminal_runtime_binding({"python_path": "python", "terminal_path": "terminal"}) == {
-        "state": "UNAVAILABLE", "reason": "MT5_INITIALIZE_FAILED", "listener_process_id": 42,
+        "state": "UNAVAILABLE", "reason": "TERMINAL_EXECUTABLE_PATH_MISMATCH", "listener_process_id": 42,
     }
 
 

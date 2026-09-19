@@ -2042,15 +2042,17 @@ def test_m20_terminal_runtime_binding_fails_closed_when_mt5_is_unavailable(monke
                       "reason": "MT5_INITIALIZE_FAILED", "mt5_error": "(1, 'not available')"}
 
 
-def test_m20_terminal_runtime_binding_refuses_a_configured_path_mismatch(monkeypatch):
+def test_m20_terminal_runtime_binding_canonicalises_windows_paths_and_refuses_a_real_mismatch(monkeypatch):
     probe = _m20_probe_module(monkeypatch)
     probe.mt5.initialize = lambda **_: True
     probe.mt5.shutdown = lambda: None
     probe.mt5.account_info = lambda: types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD")
+    probe.mt5.terminal_info = lambda: types.SimpleNamespace(path="C:/MT5/terminal64.exe", data_path="profile")
+    assert probe.terminal_runtime_binding("c:\\mt5\\TERMINAL64.EXE")["state"] == "MAPPED"
     probe.mt5.terminal_info = lambda: types.SimpleNamespace(path="different", data_path="profile")
     result = probe.terminal_runtime_binding("terminal")
     assert result == {"marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "UNAVAILABLE",
-                      "reason": "TERMINAL_PATH_OR_PROFILE_UNAVAILABLE"}
+                      "reason": "TERMINAL_EXECUTABLE_PATH_MISMATCH"}
 
 
 def test_m30_execution_drill_operation_is_fixed_and_serialises_listener_entries():

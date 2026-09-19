@@ -572,7 +572,8 @@ def _terminal_runtime_binding(values: dict[str, str]) -> dict[str, Any]:
     child_failure_reasons = {
         "MT5_INITIALIZE_FAILED",
         "DEMO_ACCOUNT_OR_TERMINAL_UNAVAILABLE",
-        "TERMINAL_PATH_OR_PROFILE_UNAVAILABLE",
+        "TERMINAL_DATA_PROFILE_UNAVAILABLE",
+        "TERMINAL_EXECUTABLE_PATH_MISMATCH",
     }
     if (completed.returncode == 0 and isinstance(value, dict)
             and value.get("marker") == "FOREX_M20_TERMINAL_RUNTIME_BINDING"
