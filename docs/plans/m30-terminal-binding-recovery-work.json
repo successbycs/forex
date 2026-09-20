@@ -1,0 +1,52 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "M30-TERMINAL-BINDING-RECOVERY",
+  "authorization": "Chris repeatedly authorised review and execution of M30 terminal-binding recovery. Repair, independent review, fixed discovery and diagnostic deployment are in scope. PLANS.md requires explicit instruction to commit. No risk resume, account switch, forced order or Live activity is authorised.",
+  "markdown_plan": "docs/plans/m30-terminal-binding-recovery.md",
+  "items": [
+    {
+      "id": "repair-review",
+      "title": "Correct the API comparison and independently review the diagnostic and tests",
+      "state": "DONE",
+      "requires": [],
+      "evidence": [
+        "2026-09-20 root repaired directory/executable semantics. Independent /root/binding_review approved code and test isolation; 34 listener tests passed independently.",
+        "188 adapter/listener/M30 tests passed in 53.42s; governance and git diff --check passed. 207 selected release/discovery commands measured; maximum encoded length 7438 below 7500.",
+        "Reviewed SHA256: scripts/t480_adapter.py ba5249bf7b6fe7abb7159c1fa568e67d21f04fa48305e419e839175c771aa73a; t480/m20_demo_listener_service.py 4c7a6f1059c1d5610961a18d304d44a3ab6f5fc2d92e30f92c16739d2a3ae42d; t480/m20_demo_trading_session.py ed0e63aa87c9e1db39a1edb067fcaba22209a9dfc11b8c730159e2b4f5efc2a9; tests/test_t480_adapter.py a8e010f62de87913d2e348e43df858e8047b0b6aa8a7d0cb07a6a702cf9a4289; tests/milestones/test_m20_listener_service.py baa0ab008eb2ba0165da2062df9668c0a4a7a08ff29ba556309c605ce6b8791d."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "remote-discovery",
+      "title": "Observe configured process matching and the operator-identified Demo account",
+      "state": "DONE",
+      "requires": ["repair-review"],
+      "evidence": [
+        "2026-09-20T09:02:47Z fixed identity: both Session 0 and 2 terminal processes share the same executable hash and match configured terminal_path. Old runtime binding remains unavailable; it is not corrected deployment proof.",
+        "2026-09-20T09:02:50Z fixed account read: GOMarketsMU-Demo/AUD, zero open positions, scope hash matches Chris's screenshot account. SSH-context account read is not listener-owned binding proof.",
+        "runs/local/m30-binding-review-4wjTv2mj/identity.json SHA256 de84e98f44511aa2b0d8f7f06ef76b385bfa631441c501f90deb5452e4faf56c; status.json 4790b728a48c40cc0748d760b5ca584e5b2b2716abdef2b83fa7b57b7b6a5eb7; account.json 678cc2a39e2c54d773a61491c81ca6c8f0e35cabf75b40eba7147a1bffbe1b6d. Reviewer approved the fixed reader; raw outputs retained unchanged."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "commit-release",
+      "title": "Commit the reviewed patch and deploy the bound diagnostic release",
+      "state": "BLOCKED",
+      "requires": ["remote-discovery"],
+      "evidence": ["Candidate payload release b1e732115e3a7937. Release prepare/configure embeds git HEAD; current patch is uncommitted. Tests, independent review, fixed remote discovery and local transport preflight completed."],
+      "blocker": {
+        "source": "PLANS.md: Commit only with explicit human instruction; fixed release source-binding contract",
+        "reason": "No explicit local commit instruction has been given. Deploying changed payloads under old HEAD would misrepresent revision provenance.",
+        "unblock_action": "Chris authorises a local commit of the eight reviewed owned files. Then commit, refresh release readiness and fixed observations, stage/verify/install the bound diagnostic, and continue listener verification under existing execution authority. No push."
+      }
+    },
+    {
+      "id": "verify-listener",
+      "title": "Observe fresh listener attribution and report actual permission and protection state",
+      "state": "PENDING",
+      "requires": ["commit-release"],
+      "evidence": [],
+      "blocker": null
+    }
+  ]
+}

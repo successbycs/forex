@@ -575,10 +575,26 @@ def _terminal_runtime_binding(values: dict[str, str]) -> dict[str, Any]:
         "TERMINAL_DATA_PROFILE_UNAVAILABLE",
         "TERMINAL_EXECUTABLE_PATH_MISMATCH",
     }
+    valid_digest = lambda candidate: (isinstance(candidate, str) and len(candidate) == 71
+                                      and candidate.startswith("sha256:")
+                                      and all(char in "0123456789abcdef" for char in candidate[7:]))
     if (completed.returncode == 0 and isinstance(value, dict)
             and value.get("marker") == "FOREX_M20_TERMINAL_RUNTIME_BINDING"
             and value.get("state") == "UNAVAILABLE"
             and value.get("reason") in child_failure_reasons):
+        if value["reason"] == "TERMINAL_EXECUTABLE_PATH_MISMATCH":
+            required_failure = {"marker", "state", "reason", "configured_terminal_path_sha256",
+                                "connected_terminal_path_sha256"}
+            if (set(value) != required_failure
+                    or not valid_digest(value.get("configured_terminal_path_sha256"))
+                    or not valid_digest(value.get("connected_terminal_path_sha256"))
+                    or value["configured_terminal_path_sha256"] == value["connected_terminal_path_sha256"]):
+                return {"state": "UNAVAILABLE", "reason": "RUNTIME_BINDING_INVALID",
+                        "listener_process_id": os.getpid()}
+            return {"state": "UNAVAILABLE", "reason": value["reason"],
+                    "configured_terminal_path_sha256": value["configured_terminal_path_sha256"],
+                    "connected_terminal_path_sha256": value["connected_terminal_path_sha256"],
+                    "listener_process_id": os.getpid(), "captured_at_utc": _utc_now()}
         return {"state": "UNAVAILABLE", "reason": value["reason"],
                 "listener_process_id": os.getpid()}
     required = {
@@ -587,9 +603,6 @@ def _terminal_runtime_binding(values: dict[str, str]) -> dict[str, Any]:
         "terminal_trade_allowed", "terminal_tradeapi_disabled", "account_trade_allowed",
         "account_trade_expert", "submission_permitted",
     }
-    valid_digest = lambda candidate: (isinstance(candidate, str) and len(candidate) == 71
-                                      and candidate.startswith("sha256:")
-                                      and all(char in "0123456789abcdef" for char in candidate[7:]))
     if (completed.returncode != 0 or not isinstance(value, dict) or set(value) != required
             or value.get("marker") != "FOREX_M20_TERMINAL_RUNTIME_BINDING"
             or value.get("state") != "MAPPED" or value.get("server") != "GOMarketsMU-Demo"

@@ -1207,15 +1207,28 @@ def terminal_runtime_binding(terminal_path: str) -> dict[str, Any]:
         api_disabled = getattr(terminal, "tradeapi_disabled", None)
         account_allowed = getattr(account, "trade_allowed", None)
         expert_allowed = getattr(account, "trade_expert", None)
-        configured_path = digest(terminal_path)
-        connected_path = digest(getattr(terminal, "path", None))
+        # initialize() takes an executable; terminal_info().path is the
+        # installation DIRECTORY (MetaQuotes API contract). Comparing those
+        # directly manufactured a mismatch for every real installation.
+        configured = ntpath.normcase(ntpath.normpath(str(terminal_path)))
+        directory = getattr(terminal, "path", None)
+        valid_configured = (ntpath.isabs(configured)
+                            and ntpath.basename(configured) in {"terminal.exe", "terminal64.exe"})
+        valid_directory = isinstance(directory, str) and bool(directory) and ntpath.isabs(directory)
+        configured_path = digest(configured) if valid_configured else None
+        # This is an installation-derived executable identity, not a claim
+        # that the API exposes the terminal process's executable or PID.
+        connected_path = (digest(ntpath.join(directory, ntpath.basename(configured)))
+                          if valid_configured and valid_directory else None)
         data_path = digest(getattr(terminal, "data_path", None))
         if not data_path:
             return {"marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "UNAVAILABLE",
                     "reason": "TERMINAL_DATA_PROFILE_UNAVAILABLE"}
         if not configured_path or configured_path != connected_path:
             return {"marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "UNAVAILABLE",
-                    "reason": "TERMINAL_EXECUTABLE_PATH_MISMATCH"}
+                    "reason": "TERMINAL_EXECUTABLE_PATH_MISMATCH",
+                    "configured_terminal_path_sha256": configured_path,
+                    "connected_terminal_path_sha256": connected_path}
         return {
             "marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "MAPPED",
             "server": account.server, "currency": account.currency,

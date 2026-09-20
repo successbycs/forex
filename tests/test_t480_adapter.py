@@ -2005,6 +2005,9 @@ def test_m20_terminal_identity_is_fixed_redacted_and_cannot_trade():
     assert "heartbeat_fresh" in command
     assert "runtime_binding_fresh" in command
     assert "Get-CimInstance" in command
+    assert "executable_path_sha256" in command
+    assert "matches_configured_terminal_path" in command
+    assert "matches_connected_terminal_path" in command
     assert "MAPPED" in command and "AMBIGUOUS" in command and "UNAVAILABLE" in command
     assert "MetaTrader5" not in command
     assert "initialize(" not in command
@@ -2016,7 +2019,7 @@ def test_m20_terminal_identity_is_fixed_redacted_and_cannot_trade():
 def test_m20_terminal_runtime_binding_reports_listener_worker_context_without_order_submission(monkeypatch):
     probe = _m20_probe_module(monkeypatch)
     account = types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD", trade_allowed=True, trade_expert=True)
-    terminal = types.SimpleNamespace(path="terminal", data_path="profile", connected=True,
+    terminal = types.SimpleNamespace(path=r"C:\MT5", data_path="profile", connected=True,
                                      trade_allowed=True, tradeapi_disabled=False)
     calls = []
     probe.mt5.initialize = lambda **kwargs: calls.append(kwargs) or True
@@ -2024,12 +2027,12 @@ def test_m20_terminal_runtime_binding_reports_listener_worker_context_without_or
     probe.mt5.account_info = lambda: account
     probe.mt5.terminal_info = lambda: terminal
     probe.mt5.order_send = lambda *_: pytest.fail("runtime binding must never submit an order")
-    result = probe.terminal_runtime_binding("terminal")
+    result = probe.terminal_runtime_binding(r"C:\MT5\terminal64.exe")
     assert result["state"] == "MAPPED"
     assert result["submission_permitted"] is True
     assert result["configured_terminal_path_sha256"].startswith("sha256:")
     assert result["connected_terminal_data_path_sha256"].startswith("sha256:")
-    assert calls == [{"path": "terminal"}, "shutdown"]
+    assert calls == [{"path": r"C:\MT5\terminal64.exe"}, "shutdown"]
 
 
 def test_m20_terminal_runtime_binding_fails_closed_when_mt5_is_unavailable(monkeypatch):
@@ -2047,12 +2050,34 @@ def test_m20_terminal_runtime_binding_canonicalises_windows_paths_and_refuses_a_
     probe.mt5.initialize = lambda **_: True
     probe.mt5.shutdown = lambda: None
     probe.mt5.account_info = lambda: types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD")
-    probe.mt5.terminal_info = lambda: types.SimpleNamespace(path="C:/MT5/terminal64.exe", data_path="profile")
+    probe.mt5.terminal_info = lambda: types.SimpleNamespace(path="C:/MT5/", data_path="profile")
     assert probe.terminal_runtime_binding("c:\\mt5\\TERMINAL64.EXE")["state"] == "MAPPED"
-    probe.mt5.terminal_info = lambda: types.SimpleNamespace(path="different", data_path="profile")
-    result = probe.terminal_runtime_binding("terminal")
-    assert result == {"marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "UNAVAILABLE",
-                      "reason": "TERMINAL_EXECUTABLE_PATH_MISMATCH"}
+    probe.mt5.terminal_info = lambda: types.SimpleNamespace(path=r"C:\different", data_path="profile")
+    result = probe.terminal_runtime_binding(r"C:\MT5\terminal64.exe")
+    assert result["marker"] == "FOREX_M20_TERMINAL_RUNTIME_BINDING"
+    assert result["state"] == "UNAVAILABLE"
+    assert result["reason"] == "TERMINAL_EXECUTABLE_PATH_MISMATCH"
+    assert result["configured_terminal_path_sha256"].startswith("sha256:")
+    assert result["connected_terminal_path_sha256"].startswith("sha256:")
+    assert result["configured_terminal_path_sha256"] != result["connected_terminal_path_sha256"]
+
+
+@pytest.mark.parametrize("configured,directory", [
+    ("terminal64.exe", r"C:\MT5"),
+    (r"C:\MT5\other.exe", r"C:\MT5"),
+    (r"C:\MT5\terminal64.exe", None),
+    (r"C:\MT5\terminal64.exe", ""),
+    (r"C:\MT5\terminal64.exe", "relative"),
+    (r"C:\MT5\terminal64.exe", r"C:\MT5\terminal64.exe"),
+])
+def test_m20_runtime_binding_refuses_invalid_directory_or_executable(monkeypatch, configured, directory):
+    probe = _m20_probe_module(monkeypatch)
+    probe.mt5.initialize = lambda **_: True
+    probe.mt5.shutdown = lambda: None
+    probe.mt5.account_info = lambda: types.SimpleNamespace(server="GOMarketsMU-Demo", currency="AUD")
+    probe.mt5.terminal_info = lambda: types.SimpleNamespace(path=directory, data_path="profile")
+    probe.mt5.order_send = lambda *_: pytest.fail("binding must never trade")
+    assert probe.terminal_runtime_binding(configured)["state"] == "UNAVAILABLE"
 
 
 def test_m30_execution_drill_operation_is_fixed_and_serialises_listener_entries():

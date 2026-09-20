@@ -128,11 +128,17 @@ def test_listener_runtime_binding_is_child_owned_and_rejects_ambiguous_output(mo
     unavailable = {
         "marker": "FOREX_M20_TERMINAL_RUNTIME_BINDING", "state": "UNAVAILABLE",
         "reason": "TERMINAL_EXECUTABLE_PATH_MISMATCH",
+        "configured_terminal_path_sha256": "sha256:" + "a" * 64,
+        "connected_terminal_path_sha256": "sha256:" + "b" * 64,
     }
     monkeypatch.setattr(service.subprocess, "run", lambda *_, **__: type("R", (), {"returncode": 0, "stdout": json.dumps(unavailable)})())
-    assert service._terminal_runtime_binding({"python_path": "python", "terminal_path": "terminal"}) == {
-        "state": "UNAVAILABLE", "reason": "TERMINAL_EXECUTABLE_PATH_MISMATCH", "listener_process_id": 42,
-    }
+    mismatch = service._terminal_runtime_binding({"python_path": "python", "terminal_path": "terminal"})
+    assert mismatch["state"] == "UNAVAILABLE"
+    assert mismatch["reason"] == "TERMINAL_EXECUTABLE_PATH_MISMATCH"
+    assert mismatch["configured_terminal_path_sha256"] == "sha256:" + "a" * 64
+    assert mismatch["connected_terminal_path_sha256"] == "sha256:" + "b" * 64
+    assert mismatch["listener_process_id"] == 42
+    assert mismatch["captured_at_utc"].endswith("Z")
 
 
 def test_latest_assessment_retention_is_replace_only_and_never_listener_critical(tmp_path, monkeypatch):
@@ -254,6 +260,7 @@ def test_listener_blocks_assessment_but_keeps_monitoring_during_maintenance(tmp_
     }), encoding="utf-8")
     monkeypatch.setattr(module, "POLL_SECONDS", 0)
     monkeypatch.setattr(module, "_load_environment", lambda: {"python_path": "python", "terminal_path": "terminal"})
+    monkeypatch.setattr(module, "_terminal_runtime_binding", lambda _: {"state": "UNAVAILABLE"})
     calls = []
     def monitor(values, previous, retry_at):
         calls.append("monitor")
@@ -286,6 +293,7 @@ def test_listener_continues_to_the_next_fresh_quote_after_a_normal_no_trade(tmp_
     monkeypatch.setattr(module, "POLL_SECONDS", 0)
     monkeypatch.setattr(module, "ASSESSMENT_INTERVAL_SECONDS", 0)
     monkeypatch.setattr(module, "_load_environment", lambda: {"python_path": "python", "terminal_path": "terminal"})
+    monkeypatch.setattr(module, "_terminal_runtime_binding", lambda _: {"state": "UNAVAILABLE"})
     monkeypatch.setattr(module, "_active_lease", lambda: True)
     monkeypatch.setattr(module, "_maintenance_hold", lambda: {"active": False, "reason": "NONE"})
     monkeypatch.setattr(module, "_monitor_update", lambda values, previous, retry_at: ({"state": "IDLE"}, retry_at))
@@ -332,6 +340,7 @@ def test_listener_reconciles_durable_positions_before_its_first_assessment(tmp_p
     monkeypatch.setattr(module, "ASSESSMENT_TOTAL_PATH", tmp_path / "assessment-total.json")
     monkeypatch.setattr(module, "POLL_SECONDS", 0)
     monkeypatch.setattr(module, "_load_environment", lambda: {"python_path": "python", "terminal_path": "terminal"})
+    monkeypatch.setattr(module, "_terminal_runtime_binding", lambda _: {"state": "UNAVAILABLE"})
     monkeypatch.setattr(module, "_active_lease", lambda: True)
     calls = []
 
@@ -360,6 +369,7 @@ def test_listener_blocks_assessment_when_startup_reconciliation_fails(tmp_path, 
     monkeypatch.setattr(module, "ASSESSMENT_TOTAL_PATH", tmp_path / "assessment-total.json")
     monkeypatch.setattr(module, "POLL_SECONDS", 0)
     monkeypatch.setattr(module, "_load_environment", lambda: {"python_path": "python", "terminal_path": "terminal"})
+    monkeypatch.setattr(module, "_terminal_runtime_binding", lambda _: {"state": "UNAVAILABLE"})
     monkeypatch.setattr(module, "_active_lease", lambda: True)
     calls = []
 
@@ -685,6 +695,7 @@ def test_corrupt_restart_drill_marker_blocks_assessment_but_not_monitoring(tmp_p
     monkeypatch.setattr(service, "ASSESSMENT_TOTAL_PATH", tmp_path / "assessment-total.json")
     monkeypatch.setattr(service, "POLL_SECONDS", 0)
     monkeypatch.setattr(service, "_load_environment", lambda: {"python_path": "python", "terminal_path": "terminal"})
+    monkeypatch.setattr(service, "_terminal_runtime_binding", lambda _: {"state": "UNAVAILABLE"})
     monkeypatch.setattr(service, "_active_lease", lambda: True)
     calls = []
 
