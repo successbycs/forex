@@ -21,6 +21,10 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import ctypes
+from ctypes import wintypes as wintypes
+from queue import Empty, Queue
+from threading import Lock, Thread
 import time
 from types import SimpleNamespace
 from typing import Any
@@ -582,13 +586,31 @@ def _shadow_context(*, proposal: dict[str, Any], selection: dict[str, Any], asse
     }
 
 
-def _bridge(payload: dict[str, Any], command: str) -> dict[str, Any]:
-    """Invoke only the co-located, hash-bound bridge in T480 WSL.
+_BRIDGE_PROCESS: subprocess.Popen[str] | None = None
+_BRIDGE_RESPONSES: Queue[str | None] | None = None
+_BRIDGE_LOCK = Lock()
+_RUNNER_BRIDGE_COMMANDS = {
+    "pause-unknown-account-state", "record-historical-reconciliation",
+    "record-closed-outcome", "update-open-position", "load-open-positions",
+    "pre-isolation-readiness",
+    "enforce-risk-policy", "persist-proposal", "reconcile", "reserve-execution",
+    "record-result", "record-open-position",
+}
 
-    MT5 remains in Windows. PostgreSQL is loopback-bound inside T480 WSL, so
-    the audit process must run there rather than opening a Windows-to-WSL port
-    path that could silently target a different local service.
-    """
+
+def _bridge_reader(stream: Any, responses: Queue[str | None]) -> None:
+    try:
+        for line in stream:
+            responses.put(line)
+    finally:
+        responses.put(None)
+
+
+def _start_bridge_before_mt5() -> None:
+    """Start the existing fixed WSL audit bridge before child creation is banned."""
+    global _BRIDGE_PROCESS, _BRIDGE_RESPONSES
+    if _BRIDGE_PROCESS is not None:
+        raise SystemExit("M20 audit bridge lifecycle is already active")
     bridge_path = Path(__file__).with_name("m20_postgres_audit_bridge.payload")
     expected = os.environ.get("FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256", "")
     actual = "sha256:" + hashlib.sha256(bridge_path.read_bytes()).hexdigest()
@@ -596,28 +618,148 @@ def _bridge(payload: dict[str, Any], command: str) -> dict[str, Any]:
         raise SystemExit("M20 PostgreSQL audit bridge is absent or differs from its fixed deployment hash")
     dsn = os.environ.get("FOREX_M20_POSTGRES_DSN", "")
     profile = os.environ.get("USERPROFILE", "")
-    prefix = "C:\\Users\\"
-    if not dsn or not profile.startswith(prefix):
+    if not dsn or not profile.startswith("C:\\Users\\"):
         raise SystemExit("M20 PostgreSQL bridge WSL prerequisites are absent")
     drive = bridge_path.drive.rstrip(":").lower()
-    bridge_parts = bridge_path.parts[1:]
-    wsl_bridge = "/mnt/" + drive + "/" + "/".join(bridge_parts)
-    completed = subprocess.run(
-        ["wsl.exe", "-d", "Ubuntu", "--", "env", f"FOREX_M20_POSTGRES_DSN={dsn}", "python3", wsl_bridge, command],
-        input=json.dumps(payload, separators=(",", ":")),
-        text=True,
-        capture_output=True,
-        check=False,
+    wsl_bridge = "/mnt/" + drive + "/" + "/".join(bridge_path.parts[1:])
+    process = subprocess.Popen(
+        ["wsl.exe", "-d", "Ubuntu", "--", "env", f"FOREX_M20_POSTGRES_DSN={dsn}",
+         "python3", wsl_bridge, "serve"],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        text=True, bufsize=1,
     )
-    if completed.returncode != 0:
-        raise SystemExit(f"M20 PostgreSQL audit bridge failed closed: {completed.stderr.strip()}")
+    if process.stdin is None or process.stdout is None:
+        process.kill()
+        raise SystemExit("M20 PostgreSQL audit bridge pipes are unavailable")
+    responses: Queue[str | None] = Queue(maxsize=2)
+    Thread(target=_bridge_reader, args=(process.stdout, responses), daemon=True).start()
+    _BRIDGE_PROCESS, _BRIDGE_RESPONSES = process, responses
     try:
-        result = json.loads(completed.stdout)
+        ready = _bridge({}, "ready")
+        if ready.get("marker") != "FOREX_M20_AUDIT_BRIDGE_READY":
+            raise SystemExit("M20 PostgreSQL audit bridge readiness was not confirmed")
+    except BaseException:
+        _close_bridge()
+        raise
+
+
+def _close_bridge() -> None:
+    """Close and reap the per-runner WSL child; never leave an audit helper alive."""
+    global _BRIDGE_PROCESS, _BRIDGE_RESPONSES
+    process, _BRIDGE_PROCESS = _BRIDGE_PROCESS, None
+    _BRIDGE_RESPONSES = None
+    if process is None:
+        return
+    try:
+        if process.stdin:
+            process.stdin.close()
+        process.wait(timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        try:
+            process.terminate()
+            process.wait(timeout=5)
+        except (OSError, subprocess.TimeoutExpired):
+            process.kill()
+            process.wait(timeout=5)
+
+
+def _enforce_no_child_launch() -> None:
+    """Irreversibly block child creation before importing/using the MT5 terminal."""
+    if os.name != "nt":
+        raise SystemExit("M20 single-client restriction requires Windows")
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.GetCurrentProcess.restype = wintypes.HANDLE
+    kernel.SetProcessMitigationPolicy.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_size_t]
+    kernel.SetProcessMitigationPolicy.restype = wintypes.BOOL
+    kernel.GetProcessMitigationPolicy.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, ctypes.c_size_t]
+    kernel.GetProcessMitigationPolicy.restype = wintypes.BOOL
+    flags, observed = wintypes.DWORD(1), wintypes.DWORD()
+    if not kernel.SetProcessMitigationPolicy(13, ctypes.byref(flags), ctypes.sizeof(flags)):
+        raise SystemExit("M20 single-client child restriction could not be applied")
+    if (not kernel.GetProcessMitigationPolicy(kernel.GetCurrentProcess(), 13, ctypes.byref(observed), ctypes.sizeof(observed))
+            or observed.value != 1):
+        raise SystemExit("M20 single-client child restriction was not verified")
+    try:
+        subprocess.run([sys.executable, "-c", "pass"], check=True, capture_output=True, timeout=5)
+    except OSError as error:
+        if error.winerror == 367:
+            return
+    raise SystemExit("M20 single-client child restriction canary failed")
+
+
+def _bridge(payload: dict[str, Any], command: str) -> dict[str, Any]:
+    """Use the prestarted, hash-bound WSL bridge after MT5 isolation begins.
+
+    MT5 remains in Windows. PostgreSQL is loopback-bound inside T480 WSL, so
+    the audit process must run there rather than opening a Windows-to-WSL port
+    path that could silently target a different local service.
+    """
+    process, responses = _BRIDGE_PROCESS, _BRIDGE_RESPONSES
+    if command not in _RUNNER_BRIDGE_COMMANDS and command != "ready":
+        raise SystemExit("M20 PostgreSQL audit bridge command is not permitted for the runner")
+    if process is None or responses is None or process.stdin is None or process.poll() is not None:
+        raise SystemExit("M20 PostgreSQL audit bridge is unavailable")
+    request = json.dumps({"command": command, "payload": payload}, separators=(",", ":"))
+    if len(request) > 1_048_576:
+        raise SystemExit("M20 PostgreSQL audit bridge request is too large")
+    with _BRIDGE_LOCK:
+        try:
+            process.stdin.write(request + "\n")
+            process.stdin.flush()
+            encoded = responses.get(timeout=10)
+        except (OSError, Empty) as error:
+            raise SystemExit("M20 PostgreSQL audit bridge did not acknowledge the request") from error
+    if encoded is None or len(encoded) > 1_048_576:
+        raise SystemExit("M20 PostgreSQL audit bridge response is unavailable")
+    try:
+        response = json.loads(encoded)
     except json.JSONDecodeError as error:
         raise SystemExit("M20 PostgreSQL audit bridge returned invalid JSON") from error
+    result = response.get("result") if isinstance(response, dict) and response.get("ok") is True else None
     if not isinstance(result, dict) or result.get("ok") is not True:
         raise SystemExit("M20 PostgreSQL audit bridge did not confirm its write")
     return result
+
+
+def _run_single_client(operation: Any, *, requires_bridge: bool) -> Any:
+    """Make one runner invocation unable to spawn a replacement MT5 terminal."""
+    if requires_bridge:
+        _start_bridge_before_mt5()
+    try:
+        _enforce_no_child_launch()
+        return operation()
+    finally:
+        _close_bridge()
+
+
+def audit_isolation_spike() -> dict[str, Any]:
+    """Read the fixed audit state twice after restriction; never contacts MT5."""
+    first = _bridge({}, "load-open-positions").get("open_positions")
+    second = _bridge({}, "load-open-positions").get("open_positions")
+    if not isinstance(first, list) or not isinstance(second, list):
+        raise SystemExit("M20 audit isolation spike did not receive fixed open-position data")
+    return {
+        "marker": "FOREX_M30_AUDIT_ISOLATION_SPIKE_OK",
+        "child_policy_verified": True,
+        "first_open_positions_count": len(first),
+        "second_open_positions_count": len(second),
+        "mt5_called": False,
+        "broker_mutation": "NONE",
+    }
+
+
+def pre_isolation_readiness() -> dict[str, Any]:
+    """Read the fixed durable no-work predicate through the prestarted bridge."""
+    result = _bridge({}, "pre-isolation-readiness")
+    required = {"ok", "marker", "captured_at_utc", "durable_open_positions_count",
+                "unresolved_execution_attempts_count", "clear"}
+    if (set(result) != required or result.get("ok") is not True
+            or result.get("marker") != "FOREX_M30_PRE_ISOLATION_READINESS"
+            or not isinstance(result.get("clear"), bool)
+            or not all(isinstance(result.get(key), int) and result[key] >= 0
+                       for key in ("durable_open_positions_count", "unresolved_execution_attempts_count"))):
+        raise SystemExit("M30 pre-isolation readiness response is invalid")
+    return {**result, "broker_mutation": "NONE"}
 
 
 def _provenance() -> tuple[str, str]:
@@ -2463,7 +2605,7 @@ def main(terminal_path: str, session_path: str, trigger_tick_time_msc: int | Non
 
 if __name__ == "__main__":
     if len(sys.argv) == 3:
-        main(sys.argv[1], sys.argv[2])
+        _run_single_client(lambda: main(sys.argv[1], sys.argv[2]), requires_bridge=True)
     elif len(sys.argv) == 5 and sys.argv[3] == "--assessment-trigger-tick-ms":
         try:
             trigger = int(sys.argv[4])
@@ -2471,22 +2613,36 @@ if __name__ == "__main__":
             raise SystemExit("M20 assessment trigger tick must be an integer") from error
         if trigger <= 0:
             raise SystemExit("M20 assessment trigger tick must be positive")
-        main(sys.argv[1], sys.argv[2], trigger)
+        _run_single_client(lambda: main(sys.argv[1], sys.argv[2], trigger), requires_bridge=True)
     elif len(sys.argv) == 4 and sys.argv[3] == "--monitor-once":
-        print(json.dumps(monitor(sys.argv[1], Path(sys.argv[2]), single_pass=True), separators=(",", ":")))
+        result = _run_single_client(lambda: monitor(sys.argv[1], Path(sys.argv[2]), single_pass=True), requires_bridge=True)
+        print(json.dumps(result, separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--recover-open-positions-once":
-        print(json.dumps(recover_open_positions(sys.argv[1]), separators=(",", ":")))
+        result = _run_single_client(lambda: recover_open_positions(sys.argv[1]), requires_bridge=True)
+        print(json.dumps(result, separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--quote-identity":
-        print(json.dumps(quote_identity(sys.argv[1]), separators=(",", ":")))
+        result = _run_single_client(lambda: quote_identity(sys.argv[1]), requires_bridge=False)
+        print(json.dumps(result, separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--terminal-runtime-binding":
-        print(json.dumps(terminal_runtime_binding(sys.argv[1]), separators=(",", ":")))
+        result = _run_single_client(lambda: terminal_runtime_binding(sys.argv[1]), requires_bridge=False)
+        print(json.dumps(result, separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--financing-preview":
-        print(json.dumps(financing_preview(sys.argv[1]), separators=(",", ":")))
+        result = _run_single_client(lambda: financing_preview(sys.argv[1]), requires_bridge=False)
+        print(json.dumps(result, separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--risk-refusal-drill":
-        print(json.dumps(risk_refusal_drill(sys.argv[1], Path(sys.argv[2])), separators=(",", ":")))
+        result = _run_single_client(lambda: risk_refusal_drill(sys.argv[1], Path(sys.argv[2])), requires_bridge=True)
+        print(json.dumps(result, separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--execution-drill":
-        print(json.dumps(execution_drill(sys.argv[1], Path(sys.argv[2])), separators=(",", ":")))
+        result = _run_single_client(lambda: execution_drill(sys.argv[1], Path(sys.argv[2])), requires_bridge=True)
+        print(json.dumps(result, separators=(",", ":")))
     elif len(sys.argv) == 4 and sys.argv[3] == "--reconcile-retained-history":
-        print(json.dumps(reconcile_historical_retained_positions(sys.argv[1]), separators=(",", ":")))
+        result = _run_single_client(lambda: reconcile_historical_retained_positions(sys.argv[1]), requires_bridge=True)
+        print(json.dumps(result, separators=(",", ":")))
+    elif len(sys.argv) == 4 and sys.argv[3] == "--audit-isolation-spike":
+        result = _run_single_client(audit_isolation_spike, requires_bridge=True)
+        print(json.dumps(result, separators=(",", ":")))
+    elif len(sys.argv) == 4 and sys.argv[3] == "--pre-isolation-readiness":
+        result = _run_single_client(pre_isolation_readiness, requires_bridge=True)
+        print(json.dumps(result, separators=(",", ":")))
     else:
         raise SystemExit("expected fixed terminal path and fixed M20 session lease path")

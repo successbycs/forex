@@ -73,10 +73,10 @@ a release. Do not request terminal reselection based on the defective mismatch.
 - [x] repair-review — Correct the API comparison and independently review the diagnostic and tests (DONE)
 <!-- forex-work-item id=remote-discovery state=DONE -->
 - [x] remote-discovery — Observe configured process matching and the operator-identified Demo account (DONE)
-<!-- forex-work-item id=commit-release state=BLOCKED -->
-- [ ] commit-release — Commit the reviewed patch and deploy the bound diagnostic release (BLOCKED)
-<!-- forex-work-item id=verify-listener state=PENDING -->
-- [ ] verify-listener — Observe fresh listener attribution and report actual permission and protection state (PENDING)
+<!-- forex-work-item id=commit-release state=DONE -->
+- [x] commit-release — Commit the reviewed patch and deploy the bound diagnostic release (DONE)
+<!-- forex-work-item id=verify-listener state=DONE -->
+- [x] verify-listener — Observe fresh listener attribution and report actual permission and protection state (DONE)
 <!-- forex-work-projection:end -->
 
 ## Plan of work and concrete steps
@@ -139,8 +139,8 @@ Any actual risk pause remains subject to its existing governed process.
 | Repair and independent review | PASS | Exact reviewed payloads |
 | Regression/governance/transport | PASS | Recheck after changed bytes |
 | Account/exposure read | Expected Demo/AUD account, zero positions | Refresh before install |
-| Committed source binding | BLOCKED | Explicit local-commit instruction |
-| Fresh listener-owned attribution | PENDING | Observe after deployment |
+| Committed source binding | PASS: f73a0c1 | Explicit local-commit instruction received |
+| Fresh listener-owned attribution | PASS: MAPPED, advancing timestamps | Permission remains false |
 
 Use the fixed installer's retained previous task and rollback behavior on an
 unhealthy release. Never delete lease, monitor or risk files to make acceptance
@@ -168,5 +168,27 @@ current release authority boundary. Do not infer M30 completion from this work.
 
 Local repair, independent review, regression checks and remote discovery are
 complete. Raw observations are in `runs/local/m30-binding-review-4wjTv2mj/`.
-The diagnostic is not yet deployed. Commit/release and fresh listener-owned
-verification remain pending; the work record carries the concrete next step.
+Chris authorised the local commit (f73a0c1) and continuation of deployment.
+Release b1e732115e3a7937 was staged, hash-verified, prepared, configured and
+installed through fixed operations on 2026-09-20. No maintenance hold was
+introduced or removed. Deployment diagnostics bind all four payload hashes to
+f73a0c14cdd793d9e1c7a188ed5130a353de8306 and the unchanged configuration
+fingerprint. Lease, risk policy and financing policy match the preflight.
+
+Post-install identity is MAPPED with fresh heartbeat and binding timestamps;
+a repeat capture advanced from 09:10:36Z to 09:11:08Z. The listener-owned
+connection is Demo/AUD, but terminal_trade_allowed and submission_permitted
+are false. API-disabled is false and account trading/expert permissions are
+true. This now accurately attributes the terminal permission refusal. The
+fixed account reader still reports the operator-identified account and zero
+positions. The retained monitor record remains LAST_KNOWN_UNVERIFIED and was
+not deleted or represented as a currently open position.
+
+All 209 fixed deployment/discovery commands fit the transport envelope. The
+218 raw JSON artifacts and their SHA256SUMS are retained under
+`runs/local/m30-binding-deploy-A2HgHXrc/`. Offline checks verified payloads,
+revision, preserved configuration/lease/risk and advancing MAPPED evidence.
+The independent deployment review is recorded in the work JSON. This completes
+diagnostic deployment, not M30 lifecycle proof or trading enablement. Terminal
+Algo Trading permission and any persistent risk pause remain separate follow-up
+work under the existing M30 controls.

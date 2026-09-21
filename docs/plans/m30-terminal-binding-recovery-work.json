@@ -31,21 +31,17 @@
     {
       "id": "commit-release",
       "title": "Commit the reviewed patch and deploy the bound diagnostic release",
-      "state": "BLOCKED",
+      "state": "DONE",
       "requires": ["remote-discovery"],
-      "evidence": ["Candidate payload release b1e732115e3a7937. Release prepare/configure embeds git HEAD; current patch is uncommitted. Tests, independent review, fixed remote discovery and local transport preflight completed."],
-      "blocker": {
-        "source": "PLANS.md: Commit only with explicit human instruction; fixed release source-binding contract",
-        "reason": "No explicit local commit instruction has been given. Deploying changed payloads under old HEAD would misrepresent revision provenance.",
-        "unblock_action": "Chris authorises a local commit of the eight reviewed owned files. Then commit, refresh release readiness and fixed observations, stage/verify/install the bound diagnostic, and continue listener verification under existing execution authority. No push."
-      }
+      "evidence": ["Chris explicitly authorised commit f73a0c1 and continued deployment. Release b1e732115e3a7937 staged all four payloads, passed SHA-256 verification, prepared/configured/installed successfully through fixed operations. 209 release/discovery commands fit transport; maximum 7438.", "2026-09-20 independent reviewer /root/binding_review inspected 218 retained operation records: all ok/exit0; deployed payloads exactly match git-show f73a0c14cdd793d9e1c7a188ed5130a353de8306. Configuration fingerprint, lease, persistent risk and financing policy unchanged pre/post. No hold introduced or removed. Raw evidence and SHA256SUMS under runs/local/m30-binding-deploy-A2HgHXrc/."],
+      "blocker": null
     },
     {
       "id": "verify-listener",
       "title": "Observe fresh listener attribution and report actual permission and protection state",
-      "state": "PENDING",
+      "state": "DONE",
       "requires": ["commit-release"],
-      "evidence": [],
+      "evidence": ["2026-09-20 post-install and refresh captures: MAPPED, heartbeat_fresh=true, runtime_binding_fresh=true, unique listener PID 3284 at release b1e732115e3a7937. Binding time advanced from 09:10:36Z to 09:11:08Z. Demo/AUD connected, terminal_trade_allowed=false, submission_permitted=false; account permissions true and API disabled false.", "Fixed account read still matches screenshot account scope with zero positions. LAST_KNOWN_UNVERIFIED retained monitor record preserved; no claim of lifecycle reconciliation or M30 proof. Independent /root/binding_review verified exact retained raw observations and accepted diagnostic deployment separately from trading enablement."],
       "blocker": null
     }
   ]

@@ -67,11 +67,88 @@ materially changing an ExecPlan.
 Do not begin the next formal milestone merely because the previous task is
 implemented.
 
+## MVP focus and critical assumptions
+
+Before adding infrastructure, process or an artifact, state the observed MVP
+failure, the smallest proposed change, the observable result and what remains
+deferred. Prefer an existing listener, bridge or report, one focused test and a
+bounded observation window. New frameworks, services, schedulers, migration
+frameworks, review layers, skills or documentation processes must be necessary
+to advance the active milestone under its safety and evidence constraints.
+
+Define the operating conditions from the user's requirement before choosing the
+runtime design. "Autonomous" does not by itself require a background Windows
+session, duplicate application, or independence from an operator-managed client.
+State which application must remain open, whether a signed-in desktop is needed,
+and what availability or recovery is actually required. Resolve this from existing
+instructions and evidence; ask only when a consequential choice remains unknown.
+
+Identify the assumption that could make the proposed design unusable and make
+its smallest safe runtime test the first dependent acceptance check. Record the
+expected observation, failure condition, actual result and evidence location in
+the existing ExecPlan. Do not build dependent machinery before this check. A
+minimal probe needed to perform the check is allowed; if the runtime is unavailable,
+mark the assumption unverified and continue only independent work.
+
+For a client-dependent listener, put concrete acceptance checks in its ExecPlan:
+
+- Client available: identify the intended application and connection, then observe
+  fresh input processing and the permissions required for the agreed workflow.
+- Client closed: observe the promised behaviour, including safe unavailability
+  and whether another client is unexpectedly launched or selected.
+- Client reopened: verify connection identity and recovery without duplicate
+  processing or submissions.
+
+Add disconnect, logoff or reboot checks only when the operating agreement claims
+to handle those events; one event does not prove another. Before a disruptive
+broker test, establish current exposure, unresolved executions and the recovery
+route using the approved operations. Distinguish broker-held protection from
+application monitoring and scheduled exits. If the test cannot safely run, leave
+that behaviour unverified. These examples define tests, not permission to change
+the runtime or interrupt a terminal.
+
+## Diagnosis when observations conflict
+
+Apply this procedure to every agent and reviewer, regardless of model or role:
+
+1. State the failing user-visible behaviour and the check that demonstrates it.
+   Label the proposed cause as an inference until evidence establishes it.
+2. Attribute each observation to its source and capture time. Where relevant,
+   identify process, Windows session, account, configuration and data profile,
+   keeping credentials local and using redacted identifiers in reports. State
+   unknown ownership explicitly. A matching executable path does not establish
+   that two callers use the same running application or configuration.
+3. If new evidence contradicts the explanation, retract unsupported claims and
+   pause work that depends on them. Retain the original evidence. List plausible
+   competing causes and choose the smallest check that distinguishes them.
+4. Inspect existing code and diagnostics before prescribing another operator
+   setting change. Verify API field meanings against primary documentation and
+   ensure mocks represent the actual API. An open dialog does not establish
+   whether a value was previously saved or explain a separate process's state.
+5. Add a diagnostic or integration only when existing observations cannot answer
+   a specific necessary question. State what result would change the decision.
+   Discovery of an MCP endpoint does not prove it exposes the needed state or
+   controls, and does not grant trading authority.
+6. After repair, rerun the original failing check on the affected runtime. Update
+   the diagnosis, acceptance result and remaining blockers in the existing plan.
+   Repeated attempts without new information require reassessment under the repair
+   procedure below, rather than repeating instructions to the operator.
+
+Keep status claims distinct: a heartbeat proves process liveness at its capture
+time; fresh timestamps on new market inputs demonstrate data freshness; a
+permission check establishes only the reported permissions. Execution and
+reconciliation require their own broker evidence. "Diagnostic fixed", "service
+running", "permission enabled" and "workflow verified" are separate outcomes.
+Never infer account flatness or protection from an idle worker or historical
+monitor record. Report the successful check alongside any unresolved original
+failure; partial repair does not make the overall workflow complete.
+
 ## Delivery loop
 
 ```text
 Clarify
 → Plan
+→ Test critical runtime assumptions
 → Implement
 → Verify
 → Review
@@ -193,6 +270,17 @@ autonomous demo execution, or reporting a formal milestone ready to advance.
 Before ending an execution turn, run the continuation check required by
 `PLANS.md`.
 
+Supply the current ExecPlan's work record explicitly:
+
+```bash
+python3 scripts/check_execution_continuation.py --work-plan <active-work-json>
+```
+
+The no-argument default selects A1; it does not discover the current task. For a
+small documentation-only task without an execution-work record, report the checks
+and remaining work directly rather than creating a new record solely for the
+checker. Never use an unrelated completed plan as proof that this task is done.
+
 Continue with the next authorised in-scope action when the result is `CONTINUE`.
 
 Close only when:
@@ -287,6 +375,16 @@ Where evidence is weak, incomplete, or contradictory, state that plainly and
 recommend the smallest safe next test or decision.
 
 ## Repository improvement loop
+
+Keep root `AGENTS.md` limited to durable boundaries, the repository map and
+essential commands. Put reusable procedures in this document, task-specific
+checks and outcomes in ExecPlans, and current formal status in the state file.
+Avoid model-specific rules and incident transcripts in permanent instructions.
+This follows OpenAI's [Codex best practices](https://learn.chatgpt.com/guides/best-practices),
+which recommends concise instructions with references to detailed documents;
+its [AGENTS.md guide](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
+explains automatic instruction loading. Linked procedures must have explicit
+read triggers in the root file; they are not automatically loaded by the link.
 
 When an agent encounters a recurring ambiguity, defect pattern, or expensive
 manual step, consider whether the repository needs a durable improvement:

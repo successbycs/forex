@@ -1,0 +1,86 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "M30-SINGLE-CLIENT-RECOVERY",
+  "authorization": "Chris explicitly directed execution of this plan as the active thread goal on 2026-09-20, including proving one managed visible Demo client, closure/recovery, implementation, independent review, deployment and protected Demo execution/closure/reconciliation. Existing Demo limits, fixed operations and risk controls apply. No Live, risk reset, account switch, publication, implicit formal closeout or unrequested commit is authorized.",
+  "markdown_plan": "docs/plans/m30-single-client-recovery.md",
+  "items": [
+    {
+      "id": "baseline",
+      "title": "Establish current task and terminal ownership",
+      "state": "DONE",
+      "requires": [],
+      "evidence": [
+        "2026-09-20T09:47Z fixed identity, status and diagnostics retained under runs/local/m30-single-client-recovery/baseline-20260920T094717Z/: S4U listener in Session0; MT5 in Sessions0 and2; permission false; stale quote; attachment unknown. Source review identifies S4U watchdog/recovery and initialize callers. Independent baseline review requested from /root/single_client_review.",
+        "2026-09-20T10:03Z retained fixed diagnostics establish the listener and watchdog are distinct S4U Session0 tasks; the watchdog invokes the listener task. An interactive Session2 probe reported zero positions and zero pending orders. Exact current listener attachment remains unproven because the same installation has a Session0 terminal."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "connection-probe",
+      "title": "Prove connection to the managed visible Demo client",
+      "state": "IN_REVIEW",
+      "requires": [
+        "baseline"
+      ],
+      "evidence": [
+        "2026-09-20T10:03Z hash-bound Session2 one-shot probe result sha256:9477d34d320e019942608805fee171899fa51ff9714680ab2966c7f703c70eed: correct Demo/AUD account scope; positions=0; pending_orders=0; no terminal inventory change; Windows child-process restriction verified. It reported terminal_trade_allowed=false and attribution=UNVERIFIED because Session0 terminal PID 15056 remained alongside interactive PID 6440. This is connection observation, not ownership proof.",
+        "2026-09-20T10:34Z staged, uninstalled runner and audit-bridge payloads verified on T480. The Interactive, no-MT5 runner isolation spike completed (task result 0): it prestarted the fixed WSL audit bridge, applied the runner child-process restriction, made two fixed load-open-positions audit calls, and reaped the runner. Result marker FOREX_M30_AUDIT_ISOLATION_SPIKE_OK, counts 0/0, mt5_called=false, broker_mutation=NONE. This proves the proposed audit compatibility mechanism, not MT5 attachment or recovery."
+        ,"2026-09-20T10:59Z a hash-bound S4U Session0 probe (result sha256:cdc7f793c6ad810d7b46eb4fb3c3d4f3a2b8af2a3a4f4dd6fea9805ed33e3a21) observed the approved hashed Demo account scope, zero positions, zero pending orders, an unchanged two-terminal inventory, and verified child-process restriction. It is explicitly SESSION_SCOPED_NOT_PID_BOUND, not native PID ownership."
+        ,"2026-09-20T11:07Z the restricted staged runner/audit bridge returned FOREX_M30_PRE_ISOLATION_READINESS: durable_open_positions_count=0 and unresolved_execution_attempts_count=0. The listener was in fresh MAINTENANCE_HOLD with monitor IDLE and no assessment in flight. An initial readiness run failed closed because the new fixed command was absent from the runner allow-list; the one-identifier repair was tested and restaged before this successful result. No terminal or broker mutation occurred."
+        ,"2026-09-20T11:29Z--11:41Z Session0 isolation completed with broker_mutation=NONE and retained outcome sha256:0d0e1bc65783d857c4bafbeb34b7a776e9e29d7fd4da06e7f21c14bf28fee258 (Session0 pre-observation) / isolation task result run_id=8a17330e8c6b416d8442cd553f16b19f. Both former S4U tasks are Disabled, hold remains present and diagnostics show no Forex listener Python process. Exactly one configured terminal remains: PID 6440 in Session2. A child-restricted post-isolation probe then returned INITIALIZE_FAILED without inventory change. An attach-only variant was terminated at its fixed 60-second bound without an output record; postflight still found the sole Session2 terminal and no listener process. This proves isolation/no replacement but not MT5 API attachment, permissions, account observation, or native PID binding."
+        ,"2026-09-21T05:57:01Z--05:57:33Z after a report that T480 access was restored, three fixed read-only operations (m20_listener_status, m20_listener_terminal_identity, and m20_listener_terminal_capability) each failed with an SSH connect timeout to 192.168.0.210:22. Raw adapter outputs are under runs/local/m30-single-client-recovery/t480-access-20260921T055701Z/. No remote task, terminal, listener, or broker action was reached or changed. This leaves the connection observation unverified."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "closure-recovery",
+      "title": "Prove client closure and reopening behaviour",
+      "state": "PENDING",
+      "requires": [
+        "connection-probe"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "implementation-review",
+      "title": "Implement the demonstrated setup and independently review it",
+      "state": "PENDING",
+      "requires": [
+        "closure-recovery"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "deployment",
+      "title": "Deploy and verify the single-client setup",
+      "state": "PENDING",
+      "requires": [
+        "implementation-review"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "demo-round-trip",
+      "title": "Verify fresh processing and the protected Demo round trip",
+      "state": "PENDING",
+      "requires": [
+        "deployment"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "natural-lifecycle",
+      "title": "Capture and verify the natural M30 Demo lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "demo-round-trip"
+      ],
+      "evidence": [],
+      "blocker": null
+    }
+  ]
+}

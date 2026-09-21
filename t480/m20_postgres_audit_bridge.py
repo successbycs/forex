@@ -46,7 +46,11 @@ def _calendar_overlay(*, candidate: dict[str, Any], gate: dict[str, Any]) -> dic
     return {**body, "overlay_sha256": _digest(body)}
 
 
-def _payload() -> dict[str, Any]:
+def _payload(value: Any = None) -> dict[str, Any]:
+    if value is not None:
+        if not isinstance(value, dict):
+            raise SystemExit("M20 audit bridge payload must be an object")
+        return value
     try:
         value = json.load(sys.stdin)
     except json.JSONDecodeError as error:
@@ -54,6 +58,17 @@ def _payload() -> dict[str, Any]:
     if not isinstance(value, dict):
         raise SystemExit("M20 audit bridge payload must be an object")
     return value
+
+
+def ready(payload: dict[str, Any]) -> dict[str, Any]:
+    """Prove the fixed local PostgreSQL path is reachable before MT5 starts."""
+    if payload:
+        raise SystemExit("M20 bridge readiness accepts no arguments")
+    with _connection() as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT 1")
+        if cursor.fetchone() != (1,):
+            raise SystemExit("M20 bridge readiness query failed")
+    return {"ok": True, "marker": "FOREX_M20_AUDIT_BRIDGE_READY"}
 
 
 def _connection():
@@ -736,6 +751,41 @@ def load_open_positions(payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "open_positions": positions}
 
 
+def pre_isolation_readiness(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return the narrow durable state needed before terminal isolation.
+
+    This does not grant isolation authority.  The caller must combine it with
+    a fresh account-scoped exposure observation and worker coordination.  The
+    unresolved predicate is intentionally the same conservative predicate
+    used at reservation, so absent terminal outcomes fail closed.
+    """
+    if payload:
+        raise SystemExit("M20 pre-isolation readiness accepts no arguments")
+    with _connection() as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT now() AT TIME ZONE 'UTC'")
+        captured_at = cursor.fetchone()[0]
+        cursor.execute("SELECT count(*) FROM forex.demo_open_position_state")
+        durable_open_positions = int(cursor.fetchone()[0])
+        cursor.execute(
+            """SELECT count(*)
+                 FROM forex.demo_execution_attempt a
+                WHERE NOT EXISTS (SELECT 1 FROM forex.demo_trade_outcome o
+                                   WHERE o.proposal_id=a.proposal_id)
+                  AND NOT EXISTS (SELECT 1 FROM forex.demo_position_event e
+                                  WHERE e.attempt_id=a.attempt_id
+                                    AND e.event_type IN ('REJECTED','NOT_SUBMITTED'))"""
+        )
+        unresolved_attempts = int(cursor.fetchone()[0])
+    return {
+        "ok": True,
+        "marker": "FOREX_M30_PRE_ISOLATION_READINESS",
+        "captured_at_utc": captured_at.replace(tzinfo=timezone.utc).isoformat().replace("+00:00", "Z"),
+        "durable_open_positions_count": durable_open_positions,
+        "unresolved_execution_attempts_count": unresolved_attempts,
+        "clear": durable_open_positions == 0 and unresolved_attempts == 0,
+    }
+
+
 def reconcile(payload: dict[str, Any]) -> dict[str, Any]:
     """Read back the immutable lifecycle for one fixed persisted proposal."""
     proposal_id = payload.get("proposal_id")
@@ -759,9 +809,47 @@ def reconcile(payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "reconciliation": reconciliation}
 
 
+def _actions() -> dict[str, Any]:
+    return {"ready": ready, "persist-proposal": persist_proposal, "reserve-execution": reserve_execution,
+            "enforce-risk-policy": enforce_risk_policy, "resume-risk-policy": resume_risk_policy,
+            "pause-unknown-account-state": pause_unknown_account_state, "record-result": record_result,
+            "record-open-position": record_open_position, "update-open-position": update_open_position,
+            "record-closed-outcome": record_closed_outcome,
+            "record-historical-reconciliation": record_historical_reconciliation,
+            "load-open-positions": load_open_positions,
+            "pre-isolation-readiness": pre_isolation_readiness,
+            "reconcile": reconcile}
+
+
+def _serve(actions: dict[str, Any]) -> int:
+    """Bounded line protocol for one hash-bound runner lifetime, not a socket."""
+    for line in sys.stdin:
+        try:
+            request = json.loads(line)
+            if not isinstance(request, dict) or set(request) != {"command", "payload"}:
+                raise ValueError("request shape")
+            command, payload = request["command"], request["payload"]
+            if command not in actions or command == "resume-risk-policy":
+                raise ValueError("command")
+            result = actions[command](_payload(payload))
+            if not isinstance(result, dict) or result.get("ok") is not True:
+                raise ValueError("response")
+            response = {"ok": True, "result": result}
+        except Exception:
+            # Do not expose DB details through a long-lived cross-runtime pipe.
+            response = {"ok": False, "reason": "M20_AUDIT_BRIDGE_REQUEST_REFUSED"}
+        encoded = json.dumps(response, separators=(",", ":"))
+        if len(encoded) > 1_048_576:
+            encoded = '{"ok":false,"reason":"M20_AUDIT_BRIDGE_RESPONSE_TOO_LARGE"}'
+        print(encoded, flush=True)
+    return 0
+
+
 def main() -> int:
     command = sys.argv[1] if len(sys.argv) == 2 else ""
-    actions = {"persist-proposal": persist_proposal, "reserve-execution": reserve_execution, "enforce-risk-policy": enforce_risk_policy, "resume-risk-policy": resume_risk_policy, "pause-unknown-account-state": pause_unknown_account_state, "record-result": record_result, "record-open-position": record_open_position, "update-open-position": update_open_position, "record-closed-outcome": record_closed_outcome, "record-historical-reconciliation": record_historical_reconciliation, "load-open-positions": load_open_positions, "reconcile": reconcile}
+    actions = _actions()
+    if command == "serve":
+        return _serve(actions)
     if command not in actions:
         raise SystemExit("M20 audit bridge command is not fixed")
     print(json.dumps(actions[command](_payload()), separators=(",", ":")))
