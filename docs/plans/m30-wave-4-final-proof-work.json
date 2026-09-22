@@ -48,7 +48,7 @@
     {
       "id": "natural-lifecycle",
       "title": "Retain one naturally eligible final-version Demo order, close, and broker reconciliation without forcing or retrying an order",
-      "state": "BLOCKED",
+      "state": "PENDING",
       "requires": ["final-release"],
       "evidence": [
         "2026-09-17 final-version read-only observation: release 07b2ac258c6da945, sequence 54251, closed candle 2026-09-17T04:55:00Z, terminal NO_TRADE, no selected owner, no attempt, and no execution lifecycle. This confirms normal operation but is not the required eligible order/close/reconciliation proof.",
@@ -57,13 +57,10 @@
         "2026-09-17T08:43Z: the authorised read-only capability recheck could not reach T480 because SSH to 192.168.0.210 timed out. No terminal, listener, broker, or configuration state was changed.",
         "2026-09-17T08:45Z: a second authorised read-only capability recheck timed out during SSH banner exchange. Follow-up ICMP and TCP/22 probes received no response. This indicates T480 is currently unreachable from the repository host; no remote state was changed.",
         "2026-09-17T08:48Z: the shared cs-ai-lab-infra T480 transport preflight was run using the existing machine-local target. Its local strict-host-key and batch-mode checks passed, but its remote SSH check timed out. This independently confirms an unavailable T480 SSH surface, not a Forex catalog or operation defect.",
-        "2026-09-17T08:55Z: shared transport preflight and the fixed Forex listener status recovered. The listener was RUNNING on 98d33531346f1c6a with a fresh EURUSD quote and an M1 trend-pullback SELL candidate, but it correctly persisted NO_TRADE_RECONCILED because terminal_trade_allowed=false and the persistent Option B risk policy paused new entries with EXTERNAL_CASH_FLOW."
+        "2026-09-17T08:55Z: shared transport preflight and the fixed Forex listener status recovered. The listener was RUNNING on 98d33531346f1c6a with a fresh EURUSD quote and an M1 trend-pullback SELL candidate, but it correctly persisted NO_TRADE_RECONCILED because terminal_trade_allowed=false and the persistent Option B risk policy paused new entries with EXTERNAL_CASH_FLOW.",
+        "2026-09-22: historical permission/risk blockers resolved under m30-demo-mvp-unblocking. Natural proposal a88ae86c-6b7e-5a03-9367-157389f0f0b5 is CLOSED_MATCHED, with exact source snapshot at sequence 78815. Raw bundle runs/evidence/M30/natural-raw-20260922T071835289277Z passes offline source/runtime/lifecycle component checks, including all-session USD80753.95 reserved and 600-second owner cutoff. Formal committed proof capture and review remain pending."
       ],
-      "blocker": {
-        "source": "Current MT5 terminal capability observation on the bound T480 Demo terminal",
-        "reason": "terminal_trade_allowed is false, so submission_permitted is false even though the connected Demo account and API/account permissions are valid; the persistent Option B risk policy also pauses new entries with EXTERNAL_CASH_FLOW.",
-        "unblock_action": "The human operator enables AutoTrading/trading permission in the exact MT5 Demo terminal instance, then investigates and resolves or explicitly resumes the persistent Option B EXTERNAL_CASH_FLOW pause through its fixed governed path. Rerun the fixed read-only capability and listener observations and require submission_permitted=true plus no active entry pause. Repository-controlled terminal configuration remains deferred."
-      }
+      "blocker": null
     },
     {
       "id": "proof-verification",

@@ -44,8 +44,8 @@ risk settings, another timeframe, a scheduler, or a Live path.
 - [x] final-release — Hold, install, and verify the final hash-bound Demo listener release, then release the hold only after a healthy heartbeat (DONE)
 <!-- forex-work-item id=execution-drill state=DONE -->
 - [x] execution-drill — Run the fixed one-shot Demo terminal-to-broker diagnostic and retain its distinct outcome without treating it as M30 proof (DONE)
-<!-- forex-work-item id=natural-lifecycle state=BLOCKED -->
-- [ ] natural-lifecycle — Retain one naturally eligible final-version Demo order, close, and broker reconciliation without forcing or retrying an order (BLOCKED)
+<!-- forex-work-item id=natural-lifecycle state=PENDING -->
+- [ ] natural-lifecycle — Retain one naturally eligible final-version Demo order, close, and broker reconciliation without forcing or retrying an order (PENDING)
 <!-- forex-work-item id=proof-verification state=PENDING -->
 - [ ] proof-verification — Verify the retained proof against M30 acceptance, exact revision, configuration fingerprint, and safety boundaries (PENDING)
 <!-- forex-work-item id=independent-review state=PENDING -->
@@ -53,6 +53,63 @@ risk settings, another timeframe, a scheduler, or a Live path.
 <!-- forex-work-projection:end -->
 
 ## Current observed state
+
+Continuation 2026-09-22: natural source, lifecycle, runtime and proof-envelope
+verifiers are now implemented in `scripts/m30_natural_{sources,lifecycle,runtime,evidence}.py`.
+The collector defaults to formal proof from a clean committed worktree;
+`--raw-only` retains original observations during development. Existing
+`verify_m30_evidence.sh` dispatches natural manifests without changing the
+legacy one-shot proof requirements. The fixed entry-facts read is 4,134 encoded
+characters and adds all-session reservation totals (all statuses, no age filter
+on the sum). Fresh raw bundle `runs/evidence/M30/natural-raw-20260922T071835289277Z`
+passes source, deployed-code/topology and lifecycle component checks. Its 70
+session attempts total USD 80,753.95, below the USD 100,000 cap.
+
+Verification: 87 focused tests passed; governance and `git diff --check` passed.
+Read-only reviewer `/root/natural_requirements_review` identified missing joins,
+fill bounds, ticket/event checks, clean-code verification and observation
+freshness checks; these were repaired with negative controls. Formal proof
+capture and evidence-bound review remain pending, not implied by component
+passes. Chris explicitly authorised the local commit with “github commit”.
+Unrelated adapter and operator-view edits remain excluded; use a clean detached
+worktree for committed capture rather than discarding them. No push is implied.
+
+Update 2026-09-22: the terminal permission and governed risk-resume gates were
+resolved under docs/plans/m30-demo-mvp-unblocking.md. Current deployed revision
+is 875b3280ad0e4552bcb143d707ca57ca0e4b6c62, release 3d48e3f4cc8e4901,
+on the explicitly approved Interactive topology. Fixed lifecycle output now
+contains four CLOSED_MATCHED natural trades. Selected proposal
+a88ae86c-6b7e-5a03-9367-157389f0f0b5 / attempt
+a4df2396-9a25-53be-a606-ba63b33378a7 matches original spool sequence 78815,
+including its exact snapshot id and digest. Its retained broker history records
+SELL at 1.14623 and close at 1.14616, net AUD +0.10.
+
+Capture repair is in progress: the previously named natural capture script did
+not exist. The new script captures only original read-only spool and ledger
+outputs and emits UNVERIFIED_RAW_CAPTURE. It does not yet produce the formal
+proof manifest. The existing one-shot capture must not be used for this task.
+Next implement a narrowly scoped immutable session/attempt/selection export
+and a natural-source verifier with explicit provenance joins. Preserve existing
+entry/protection/cutoff/broker-history requirements. Separately bind capture
+revision and deployed revision through unchanged runtime source hashes; require
+the retained Interactive-topology exception and watchdog observation. Do not
+weaken the M20 verifier's default S4U contract or fabricate a one-shot wrapper.
+The historical observation below is superseded for current operating status.
+
+Raw-capture continuation: successful original-source bundles are retained at
+`runs/evidence/M30/natural-raw-20260922T070519200964Z` and
+`runs/evidence/M30/natural-raw-20260922T070756677362Z`. The latter includes the
+new fixed `forex-m30-natural-entry-facts` read: last 24 hours, at most 1000 Demo
+EURUSD session/proposal/attempt/selection records, no SQL or broker mutations.
+Its encoded transport was measured at 3102 characters before adding UTC output
+normalisation. Three collector tests pass; existing M30 tests also pass.
+Capture review fixes preserve partial timeout bytes and prevent cross-release
+page joins. The receipt remains UNVERIFIED; no manifest or proof marker exists.
+The PostgreSQL session timezone originally rendered year-9999 expiry as year
+10000 locally; the fixed read now requests UTC for parseable original output.
+Remaining work is natural-source verification, negative controls, committed
+capture binding and independent evidence review. No operator input is required
+for the current local verifier implementation.
 
 At `2026-09-17T08:08Z`, the T480 listener was `RUNNING` on immutable release
 `98d33531346f1c6a`. It had processed 56,039 assessments and its most recent
@@ -262,11 +319,13 @@ generic remote command as a substitute.
 
 ## Outcomes & Retrospective
 
-The release and continuous closed-candle assessment loop are operating. M30 is
-not yet complete because the scheduled terminal refuses automated submissions
-and no final-version natural listener lifecycle has been retained. When those
-two facts change, this plan provides the exact capture, verification, review,
-and formal-closeout route without expanding the MVP.
+The release and continuous closed-candle assessment loop have produced a
+retained natural closed trade. Historical terminal/risk blockers are resolved.
+M30 remains incomplete until clean committed capture, formal verification,
+evidence-bound review and human approval. Historical mutable risk headroom is
+not independently replayed; protection evidence is the accepted protected
+request plus guarded deployed implementation, not a retained independent
+position-SL/TP observation. Preserve these limitations in the closeout review.
 
 ## Artifacts and notes
 

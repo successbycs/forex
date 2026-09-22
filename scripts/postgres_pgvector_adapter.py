@@ -1070,6 +1070,16 @@ def m20_rejection_summary() -> dict:
     return wrap("forex_m20_rejection_summary", remote(body))
 
 
+def m30_natural_entry_facts() -> dict:
+    """Read immutable Demo entry facts from the last 24 hours, capped at 1000."""
+    query = "SELECT COALESCE(json_agg(x),'[]'::json) FROM (SELECT row_to_json(p) proposal,row_to_json(a) attempt,row_to_json(s) session,row_to_json(c) selection,(SELECT json_build_object('attempt_count',count(*),'reserved_notional_usd',COALESCE(sum(ap.notional_usd),0)) FROM forex.demo_execution_attempt aa JOIN forex.demo_trade_proposal ap ON ap.proposal_id=aa.proposal_id WHERE aa.session_id=s.session_id) session_reservations FROM forex.demo_execution_attempt a JOIN forex.demo_trade_proposal p USING(proposal_id) JOIN forex.demo_trade_session s ON s.session_id=p.session_id JOIN forex.demo_strategy_selection c USING(proposal_id) WHERE s.server='GOMarketsMU-Demo' AND s.instrument='EURUSD' AND a.submitted_at_utc>=now()-interval '24 hours' ORDER BY a.submitted_at_utc DESC LIMIT 1000)x;"
+    body = 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -qAtc "SET TIME ZONE \'UTC\'; ' + query + '" </dev/null'
+    return wrap('forex_m30_natural_entry_facts', remote(body))
+
+
+READ_ONLY.add('forex-m30-natural-entry-facts')
+
+
 def m20_lifecycle_summary() -> dict:
     """Read the fixed full lifecycle extract from its hash-bound staged SQL file."""
     relative, digest = asset("m20_lifecycle_summary_query")
@@ -1298,6 +1308,7 @@ def main(argv: list[str] | None = None) -> int:
     actions["forex-m1-apply-closed-candle-decision-identity-schema"] = apply_m1_closed_candle_decision_identity_schema
     actions["forex-m1-closed-candle-decision-identity-verify"] = m1_closed_candle_decision_identity_verify
     actions["forex-m20-lifecycle-summary"] = m20_lifecycle_summary
+    actions["forex-m30-natural-entry-facts"] = m30_natural_entry_facts
     actions["forex-m20-strategy-trial-summary"] = m20_strategy_trial_summary
     payload = actions[args.command]()
     print(json.dumps(payload, indent=2))

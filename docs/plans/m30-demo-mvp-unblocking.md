@@ -71,6 +71,32 @@ experiments.
 
 ## Progress
 
+Continuation 2026-09-22: natural-source verification is implemented with exact
+spool/snapshot/ledger joins, all-session reservation cap, broker fill/protection
+request checks, broker-history arithmetic and owner cutoff. Runtime checks bind
+the unchanged deployed source separately from the collector revision and enforce
+the approved Interactive, single-terminal, disabled-watchdog topology. Original
+bundle `runs/evidence/M30/natural-raw-20260922T071835289277Z` passes those component
+checks; 87 focused tests pass. Separate read-only review findings were repaired.
+Chris authorised the scoped commit. Next capture a formal bundle from a clean
+committed worktree, run the complete verifier and obtain evidence-bound review.
+The two remaining steps stay pending; no formal proof marker has been issued
+for the real bundle and no milestone state was changed.
+
+Continuation 2026-09-22: natural trade proposal
+`a88ae86c-6b7e-5a03-9367-157389f0f0b5` and exact snapshot were retained from
+immutable spool sequence 78815 together with its CLOSED_MATCHED broker history.
+Raw bundle: `runs/evidence/M30/natural-raw-20260922T070519200964Z`.
+The new read-only collector emits `UNVERIFIED_RAW_CAPTURE`; it cannot submit an
+order and does not claim proof. M30 tests pass. Separate read-only capture review
+by `/root/m30_capture_review` identified missing immutable session/attempt facts,
+one-shot-wrapper assumptions and an obsolete S4U verifier constraint. These are
+implementation work remaining in the natural verifier, not an operator blocker.
+Next: add narrowly scoped immutable-fact export, verify explicit provenance joins
+and approved topology, bind current collector revision separately from unchanged
+deployed runtime, then run negative controls and independent proof review.
+Keep bounded-lifecycle and independent-verification pending until those pass.
+
 <!-- forex-work-projection:start task=M30-DEMO-MVP-UNBLOCKING schema=forex.execution-work-projection.v1 -->
 <!-- forex-work-item id=scope-record state=DONE -->
 - [x] scope-record — Record the MVP/reliability split and reconcile plan metadata (DONE)

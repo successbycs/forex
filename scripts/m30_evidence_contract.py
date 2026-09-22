@@ -208,6 +208,10 @@ def verify(bundle: Path, root: Path) -> None:
     evidence_root = (root / "runs" / "evidence" / "M30").resolve()
     require(bundle.is_relative_to(evidence_root), "evidence bundle is outside the M30 evidence root")
     manifest = m20.read_json(bundle / "manifest.json")
+    if manifest.get('operation') == 'retained natural T480 M1 listener lifecycle':
+        from m30_natural_evidence import verify as verify_natural
+        verify_natural(bundle, root)
+        return
     require(manifest.get("schema_version") == "1.0.0", "manifest schema version mismatch")
     require(manifest.get("milestone_id") == "M30", "manifest milestone is not M30")
     require(manifest.get("dirty_worktree") is False, "manifest records a dirty worktree")
@@ -269,6 +273,6 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
-    except (m20.VerificationError, OSError, subprocess.SubprocessError) as error:
+    except (m20.VerificationError, ValueError, OSError, subprocess.SubprocessError) as error:
         print(f"M30 evidence verification failed: {error}", file=sys.stderr)
         raise SystemExit(2) from error
