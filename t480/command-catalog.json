@@ -15,6 +15,10 @@
     {"id":"m30_single_client_probe_status","purpose":"Read immutable interactive probe observations and one-shot task status.","approval_required":false},
     {"id":"m30_single_client_post_isolation_probe_run","purpose":"Run the fixed no-order visible-client probe only while the former Session0 topology remains isolated and held.","approval_required":false},
     {"id":"m30_single_client_post_isolation_probe_status","purpose":"Read the held post-isolation visible-client probe result without changing the former listener topology.","approval_required":false},
+    {"id":"m30_single_client_post_isolation_observe_run","purpose":"Run the bounded no-child-restriction attachment comparison with current isolation guards.","approval_required":false},
+    {"id":"m30_single_client_post_isolation_observe_status","purpose":"Read the exact bounded no-child-restriction attachment comparison result.","approval_required":false},
+    {"id":"m30_single_client_post_isolation_race_run","purpose":"Run the 30-second child-restricted close-during-connect race observation.","approval_required":false},
+    {"id":"m30_single_client_post_isolation_race_status","purpose":"Read the exact close-during-connect race result.","approval_required":false},
     {"id":"m30_session0_probe_run","purpose":"Run the fixed observation-only Session 0 account/exposure probe under the listener S4U principal.","approval_required":false},
     {"id":"m30_session0_probe_status","purpose":"Read immutable Session 0 account/exposure observations and the bounded S4U task status.","approval_required":false},
     {"id":"m30_session0_isolation_stage_1","purpose":"Stage fixed held-only Session0 isolation payload fragment 1.","approval_required":false},
@@ -209,12 +213,12 @@
     },
     {
       "id": "m20_listener_install_watchdog",
-      "purpose": "Install the fixed Session-0 watchdog that asks Windows Task Scheduler to run the existing Demo listener at boot and every two minutes.",
+      "purpose": "Retire the former Session-0 watchdog without creating, starting, or restarting any task.",
       "approval_required": false
     },
     {
       "id": "m20_listener_watchdog_status",
-      "purpose": "Read the fixed Session-0 listener watchdog task and schedule without starting either task.",
+      "purpose": "Read the retired former Session-0 watchdog task without starting either task.",
       "approval_required": false
     },
     {

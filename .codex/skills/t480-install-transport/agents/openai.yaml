@@ -1,0 +1,3 @@
+interface:
+  display_name: "T480 Install Transport"
+  short_description: "Keep fixed T480 installs within transport limits"

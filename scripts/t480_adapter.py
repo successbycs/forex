@@ -516,7 +516,7 @@ def _m20_listener_status_command() -> str:
         "if (!(Test-Path -LiteralPath $p)) { [pscustomobject]@{running=$false;state='NOT_STARTED';detail='No listener heartbeat exists.'}|ConvertTo-Json -Compress; exit 0 }; "
         "$s=gc -Raw -LiteralPath $p|ConvertFrom-Json; $notifications=$false; $config=Join-Path $state 'm20_demo_listener_service.local.json'; if(Test-Path -LiteralPath $config){try{$c=gc -Raw -LiteralPath $config|ConvertFrom-Json;$notifications=(([string]$c.FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED).ToLower() -eq 'true' -and -not [string]::IsNullOrWhiteSpace([string]$c.FOREX_M20_DISCORD_WEBHOOK_URL))}catch{}}; "
         "$age=$null; $stale=$false; try { $age=[Math]::Round(((Get-Date).ToUniversalTime()-([datetime]::Parse([string]$s.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds,1); $stale=($age -ge 30) } catch { $stale=$true }; "
-        "$recovery=if ($stale) { 'EXPLICIT_RECOVERY_REQUIRED' } else { 'NOT_REQUIRED' }; $recoveryDetail=$null; "
+        "$recovery=if ($stale) { 'EXPLICIT_RECOVERY_REQUIRED' } else { 'NOT_REQUIRED' }; "
         "$protection=$null;$protectionObservation='NO_DURABLE_PROTECTION_RECORD';$job=Join-Path $state 'm20_demo_monitor_job.local.json';if(Test-Path -LiteralPath $job){try{$j=gc -Raw -LiteralPath $job|ConvertFrom-Json;$protection=[ordered]@{ticket=$j.position.ticket;action=$j.proposal.action;entry_price=$j.position.price_open;stop_loss=$j.position.sl;take_profit=$j.position.tp;submitted_at_utc=$j.submitted_at_utc};$protectionObservation=if($s.monitor.state -eq 'RUNNING'){'OBSERVED_ACTIVE'}else{'LAST_KNOWN_UNVERIFIED'}}catch{$protectionObservation='DURABLE_PROTECTION_STATE_UNREADABLE'}};$drill=if($null -eq $s.protected_restart_drill){[ordered]@{observation='NOT_REPORTED';state=$null}}else{$s.protected_restart_drill};$state=if ($stale) { 'STALE' } else { $s.state }; $supervisorAlive=(!$stale -and ($s.state -notin @('STOPPED','STARTUP_FAILED'))); [pscustomobject]@{running=$supervisorAlive;state=$state;release_id=$s.release_id;heartbeat_at_utc=$s.heartbeat_at_utc;heartbeat_at_nzst=$s.heartbeat_at_nzst;heartbeat_age_seconds=$age;iteration=$s.process_iteration;assessment_total=$s.assessment_total;assessment_started_at_utc=$s.assessment_started_at_utc;assessment_completed_at_utc=$s.assessment_completed_at_utc;assessment_duration_ms=$s.assessment_duration_ms;next_assessment_at_utc=$s.next_assessment_at_utc;next_assessment_at_nzst=$s.next_assessment_at_nzst;detail=$s.detail;monitor=$s.monitor;quote=$s.quote;discord_open_alert_configured=$notifications;open_position_protection=$protection;protection_observation=$protectionObservation;protected_restart_drill=$drill;last_result=$s.last_result;recovery_action=$recovery;recovery_detail=$recoveryDetail}|ConvertTo-Json -Compress -Depth 8"
     )
 
@@ -617,26 +617,22 @@ def _m20_listener_recover_command() -> str:
 
 
 def _m20_listener_install_watchdog_command() -> str:
-    """Install a fixed Session-0 task that asks Task Scheduler to run the listener."""
+    """Retire the legacy Session-0 watchdog without creating a replacement."""
     return (
-        "$ErrorActionPreference='Stop';$listener='Forex-M20-Demo-Listener';$watch='Forex-M20-Listener-Watchdog';"
-        "if($null -eq (Get-ScheduledTask -TaskName $listener -ErrorAction SilentlyContinue)){throw 'Listener task is absent'};"
-        "$principal=New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U -RunLevel Highest;"
-        "$action=New-ScheduledTaskAction -Execute 'schtasks.exe' -Argument '/run /tn \"Forex-M20-Demo-Listener\"';"
-        "$boot=New-ScheduledTaskTrigger -AtStartup;$repeat=New-ScheduledTaskTrigger -Once -At ((Get-Date).AddMinutes(1)) -RepetitionInterval (New-TimeSpan -Minutes 2) -RepetitionDuration (New-TimeSpan -Days 3650);"
-        "$settings=New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 1) -MultipleInstances IgnoreNew;"
-        "Register-ScheduledTask -TaskName $watch -Action $action -Trigger @($boot,$repeat) -Principal $principal -Settings $settings -Force|Out-Null;Start-ScheduledTask -TaskName $watch -ErrorAction SilentlyContinue;"
-        "[pscustomobject]@{installed=$true;task=$watch;listener=$listener;interval_minutes=2;broker_mutation='NONE'}|ConvertTo-Json -Compress"
+        "$ErrorActionPreference='Stop';$watch='Forex-M20-Listener-Watchdog';$t=Get-ScheduledTask -TaskName $watch -ErrorAction SilentlyContinue;"
+        "if($null -eq $t){[pscustomobject]@{retired=$false;task=$watch;state='ABSENT';broker_mutation='NONE'}|ConvertTo-Json -Compress;exit 0};"
+        "if($t.State -eq 'Running'){Stop-ScheduledTask -TaskName $watch -ErrorAction Stop};Disable-ScheduledTask -TaskName $watch -ErrorAction Stop|Out-Null;"
+        "[pscustomobject]@{retired=$true;task=$watch;state='Disabled';broker_mutation='NONE'}|ConvertTo-Json -Compress"
     )
 
 
 def _m20_listener_watchdog_status_command() -> str:
-    """Read the fixed watchdog identity and schedule without starting either task."""
+    """Read the retired watchdog state without starting either task."""
     return (
         "$ErrorActionPreference='Stop';$t=Get-ScheduledTask -TaskName 'Forex-M20-Listener-Watchdog' -ErrorAction SilentlyContinue;"
         "if($null -eq $t){[pscustomobject]@{installed=$false;task='Forex-M20-Listener-Watchdog'}|ConvertTo-Json -Compress;exit 0};"
         "$i=Get-ScheduledTaskInfo -TaskName $t.TaskName;$a=$t.Actions|Select-Object -First 1;"
-        "[pscustomobject]@{installed=$true;task=$t.TaskName;state=$t.State.ToString();logon_type=$t.Principal.LogonType.ToString();execute=$a.Execute;arguments=$a.Arguments;last_result=$i.LastTaskResult;last_run_utc=$i.LastRunTime.ToUniversalTime().ToString('o')}|ConvertTo-Json -Compress"
+        "[pscustomobject]@{installed=$true;task=$t.TaskName;state=$t.State.ToString();logon_type=$t.Principal.LogonType.ToString();execute=$a.Execute;arguments=$a.Arguments;last_result=$i.LastTaskResult;last_run_utc=$i.LastRunTime.ToUniversalTime().ToString('o');retired=($t.State.ToString() -eq 'Disabled')}|ConvertTo-Json -Compress"
     )
 
 
@@ -911,10 +907,10 @@ def _m20_listener_install_command() -> str:
     service_digest = hashlib.sha256(service).hexdigest()
     return (
         "$ErrorActionPreference='Stop';$base='C:\\ProgramData\\ForexListener';$root=Join-Path $base 'releases\\" + release_id + "';$state=Join-Path $base state;$v=Join-Path $root 'm20_demo_listener_service.payload';$task='Forex-M20-Demo-Listener';"
-        "$c=gc -Raw (Join-Path $state 'm20_demo_listener_service.local.json')|ConvertFrom-Json;$d=gc -Raw (Join-Path $state 'm20_demo_listener_prepared.local.json')|ConvertFrom-Json;if(!(Test-Path $v)-or $d.release_id -ne '" + release_id + "'-or $d.service_sha256 -ne 'sha256:" + service_digest + "'){throw 'M20 release was not prepared and hash-bound'};"
-        "$p=$null;try{$p=Export-ScheduledTask -TaskName $task -ea Stop}catch{};if($p){[IO.File]::WriteAllText((Join-Path $state 'previous-task.xml'),$p,(New-Object Text.UTF8Encoding($false)))};"
-        "$action=New-ScheduledTaskAction -Execute $c.python_path -Argument ('\"'+$v+'\"');$trigger=New-ScheduledTaskTrigger -AtStartup;$principal=New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U -RunLevel Highest;$settings=New-ScheduledTaskSettingsSet -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero);"
-        "try{if($p){Stop-ScheduledTask -TaskName $task -ea SilentlyContinue};Get-CimInstance Win32_Process|Where-Object {$_.Name -match '^python(w)?\\.exe$' -and $_.CommandLine -like '*\\ProgramData\\ForexListener\\releases\\*m20_demo_listener_service.payload*'}|ForEach-Object{try{Stop-Process -Id $_.ProcessId -Force -ea Stop}catch{if($_.FullyQualifiedErrorId -notlike 'NoProcessFoundForGivenId,*'){throw}}};Register-ScheduledTask -TaskName $task -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force|Out-Null;Start-ScheduledTask -TaskName $task;Start-Sleep 5;$h=gc -Raw (Join-Path $state 'm20_demo_listener_status.local.json')|ConvertFrom-Json;$age=((Get-Date).ToUniversalTime()-([datetime]::Parse($h.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds;if($h.release_id -ne '" + release_id + "'-or $age -ge 30 -or $h.state -eq 'STARTUP_FAILED'){throw 'M20 no fresh heartbeat'}}catch{$f=$_.Exception.Message;if($p){Stop-ScheduledTask -TaskName $task -ea SilentlyContinue;Register-ScheduledTask -TaskName $task -Xml $p -Force|Out-Null;Start-ScheduledTask -TaskName $task -ea SilentlyContinue};throw ('M20 deployment rolled back: '+$f)};"
+        "$c=gc -Raw (Join-Path $state 'm20_demo_listener_service.local.json')|ConvertFrom-Json;$d=gc -Raw (Join-Path $state 'm20_demo_listener_prepared.local.json')|ConvertFrom-Json;if(!(Test-Path $v)-or $d.release_id -ne '" + release_id + "'-or $d.service_sha256 -ne 'sha256:" + service_digest + "'){throw 'M20 release was not prepared and hash-bound'};$w=Get-ScheduledTask 'Forex-M20-Listener-Watchdog' -ea 0;if($w -and $w.State -ne 'Disabled'){throw 'legacy watchdog disabled'};"
+        "$p=$null;try{$p=Export-ScheduledTask $task -ea 0}catch{};if($p){[IO.File]::WriteAllText((Join-Path $state 'previous-task.xml'),$p,(New-Object Text.UTF8Encoding($false)))};"
+        "$action=New-ScheduledTaskAction -Execute $c.python_path -Argument ('\"'+$v+'\"');$trigger=New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME;$principal=New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest;$settings=New-ScheduledTaskSettingsSet -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero);"
+        "try{if($p){Stop-ScheduledTask $task -ea 0};Get-CimInstance Win32_Process|Where-Object {$_.Name -match '^python(w)?\\.exe$' -and $_.CommandLine -like '*\\ProgramData\\ForexListener\\releases\\*m20_demo_listener_service.payload*'}|ForEach-Object{try{Stop-Process -Id $_.ProcessId -Force -ea Stop}catch{if($_.FullyQualifiedErrorId -notlike 'NoProcessFoundForGivenId,*'){throw}}};Register-ScheduledTask $task -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force|Out-Null;Start-ScheduledTask $task;Start-Sleep 5;$h=gc -Raw (Join-Path $state 'm20_demo_listener_status.local.json')|ConvertFrom-Json;$age=((Get-Date).ToUniversalTime()-([datetime]::Parse($h.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds;if($h.release_id -ne '" + release_id + "'-or $age -ge 30 -or $h.state -eq 'STARTUP_FAILED'){throw 'M20 heartbeat absent'}}catch{$f=$_.Exception.Message;Stop-ScheduledTask $task -ea 0;Disable-ScheduledTask $task -ea 0;if($p){Register-ScheduledTask $task -Xml $p -Force|Out-Null;Disable-ScheduledTask $task -ea 0};throw ('M20 deployment held: '+$f)};"
         "[pscustomobject]@{installed=$true;task=$task;release_id='" + release_id + "';service_sha256='sha256:" + service_digest + "'}|ConvertTo-Json -Compress"
     )
 
@@ -1181,12 +1177,12 @@ OPERATIONS: dict[str, Operation] = {
     ),
     "m20_listener_install_watchdog": Operation(
         "m20_listener_install_watchdog",
-        "Install the fixed Session-0 watchdog that asks Windows Task Scheduler to run the existing Demo listener at boot and every two minutes.",
+        "Retire the former Session-0 watchdog without creating, starting, or restarting any task.",
         powershell_command=_m20_listener_install_watchdog_command(),
     ),
     "m20_listener_watchdog_status": Operation(
         "m20_listener_watchdog_status",
-        "Read the fixed Session-0 listener watchdog task and schedule without starting either task.",
+        "Read the retired former Session-0 watchdog task without starting either task.",
         powershell_command=_m20_listener_watchdog_status_command(),
     ),
     "m20_listener_run_reboot_recovery_protocol": Operation(
@@ -1585,6 +1581,14 @@ def _m30_interactive_probe_operations() -> dict[str, Operation]:
     # start, enable, or repair either task.
     post_guard = "$state='C:\\ProgramData\\ForexListener\\state';$original=Get-ScheduledTask 'Forex-M20-Demo-Listener';$watchdog=Get-ScheduledTask 'Forex-M20-Listener-Watchdog';if($original.State.ToString() -ne 'Disabled' -or $watchdog.State.ToString() -ne 'Disabled'){throw 'former tasks must remain disabled'};"
     name = 'm30_single_client_post_isolation_probe_run'
+    post_guard += (
+        "$hold=gc -Raw (Join-Path $state 'm20_demo_maintenance_hold.local.json')|ConvertFrom-Json;"
+        "if($hold.enabled -ne $true -or $hold.schema_version -ne 'forex.m20.maintenance-hold.v1'){throw 'maintenance hold required'};"
+        "$ps=@(Get-CimInstance Win32_Process);"
+        "if(@($ps|Where-Object{$_.Name -match '^python(w)?\\.exe$' -and ($_.CommandLine -like '*ForexListener*' -or !$_.CommandLine)}).Count){throw 'worker absence unproven'};"
+        "$all=@($ps|Where-Object{$_.Name -in @('terminal.exe','terminal64.exe')});"
+        "if($all.Count -ne 1 -or $all[0].SessionId -eq 0 -or !$all[0].ExecutablePath){throw 'sole visible terminal required'};"
+    )
     operations[name] = Operation(name, 'Run the fixed no-order visible-client probe only while the former Session0 topology remains isolated and held.',
         powershell_command=prefix + "$p=Join-Path $r 'probe.py';if((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLower() -ne '" + digest + "'){throw 'probe hash mismatch'};"
         + post_guard +
@@ -1592,8 +1596,46 @@ def _m30_interactive_probe_operations() -> dict[str, Operation]:
         "$terminals=@(Get-CimInstance Win32_Process|Where-Object{$_.Name -in @('terminal.exe','terminal64.exe') -and $_.SessionId -gt 0 -and $_.ExecutablePath -eq $c.terminal_path});if($terminals.Count -ne 1){throw 'one interactive terminal required'};$owner=Invoke-CimMethod -InputObject $terminals[0] -MethodName GetOwnerSid;if($owner.ReturnValue -ne 0 -or $owner.Sid -ne $sid){throw 'interactive terminal owner mismatch'};"
         "$n='Forex-M30-Client-PostIsolation-Probe-" + digest[:16] + "';$prior=Get-ScheduledTask $n -ErrorAction SilentlyContinue;if($prior -and $prior.State -eq 'Running'){throw 'probe already running'};$a=New-ScheduledTaskAction -Execute $c.python_path -Argument ('\"'+$p+'\" --post-isolation-observe');$q=New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Highest;$s=New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 1) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries;Register-ScheduledTask -TaskName $n -Action $a -Principal $q -Settings $s -Force|Out-Null;Start-ScheduledTask $n;[pscustomobject]@{started=$true;task=$n;expected_session_id=$terminals[0].SessionId;source_sha256='" + digest + "';broker_mutation='NONE'}|ConvertTo-Json -Compress")
     name = 'm30_single_client_post_isolation_probe_status'
+    operations['m30_single_client_post_isolation_probe_run'] = Operation(
+        'm30_single_client_post_isolation_probe_run',
+        'Run the child-restricted no-order probe after current isolation guards pass.',
+        powershell_command=operations['m30_single_client_post_isolation_probe_run'].powershell_command.replace(
+            '--post-isolation-observe', '--post-isolation'),
+    )
+    observe_name = 'm30_single_client_post_isolation_observe_run'
+    operations[observe_name] = Operation(
+        observe_name,
+        'Run the bounded no-child-restriction attachment comparison with current isolation guards.',
+        powershell_command=operations['m30_single_client_post_isolation_probe_run'].powershell_command.replace(
+            "Forex-M30-Client-PostIsolation-Probe-", "Forex-M30-Client-PostIsolation-Observe-"
+        ).replace('--post-isolation', '--post-isolation-observe'),
+    )
     operations[name] = Operation(name, 'Read the held post-isolation visible-client probe result without changing the former listener topology.',
         powershell_command=prefix + "$n='Forex-M30-Client-PostIsolation-Probe-" + digest[:16] + "';$t=Get-ScheduledTask $n -ErrorAction SilentlyContinue;$i=if($t){Get-ScheduledTaskInfo $n}else{$null};$rows=@();if(Test-Path -LiteralPath $r){$rows=@(Get-ChildItem -LiteralPath $r -Filter 'observation-????????????????????????????????.json'|Sort-Object LastWriteTimeUtc -Descending|Select-Object -First 5|ForEach-Object{if($_.Length -gt 65536){throw 'probe result too large'};[pscustomobject]@{file=$_.Name;sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower();result=(gc -Raw -LiteralPath $_.FullName|ConvertFrom-Json)}})};[pscustomobject]@{task_state=if($t){$t.State.ToString()}else{'ABSENT'};last_result=if($i){$i.LastTaskResult}else{$null};observations=$rows}|ConvertTo-Json -Compress -Depth 12")
+    observe_status = 'm30_single_client_post_isolation_observe_status'
+    operations[observe_status] = Operation(
+        observe_status,
+        'Read the exact bounded no-child-restriction attachment comparison result.',
+        powershell_command=operations['m30_single_client_post_isolation_probe_status'].powershell_command.replace(
+            "Forex-M30-Client-PostIsolation-Probe-", "Forex-M30-Client-PostIsolation-Observe-"
+        ),
+    )
+    race_name = 'm30_single_client_post_isolation_race_run'
+    operations[race_name] = Operation(
+        race_name,
+        'Run the 30-second child-restricted close-during-connect race observation.',
+        powershell_command=operations['m30_single_client_post_isolation_probe_run'].powershell_command.replace(
+            "Forex-M30-Client-PostIsolation-Probe-", "Forex-M30-Client-PostIsolation-Race-"
+        ).replace('--post-isolation', '--post-isolation-race'),
+    )
+    race_status = 'm30_single_client_post_isolation_race_status'
+    operations[race_status] = Operation(
+        race_status,
+        'Read the exact close-during-connect race result.',
+        powershell_command=operations['m30_single_client_post_isolation_probe_status'].powershell_command.replace(
+            "Forex-M30-Client-PostIsolation-Probe-", "Forex-M30-Client-PostIsolation-Race-"
+        ),
+    )
     name = 'm30_session0_probe_run'
     operations[name] = Operation(name, 'Run the fixed observation-only Session 0 account/exposure probe under the listener S4U principal.',
         powershell_command=prefix + "$p=Join-Path $r 'probe.py';if((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLower() -ne '" + digest + "'){throw 'probe hash mismatch'};"

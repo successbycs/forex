@@ -18,6 +18,42 @@ and the listener's reported submission permission, compounded by unproven runtim
 ownership. The smallest candidate change is to the existing connection and task
 configuration. Additional MCP integration, schedulers and services are deferred.
 
+## MVP boundary and finish line
+
+The MVP is one working, protected EURUSD M1 Demo loop through Chris's managed
+visible client. Prove connection first, then safe client closure and reopening,
+before building or deploying dependent runtime changes. Use the simplest
+demonstrated mechanism in the existing listener, task and audit paths. If the
+connection hypothesis fails, record the measured limitation and smallest viable
+alternative before expanding implementation. Do not turn terminal ownership or
+recovery into a general infrastructure project.
+
+Chris manages client availability and keeps the intended client and required
+desktop session available while a trade needs application monitoring or a
+scheduled exit. Before enabling entries, document and verify the in-scope
+availability controls and outage response needed to meet those obligations.
+Refusing new entries when the client disappears does not protect an existing
+position or perform its mandatory exit; a broker-held stop is not a substitute
+for either application capability. An unmet protection or exit requirement blocks
+entry enablement even under this operator-managed agreement.
+
+Automatic recovery across desktop disconnect, logoff or reboot is deferred,
+as are additional services, schedulers, dashboards, broader orchestration and
+time-frame expansion. Document those availability limitations without adding
+resilience features or tests for them to this plan. The required client
+closure/reopening and close-during-connect tests remain in scope. If meeting
+existing M30 safety requirements needs a broader design, report that conflict
+before expanding scope.
+
+The real-world finish line is the verified single-client behaviour above plus
+one naturally eligible, bounded Demo entry on the final deployed version,
+required protection and management, mandatory close, and complete broker-history
+reconciliation. Retain code/configuration provenance and pass the declared
+verification and independent review. A diagnostic trade alone does not meet
+this finish line. Valid NO_TRADE decisions may continue while waiting for a
+natural setup; they are not a reason to force a trade or broaden the strategy.
+Formal M30 closeout remains a separate human-approved action.
+
 ## Formal milestone dependency map
 
 The repository state identifies M29 as PROVEN, M30 as active and M31 as next.
@@ -113,12 +149,12 @@ Its result is the decision gate for implementation, not a promise of feasibility
 <!-- forex-work-projection:start task=M30-SINGLE-CLIENT-RECOVERY schema=forex.execution-work-projection.v1 -->
 <!-- forex-work-item id=baseline state=DONE -->
 - [x] baseline — Establish current task and terminal ownership (DONE)
-<!-- forex-work-item id=connection-probe state=IN_REVIEW -->
-- [ ] connection-probe — Prove connection to the managed visible Demo client (IN_REVIEW)
-<!-- forex-work-item id=closure-recovery state=PENDING -->
-- [ ] closure-recovery — Prove client closure and reopening behaviour (PENDING)
-<!-- forex-work-item id=implementation-review state=PENDING -->
-- [ ] implementation-review — Implement the demonstrated setup and independently review it (PENDING)
+<!-- forex-work-item id=connection-probe state=DONE -->
+- [x] connection-probe — Prove connection to the managed visible Demo client (DONE)
+<!-- forex-work-item id=closure-recovery state=DONE -->
+- [x] closure-recovery — Prove client closure and reopening behaviour (DONE)
+<!-- forex-work-item id=implementation-review state=DONE -->
+- [x] implementation-review — Implement the demonstrated setup and independently review it (DONE)
 <!-- forex-work-item id=deployment state=PENDING -->
 - [ ] deployment — Deploy and verify the single-client setup (PENDING)
 <!-- forex-work-item id=demo-round-trip state=PENDING -->
@@ -170,8 +206,9 @@ observe at least two cycles of correct account/profile connection and permission
 Also test the close-during-connect race; a single orderly close is insufficient
 to establish a no-launch guarantee. Stop on unexpected process creation.
 
-Record what disconnect, logoff and reboot mean in the operating agreement.
-Only claim resilience for events tested. Client absence removes application
+Record desktop disconnect, logoff and reboot as availability limitations;
+automatic resilience and testing for those events are deferred under the MVP
+boundary above. Only claim resilience for events tested. Client absence removes application
 monitoring and scheduled exit capability; broker-held stops are not equivalent.
 Document prevention and response for outages while exposed before enabling entries.
 
@@ -265,6 +302,108 @@ Continue independent authorised investigation. A missing probe is implementation
 work; fresh-market evidence may await quotes without blocking local repairs.
 
 ## Decision Log
+
+2026-09-21: Resume connection diagnosis after the repository host rejoined its
+home LAN. Fresh fixed observations at 10:14Z, retained unchanged under
+`runs/local/m30-single-client-recovery/resume-FmfrwE4G/`, show both former tasks
+Disabled, maintenance hold present, no Forex Python worker and the sole visible
+terminal PID 6440 in Session2. This removes the transport blocker only.
+The original 15-minute isolation-receipt limit cannot support an intentionally
+stopped listener on a later day. For the restricted observation only, replace
+that age ceiling with current task/hold/worker/global-terminal guards and a
+second child-restricted inventory check in Python. Preserve the historical
+receipt and reject invalid/future receipt timestamps. No flatness, restart,
+closure, or production-migration authority follows from these checks.
+Independent reviewer `/root/probe_review` supports this diagnostic approach;
+review of the edited source is required before staging. Numeric MT5 errors will
+be retained without free-text error messages. A client restart remains a
+hypothesis, not a prerequisite established by evidence.
+
+For this resumed diagnostic, stage `m30_single_client_probe_stage_1` through
+`m30_single_client_probe_stage_8`, run `m30_single_client_probe_verify`, then
+`m30_single_client_post_isolation_probe_run` and poll its matching
+`m30_single_client_post_isolation_probe_status`. The operation now selects
+child-restricted `--post-isolation`; a separately named bounded comparison uses
+`--post-isolation-observe` under the same current guards. The local probe/runner
+suite passes 29 tests, including
+historical-receipt failure cases and encoded diagnostic command limits.
+
+2026-09-22: The revised restricted post-isolation probe completed with one
+unchanged Session2 terminal and no broker mutation, but MT5 returned numeric
+`-10003`, which MQL5 documents as internal IPC initialization/no IPC. A
+separately current fixed reader observed the same Demo/AUD terminal connected
+with terminal and account permissions true and `submission_permitted=true`.
+The bounded no-child-restriction comparison then ran to its task limit without
+a result; postflight again found only the original terminal. This establishes an
+interactive Scheduled Task attachment failure, not disabled terminal trading.
+The fresh account reader reported zero open positions. The next action is a
+human-visible terminal restart while flat, followed by both exact probes. Do
+not close the terminal remotely, migrate the listener, or treat the SSH-context
+reader as an interactive-client ownership proof.
+
+2026-09-22: Chris restarted the visible MT5 client while the current fixed
+account reader showed zero positions. The exact child-restricted Session2 probe
+then succeeded without changing inventory: one configured terminal PID 16412,
+approved Demo/AUD account/profile scope, zero pending orders, permissions true
+and no broker mutation. This completes the bounded connection criterion at
+session scope. It establishes no native PID attach contract and does not replace
+the pending closure/reopening acceptance tests.
+
+2026-09-22: Client closure/reopening now has two retained checks in each state.
+With the client manually closed, both identity reads found no terminal and the
+guarded probe refused before MT5 initialization; no replacement was launched.
+After manual reopening, two separate child-restricted probes reattached to the
+same single Session2 terminal with correct Demo/AUD profile, zero exposure and
+unchanged inventories. The close-during-connect race remains the only pending
+closure/recovery acceptance check.
+
+2026-09-22: The fixed 30-second close-during-connect race completed with the
+client present before the delay and absent after Chris closed it. The restricted
+probe recorded `INITIALIZE_FAILED` / `-10003`, `TERMINAL_INVENTORY_CHANGED`, and
+an empty after-inventory; fixed postflight found no terminal or listener worker.
+No replacement was created and no broker mutation occurred. The tested
+closure/reopening acceptance is complete; do not claim logoff or reboot
+resilience, which remain deferred.
+
+2026-09-22: Implementation now changes the existing listener installation to
+an Interactive, user-logon task. The separate fixed watchdog operation only
+retires the former Session-0 task and deployment must run it before installation.
+Rollback always leaves either task definition Disabled. The runner already starts its fixed audit bridge before
+applying the irreversible child-launch restriction that precedes every MT5
+call. Focused adapter, probe and runner isolation tests passed; governed
+configuration fingerprint is `sha256:54f3ed8ad553322c7cc9232ff1b4cc1967ced0f2f484e3109b8b85b5aa988ef0`.
+The subsequent independent review and repair record below is required before
+staging, committing, deployment or enabling Demo entries.
+
+2026-09-22: Independent reviewer `/root/interactive_review` initially found
+that rollback could start the old S4U task and then required the installer to
+refuse an enabled watchdog before any mutation. Both repairs are present and
+re-reviewed: rollback stops/disables the current task and restores prior XML
+only Disabled; an enabled watchdog fails preflight. The reviewer approved the
+implementation item only. Full focused adapter, probe and runner-isolation
+suite passed; the relevant encoded commands are install 7,134 and status 7,490
+characters, each below the 7,500 limit. This is not deployment approval or
+Demo-entry authority.
+
+2026-09-22T03:49Z: Fixed T480 preflight reached the host and the fixed
+watchdog reader confirmed the legacy S4U watchdog is Disabled (`retired=true`).
+The fixed terminal identity reader found no terminal or listener process; this
+is expected after the controlled close test but is a deployment NO-GO. Reopen
+the managed visible client, then repeat current process/account preflight only
+after the reviewed source is committed and release-bound.
+
+2026-09-22T03:57Z: Chris reopened the client. Fixed process identity now finds
+exactly one configured terminal (PID 16048, Session2) with no listener process;
+the former listener task and watchdog remain Disabled. This restores client
+availability for the next preflight but does not itself bind the reviewed
+source, validate current account permissions, or authorize deployment.
+
+2026-09-21: At Chris's request, make the MVP boundary and real-world finish line
+explicit in one section. Keep connection feasibility ahead of dependent work,
+operator-managed availability, and the existing protection and mandatory-exit
+requirements. Explicitly defer broader infrastructure and desktop-disconnect,
+logoff and reboot resilience. This clarifies scope without changing acceptance
+states, marking proof complete, or authorising deployment or formal closeout.
 
 2026-09-20: Chris selected one managed visible client and asked for this plan and
 tracking. Keep the completed diagnostic repair historical. Use existing tracking

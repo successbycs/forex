@@ -396,6 +396,8 @@ def test_m20_listener_status_is_fixed_and_redacted():
     assert "Forex-M20-Demo-Listener" not in command
     assert "EXPLICIT_RECOVERY_REQUIRED" in command
     assert "Start-ScheduledTask" not in command
+    from t480_core import build_ssh_command
+    assert len(build_ssh_command("OEM@192.168.0.210", command, t480_adapter.TRANSPORT_SETTINGS)[-1]) < 7_500
     assert "Stop-ScheduledTask" not in command
     assert "assessment_total=$s.assessment_total" in command
     assert "$s.monitor.state -eq 'RUNNING'" in command
@@ -552,9 +554,9 @@ def test_m20_listener_install_is_hash_checked_and_fixed():
     command = t480_adapter.OPERATIONS["m20_listener_install"].powershell_command
     assert "Forex-M20-Demo-Listener" in command
     assert "Register-ScheduledTask" in command
-    assert "New-ScheduledTaskTrigger -AtStartup" in command
-    assert "New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U" in command
-    assert "AtLogOn" not in command
+    assert "New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME" in command
+    assert "New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive" in command
+    assert "AtStartup" not in command and "LogonType S4U" not in command
     assert "m20_demo_listener_service.local.json" in command
     assert "m20_demo_listener_service.payload" in command
     assert "C:\\ProgramData\\ForexListener" in command
@@ -562,13 +564,19 @@ def test_m20_listener_install_is_hash_checked_and_fixed():
     assert "Get-CimInstance Win32_Process" in command
     assert "m20_demo_listener_service.payload" in command
     assert "Stop-Process -Id $_.ProcessId -Force" in command
-    assert "M20 deployment rolled back" in command
+    assert "M20 deployment held" in command
     assert "-RestartCount 3" in command
     assert "-ExecutionTimeLimit ([TimeSpan]::Zero)" in command
-    assert "Forex-M20-Listener-Watchdog" not in command
+    assert "Forex-M20-Listener-Watchdog" in command
+    assert "Get-ScheduledTask 'Forex-M20-Listener-Watchdog'" in command
+    assert "legacy watchdog disabled" in command
+    assert "Register-ScheduledTask $task -Xml $p -Force|Out-Null;Disable-ScheduledTask $task" in command
+    assert "Register-ScheduledTask $task -Xml $p -Force|Out-Null;Start-ScheduledTask" not in command
     assert len(command) < 3000
     assert "FOREX_M20_POSTGRES_DSN" not in command
     assert "FOREX_M20_DISCORD_WEBHOOK_URL" not in command
+    from t480_core import build_ssh_command
+    assert len(build_ssh_command("OEM@192.168.0.210", command, t480_adapter.TRANSPORT_SETTINGS)[-1]) < 7_500
 
 
 def test_m20_listener_copy_unchanged_payloads_is_fixed_hash_checked_and_nontrading():
@@ -585,14 +593,14 @@ def test_m20_listener_copy_unchanged_payloads_is_fixed_hash_checked_and_nontradi
     assert "Remove-Item" not in command
 
 
-def test_m20_listener_watchdog_is_fixed_session_zero_and_has_no_order_surface():
+def test_m20_listener_watchdog_is_retired_without_a_session_zero_replacement():
     command = t480_adapter.OPERATIONS["m20_listener_install_watchdog"].powershell_command or ""
-    assert "Forex-M20-Demo-Listener" in command
     assert "Forex-M20-Listener-Watchdog" in command
-    assert "New-ScheduledTaskTrigger -AtStartup" in command
-    assert "-RepetitionInterval (New-TimeSpan -Minutes 2)" in command
-    assert "New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U" in command
-    assert "schtasks.exe" in command
+    assert "Disable-ScheduledTask" in command
+    assert "Stop-ScheduledTask" in command
+    assert "Register-ScheduledTask" not in command
+    assert "AtStartup" not in command and "LogonType S4U" not in command
+    assert "schtasks.exe" not in command
     assert "broker_mutation='NONE'" in command
     assert "order_send" not in command and "GOMarketsMU-Live" not in command
 

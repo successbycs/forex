@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
 from uuid import uuid4
 
 CONFIG = Path(r'C:\ProgramData\ForexListener\state\m20_demo_listener_service.local.json')
@@ -104,7 +105,9 @@ def restrict_children(k):
 
 def observe(mt5, terminal_path, expected_scope):
     if not mt5.initialize(path=terminal_path, timeout=5000):
-        return {'connection': 'UNAVAILABLE', 'reason': 'INITIALIZE_FAILED'}
+        error = mt5.last_error()
+        return {'connection': 'UNAVAILABLE', 'reason': 'INITIALIZE_FAILED',
+                'mt5_error_code': error[0] if isinstance(error, tuple) and error and type(error[0]) is int else None}
     try:
         a, t = mt5.account_info(), mt5.terminal_info()
         if not a or not t or a.server != 'GOMarketsMU-Demo' or a.currency != 'AUD':
@@ -128,7 +131,21 @@ def observe(mt5, terminal_path, expected_scope):
         mt5.shutdown()
 
 
-def run(expected_session_id=None, require_isolated=False, restrict_child_creation=True):
+def isolated_observation_allowed(isolation, before, terminal_path, expected_session_id, restricted, now):
+    """Historical isolation plus current guarded inventory permits observation only."""
+    try:
+        completed = datetime.fromisoformat(isolation['completed_at_utc'].replace('Z', '+00:00'))
+        return (isolation.get('state') == 'ISOLATED'
+                and isolation.get('broker_mutation') == 'NONE'
+                and completed <= now and isinstance(restricted, bool)
+                and expected_session_id > 0 and len(before) == 1
+                and before[0]['session_id'] == expected_session_id
+                and before[0]['installation_exe_sha256'] == digest(terminal_path))
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return False
+
+
+def run(expected_session_id=None, require_isolated=False, restrict_child_creation=True, race_delay_seconds=0):
     result = {'schema_version': 'forex.m30.single-client-probe.v1', 'probe_pid': os.getpid(),
               'captured_at_utc': datetime.now(timezone.utc).isoformat(), 'broker_mutation': 'NONE',
               'attribution': 'UNVERIFIED', 'child_policy_verified': False}
@@ -169,15 +186,17 @@ def run(expected_session_id=None, require_isolated=False, restrict_child_creatio
             if not rows:
                 raise RuntimeError('ISOLATED_STATE_REQUIRED')
             isolation = json.loads(max(rows, key=lambda path: path.stat().st_mtime).read_text(encoding='utf-8-sig'))
-            completed = datetime.fromisoformat(isolation['completed_at_utc'].replace('Z', '+00:00'))
-            if (isolation.get('state') != 'ISOLATED' or isolation.get('broker_mutation') != 'NONE'
-                    or not 0 <= (datetime.now(timezone.utc) - completed).total_seconds() < 900
-                    or any(row['session_id'] == 0 and row['installation_exe_sha256'] == digest(config['terminal_path']) for row in result['before'])):
+            if not isolated_observation_allowed(isolation, result['before'], config['terminal_path'],
+                                                expected_session_id, restrict_child_creation,
+                                                datetime.now(timezone.utc)):
                 raise RuntimeError('ISOLATED_STATE_REQUIRED')
         candidates = [p for p in result['before'] if p['session_id'] == expected_session_id
                       and p['installation_exe_sha256'] == digest(config['terminal_path'])]
         if len(candidates) != 1:
             raise RuntimeError('SINGLE_VISIBLE_CANDIDATE_REQUIRED')
+        if race_delay_seconds:
+            result['race_delay_seconds'] = race_delay_seconds
+            time.sleep(race_delay_seconds)
         import MetaTrader5 as mt5
         result['observation'] = observe(mt5, config['terminal_path'], profile['account_scope_sha256'])
         result['after'] = inventory(k)
@@ -209,5 +228,7 @@ if __name__ == '__main__':
         run(require_isolated=True)
     elif len(sys.argv) == 2 and sys.argv[1] == '--post-isolation-observe':
         run(require_isolated=True, restrict_child_creation=False)
+    elif len(sys.argv) == 2 and sys.argv[1] == '--post-isolation-race':
+        run(require_isolated=True, race_delay_seconds=30)
     else:
         raise SystemExit('expected no arguments, fixed --session0, fixed --post-isolation, or fixed --post-isolation-observe')

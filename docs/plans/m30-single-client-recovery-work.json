@@ -18,7 +18,7 @@
     {
       "id": "connection-probe",
       "title": "Prove connection to the managed visible Demo client",
-      "state": "IN_REVIEW",
+      "state": "DONE",
       "requires": [
         "baseline"
       ],
@@ -29,27 +29,37 @@
         ,"2026-09-20T11:07Z the restricted staged runner/audit bridge returned FOREX_M30_PRE_ISOLATION_READINESS: durable_open_positions_count=0 and unresolved_execution_attempts_count=0. The listener was in fresh MAINTENANCE_HOLD with monitor IDLE and no assessment in flight. An initial readiness run failed closed because the new fixed command was absent from the runner allow-list; the one-identifier repair was tested and restaged before this successful result. No terminal or broker mutation occurred."
         ,"2026-09-20T11:29Z--11:41Z Session0 isolation completed with broker_mutation=NONE and retained outcome sha256:0d0e1bc65783d857c4bafbeb34b7a776e9e29d7fd4da06e7f21c14bf28fee258 (Session0 pre-observation) / isolation task result run_id=8a17330e8c6b416d8442cd553f16b19f. Both former S4U tasks are Disabled, hold remains present and diagnostics show no Forex listener Python process. Exactly one configured terminal remains: PID 6440 in Session2. A child-restricted post-isolation probe then returned INITIALIZE_FAILED without inventory change. An attach-only variant was terminated at its fixed 60-second bound without an output record; postflight still found the sole Session2 terminal and no listener process. This proves isolation/no replacement but not MT5 API attachment, permissions, account observation, or native PID binding."
         ,"2026-09-21T05:57:01Z--05:57:33Z after a report that T480 access was restored, three fixed read-only operations (m20_listener_status, m20_listener_terminal_identity, and m20_listener_terminal_capability) each failed with an SSH connect timeout to 192.168.0.210:22. Raw adapter outputs are under runs/local/m30-single-client-recovery/t480-access-20260921T055701Z/. No remote task, terminal, listener, or broker action was reached or changed. This leaves the connection observation unverified."
+        ,"2026-09-22T01:54Z restricted post-isolation probe result sha256:ee65973a194b3ac903e9f81c907f91f192dccfd2bd8ae5548ddc550e44a26afa retained under runs/local/m30-single-client-recovery/post-isolation-probe-0rfEioHP/: one configured terminal PID 6440 in Session2 with unchanged before/after inventory and child restriction verified. MT5 initialize returned numeric error -10003 (internal IPC initialization/no IPC). No broker mutation occurred. The current fixed terminal-capability reader separately observed connected GOMarketsMU-Demo/AUD with terminal_trade_allowed=true, terminal_tradeapi_disabled=false, account permissions true and submission_permitted=true. This proves permissions and isolates an interactive scheduled-task IPC failure; it does not prove attachment."
+        ,"2026-09-22T01:57Z unrestricted bounded comparison under the same current isolation guards ran until its scheduled-task limit (last_result=267014) without retaining an observation. Postflight retained under runs/local/m30-single-client-recovery/unrestricted-comparison-*/ still found exactly configured terminal PID 6440 in Session2, no listener worker, and broker_mutation=NONE. A fresh approved account reader observed GOMarketsMU-Demo/AUD with open_positions=0 and balance/equity equal. Both restricted and unrestricted interactive task variants therefore fail to attach while the SSH-context reader works."
+        ,"2026-09-22T02:03Z after Chris manually restarted the visible MT5 client, the bounded child-restricted Session2 probe completed: retained observation sha256:80171587ab6894320599d9b79cae51b0454de05d773bb502d1493edc0ba6720e under runs/local/m30-single-client-recovery/after-client-restart-j9sATwUz/. It observed the approved GOMarketsMU-Demo/AUD account scope, terminal_connected=true, terminal_trade_allowed=true, terminal_tradeapi_disabled=false, account permissions true, zero positions/pending orders and unchanged pre/post inventory containing only configured terminal PID 16412 in Session2. attribution=SESSION_SCOPED_NOT_PID_BOUND and broker_mutation=NONE. This proves the bounded intended-client connection; it does not prove native PID attachment or closure/reopening recovery."
       ],
       "blocker": null
     },
     {
       "id": "closure-recovery",
       "title": "Prove client closure and reopening behaviour",
-      "state": "PENDING",
+      "state": "DONE",
       "requires": [
         "connection-probe"
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-09-22T02:55Z Chris manually closed the flat visible client. Two fixed identity observations six seconds apart retained under runs/local/m30-single-client-recovery/client-closed-AkSOwq2s/ found terminal_processes=[] and listener_processes=[]; the current-guarded probe refused before MT5 initialization with sole visible terminal required. No replacement process or broker mutation occurred.",
+        "2026-09-22T02:55Z after Chris reopened the visible client, two child-restricted Session2 probes retained under runs/local/m30-single-client-recovery/client-reopened-*/ observed the same configured PID 21520, correct GOMarketsMU-Demo/AUD account scope, zero positions/pending orders, enabled permissions and unchanged pre/post inventory. Observation SHA-256 values are 564fae22158c4e2c07f2ac1d8431ec17c6bd93140d50dbdd490ca5eabd2a6ada and e781f734ff89a652086f7a89f9783c8ea50e3ef8a2854a7a29cd5cea0f9a5cfb. broker_mutation=NONE."
+        ,"2026-09-22T02:58Z close-during-connect race result sha256:d34cdb12ad018b819aacd9d9738ab8d13c044d4d0373114b01c370247f9b1471 retained under runs/local/m30-single-client-recovery/close-race-nP9FsOIy/: before inventory contained only configured Session2 PID 21520; after Chris closed MT5 during the fixed 30-second child-restricted delay, after inventory was empty. MT5 returned -10003, state=REFUSED and reason=TERMINAL_INVENTORY_CHANGED. Fixed postflight found terminal_processes=[] and listener_processes=[]; broker_mutation=NONE. This proves the tested close-during-connect behaviour fails safely with no replacement terminal."
+      ],
       "blocker": null
     },
     {
       "id": "implementation-review",
       "title": "Implement the demonstrated setup and independently review it",
-      "state": "PENDING",
+      "state": "DONE",
       "requires": [
         "closure-recovery"
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-09-22 local implementation package: listener install is now Interactive/AtLogOn and the legacy watchdog operation only retires that task. Focused adapter, probe and runner-isolation tests pass.",
+        "2026-09-22 independent read-only review by /root/interactive_review approved the repaired source. The installer refuses an enabled legacy watchdog before task mutation; rollback stops/disables the task and restores any old XML Disabled, never starts the former S4U task. Full focused suite passed: tests/test_t480_adapter.py, tests/test_m30_single_client_probe.py and tests/test_m30_single_client_runner_isolation.py. Encoded command lengths: install=7134, status=7490 (<7500). Approval is implementation-only; deployment/release readiness and Demo entry authority remain pending."
+      ],
       "blocker": null
     },
     {
@@ -59,7 +69,10 @@
       "requires": [
         "implementation-review"
       ],
-      "evidence": [],
+      "evidence": [
+        "2026-09-22T03:49Z fixed T480 preflight reached the host successfully. Fixed terminal identity observed terminal_processes=[] and listener_processes=[], while the former listener and watchdog are Disabled; fixed watchdog status reported retired=true. Raw adapter receipts are appended to .t480-execution.local.jsonl. This is a deployment NO-GO until Chris reopens the managed visible client and the committed reviewed source is available for release binding."
+        ,"2026-09-22T03:57Z after Chris reopened MT5, fixed terminal identity found exactly one configured terminal: PID 16048 in Session2, matching configured and historical connected path hashes; listener_processes=[] and former listener task Disabled. Fixed watchdog status remains retired=true/Disabled. This satisfies the process-availability portion of preflight only; current account/permissions and source binding remain required before deployment."
+      ],
       "blocker": null
     },
     {
