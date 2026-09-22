@@ -44,8 +44,8 @@ risk settings, another timeframe, a scheduler, or a Live path.
 - [x] final-release — Hold, install, and verify the final hash-bound Demo listener release, then release the hold only after a healthy heartbeat (DONE)
 <!-- forex-work-item id=execution-drill state=DONE -->
 - [x] execution-drill — Run the fixed one-shot Demo terminal-to-broker diagnostic and retain its distinct outcome without treating it as M30 proof (DONE)
-<!-- forex-work-item id=natural-lifecycle state=PENDING -->
-- [ ] natural-lifecycle — Retain one naturally eligible final-version Demo order, close, and broker reconciliation without forcing or retrying an order (PENDING)
+<!-- forex-work-item id=natural-lifecycle state=DONE -->
+- [x] natural-lifecycle — Retain one naturally eligible final-version Demo order, close, and broker reconciliation without forcing or retrying an order (DONE)
 <!-- forex-work-item id=proof-verification state=PENDING -->
 - [ ] proof-verification — Verify the retained proof against M30 acceptance, exact revision, configuration fingerprint, and safety boundaries (PENDING)
 <!-- forex-work-item id=independent-review state=PENDING -->

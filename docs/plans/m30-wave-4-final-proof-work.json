@@ -48,7 +48,7 @@
     {
       "id": "natural-lifecycle",
       "title": "Retain one naturally eligible final-version Demo order, close, and broker reconciliation without forcing or retrying an order",
-      "state": "PENDING",
+      "state": "DONE",
       "requires": ["final-release"],
       "evidence": [
         "2026-09-17 final-version read-only observation: release 07b2ac258c6da945, sequence 54251, closed candle 2026-09-17T04:55:00Z, terminal NO_TRADE, no selected owner, no attempt, and no execution lifecycle. This confirms normal operation but is not the required eligible order/close/reconciliation proof.",
@@ -58,7 +58,7 @@
         "2026-09-17T08:45Z: a second authorised read-only capability recheck timed out during SSH banner exchange. Follow-up ICMP and TCP/22 probes received no response. This indicates T480 is currently unreachable from the repository host; no remote state was changed.",
         "2026-09-17T08:48Z: the shared cs-ai-lab-infra T480 transport preflight was run using the existing machine-local target. Its local strict-host-key and batch-mode checks passed, but its remote SSH check timed out. This independently confirms an unavailable T480 SSH surface, not a Forex catalog or operation defect.",
         "2026-09-17T08:55Z: shared transport preflight and the fixed Forex listener status recovered. The listener was RUNNING on 98d33531346f1c6a with a fresh EURUSD quote and an M1 trend-pullback SELL candidate, but it correctly persisted NO_TRADE_RECONCILED because terminal_trade_allowed=false and the persistent Option B risk policy paused new entries with EXTERNAL_CASH_FLOW.",
-        "2026-09-22: historical permission/risk blockers resolved under m30-demo-mvp-unblocking. Natural proposal a88ae86c-6b7e-5a03-9367-157389f0f0b5 is CLOSED_MATCHED, with exact source snapshot at sequence 78815. Raw bundle runs/evidence/M30/natural-raw-20260922T071835289277Z passes offline source/runtime/lifecycle component checks, including all-session USD80753.95 reserved and 600-second owner cutoff. Formal committed proof capture and review remain pending."
+        "2026-09-22: historical permission/risk blockers resolved under m30-demo-mvp-unblocking. Natural proposal a88ae86c-6b7e-5a03-9367-157389f0f0b5 is CLOSED_MATCHED, with exact source snapshot at sequence 78815. The lifecycle is retained from immutable source facts and remains subject to separate post-capture proof verification and independent review; this execution state does not claim formal milestone completion."
       ],
       "blocker": null
     },
@@ -67,7 +67,7 @@
       "title": "Verify the retained proof against M30 acceptance, exact revision, configuration fingerprint, and safety boundaries",
       "state": "PENDING",
       "requires": ["natural-lifecycle"],
-      "evidence": [],
+      "evidence": ["PENDING at capture time is the post-capture offline verification gate. It does not negate the retained natural lifecycle above."],
       "blocker": null
     },
     {

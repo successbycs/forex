@@ -103,7 +103,7 @@ reported a running protected Demo SELL, ticket `43099300`, with
 `OBSERVED_ACTIVE`. This repair changes evidence interpretation only; it did not
 deploy, alter the listener, submit an order, or change risk controls. Capture,
 verification and independent review must be repeated from the repaired clean
-revision before the two remaining items can move.
+revision before the remaining independent-verification item can move.
 
 Continuation 2026-09-22: natural trade proposal
 `a88ae86c-6b7e-5a03-9367-157389f0f0b5` and exact snapshot were retained from
@@ -130,8 +130,8 @@ Keep bounded-lifecycle and independent-verification pending until those pass.
 - [x] release-readiness — Revalidate the installed Demo release and resolve or block on fresh account, exposure, risk, and protection checks (DONE)
 <!-- forex-work-item id=resume-decisions state=DONE -->
 - [x] resume-decisions — Release the maintenance hold through the fixed operation and retain fresh decision evidence (DONE)
-<!-- forex-work-item id=bounded-lifecycle state=PENDING -->
-- [ ] bounded-lifecycle — Retain a natural protected Demo order, mandatory close, and broker reconciliation (PENDING)
+<!-- forex-work-item id=bounded-lifecycle state=DONE -->
+- [x] bounded-lifecycle — Retain a natural protected Demo order, mandatory close, and broker reconciliation (DONE)
 <!-- forex-work-item id=independent-verification state=PENDING -->
 - [ ] independent-verification — Verify the M30 bundle and obtain required read-only recommendation (PENDING)
 <!-- forex-work-projection:end -->

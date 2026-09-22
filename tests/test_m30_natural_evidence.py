@@ -55,6 +55,7 @@ def test_synthetic_envelope_round_trip(envelope):
 
 
 @pytest.mark.parametrize('field,value', [('git_revision', 'wrong'),
+                                       ('runtime_revision', 'wrong'),
                                        ('dirty_worktree', True), ('exit_code', True), ('operation', 'other')])
 def test_envelope_mismatch_refused(envelope, field, value):
     bundle, root = envelope

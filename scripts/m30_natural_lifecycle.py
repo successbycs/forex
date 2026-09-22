@@ -10,7 +10,7 @@ from m30_evidence_contract import owner_hold_seconds
 from m30_natural_sources import require, same_value
 
 
-def validate_trade(joined, *, root, lease, captured):
+def validate_trade(joined, *, root, lease, runtime, fingerprint, captured):
     """Explicitly map ledger names; never synthesize an executor response.
 
     The deployed lease supplies the loss limit absent from the session table.
@@ -20,6 +20,10 @@ def validate_trade(joined, *, root, lease, captured):
     source, entry, row = joined['source']['assessment'], joined['entry'], joined['lifecycle']
     proposal, snapshot, selection = source['proposal'], source['decision_snapshot'], entry['selection']
     session = dict(entry['session'])
+    require(row.get('application_revision') == runtime.get('runtime_revision'),
+            'target lifecycle does not match deployed runtime revision')
+    require(row.get('configuration_fingerprint') == fingerprint,
+            'target lifecycle does not match current configuration fingerprint')
     require(lease.get('session_id') == session.get('session_id')
             and lease.get('server') == session.get('server') == 'GOMarketsMU-Demo'
             and lease.get('symbol') == session.get('instrument') == 'EURUSD', 'deployed lease identity mismatch')
@@ -108,7 +112,18 @@ def validate_trade(joined, *, root, lease, captured):
     exits = [m20.utc(deal['time_utc'], 'broker exit') for deal in closing['broker_history']['broker_deals']
              if deal['volume'] > 0 and deal['entry'] in {1, 3}]
     require(max(exits) <= submitted + timedelta(seconds=hold), 'broker exit after owner cutoff')
-    return {'session': session, 'all_session_reserved_notional_usd': total,
+    session_provenance = {
+        'classification': 'HISTORICAL_LEASE_RECORD_CURRENT_RUNTIME_ENFORCED',
+        'session_record_application_revision': session.get('application_revision'),
+        'session_record_configuration_fingerprint': session.get('configuration_fingerprint'),
+        'target_runtime_revision': runtime['runtime_revision'],
+        'target_configuration_fingerprint': fingerprint,
+        'reason': ('The continuous lease record predates the deployed runtime; '
+                   'its matching cap fields are checked against the current deployed lease, '
+                   'while the target lifecycle itself is bound to the current runtime and configuration.'),
+    }
+    return {'session': session, 'session_provenance': session_provenance,
+            'all_session_reserved_notional_usd': total,
             'all_session_attempt_count': count, 'owner_cutoff_seconds': hold,
             'historical_risk_headroom_replayed': False,
             'protection_evidence': 'accepted broker request and guarded deployed implementation'}

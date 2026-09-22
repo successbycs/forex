@@ -41,7 +41,10 @@ def natural(tmp_path):
               'entry': {'session': session, 'selection': payload['strategy_selection'],
                         'attempt': payload['execution'],
                         'session_reservations': {'attempt_count': 1, 'reserved_notional_usd': proposal['notional_usd']}}}
-    return joined, {'root': root, 'lease': lease, 'captured': datetime.now(timezone.utc)}
+    return joined, {'root': root, 'lease': lease,
+                    'runtime': {'runtime_revision': row['application_revision']},
+                    'fingerprint': row['configuration_fingerprint'],
+                    'captured': datetime.now(timezone.utc)}
 
 
 def test_natural_lifecycle_validates_without_fake_executor_response(natural):
@@ -50,6 +53,7 @@ def test_natural_lifecycle_validates_without_fake_executor_response(natural):
     result = validate_trade(joined, **arguments)
     assert result['historical_risk_headroom_replayed'] is False
     assert result['all_session_attempt_count'] == 1
+    assert result['session_provenance']['target_runtime_revision'] == joined['lifecycle']['application_revision']
 
 
 @pytest.mark.parametrize('change', [

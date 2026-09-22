@@ -16,7 +16,7 @@ OPERATION = 'retained natural T480 M1 listener lifecycle'
 MARKER = 'FOREX_M30_PROOF_OK'
 AUTHORITY_PATH = 'docs/plans/m30-demo-mvp-unblocking-work.json'
 REQUIRED = {'raw-capture-receipt.json', 'topology-authority.json', 'tests.txt', 'governance.txt',
-            'revision.txt', 'configuration.json', 'm30-audit.json', 'summary.txt', 'm30-verification.txt'}
+            'revision.txt', 'collector-revision.txt', 'configuration.json', 'm30-audit.json', 'summary.txt', 'm30-verification.txt'}
 TESTS = ['tests/milestones/test_m30.py', 'tests/test_m30_natural_capture.py',
          'tests/test_m30_natural_sources.py', 'tests/test_m30_natural_lifecycle.py', 'tests/test_m30_natural_runtime.py',
          'tests/test_m30_natural_evidence.py']
@@ -55,7 +55,8 @@ def check_sources(bundle, root, authority):
     fingerprint = m20.project_fingerprint(root)
     runtime = validate_runtime(bundle, joined, root=root, fingerprint=fingerprint,
                                captured=captured, approval=authority)
-    trade = validate_trade(joined, root=root, lease=runtime['lease'], captured=captured)
+    trade = validate_trade(joined, root=root, lease=runtime['lease'], runtime=runtime,
+                           fingerprint=fingerprint, captured=captured)
     return {'schema_version': 'forex.m30.natural-proof-audit.v1',
             'proposal_id': joined['receipt']['proposal_id'], 'attempt_id': joined['receipt']['attempt_id'],
             'source_match': joined['receipt']['source_match'], 'runtime': runtime, 'trade': trade,
@@ -74,6 +75,7 @@ def finalize(bundle: Path, root: Path):
     collector_revision = revision(root)
     authority_raw = subprocess.check_output(['git', 'show', f'{collector_revision}:{AUTHORITY_PATH}'], cwd=root)
     audit = check_sources(bundle, root, strict_json(authority_raw))
+    runtime_revision = audit['runtime']['runtime_revision']
     write_new(bundle / 'topology-authority.json', authority_raw)
     for name, argv in [('tests.txt', [sys.executable, '-m', 'pytest', '-q', '-o', 'addopts=', *TESTS]),
                        ('governance.txt', [sys.executable, 'scripts/forex_milestones.py', 'validate'])]:
@@ -83,6 +85,7 @@ def finalize(bundle: Path, root: Path):
     clean(root)
     require(revision(root) == collector_revision, 'collector revision changed during capture')
     write_new(bundle / 'revision.txt', (collector_revision + '\n').encode())
+    write_new(bundle / 'collector-revision.txt', (collector_revision + '\n').encode())
     write_new(bundle / 'configuration.json', json_bytes({
         'configuration_fingerprint': audit['configuration_fingerprint'], 'runtime_mode': 'DEMO_TRADING',
         'live_trading_enabled': False, 'permitted_mt5_server': 'GOMarketsMU-Demo'}))
@@ -93,7 +96,8 @@ def finalize(bundle: Path, root: Path):
                  for p in sorted(bundle.iterdir()) if p.is_file()]
     manifest = dict(schema_version='1.0.0', milestone_id='M30', operation=OPERATION,
         surface='GOMarketsMU-Demo execution and reconciliation surface', captured_at=audit['captured_at'],
-        git_revision=collector_revision, dirty_worktree=False,
+        git_revision=collector_revision, collector_revision=collector_revision,
+        runtime_revision=runtime_revision, dirty_worktree=False,
         configuration_fingerprint=audit['configuration_fingerprint'], exit_code=0,
         expected_result='one naturally selected bounded Demo EURUSD entry closes and reconciles',
         observed_result=MARKER, summary=MARKER, artifacts=artifacts,
@@ -116,6 +120,7 @@ def verify(bundle: Path, root: Path):
             and manifest['exit_code'] == 0, 'manifest capture not clean/successful')
     collector_revision = revision(root)
     require(manifest.get('git_revision') == collector_revision, 'collector revision differs from HEAD')
+    require(manifest.get('collector_revision') == collector_revision, 'collector revision receipt mismatch')
     names = set()
     require(isinstance(manifest.get('artifacts'), list), 'manifest artifacts missing')
     for item in manifest['artifacts']:
@@ -135,10 +140,14 @@ def verify(bundle: Path, root: Path):
             'topology authority differs from committed record')
     audit = check_sources(bundle, root, strict_json(authority_raw))
     require(strict_json((bundle / 'm30-audit.json').read_bytes()) == audit, 'derived natural audit mismatch')
+    require(manifest.get('runtime_revision') == audit['runtime']['runtime_revision'],
+            'manifest runtime revision differs from deployed runtime binding')
     for key, value in [('configuration_fingerprint', audit['configuration_fingerprint']),
                        ('captured_at', audit['captured_at'])]:
         require(manifest.get(key) == value, f'manifest {key} source mismatch')
     require((bundle / 'revision.txt').read_text().strip() == collector_revision, 'revision receipt mismatch')
+    require((bundle / 'collector-revision.txt').read_text().strip() == collector_revision,
+            'collector revision artifact mismatch')
     configuration = strict_json((bundle / 'configuration.json').read_bytes())
     require(configuration == {'configuration_fingerprint': audit['configuration_fingerprint'],
         'runtime_mode': 'DEMO_TRADING', 'live_trading_enabled': False, 'permitted_mt5_server': 'GOMarketsMU-Demo'},
