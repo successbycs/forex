@@ -78,10 +78,10 @@ experiments.
 - [x] m29-applicability — Assess changed M29 proof surfaces and resolve any required targeted reproof (DONE)
 <!-- forex-work-item id=candidate-transport state=DONE -->
 - [x] candidate-transport — Select the reviewed adapter candidate and verify its transport envelope before deployment (DONE)
-<!-- forex-work-item id=release-readiness state=BLOCKED -->
-- [ ] release-readiness — Revalidate the installed Demo release and resolve or block on fresh account, exposure, risk, and protection checks (BLOCKED)
-<!-- forex-work-item id=resume-decisions state=PENDING -->
-- [ ] resume-decisions — Release the maintenance hold through the fixed operation and retain fresh decision evidence (PENDING)
+<!-- forex-work-item id=release-readiness state=DONE -->
+- [x] release-readiness — Revalidate the installed Demo release and resolve or block on fresh account, exposure, risk, and protection checks (DONE)
+<!-- forex-work-item id=resume-decisions state=DONE -->
+- [x] resume-decisions — Release the maintenance hold through the fixed operation and retain fresh decision evidence (DONE)
 <!-- forex-work-item id=bounded-lifecycle state=PENDING -->
 - [ ] bounded-lifecycle — Retain a natural protected Demo order, mandatory close, and broker reconciliation (PENDING)
 <!-- forex-work-item id=independent-verification state=PENDING -->
@@ -211,6 +211,30 @@ hold. Focused adapter/service/M30 tests passed; the encoded operation is
 replace the invalid assessment on T480. Deployment selection and its normal
 release procedure remain the next human-authority gate; do not release the
 hold from the prior release.
+
+Deployment and readiness observation 2026-09-22T05:22Z: the candidate was
+committed as `875b3280ad0e4552bcb143d707ca57ca0e4b6c62`, staged through the
+fixed hash-verified transport, and installed as release `3d48e3f4cc8e4901`.
+Its fresh heartbeat and terminal binding are valid on the sole
+`GOMarketsMU-Demo`/AUD client. The held-only readiness assessment confirmed
+flat EURUSD exposure and structurally unavailable order submission, but its
+current Option B result is `entry_allowed: false` with
+`EXTERNAL_CASH_FLOW`. The maintenance hold remains active. This manual-review
+pause requires Chris to attribute the cash flow or explicitly use the
+governed resume route; it is not cleared by deployment, account flatness, or
+removing the hold.
+
+Resume observation 2026-09-22T05:34Z: Chris identified a previous manual
+Demo trade as the likely source and authorised the governed resume. The fixed
+resume operation recorded `c3aba485-d05c-4ef1-a457-6a631257d0da` without
+resetting any risk limit. A fresh held readiness result then returned
+`entry_allowed: true`, no pause reasons, flat exposure, and no broker mutation.
+The fixed hold-release operation returned `maintenance_hold: false`. The first
+normal M1 assessment generated proposal
+`d5934fcd-1511-5d1f-bb88-73875fbaf5d8`: every strategy returned `NO_TRADE`,
+with `NO_TRADE_RECONCILED` and no submission. This proves resumed natural
+decision/reconciliation operation, but not the remaining protected order,
+mandatory close, and final M30 evidence bundle.
 
 ### 3. Resume ordinary M1 decisions
 
