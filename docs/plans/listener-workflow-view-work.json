@@ -1,0 +1,7 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "LISTENER-WORKFLOW-VIEW",
+  "authorization": "Chris requested creation and implementation of the operator workflow ExecPlan. Local read-only presentation only.",
+  "markdown_plan": "docs/plans/listener-workflow-view.md",
+  "items": [{"id": "implementation", "title": "Build and verify the workflow dashboard", "state": "DONE", "requires": [], "evidence": ["Implemented shared report and existing dashboard command; live normal/narrow output and JSON inspected on 2026-09-22, including timeout handling and subsequent successful read.", "Separate read-only review by /root/view_review; all identified correctness issues repaired, including separate reconciliation detail.", "27 focused tests passed; milestone governance and diff whitespace checks passed."], "blocker": null}]
+}

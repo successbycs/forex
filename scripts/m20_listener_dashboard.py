@@ -9,10 +9,14 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+import shutil
+import textwrap
 from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 
 def listener_status() -> dict[str, Any]:
@@ -171,11 +175,27 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="View the live M20 Demo listener in a terminal.")
     parser.add_argument("--interval", type=float, default=2.0, help="Dashboard refresh seconds (default: 2).")
     parser.add_argument("--once", action="store_true", help="Render one status update then exit.")
+    parser.add_argument("--json", action="store_true", help="Emit one reusable operator report as JSON.")
+    parser.add_argument("--width", type=int, default=None, help="Override terminal column width (minimum 40).")
     args = parser.parse_args()
     if args.interval < 1:
         parser.error("--interval must be at least one second")
+    if args.width is not None and args.width < 40:
+        parser.error("--width must be at least 40")
+    from scripts.listener_workflow_report import collect, render_workflow
     while True:
-        print("\033[2J\033[H" + render(listener_status()), flush=True)
+        try:
+            report = collect(listener_status, ROOT, sys.executable)
+        except KeyboardInterrupt:
+            print('\nDashboard stopped.')
+            return 0
+        if args.json:
+            print(json.dumps(report, indent=2))
+            return 0
+        width = args.width or max(40, shutil.get_terminal_size((100, 30)).columns)
+        details = '\n'.join('\n'.join(textwrap.wrap(line, width=width, subsequent_indent='  ')) if line else '' for line in render(report['status']).splitlines())
+        screen = render_workflow(report, width) + '\n\nFULL ASSESSMENT DETAILS\n' + details
+        print(("\033[2J\033[H" if sys.stdout.isatty() and not args.once else '') + screen, flush=True)
         if args.once:
             return 0
         try:
