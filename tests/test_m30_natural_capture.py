@@ -39,6 +39,16 @@ def test_entry_facts_query_is_bounded_demo_read_only():
     assert not any(word in query.upper() for word in ('INSERT ', 'DELETE ', 'UPDATE ', 'ALTER '))
 
 
+def test_entry_facts_targeted_query_is_exact_and_bounded():
+    proposal_id = 'a88ae86c-6b7e-5a03-9367-157389f0f0b5'
+    with patch.object(adapter, 'remote', return_value={'ok': True, 'exit_code': 0, 'stdout': '[]'}) as remote:
+        adapter.m30_natural_entry_facts(proposal_id)
+    query = remote.call_args.args[0]
+    assert "p.proposal_id='a88ae86c-6b7e-5a03-9367-157389f0f0b5'" in query
+    assert 'LIMIT 2' in query
+    assert not any(word in query.upper() for word in ('INSERT ', 'DELETE ', 'UPDATE ', 'ALTER '))
+
+
 def test_entry_facts_actual_encoded_transport_is_below_limit():
     result = subprocess.CompletedProcess([], 0, '[]', '')
     with patch.object(adapter.subprocess, 'run', return_value=result) as run:

@@ -61,7 +61,8 @@ def main():
         raise ValueError('exact proposal does not have one matched closed lifecycle')
     row = matches[0]
     _, facts = read_operation(bundle, 'natural-entry-facts.json',
-                             ['scripts/postgres_pgvector_adapter.py', 'forex-m30-natural-entry-facts'])
+                             ['scripts/postgres_pgvector_adapter.py', 'forex-m30-natural-entry-facts',
+                              '--proposal-id', str(args.proposal_id)])
     entries = [entry for entry in facts if entry.get('proposal', {}).get('proposal_id') == str(args.proposal_id)
                and entry.get('attempt', {}).get('attempt_id') == row['attempt_id']]
     if len(entries) != 1:

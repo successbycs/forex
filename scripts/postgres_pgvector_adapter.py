@@ -1070,9 +1070,19 @@ def m20_rejection_summary() -> dict:
     return wrap("forex_m20_rejection_summary", remote(body))
 
 
-def m30_natural_entry_facts() -> dict:
-    """Read immutable Demo entry facts from the last 24 hours, capped at 1000."""
-    query = "SELECT COALESCE(json_agg(x),'[]'::json) FROM (SELECT row_to_json(p) proposal,row_to_json(a) attempt,row_to_json(s) session,row_to_json(c) selection,(SELECT json_build_object('attempt_count',count(*),'reserved_notional_usd',COALESCE(sum(ap.notional_usd),0)) FROM forex.demo_execution_attempt aa JOIN forex.demo_trade_proposal ap ON ap.proposal_id=aa.proposal_id WHERE aa.session_id=s.session_id) session_reservations FROM forex.demo_execution_attempt a JOIN forex.demo_trade_proposal p USING(proposal_id) JOIN forex.demo_trade_session s ON s.session_id=p.session_id JOIN forex.demo_strategy_selection c USING(proposal_id) WHERE s.server='GOMarketsMU-Demo' AND s.instrument='EURUSD' AND a.submitted_at_utc>=now()-interval '24 hours' ORDER BY a.submitted_at_utc DESC LIMIT 1000)x;"
+def m30_natural_entry_facts(proposal_id: str | None = None) -> dict:
+    """Read immutable Demo entry facts, optionally for one exact proposal.
+
+    The targeted form is used by the M30 capture collector so a review bundle
+    cannot mix a completed target lifecycle with later pending attempts.
+    """
+    proposal_filter = ""
+    limit = "1000"
+    if proposal_id is not None:
+        from uuid import UUID
+        proposal_filter = " AND p.proposal_id='" + str(UUID(proposal_id)) + "'"
+        limit = "2"
+    query = "SELECT COALESCE(json_agg(x),'[]'::json) FROM (SELECT row_to_json(p) proposal,row_to_json(a) attempt,row_to_json(s) session,row_to_json(c) selection,(SELECT json_build_object('attempt_count',count(*),'reserved_notional_usd',COALESCE(sum(ap.notional_usd),0)) FROM forex.demo_execution_attempt aa JOIN forex.demo_trade_proposal ap ON ap.proposal_id=aa.proposal_id WHERE aa.session_id=s.session_id) session_reservations FROM forex.demo_execution_attempt a JOIN forex.demo_trade_proposal p USING(proposal_id) JOIN forex.demo_trade_session s ON s.session_id=p.session_id JOIN forex.demo_strategy_selection c USING(proposal_id) WHERE s.server='GOMarketsMU-Demo' AND s.instrument='EURUSD' AND a.submitted_at_utc>=now()-interval '24 hours'" + proposal_filter + " ORDER BY a.submitted_at_utc DESC LIMIT " + limit + ")x;"
     body = 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -qAtc "SET TIME ZONE \'UTC\'; ' + query + '" </dev/null'
     return wrap('forex_m30_natural_entry_facts', remote(body))
 
@@ -1268,6 +1278,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--approve", action="store_true")
     parser.add_argument("--from-utc")
     parser.add_argument("--to-utc")
+    parser.add_argument("--proposal-id")
     args = parser.parse_args(argv)
     if args.command in MUTATING and not args.approve:
         parser.error("this mutating operation requires --approve")
@@ -1310,7 +1321,10 @@ def main(argv: list[str] | None = None) -> int:
     actions["forex-m20-lifecycle-summary"] = m20_lifecycle_summary
     actions["forex-m30-natural-entry-facts"] = m30_natural_entry_facts
     actions["forex-m20-strategy-trial-summary"] = m20_strategy_trial_summary
-    payload = actions[args.command]()
+    if args.command == "forex-m30-natural-entry-facts":
+        payload = m30_natural_entry_facts(args.proposal_id)
+    else:
+        payload = actions[args.command]()
     print(json.dumps(payload, indent=2))
     return 0 if payload["ok"] else 1
 
