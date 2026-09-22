@@ -36,6 +36,21 @@ def validate_runtime(bundle, joined, *, root, fingerprint, captured, approval):
             and diagnostics.get('maintenance_hold_present') is False, 'approved Interactive runtime not running unheld')
     require(status.get('running') is True and status.get('state') in {'RUNNING', 'WAITING_FOR_FRESH_MT5_QUOTE'}
             and status.get('monitor', {}).get('state') in {'IDLE', 'RUNNING'}, 'listener or monitor unhealthy')
+    monitor_state = status['monitor']['state']
+    protection_observation = status.get('protection_observation')
+    protection = status.get('open_position_protection')
+    if monitor_state == 'IDLE':
+        require(protection_observation == 'NO_ACTIVE_PROTECTION_REQUIRED' and protection is None,
+                'idle monitor has ambiguous position-protection status')
+    else:
+        require(protection_observation == 'OBSERVED_ACTIVE' and isinstance(protection, dict),
+                'active monitor lacks observed position protection')
+        require(type(protection.get('ticket')) is int and protection['ticket'] > 0,
+                'protected position ticket malformed')
+        require(protection.get('action') in {'BUY', 'SELL'}, 'protected position action malformed')
+        for field in ('entry_price', 'stop_loss', 'take_profit'):
+            require(isinstance(protection.get(field), (int, float)) and protection[field] > 0,
+                    f'protected position {field} malformed')
     require(status.get('release_id') == identity.get('listener_release_id') == joined['listener_release_id'],
             'capture spans different listener releases')
     for value, age in [(status.get('heartbeat_at_utc'), 30), (diagnostics.get('captured_at_utc'), 60)]:
@@ -92,5 +107,15 @@ def validate_runtime(bundle, joined, *, root, fingerprint, captured, approval):
     require(watchdog.get('installed') is True and watchdog.get('task') == 'Forex-M20-Listener-Watchdog'
             and watchdog.get('state') == 'Disabled' and watchdog.get('retired') is True,
             'legacy watchdog not disabled and retired')
-    return {'lease': lease, 'runtime_revision': revision, 'runtime_sources': runtime_sources,
+    return {'lease': lease,
+            'continuous_session_controls': {
+                'mode': 'CONTINUOUS_CAP_CONSTRAINED_DEMO',
+                'duration': 'UNBOUNDED_BY_DESIGN',
+                'trade_count': 'UNBOUNDED_BY_DESIGN',
+                'maximum_open_positions': lease['maximum_open_positions'],
+                'maximum_notional_per_trade_usd': lease['maximum_notional_per_trade_usd'],
+                'maximum_cumulative_notional_usd': lease['maximum_cumulative_notional_usd'],
+                'maximum_loss_per_trade_aud': lease['maximum_loss_per_trade_aud'],
+            },
+            'runtime_revision': revision, 'runtime_sources': runtime_sources,
             'topology': 'Interactive; operator-managed single terminal; legacy watchdog retired'}

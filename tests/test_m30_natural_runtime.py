@@ -28,8 +28,9 @@ def runtime(tmp_path):
         captured_at_utc=now.isoformat(), deployment_binding=dict(observation='VALID', application_revision=revision,
         configuration_fingerprint=fingerprint, payload_sha256={f'{n}.payload': sha for n in names}, lease=lease,
         financing_policy=json.dumps(dict(qualification_basis='DEFERRED_FOR_DEMO', exit_mode='EXISTING_OWNER_EXITS'))))
-    status = dict(running=True, state='RUNNING', monitor={'state': 'IDLE'}, release_id=release,
-                  heartbeat_at_utc=now.isoformat())
+    status = dict(running=True, state='RUNNING', monitor={'state': 'IDLE'},
+                  protection_observation='NO_ACTIVE_PROTECTION_REQUIRED',
+                  open_position_protection=None, release_id=release, heartbeat_at_utc=now.isoformat())
     identity = dict(observation='MAPPED', heartbeat_fresh=True, runtime_binding_fresh=True, task_state='Running',
         broker_mutation='NONE', listener_release_id=release,
         runtime_binding=dict(server='GOMarketsMU-Demo', currency='AUD', state='MAPPED',
@@ -63,7 +64,9 @@ def runtime(tmp_path):
 
 def test_approved_interactive_binding(runtime):
     _, _, run = runtime
-    assert run()['runtime_revision'] == 'a' * 40
+    result = run()
+    assert result['runtime_revision'] == 'a' * 40
+    assert result['continuous_session_controls']['mode'] == 'CONTINUOUS_CAP_CONSTRAINED_DEMO'
 
 
 @pytest.mark.parametrize('name,change', [
@@ -71,6 +74,8 @@ def test_approved_interactive_binding(runtime):
     ('listener-diagnostics.json', lambda x: x['deployment_binding'].update(application_revision='c' * 40)),
     ('listener-status.json', lambda x: x.update(release_id='other')),
     ('listener-status.json', lambda x: x.update(heartbeat_at_utc='2020-01-01T00:00:00Z')),
+    ('listener-status.json', lambda x: x.update(protection_observation='LAST_KNOWN_UNVERIFIED')),
+    ('listener-status.json', lambda x: x.update(open_position_protection={'ticket': 1})),
     ('terminal-identity.json', lambda x: x['runtime_binding'].update(server='OTHER')),
     ('terminal-identity.json', lambda x: x['terminal_processes'].append(x['terminal_processes'][0])),
     ('terminal-identity.json', lambda x: x['terminal_processes'][0].update(session_id=0)),
@@ -90,3 +95,12 @@ def test_missing_exception_refused(runtime):
     arguments['approval']['items'] = []
     with pytest.raises(SourceError):
         run()
+
+
+def test_active_monitor_requires_complete_observed_protection(runtime):
+    observations, _, run = runtime
+    status = observations['listener-status.json'][1]
+    status.update(monitor={'state': 'RUNNING'}, protection_observation='OBSERVED_ACTIVE',
+                  open_position_protection=dict(ticket=42, action='SELL', entry_price=1.1,
+                                                stop_loss=1.2, take_profit=1.0))
+    assert run()['runtime_revision'] == 'a' * 40

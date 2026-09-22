@@ -83,6 +83,24 @@ committed worktree, run the complete verifier and obtain evidence-bound review.
 The two remaining steps stay pending; no formal proof marker has been issued
 for the real bundle and no milestone state was changed.
 
+Continuation 2026-09-22 (latest): the first formally verified fresh bundle was
+stopped at read-only architecture review, not accepted for closeout. The review
+correctly found a stale status projection: after target ticket `43098681` had
+closed, status could retain its old protection job and describe it as open.
+The fixed status adapter now reports `NO_ACTIVE_PROTECTION_REQUIRED` when the
+monitor is idle and otherwise accepts only a current `OBSERVED_ACTIVE`
+protection record. Its actual encoded transport is 6,910 characters (below the
+7,500-character hard limit). The M30 verifier now rejects either ambiguous idle
+protection or an active monitor without a complete observed ticket/SL/TP record;
+it records the deliberately continuous, cap-constrained lease semantics
+explicitly. Focused M30 tests (90), adapter tests, transport measurement and
+governance validation pass. A fresh status observation at 2026-09-22T07:53Z
+reported a running protected Demo SELL, ticket `43099300`, with
+`OBSERVED_ACTIVE`. This repair changes evidence interpretation only; it did not
+deploy, alter the listener, submit an order, or change risk controls. Capture,
+verification and independent review must be repeated from the repaired clean
+revision before the two remaining items can move.
+
 Continuation 2026-09-22: natural trade proposal
 `a88ae86c-6b7e-5a03-9367-157389f0f0b5` and exact snapshot were retained from
 immutable spool sequence 78815 together with its CLOSED_MATCHED broker history.
@@ -349,6 +367,11 @@ a release blocker even after an operator resume request.
 - Historical observation: the Wave 4 plan records `EXTERNAL_CASH_FLOW` vetoing
   an eligible entry. Fresh risk-state resolution or an explicit blocker is
   required before hold release; current risk readiness is unverified.
+- Observation: a read-only M30 architecture review found that an old local
+  protection-job record could survive after its broker position closed. The
+  status operation now distinguishes idle/no-active-protection from an active,
+  directly observed protected position; the natural verifier refuses ambiguous
+  status output. A replacement fresh bundle and review are required.
 
 ## Decision Log
 
@@ -365,6 +388,12 @@ a release blocker even after an operator resume request.
   invalid deployment candidate, and resolve or block on a current risk pause.
   Rationale: the review identified these existing contract requirements as
   missing from the proposed shortcut. Date/Author: 2026-09-22 / Astra review.
+- Decision: treat a continuous duration-zero / unlimited-count Demo lease as
+  the explicit M30 contract, not as missing safety. The verifier must make its
+  one-position, per-trade notional, cumulative-notional and per-trade-loss caps
+  inspectable. Rationale: `milestone_registry.json` requires that continuous,
+  cap-constrained operating model; it does not permit a different session or
+  relax any cap. Date/Author: 2026-09-22 / Codex.
 
 ## Outcomes & Retrospective
 
