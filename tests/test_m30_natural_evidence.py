@@ -18,6 +18,15 @@ def test_dirty_worktree_refuses_capture(monkeypatch, tmp_path):
         evidence.clean(tmp_path)
 
 
+def test_only_governance_records_are_allowed_during_verify(monkeypatch, tmp_path):
+    monkeypatch.setattr(evidence.subprocess, 'check_output',
+                        lambda *a, **kw: ' M project_state.json\n M runs/run_history.json\n')
+    evidence.clean(tmp_path, allow_governance_records=True)
+    monkeypatch.setattr(evidence.subprocess, 'check_output', lambda *a, **kw: ' M scripts/unsafe.py\n')
+    with pytest.raises(SourceError):
+        evidence.clean(tmp_path, allow_governance_records=True)
+
+
 @pytest.fixture
 def envelope(tmp_path, monkeypatch):
     bundle = tmp_path / 'runs/evidence/M30/synthetic'
@@ -28,7 +37,7 @@ def envelope(tmp_path, monkeypatch):
         {'path': 'observation.json', 'sha256': hashlib.sha256(raw).hexdigest()}]}))
     audit = {'configuration_fingerprint': 'sha256:' + 'b' * 64,
              'runtime': {'runtime_revision': 'a' * 40}, 'captured_at': '2026-09-22T00:00:00+00:00'}
-    monkeypatch.setattr(evidence, 'clean', lambda root: None)
+    monkeypatch.setattr(evidence, 'clean', lambda root, **_: None)
     monkeypatch.setattr(evidence, 'revision', lambda root: 'c' * 40)
     monkeypatch.setattr(evidence, 'check_sources', lambda *args: audit)
     monkeypatch.setattr(evidence.subprocess, 'check_output', lambda *a, **kw: b'{"synthetic":true}')
@@ -82,7 +91,7 @@ def test_inventory_tampering_rejected(envelope):
 
 def test_verify_rejects_dirty_code(envelope, monkeypatch):
     bundle, root = envelope
-    def dirty(root):
+    def dirty(root, **_):
         raise SourceError('dirty code')
     monkeypatch.setattr(evidence, 'clean', dirty)
     with pytest.raises(SourceError, match='dirty code'):

@@ -26,9 +26,16 @@ def revision(root):
     return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip()
 
 
-def clean(root):
-    require(not subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=normal'],
-                                        cwd=root, text=True).strip(), 'proof capture requires a clean committed worktree')
+def clean(root, *, allow_governance_records=False):
+    """Reject implementation drift; recorder writes only these two state files."""
+    output = subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=normal'],
+                                     cwd=root, text=True)
+    changed = []
+    for line in output.splitlines():
+        require(len(line) >= 4, 'unparseable worktree status')
+        changed.append(line[3:])
+    allowed = {'project_state.json', 'runs/run_history.json'} if allow_governance_records else set()
+    require(set(changed) <= allowed, 'proof capture requires a clean committed worktree')
 
 
 def write_new(path, data):
@@ -96,7 +103,7 @@ def finalize(bundle: Path, root: Path):
 
 
 def verify(bundle: Path, root: Path):
-    clean(root)
+    clean(root, allow_governance_records=True)
     require(bundle.is_relative_to((root / 'runs/evidence/M30').resolve()) and not bundle.is_symlink(),
             'bundle outside M30 evidence root')
     require(not (bundle / 'manifest.json').is_symlink(), 'unsafe manifest path')
