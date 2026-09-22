@@ -2650,7 +2650,9 @@ def held_readiness_assessment(terminal_path: str) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 3:
+    if len(sys.argv) == 3 and sys.argv[2] == "--held-readiness-assessment":
+        _run_single_client(lambda: held_readiness_assessment(sys.argv[1]), requires_bridge=True)
+    elif len(sys.argv) == 3:
         _run_single_client(lambda: main(sys.argv[1], sys.argv[2]), requires_bridge=True)
     elif len(sys.argv) == 5 and sys.argv[3] == "--assessment-trigger-tick-ms":
         try:
@@ -2690,7 +2692,5 @@ if __name__ == "__main__":
     elif len(sys.argv) == 4 and sys.argv[3] == "--pre-isolation-readiness":
         result = _run_single_client(pre_isolation_readiness, requires_bridge=True)
         print(json.dumps(result, separators=(",", ":")))
-    elif len(sys.argv) == 3 and sys.argv[2] == "--held-readiness-assessment":
-        _run_single_client(lambda: held_readiness_assessment(sys.argv[1]), requires_bridge=True)
     else:
         raise SystemExit("expected fixed terminal path and fixed M20 session lease path")

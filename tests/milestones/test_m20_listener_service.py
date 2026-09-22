@@ -190,6 +190,14 @@ def test_held_readiness_requires_hold_and_validates_non_trading_runner_output(tm
     assert exported["assessment"]["order_submission"] == "STRUCTURALLY_UNAVAILABLE"
 
 
+def test_held_readiness_runner_cli_branch_precedes_the_normal_two_argument_session_path():
+    runner = (SOURCE.parent / "m20_demo_trading_session.py").read_text(encoding="utf-8")
+    held = 'if len(sys.argv) == 3 and sys.argv[2] == "--held-readiness-assessment"'
+    normal = 'elif len(sys.argv) == 3:'
+    assert held in runner and normal in runner
+    assert runner.index(held) < runner.index(normal)
+
+
 def test_immutable_assessment_spool_is_idempotent_and_never_overwrites(tmp_path, monkeypatch):
     spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
     assert spec and spec.loader
