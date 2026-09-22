@@ -170,6 +170,16 @@ def prepare_review(root: Path, milestone_id: str) -> Path:
     atomic_write_json(cycle / "request.json", request)
     binding = _request_binding(request, request_sha256=sha256_file(cycle / "request.json"))
     criterion_by_id = {criterion["id"]: criterion for criterion in milestone["acceptance_criteria"]}
+    contract_guidance: list[str] = []
+    if milestone_id == "M30":
+        contract_guidance = [
+            "## M30 contract interpretation",
+            "",
+            "- The reviewed Git revision binds the clean local collector and verifier. The manifest may name a distinct deployed `runtime_revision` when the fixed trading payload is unchanged. Treat that as valid only when the verifier binds the target lifecycle to that runtime revision, its payload hashes, and the current configuration fingerprint; do not require a redeployment solely to make a pure local collector revision equal the runtime revision.",
+            "- M30 explicitly authorises continuous Demo operation: duration `0` and no development-phase total trade-count ceiling. Assess the declared caps—one open position, USD 10,000 per trade, USD 100,000 cumulative notional, AUD 100 maximum loss per trade, broker SL/TP and owner cutoff. Do not require a time, trade-count, or cumulative-loss cap that the registered M30 contract does not declare.",
+            "- Historical mutable risk-headroom replay remains a declared evidence limitation. It is not a finding against M30 unless the bound target lifecycle bypasses the current deployed lease or its declared caps.",
+            "",
+        ]
     for reviewer in policy["reviewers"]:
         role = reviewer["role"]
         assigned = reviewer["m0_criteria"] if milestone_id == "M0" else list(criterion_by_id)
@@ -196,6 +206,7 @@ def prepare_review(root: Path, milestone_id: str) -> Path:
                 f"- Milestone contract SHA-256: `{binding['milestone_contract_sha256']}`",
                 f"- Role prompt SHA-256: `{role_prompt_sha}`",
                 "",
+                *contract_guidance,
                 "## Assigned acceptance criteria",
                 "",
                 *[f"- `{criterion_id}` — {criterion_by_id[criterion_id]['description']}" for criterion_id in assigned],
