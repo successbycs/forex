@@ -385,22 +385,28 @@ def test_m20_listener_status_is_fixed_and_redacted():
     assert "m20_demo_listener_service.local.json" in command
     assert "discord_open_alert_configured=$notifications" in command
     assert "FOREX_M20_POSTGRES_DSN" not in command
-    assert "heartbeat_at_nzst" in command and "next_assessment_at_nzst" in command
+    # The listener's atomically published status already owns the presentation
+    # fields; the fixed reader augments it rather than duplicating every field
+    # into an oversized T480 transport command.
+    assert "$s|ConvertTo-Json -Compress -Depth 8" in command
     assert "heartbeat_age_seconds" in command
     assert "$supervisorAlive" in command
-    assert "quote=$s.quote" in command
-    assert "release_id=$s.release_id" in command
+    assert "quote=$s.quote" not in command
+    assert "release_id=$s.release_id" not in command
     assert "task_action=$taskAction" not in command
     assert "$age -ge 30" in command
-    assert "state=if ($stale) { 'STALE' }" in command
+    assert "$s.state=if($stale){'STALE'}else{$s.state}" in command
     assert "Forex-M20-Demo-Listener" not in command
     assert "EXPLICIT_RECOVERY_REQUIRED" in command
     assert "Start-ScheduledTask" not in command
     from t480_core import build_ssh_command
     assert len(build_ssh_command("OEM@192.168.0.210", command, t480_adapter.TRANSPORT_SETTINGS)[-1]) < 7_500
     assert "Stop-ScheduledTask" not in command
-    assert "assessment_total=$s.assessment_total" in command
-    assert "$s.monitor.state -eq 'RUNNING'" in command
+    assert "assessment_total=$s.assessment_total" not in command
+    assert "$monitorState -eq 'RUNNING'" in command
+    assert "$monitorState -eq 'IDLE'" in command
+    assert "NO_ACTIVE_PROTECTION_REQUIRED" in command
+    assert "elseif($monitorState -eq 'RUNNING'){$protectionObservation='DURABLE_PROTECTION_STATE_UNREADABLE'}" in command
     assert "protection_observation=$protectionObservation" in command
     assert "LAST_KNOWN_UNVERIFIED" in command
     assert "m20_demo_protected_restart_drill.local.json" not in command
