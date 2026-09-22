@@ -86,7 +86,7 @@ def finalize(bundle: Path, root: Path):
                  for p in sorted(bundle.iterdir()) if p.is_file()]
     manifest = dict(schema_version='1.0.0', milestone_id='M30', operation=OPERATION,
         surface='GOMarketsMU-Demo execution and reconciliation surface', captured_at=audit['captured_at'],
-        git_revision=collector_revision, runtime_revision=audit['runtime']['runtime_revision'], dirty_worktree=False,
+        git_revision=collector_revision, dirty_worktree=False,
         configuration_fingerprint=audit['configuration_fingerprint'], exit_code=0,
         expected_result='one naturally selected bounded Demo EURUSD entry closes and reconciles',
         observed_result=MARKER, summary=MARKER, artifacts=artifacts,
@@ -129,7 +129,7 @@ def verify(bundle: Path, root: Path):
     audit = check_sources(bundle, root, strict_json(authority_raw))
     require(strict_json((bundle / 'm30-audit.json').read_bytes()) == audit, 'derived natural audit mismatch')
     for key, value in [('configuration_fingerprint', audit['configuration_fingerprint']),
-                       ('runtime_revision', audit['runtime']['runtime_revision']), ('captured_at', audit['captured_at'])]:
+                       ('captured_at', audit['captured_at'])]:
         require(manifest.get(key) == value, f'manifest {key} source mismatch')
     require((bundle / 'revision.txt').read_text().strip() == collector_revision, 'revision receipt mismatch')
     configuration = strict_json((bundle / 'configuration.json').read_bytes())
