@@ -2603,6 +2603,52 @@ def main(terminal_path: str, session_path: str, trigger_tick_time_msc: int | Non
     print(json.dumps(capture(terminal_path, Path(session_path), trigger_tick_time_msc), separators=(",", ":")))
 
 
+def held_readiness_assessment(terminal_path: str) -> None:
+    """Evaluate current Demo account risk while structurally unable to trade.
+
+    This is the pre-release counterpart to an ordinary listener assessment.
+    It deliberately does not load a lease, proposal, or execution path: its
+    sole broker interaction is read-only account/position inspection, followed
+    by the existing persistent-risk evaluator.  In particular, this function
+    contains no order request and cannot reserve or submit an order.
+    """
+    initialized = False
+    try:
+        initialized = mt5.initialize(path=terminal_path)
+        if not initialized:
+            raise SystemExit("M20 readiness assessment could not initialize MT5")
+        account = mt5.account_info()
+        _require_account_execution_profile(account)
+        captured_at = datetime.now(timezone.utc)
+        positions = _positions_or_fail(context="held-readiness", symbol=SYMBOL)
+        policy = persistent_risk_policy()
+        risk_gate = _bridge(
+            {"policy": policy, "account": _entry_risk_snapshot(account, captured_at)},
+            "enforce-risk-policy",
+        )["risk"]
+        if not isinstance(risk_gate, dict) or not isinstance(risk_gate.get("entry_allowed"), bool):
+            raise SystemExit("M20 persistent risk policy returned an invalid readiness gate")
+        revision, fingerprint = _provenance()
+        print(json.dumps({
+            "marker": "FOREX_M20_DEMO_HELD_READINESS_ASSESSMENT_OK",
+            "schema_version": "forex.m20.held-readiness-assessment.v1",
+            "operation": "m20_demo_held_readiness_assessment",
+            "server": account.server,
+            "currency": account.currency,
+            "symbol": SYMBOL,
+            "captured_at_utc": utc(captured_at),
+            "application_revision": revision,
+            "configuration_fingerprint": fingerprint,
+            "risk_policy": risk_gate,
+            "open_positions": len(positions),
+            "broker_mutation": "NONE",
+            "order_submission": "STRUCTURALLY_UNAVAILABLE",
+        }, separators=(",", ":")))
+    finally:
+        if initialized:
+            mt5.shutdown()
+
+
 if __name__ == "__main__":
     if len(sys.argv) == 3:
         _run_single_client(lambda: main(sys.argv[1], sys.argv[2]), requires_bridge=True)
@@ -2644,5 +2690,7 @@ if __name__ == "__main__":
     elif len(sys.argv) == 4 and sys.argv[3] == "--pre-isolation-readiness":
         result = _run_single_client(pre_isolation_readiness, requires_bridge=True)
         print(json.dumps(result, separators=(",", ":")))
+    elif len(sys.argv) == 3 and sys.argv[2] == "--held-readiness-assessment":
+        _run_single_client(lambda: held_readiness_assessment(sys.argv[1]), requires_bridge=True)
     else:
         raise SystemExit("expected fixed terminal path and fixed M20 session lease path")

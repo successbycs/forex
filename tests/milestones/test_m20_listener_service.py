@@ -167,6 +167,29 @@ def test_latest_assessment_retention_is_replace_only_and_never_listener_critical
     assert json.loads(target.read_text()) == retained
 
 
+def test_held_readiness_requires_hold_and_validates_non_trading_runner_output(tmp_path, monkeypatch, capsys):
+    spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "_maintenance_hold", lambda: {"active": False})
+    with pytest.raises(SystemExit, match="requires MAINTENANCE_HOLD"):
+        module.run_held_readiness_assessment()
+    monkeypatch.setattr(module, "_maintenance_hold", lambda: {"active": True})
+    monkeypatch.setattr(module, "_load_environment", lambda: {"python_path": "python", "terminal_path": "terminal"})
+    output = {"marker": "FOREX_M20_DEMO_HELD_READINESS_ASSESSMENT_OK",
+              "schema_version": "forex.m20.held-readiness-assessment.v1",
+              "operation": "m20_demo_held_readiness_assessment", "server": "GOMarketsMU-Demo",
+              "currency": "AUD", "symbol": "EURUSD", "risk_policy": {"entry_allowed": True},
+              "open_positions": 0, "broker_mutation": "NONE",
+              "order_submission": "STRUCTURALLY_UNAVAILABLE"}
+    monkeypatch.setattr(module.subprocess, "run", lambda *_, **__: type("R", (), {"returncode": 0, "stdout": json.dumps(output), "stderr": ""})())
+    assert module.run_held_readiness_assessment() == 0
+    exported = json.loads(capsys.readouterr().out)
+    assert exported["maintenance_hold"] is True
+    assert exported["assessment"]["order_submission"] == "STRUCTURALLY_UNAVAILABLE"
+
+
 def test_immutable_assessment_spool_is_idempotent_and_never_overwrites(tmp_path, monkeypatch):
     spec = importlib.util.spec_from_file_location("m20_listener_service", SOURCE)
     assert spec and spec.loader

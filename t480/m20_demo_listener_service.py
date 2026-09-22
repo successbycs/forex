@@ -319,6 +319,55 @@ def _write_latest_assessment(output: dict[str, Any], *, assessment_started_at_ut
     return "RETAINED_LATEST"
 
 
+def run_held_readiness_assessment() -> int:
+    """Run one fixed current-risk evaluation without releasing maintenance hold.
+
+    The service accepts this explicit mode only while the hold is active.  The
+    runner's corresponding mode has no lease/proposal/execution route, so it
+    cannot make a broker order while producing the freshness evidence needed
+    before normal listener decisions may resume.
+    """
+    hold = _maintenance_hold()
+    if not hold["active"]:
+        raise SystemExit("M20 held readiness assessment requires MAINTENANCE_HOLD")
+    values = _load_environment()
+    try:
+        completed = subprocess.run(
+            [str(values["python_path"]), str(RUNNER_PATH), str(values["terminal_path"]),
+             "--held-readiness-assessment"],
+            text=True, capture_output=True, check=False, env=os.environ.copy(), timeout=20,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise SystemExit("M20 held readiness assessment exceeded its twenty-second bound") from error
+    if completed.returncode != 0:
+        raise SystemExit(completed.stderr.strip() or completed.stdout.strip() or
+                         "M20 held readiness assessment failed")
+    try:
+        result = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise SystemExit("M20 held readiness assessment returned invalid JSON") from error
+    required = {
+        "marker": "FOREX_M20_DEMO_HELD_READINESS_ASSESSMENT_OK",
+        "schema_version": "forex.m20.held-readiness-assessment.v1",
+        "operation": "m20_demo_held_readiness_assessment",
+        "server": "GOMarketsMU-Demo",
+        "currency": "AUD",
+        "symbol": "EURUSD",
+        "broker_mutation": "NONE",
+        "order_submission": "STRUCTURALLY_UNAVAILABLE",
+    }
+    if any(result.get(key) != value for key, value in required.items()):
+        raise SystemExit("M20 held readiness assessment failed fixed output validation")
+    if not isinstance(result.get("risk_policy", {}).get("entry_allowed"), bool):
+        raise SystemExit("M20 held readiness assessment lacks entry permission")
+    if (isinstance(result.get("open_positions"), bool) or
+            not isinstance(result.get("open_positions"), int) or result["open_positions"] < 0):
+        raise SystemExit("M20 held readiness assessment lacks exposure observation")
+    print(json.dumps({"listener_release_id": ROOT.name, "maintenance_hold": True,
+                      "assessment": result}, separators=(",", ":")))
+    return 0
+
+
 def _write_assessment_spool(output: dict[str, Any], *, assessment_started_at_utc: str,
                             assessment_completed_at_utc: str, assessment_sequence: int) -> str:
     """Publish one immutable source assessment after runner completion.
@@ -1265,5 +1314,7 @@ if __name__ == "__main__":
         raise SystemExit(arm_continuity_protocol())
     elif len(sys.argv) == 2 and sys.argv[1] == "--execution-drill":
         raise SystemExit(run_execution_drill())
+    elif len(sys.argv) == 2 and sys.argv[1] == "--held-readiness-assessment":
+        raise SystemExit(run_held_readiness_assessment())
     else:
-        raise SystemExit("M20 listener service accepts no arguments, --continuity-protocol, or --execution-drill")
+        raise SystemExit("M20 listener service accepts no arguments, --continuity-protocol, --execution-drill, or --held-readiness-assessment")

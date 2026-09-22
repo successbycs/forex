@@ -427,6 +427,20 @@ def test_m20_listener_latest_assessment_is_fixed_read_only_and_release_bound():
     assert "Start-ScheduledTask" not in command
 
 
+def test_m20_listener_held_readiness_assessment_is_release_bound_and_cannot_release_hold():
+    command = t480_adapter.OPERATIONS["m20_listener_held_readiness_assessment"].powershell_command or ""
+    assert "MAINTENANCE_HOLD" in command
+    assert "M20 readiness payload binding differs" in command
+    assert "m20_demo_listener_service.payload" in command
+    assert "m20_demo_trading_session.payload" in command
+    assert "--held-readiness-assessment" in command
+    assert "order_send" not in command
+    assert "Disable-ScheduledTask" not in command and "Remove-Item" not in command
+    assert "Start-ScheduledTask" not in command and "m20_listener_disable_maintenance_hold" not in command
+    from t480_core import build_ssh_command
+    assert len(build_ssh_command("OEM@192.168.0.210", command, t480_adapter.TRANSPORT_SETTINGS)[-1]) < 7_500
+
+
 def test_m20_listener_spool_page_is_bounded_read_only_and_cursor_is_numeric_only():
     command = t480_adapter.OPERATIONS["m20_listener_spool_page"].powershell_command or ""
     assert "m20_demo_assessment_spool" in command

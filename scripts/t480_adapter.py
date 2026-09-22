@@ -552,6 +552,28 @@ def _m20_listener_latest_assessment_command() -> str:
     )
 
 
+def _m20_listener_held_readiness_assessment_command() -> str:
+    """Invoke the released non-trading readiness evaluator only while held."""
+    service_digest = hashlib.sha256(
+        (ROOT / "t480" / "m20_demo_listener_service.py").read_bytes()
+    ).hexdigest()
+    runner_digest = hashlib.sha256(
+        (ROOT / "t480" / "m20_demo_trading_session.py").read_bytes()
+    ).hexdigest()
+    return (
+        "$ErrorActionPreference='Stop';$state='C:\\ProgramData\\ForexListener\\state';"
+        "$status=gc -Raw (Join-Path $state 'm20_demo_listener_status.local.json')|ConvertFrom-Json;"
+        "if($status.state -ne 'MAINTENANCE_HOLD'){throw 'M20 held readiness assessment requires MAINTENANCE_HOLD'};"
+        "$release=[string]$status.release_id;if($release -notmatch '^[0-9a-f]{16}$'){throw 'M20 active release id is absent or invalid'};"
+        "$root=Join-Path 'C:\\ProgramData\\ForexListener\\releases' $release;"
+        "$service=Join-Path $root 'm20_demo_listener_service.payload';$runner=Join-Path $root 'm20_demo_trading_session.payload';"
+        "if(!(Test-Path -LiteralPath $service) -or !(Test-Path -LiteralPath $runner)){throw 'M20 readiness payload is absent'};"
+        "if((Get-FileHash -LiteralPath $service -Algorithm SHA256).Hash.ToLower() -ne '" + service_digest + "' -or (Get-FileHash -LiteralPath $runner -Algorithm SHA256).Hash.ToLower() -ne '" + runner_digest + "'){throw 'M20 readiness payload binding differs'};"
+        "$config=gc -Raw (Join-Path $state 'm20_demo_listener_service.local.json')|ConvertFrom-Json;"
+        "& $config.python_path $service --held-readiness-assessment;exit $LASTEXITCODE"
+    )
+
+
 def _m20_listener_spool_page_command(after_assessment_sequence: int = 0) -> str:
     """Read a bounded immutable spool page after one validated local cursor."""
     if isinstance(after_assessment_sequence, bool) or not isinstance(after_assessment_sequence, int) or after_assessment_sequence < 0:
@@ -1164,6 +1186,12 @@ OPERATIONS: dict[str, Operation] = {
         "m20_listener_latest_assessment",
         "Export the one retained full GOMarketsMU-Demo EURUSD M20 assessment without starting, restarting, or trading.",
         powershell_command=_m20_listener_latest_assessment_command(),
+    ),
+    "m20_listener_held_readiness_assessment": Operation(
+        "m20_listener_held_readiness_assessment",
+        "Run one release-bound GOMarketsMU-Demo risk/exposure readiness evaluation only while held; it has no order path.",
+        powershell_command=_m20_listener_held_readiness_assessment_command(),
+        timeout_seconds=60,
     ),
     "m20_listener_spool_page": Operation(
         "m20_listener_spool_page",

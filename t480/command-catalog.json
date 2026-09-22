@@ -202,6 +202,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_held_readiness_assessment",
+      "purpose": "Run one release-bound GOMarketsMU-Demo risk and exposure readiness evaluation only while maintenance hold is active; it has no order path.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_spool_page",
       "purpose": "Read at most eight immutable current-release M20 assessment spool records after a validated local cursor; never acknowledge, alter, restart, or trade.",
       "approval_required": false
