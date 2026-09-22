@@ -415,6 +415,22 @@ def test_m20_listener_status_is_fixed_and_redacted():
     assert "NOT_REPORTED" in command
 
 
+def test_m20_listener_diagnostics_is_fixed_read_only_and_fits_transport_limit():
+    command = t480_adapter.OPERATIONS["m20_listener_diagnostics"].powershell_command or ""
+    assert "Forex-M20-Demo-Listener" in command
+    assert "m20_demo_listener_service.local.json" in command
+    assert "m20_demo_session.local.json" in command
+    assert "m20_demo_listener_service.payload" in command
+    assert "m20_demo_trading_session.payload" in command
+    assert "m20_postgres_audit_bridge.payload" in command
+    assert "m20_discord_trade_notification.payload" in command
+    assert "Start-ScheduledTask" not in command
+    assert "Stop-ScheduledTask" not in command
+    assert "order_send" not in command
+    from t480_core import build_ssh_command
+    assert len(build_ssh_command("OEM@192.168.0.210", command, t480_adapter.TRANSPORT_SETTINGS)[-1]) < 7_500
+
+
 def test_m20_listener_latest_assessment_is_fixed_read_only_and_release_bound():
     command = t480_adapter.OPERATIONS["m20_listener_latest_assessment"].powershell_command or ""
     assert "m20_demo_latest_assessment.local.json" in command

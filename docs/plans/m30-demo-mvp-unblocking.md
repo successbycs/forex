@@ -90,11 +90,15 @@ closed, status could retain its old protection job and describe it as open.
 The fixed status adapter now reports `NO_ACTIVE_PROTECTION_REQUIRED` when the
 monitor is idle and otherwise accepts only a current `OBSERVED_ACTIVE`
 protection record. Its actual encoded transport is 6,910 characters (below the
-7,500-character hard limit). The M30 verifier now rejects either ambiguous idle
-protection or an active monitor without a complete observed ticket/SL/TP record;
-it records the deliberately continuous, cap-constrained lease semantics
-explicitly. Focused M30 tests (90), adapter tests, transport measurement and
-governance validation pass. A fresh status observation at 2026-09-22T07:53Z
+7,500-character hard limit). The capture-time diagnostics read was separately
+measured at 8,158 characters; its compact fixed replacement preserves the
+required task/process-identity and deployment-binding surface at 6,122. The
+other capture reads measure terminal identity 7,406, watchdog 2,054 and spool
+export 6,558. The M30 verifier now rejects either ambiguous idle protection or
+an active monitor without a complete observed ticket/SL/TP record; it records
+the deliberately continuous, cap-constrained lease semantics explicitly.
+Focused M30 tests, adapter tests, transport measurement and governance
+validation pass. A fresh status observation at 2026-09-22T07:53Z
 reported a running protected Demo SELL, ticket `43099300`, with
 `OBSERVED_ACTIVE`. This repair changes evidence interpretation only; it did not
 deploy, alter the listener, submit an order, or change risk controls. Capture,
@@ -372,6 +376,10 @@ a release blocker even after an operator resume request.
   status operation now distinguishes idle/no-active-protection from an active,
   directly observed protected position; the natural verifier refuses ambiguous
   status output. A replacement fresh bundle and review are required.
+- Observation: the capture-time diagnostics fixed operation exceeded the T480
+  envelope at 8,158 encoded characters even though it had happened to return.
+  Its compact fixed replacement preserves the required read-only binding and
+  process fields at 6,122 characters; no remote deployment was needed.
 
 ## Decision Log
 
