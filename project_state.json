@@ -4,9 +4,9 @@
   "repository": "successbycs/forex",
   "project_purpose": "Solo-operator EUR/USD Demo trading platform: make protected, explainable, reconciled trading decisions first; learn from retained Demo outcomes before any later optimisation.",
   "phase": "M20_DEMO_TRADING_MVP",
-  "last_proven_milestone": "M31",
-  "current_milestone": "M32",
-  "next_milestone": null,
+  "last_proven_milestone": "M32",
+  "current_milestone": "M33",
+  "next_milestone": "M34",
   "canonical_instrument": "EUR/USD",
   "expected_broker_symbol": "EURUSD",
   "broker": "GO Markets Mauritius",
@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
+  "implementation_status": "IN_PROGRESS",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -44,7 +44,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-23T03:26:25Z",
+  "last_updated_at": "2026-09-23T03:47:40Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -4077,39 +4077,39 @@
       }
     },
     "M32": {
-      "status": "AWAITING_REAL_WORLD_PROOF",
+      "status": "PROVEN",
       "started_at": "2026-09-23T03:07:10Z",
       "implementation_finished_at": "2026-09-23T03:23:47Z",
-      "verification_passed_at": "2026-09-23T03:23:45Z",
-      "real_world_proof_captured_at": "2026-09-23T03:23:18.627682+00:00",
-      "human_signed_off_at": null,
-      "first_proven_at": null,
-      "proven_at": null,
-      "last_validated_at": null,
+      "verification_passed_at": "2026-09-23T03:27:31Z",
+      "real_world_proof_captured_at": "2026-09-23T03:27:30.311573+00:00",
+      "human_signed_off_at": "2026-09-23T03:32:09Z",
+      "first_proven_at": "2026-09-23T03:32:10Z",
+      "proven_at": "2026-09-23T03:32:10Z",
+      "last_validated_at": "2026-09-23T03:32:10Z",
       "checks": {
         "M32-C1": {
           "result": "PASS",
-          "recorded_at": "2026-09-23T03:23:46Z",
-          "evidence": "runs/evidence/M32/formal-20260923-v1/assessment.json",
-          "note": "Approved M30 lifecycle and M31 ten-decision refusal window independently recompute; real Demo operator snapshot supports bounded handoff, not profitability or current uptime."
+          "recorded_at": "2026-09-23T03:27:57Z",
+          "evidence": "runs/evidence/M32/formal-20260923-final/assessment.json",
+          "note": "Retained approved lifecycle/refusal evidence and actual operator snapshot recompute; bounded human-operated Demo handoff only."
         },
         "M32-C2": {
           "result": "PASS",
-          "recorded_at": "2026-09-23T03:23:46Z",
-          "evidence": "runs/evidence/M32/formal-20260923-v1/tests.txt",
-          "note": "59 focused tests passed; formal milestone verification and governance pass; independent repair reviewer reproduced negative counterexamples and source evaluation."
+          "recorded_at": "2026-09-23T03:27:57Z",
+          "evidence": "runs/evidence/M32/formal-20260923-final/tests.txt",
+          "note": "59 tests passed at committed 887facc; formal verification and governance pass; implementation independently reviewed."
         },
         "M32-C3": {
           "result": "PASS",
-          "recorded_at": "2026-09-23T03:23:46Z",
-          "evidence": "runs/evidence/M32/formal-20260923-v1/manifest.json",
-          "note": "Clean e611152 evaluator bound to approved parent source, runtime and configuration; offline verifier emits FOREX_M32_PROOF_OK; evidence self-attested."
+          "recorded_at": "2026-09-23T03:27:57Z",
+          "evidence": "runs/evidence/M32/formal-20260923-final/manifest.json",
+          "note": "Clean current evaluator 887facc binds original approved raw sources, runtime and configuration; FOREX_M32_PROOF_OK; self-attested."
         },
         "M32-C4": {
           "result": "PASS",
-          "recorded_at": "2026-09-23T03:23:46Z",
-          "evidence": "runs/evidence/M32/formal-20260923-v1/summary.txt",
-          "note": "Human-operated Demo only under unchanged protection and signed-in terminal conditions. Four observed positions are not inferred flat or protected; risk permission unknown. Live NOT_READY; no broker changes or new authority."
+          "recorded_at": "2026-09-23T03:27:57Z",
+          "evidence": "runs/evidence/M32/formal-20260923-final/summary.txt",
+          "note": "Demo only under unchanged safeguards and signed-in open terminal. Four positions not inferred protected/flat; risk permission unknown; Live NOT_READY and no profitability/uptime claim."
         }
       },
       "evidence": [
@@ -4121,12 +4121,21 @@
           "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
           "git_revision": "e6111526ca241d26f212be0438ff7a0d3ecd3832",
           "summary": "FOREX_M32_PROOF_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M32/formal-20260923-final/manifest.json",
+          "manifest_sha256": "48c623ce0594dd4978025a898019f1ea91298ee95612cd3871a7b4028d4c716d",
+          "captured_at": "2026-09-23T03:27:30.311573+00:00",
+          "recorded_at": "2026-09-23T03:27:31Z",
+          "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+          "git_revision": "887facc081c007f83138fd43d839b0e33892f25e",
+          "summary": "FOREX_M32_PROOF_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-23T03:23:45Z",
-        "git_revision": "e6111526ca241d26f212be0438ff7a0d3ecd3832",
+        "recorded_at": "2026-09-23T03:27:31Z",
+        "git_revision": "887facc081c007f83138fd43d839b0e33892f25e",
         "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
         "commands": [
           {
@@ -4138,8 +4147,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M32/20260923T032345Z/governance.stdout.txt",
-            "stderr": "runs/verification/M32/20260923T032345Z/governance.stderr.txt"
+            "stdout": "runs/verification/M32/20260923T032731Z/governance.stdout.txt",
+            "stderr": "runs/verification/M32/20260923T032731Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -4152,30 +4161,57 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M32/20260923T032345Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M32/20260923T032345Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M32/20260923T032731Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M32/20260923T032731Z/milestone-tests.stderr.txt"
           }
         ]
       },
-      "human_signoff": null,
+      "human_signoff": {
+        "operator": "Chris Sparshott",
+        "decision": "APPROVE",
+        "note": "Chris explicitly replied approved to the M32 closeout request after the bounded Demo handoff and four-role recommendation were presented. Approval covers retained M30 natural lifecycle, M31 refusal evaluation, operator-managed Demo quality and stated limitations; not Live readiness, profitability, unattended availability or protection of unrelated positions.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "887facc081c007f83138fd43d839b0e33892f25e",
+        "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+        "evidence_manifest_sha256": "48c623ce0594dd4978025a898019f1ea91298ee95612cd3871a7b4028d4c716d",
+        "verification_recorded_at": "2026-09-23T03:27:31Z",
+        "recorded_at": "2026-09-23T03:32:09Z"
+      },
       "blockers": [],
       "triad_recommendation": {
-        "path": "runs/triad/M32/M32-20260923T032356Z-e6111526/recommendation.json",
-        "sha256": "90c003088ae63dfbf13265b2f584969ab686702d9a7dd24e32a883e8426875c6",
-        "summary_path": "runs/triad/M32/M32-20260923T032356Z-e6111526/review-summary.md",
-        "summary_sha256": "d41128445d9a18ebef123bf930d46165ef1a0c06a9818f2d92f49659c8bdd484",
-        "review_cycle_id": "M32-20260923T032356Z-e6111526",
+        "path": "runs/triad/M32/M32-20260923T032732Z-887facc0/recommendation.json",
+        "sha256": "f79f290d8787efc40f1e45a01b73e2be4c31ea3a131859e815cbe3c4eb96597a",
+        "summary_path": "runs/triad/M32/M32-20260923T032732Z-887facc0/review-summary.md",
+        "summary_sha256": "850f9720aa9e3607a70db41566ca00e1314ff2d24824674898ec846f66e3e792",
+        "review_cycle_id": "M32-20260923T032732Z-887facc0",
         "recommendation": "RECOMMEND_COMPLETE",
         "binding": {
-          "request_sha256": "42472d6c5f322af7f71fbc6f66bb522e0e376aa8ccd095ed76c272da78c5d1aa",
-          "git_revision": "e6111526ca241d26f212be0438ff7a0d3ecd3832",
+          "request_sha256": "811ba3b04fd67763338e0dc75adb9316397acb62080f7562ab05d23e27c6c860",
+          "git_revision": "887facc081c007f83138fd43d839b0e33892f25e",
           "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
-          "evidence_manifest_sha256": "4a0a82e86fa2a8941843b155b205182819cce4b773d9b0538654f846886cae42",
+          "evidence_manifest_sha256": "48c623ce0594dd4978025a898019f1ea91298ee95612cd3871a7b4028d4c716d",
           "verifier_fingerprint": "sha256:30d3c65e69390344b8cc12810a4019a7a29fe21e38c5adaaf02086913149f163",
           "milestone_contract_sha256": "9d23c8f9c6f2ba5d0d1fd7d8afa5b4049e87eb0a62f5d789e143067891112a74"
         },
-        "recorded_at": "2026-09-23T03:26:25Z"
+        "recorded_at": "2026-09-23T03:29:54Z"
       }
+    },
+    "M33": {
+      "status": "IN_PROGRESS",
+      "started_at": "2026-09-23T03:47:40Z",
+      "implementation_finished_at": null,
+      "verification_passed_at": null,
+      "real_world_proof_captured_at": null,
+      "human_signed_off_at": null,
+      "first_proven_at": null,
+      "proven_at": null,
+      "last_validated_at": null,
+      "checks": {},
+      "evidence": [],
+      "verification": null,
+      "human_signoff": null,
+      "blockers": []
     }
   }
 }

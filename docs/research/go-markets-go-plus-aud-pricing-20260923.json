@@ -1,0 +1,19 @@
+{
+  "schema_version": "forex.pricing-source.v1",
+  "source_id": "GO_MARKETS_GO_PLUS_AUD_20260923",
+  "publisher_entity": "GO Markets",
+  "jurisdiction": "Australia pricing page; not proof of the current Mauritius Demo account terms",
+  "retrieved_at_utc": "2026-09-23T03:40:00Z",
+  "source_url": "https://www.gomarkets.com/en-au/accounts-and-pricing/spreads-and-fees",
+  "account_profile": "GO Plus+",
+  "account_currency": "AUD",
+  "instrument_scope": "FX standard lot commission schedule",
+  "commission_aud_per_standard_lot_per_side": "3.00",
+  "standard_lot_units": 100000,
+  "assumption_status": "ASSUMED",
+  "limitations": [
+    "This is a commission-only comparison schedule.",
+    "It does not identify the current Demo account's actual pricing profile.",
+    "It does not model spread, slippage, swap, financing, conversion or liquidity differences."
+  ]
+}

@@ -42,6 +42,16 @@ FROM (
     ledger.reconciliation_status,
     ledger.reconciliation_disposition,
     ledger.reconciliation_reason,
+    pro_forma.profile_version_id AS pro_forma_profile_version_id,
+    pro_forma.assumed_or_verified AS pro_forma_assumed_or_verified,
+    pro_forma.actual_broker_commission_aud AS pro_forma_actual_broker_commission_aud,
+    pro_forma.estimated_open_commission_aud AS pro_forma_estimated_open_commission_aud,
+    pro_forma.estimated_close_commission_aud AS pro_forma_estimated_close_commission_aud,
+    pro_forma.estimated_round_trip_commission_aud AS pro_forma_estimated_round_trip_commission_aud,
+    pro_forma.actual_broker_net_aud AS pro_forma_actual_broker_net_aud,
+    pro_forma.pro_forma_live_pnl_aud,
+    pro_forma.canonical_source_fingerprint AS pro_forma_source_fingerprint,
+    pro_forma.calculation_version AS pro_forma_calculation_version,
     rejection.payload AS rejection_context,
     COALESCE(events.event_types, '[]'::json)::text AS events,
     CASE
@@ -57,6 +67,7 @@ FROM (
   JOIN forex.demo_trade_proposal p ON p.proposal_id = a.proposal_id
   LEFT JOIN forex.demo_decision_snapshot snapshot ON snapshot.proposal_id = p.proposal_id
   LEFT JOIN forex.demo_trade_ledger ledger ON ledger.proposal_id = p.proposal_id
+  LEFT JOIN forex.demo_m33_pro_forma_ledger pro_forma ON pro_forma.proposal_id = p.proposal_id
   LEFT JOIN forex.demo_open_position_state open_state ON open_state.attempt_id = a.attempt_id
   LEFT JOIN forex.demo_strategy_selection selection ON selection.proposal_id = p.proposal_id
   LEFT JOIN LATERAL (

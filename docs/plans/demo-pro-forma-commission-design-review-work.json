@@ -1,0 +1,20 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "DEMO-PRO-FORMA-COMMISSION-DESIGN",
+  "authorization": "Chris authorised execution on 2026-09-23. M33 DEMO_PRO_FORMA_COST_ACCOUNTING is IN_PROGRESS. Authority covers its Demo-only reporting scope: additive PostgreSQL projection, fixed T480 adapter, terminal ledger, and verification. It does not authorise Live trading, order submission, risk/account changes, MT5 configuration changes, or any treatment of open/unattributed positions.",
+  "markdown_plan": "docs/plans/demo-pro-forma-commission-design-review.md",
+  "items": [
+    {"id":"evidence","title":"Record pricing and ledger evidence","state":"DONE","requires":[],"evidence":["docs/research/demo-pro-forma-commission-evidence.md records official terms and current broker-ledger limitation."],"blocker":null},
+    {"id":"design","title":"Specify immutable profile and pro-forma projection design","state":"DONE","requires":["evidence"],"evidence":["docs/plans/demo-pro-forma-commission-design-review.md defines scope, formulas, schema, UI and acceptance checks."],"blocker":null},
+    {"id":"independent-review","title":"Obtain independent read-only design review","state":"DONE","requires":["design"],"evidence":["docs/reviews/demo-pro-forma-commission-astra-review-20260923.md: Astra verdict NEEDS_REVISION, with two HIGH and three MEDIUM findings."],"blocker":null},
+    {"id":"design-revision","title":"Revise design for reconciliation/versioning findings","state":"DONE","requires":["independent-review"],"evidence":["Plan revised to closed reconciled listener trades only; canonical-source fingerprint identity; actual-net replacement formula; immutable explicit profile version; repaired/partial data unavailable."],"blocker":null},
+    {"id":"implementation-authority","title":"Start the reviewed M33 implementation contract","state":"DONE","requires":["design-revision"],"evidence":["Chris instructed 'execute the execplan'; M33 was readied and started at 2026-09-23T03:47:40Z."],"blocker":null},
+    {"id":"schema-projection","title":"Add immutable M33 pricing profile and closed-trade projection","state":"DONE","requires":["implementation-authority"],"evidence":["sql/migrations/026_m33_demo_pro_forma_commission.sql defines additive immutable profile/projection records, a source-bound view, full-fill/MATCHED eligibility and idempotent insert."],"blocker":null},
+    {"id":"fixed-adapter","title":"Add fixed hash-bound stage, apply, summary and verification operations","state":"DONE","requires":["schema-projection"],"evidence":["scripts/postgres_pgvector_adapter.py exposes only fixed M33 stage/apply/summary/verify operations; encoded commands are regression-tested below 7,500 characters."],"blocker":null},
+    {"id":"terminal-ledger","title":"Show separate actual and assumed commission-adjusted P&L in the terminal ledger","state":"DONE","requires":["schema-projection","fixed-adapter"],"evidence":["sql/m20_lifecycle_summary.sql and scripts/m20_trade_ledger_dashboard.py retain actual P&L and render the explicit GO Plus+ AUD assumed comparison only for eligible verified closes."],"blocker":null},
+    {"id":"local-verification","title":"Run targeted unit, migration-contract and governance checks","state":"DONE","requires":["fixed-adapter","terminal-ledger"],"evidence":["2026-09-23: 69 focused pytest checks passed; execution-work projection is CONSISTENT; git diff --check and milestone validation pass; T480 PostgreSQL preflight and inspect were healthy."],"blocker":null},
+    {"id":"deploy-and-verify","title":"Stage and apply only the fixed M33 assets, then collect Demo-only proof","state":"PENDING","requires":["local-verification"],"evidence":[],"blocker":null},
+    {"id":"proof-review","title":"Prepare the M33 proof and obtain independent read-only review","state":"PENDING","requires":["deploy-and-verify"],"evidence":[],"blocker":null},
+    {"id":"human-closeout","title":"Request the required human closeout decision after implementation and evidence review","state":"PENDING","requires":["proof-review"],"evidence":[],"blocker":null}
+  ]
+}

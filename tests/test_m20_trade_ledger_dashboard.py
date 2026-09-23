@@ -17,7 +17,7 @@ def test_ledger_timeout_remains_refreshable():
 def test_ledger_renders_monitoring_and_verified_sale_with_pnl():
     screen = render([
         {"attempt_id": "open", "submitted_at_utc": "2026-09-03T12:04:02Z", "action": "BUY", "lifecycle": "OPEN_MONITORING", "volume_lots": "0.01", "proposed_entry": 1.16153, "actual_entry_price": 1.16155, "stop_loss": 1.16110, "take_profit": 1.16217},
-        {"submitted_at_utc": "2026-09-03T12:13:06Z", "action": "SELL", "lifecycle": "CLOSED_MATCHED", "volume_lots": "0.01", "proposed_entry": 1.16123, "stop_loss": 1.16172, "take_profit": 1.16049, "closed_at_utc": "2026-09-03T12:20:00Z", "exit_price": 1.16049, "close_reason": "TAKE_PROFIT", "gross_price_pnl_account": "12.34", "commission_account": "0", "swap_account": "0", "estimated_spread_cost_account": "0.20", "slippage_cost_account": "0.10", "estimated_total_cost_account": "0.30", "realized_pnl_account": "12.34", "account_currency": "AUD"},
+        {"submitted_at_utc": "2026-09-03T12:13:06Z", "action": "SELL", "lifecycle": "CLOSED_MATCHED", "volume_lots": "0.01", "proposed_entry": 1.16123, "stop_loss": 1.16172, "take_profit": 1.16049, "closed_at_utc": "2026-09-03T12:20:00Z", "exit_price": 1.16049, "close_reason": "TAKE_PROFIT", "gross_price_pnl_account": "12.34", "commission_account": "0", "fee_account": "0", "swap_account": "0", "estimated_spread_cost_account": "0.20", "slippage_cost_account": "0.10", "estimated_total_cost_account": "0.30", "realized_pnl_account": "12.34", "account_currency": "AUD", "pro_forma_profile_version_id": "GO_PLUS_AUD_V1", "pro_forma_assumed_or_verified": "ASSUMED", "pro_forma_actual_broker_net_aud": "12.34", "pro_forma_estimated_round_trip_commission_aud": "-0.06", "pro_forma_live_pnl_aud": "12.28"},
     ], active_attempt_id="open", nz_day=date(2026, 9, 4))
     assert "MONITORING" in screen
     assert "SOLD / VERIFIED" in screen
@@ -29,6 +29,20 @@ def test_ledger_renders_monitoring_and_verified_sale_with_pnl():
     assert "NZ day: 04/09/26" in screen
     assert "04/09 00:13:06" in screen
     assert "Closed 04/09 00:20:00 NZST at 1.16049; Take profit reached" in screen
+    assert "Actual broker P&L: +12.34 AUD" in screen
+    assert "Commission-adjusted Demo P&L — GO Plus+ AUD assumption: +12.28 AUD" in screen
+    assert "Modelled commission: -0.06 AUD round trip" in screen
+
+
+def test_ledger_includes_all_actual_broker_cost_components_and_marks_missing_projection_unavailable():
+    screen = render([{
+        "submitted_at_utc": "2026-09-03T12:20:00Z", "action": "BUY", "lifecycle": "CLOSED_MATCHED",
+        "gross_price_pnl_account": "1.00", "commission_account": "-0.01", "fee_account": "-0.02", "swap_account": "-0.03",
+        "realized_pnl_account": "0.94", "account_currency": "AUD", "closed_at_utc": "2026-09-03T12:21:00Z",
+        "exit_price": 1.16032, "close_reason": "BROKER_SIDE_CLOSE",
+    }], nz_day=date(2026, 9, 4))
+    assert "-0.06" in screen
+    assert "Commission-adjusted Demo P&L: unavailable" in screen
 
 
 def test_ledger_refuses_an_authoritatively_invalidated_outcome():

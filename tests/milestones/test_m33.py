@@ -1,0 +1,43 @@
+from decimal import Decimal, ROUND_HALF_UP
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def _commission(volume: str) -> tuple[Decimal, Decimal, Decimal]:
+    side = -(Decimal("3.00") * Decimal(volume)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return side, side, side + side
+
+
+def test_m33_commission_examples_replace_actual_commission_once():
+    assert _commission("0.01") == (Decimal("-0.03"), Decimal("-0.03"), Decimal("-0.06"))
+    assert _commission("1.00") == (Decimal("-3.00"), Decimal("-3.00"), Decimal("-6.00"))
+    actual_net = Decimal("0.45")
+    actual_commission = Decimal("0.00")
+    assert actual_net - actual_commission + _commission("0.01")[2] == Decimal("0.39")
+    assert Decimal("0.45") - Decimal("-0.02") + _commission("0.01")[2] == Decimal("0.41")
+
+
+def test_m33_migration_is_additive_source_bound_and_excludes_open_positions():
+    source = (ROOT / "sql/migrations/026_m33_demo_pro_forma_commission.sql").read_text()
+    for required in (
+        "CREATE TABLE IF NOT EXISTS forex.demo_pricing_profile",
+        "CREATE TABLE IF NOT EXISTS forex.demo_trade_pro_forma_pnl",
+        "GO_PLUS_AUD_V1", "ASSUMED", "canonical_source_fingerprint",
+        "demo_m33_closed_trade_source", "fill_status' = 'FULL'",
+        "outcome.reconciliation_status = 'MATCHED'", "latest_revision.disposition IS NULL",
+        "pro_forma_live_pnl_aud = actual_broker_net_aud - actual_broker_commission_aud + estimated_round_trip_commission_aud",
+        "ON CONFLICT (proposal_id, profile_version_id, calculation_version, canonical_source_fingerprint) DO NOTHING",
+    ):
+        assert required in source
+    assert "demo_open_position_state" not in source
+    assert "UPDATE forex.demo_trade_outcome" not in source
+    assert "DELETE FROM forex.demo_trade_outcome" not in source
+
+
+def test_m33_terminal_ledger_uses_an_explicit_assumption_label():
+    source = (ROOT / "scripts/m20_trade_ledger_dashboard.py").read_text()
+    assert "Commission-adjusted Demo P&L — GO Plus+ AUD assumption" in source
+    assert "Actual broker P&L" in source
+    assert "('commission_account', 'fee_account', 'swap_account')" in source

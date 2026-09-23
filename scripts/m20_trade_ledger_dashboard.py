@@ -154,11 +154,11 @@ def _gross(row: dict[str, Any]) -> str:
 
 
 def _fees(row: dict[str, Any]) -> str:
-    """Actual broker fees are commission plus swap, distinct from spread model."""
+    """Actual broker costs include commission, fee and swap, never spread estimates."""
     if _state(row, None) != "SOLD / VERIFIED":
         return "—"
     try:
-        return f"{float(row.get('commission_account') or 0) + float(row.get('swap_account') or 0):+.2f}"
+        return f"{sum(float(row.get(field) or 0) for field in ('commission_account', 'fee_account', 'swap_account')):+.2f}"
     except (TypeError, ValueError):
         return "—"
 
@@ -208,12 +208,34 @@ def _detail(row: dict[str, Any], active_attempt_id: str | None) -> str | None:
     return None
 
 
+def _pro_forma_detail(row: dict[str, Any]) -> str | None:
+    """Show the M33 comparison only for a broker-verified, eligible close.
+
+    This is deliberately a labelled assumption, not a replacement for broker P&L
+    and not a mark-to-market value for an open position.
+    """
+    if _state(row, None) != "SOLD / VERIFIED":
+        return None
+    profile = row.get("pro_forma_profile_version_id")
+    modelled = row.get("pro_forma_estimated_round_trip_commission_aud")
+    comparison = row.get("pro_forma_live_pnl_aud")
+    if not profile or modelled in (None, "") or comparison in (None, ""):
+        return "Commission-adjusted Demo P&L: unavailable — no eligible complete closed-trade source."
+    if profile != "GO_PLUS_AUD_V1" or row.get("pro_forma_assumed_or_verified") != "ASSUMED":
+        return "Commission-adjusted Demo P&L: unavailable — unsupported pricing-profile selection."
+    return (
+        f"Actual broker P&L: {_money(row.get('pro_forma_actual_broker_net_aud'), 'AUD')} | "
+        f"Commission-adjusted Demo P&L — GO Plus+ AUD assumption: {_money(comparison, 'AUD')} | "
+        f"Modelled commission: {_money(modelled, 'AUD')} round trip"
+    )
+
+
 def render(rows: list[dict[str, Any]], active_attempt_id: str | None = None, nz_day: date | None = None,
            show_rejections: bool = False, show_unverified: bool = False) -> str:
     lines = [
         "M20 Demo Trade Ledger — monitoring, closes, and P&L",
         "=" * 58,
-        "Demo-only and read-only. Gross is broker price P&L; fees are broker commission + swap; net is realised P&L.",
+        "Demo-only and read-only. Gross is broker price P&L; costs are broker commission + fee + swap; net is realised P&L.",
         "",
     ]
     if rows and rows[0].get("error"):
@@ -258,6 +280,9 @@ def render(rows: list[dict[str, Any]], active_attempt_id: str | None = None, nz_
             protection = f"SL {_number(row.get('stop_loss'))} | TP {_number(row.get('take_profit'))}"
             detail = _detail(row, active_attempt_id)
             lines.append(f"  └─ {protection}" + (f" | {detail}" if detail else ""))
+            pro_forma_detail = _pro_forma_detail(row)
+            if pro_forma_detail:
+                lines.append(f"  └─ {pro_forma_detail}")
         detail = _detail(row, active_attempt_id)
         if detail and _state(row, active_attempt_id) == "RECONCILIATION ERROR":
             lines.append(f"  └─ {detail}")

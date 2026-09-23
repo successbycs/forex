@@ -42,8 +42,8 @@ unrelated proof merely because an M32 evaluator receives a new Git revision.
 - [x] quality-report — Build and test the bounded quality assessment and operator handoff (DONE)
 <!-- forex-work-item id=proof-review state=DONE -->
 - [x] proof-review — Capture current-revision M32 proof and obtain independent review (DONE)
-<!-- forex-work-item id=human-closeout state=BLOCKED -->
-- [ ] human-closeout — Obtain result approval and prove M32 through the governed gates (BLOCKED)
+<!-- forex-work-item id=human-closeout state=DONE -->
+- [x] human-closeout — Obtain result approval and prove M32 through the governed gates (DONE)
 <!-- forex-work-projection:end -->
 
 ## Evidence basis and critical assumption
@@ -165,7 +165,8 @@ than new removal, generic test-receipt parsing and an existing duplicate review
 summary write. These do not justify expanding the MVP or its trading authority.
 Later Live or unattended promotion requires separate design and evidence.
 
-Only Chris's M32 result approval remains; M31 approval does not approve M32.
+At that preparation point only Chris's M32 result approval remained; M31
+approval did not approve M32. The completed approval is recorded below.
 Before presenting the approval handoff, commit this factual progress record and
 refresh the offline bundle and bound recommendation against that committed
 revision. Use the unchanged retained sources, a new evidence directory, and all
@@ -184,3 +185,15 @@ approval blocker. Revision-only rebinding uses retained evidence, not a fresh
 market-observation period. After explicit M32 approval, assess the latest
 recommendation and evidence again, record signoff with both reviewed flags,
 and prove M32 using `scripts/forex_milestones.py`; do not sign off in advance.
+
+2026-09-23 final closeout: Chris explicitly replied “approved” to the M32
+closeout request. Before recording that decision, the final retained bundle
+`runs/evidence/M32/formal-20260923-final` passed its offline verifier at 887facc,
+the four-role recommendation `M32-20260923T032732Z-887facc0` assessed HEALTHY,
+and governance validated. Human signoff was recorded at 03:32:09Z; the governed
+prove command wrote M32 PROVEN at 03:32:10Z. M30 and M31 remain PROVEN. All
+goal steps are complete at their declared bounded Demo surfaces. The existing
+operator-managed terminal, manual-position and performance limits remain;
+Live is NOT_READY and no trading authority or runtime setting changed.
+This post-proof administrative update records the completed result without
+rewriting source evidence or changing the reviewed implementation revision.

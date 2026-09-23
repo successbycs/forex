@@ -40,8 +40,53 @@ def test_adapter_exposes_only_fixed_forex_operations():
         "forex-m1-stage-closed-candle-decision-identity-schema",
         "forex-m1-apply-closed-candle-decision-identity-schema",
         "forex-m1-closed-candle-decision-identity-verify",
+        "forex-m33-stage-pro-forma-commission-schema",
+        "forex-m33-apply-pro-forma-commission-schema",
+        "forex-m33-pro-forma-commission-summary",
+        "forex-m33-pro-forma-commission-verify",
     })
     assert postgres_pgvector_adapter.READ_ONLY | postgres_pgvector_adapter.MUTATING == expected
+
+
+def test_m33_pro_forma_operations_are_fixed_hash_bound_and_read_only_when_verifying():
+    migration = "sql/migrations/026_m33_demo_pro_forma_commission.sql"
+    conversion = mock.Mock(stdout=r"\\wsl.localhost\Ubuntu\home\chris\projects\forex\sql\migrations\026_m33_demo_pro_forma_commission.sql\n")
+    mkdir = mock.Mock(returncode=0, stdout="", stderr="")
+    transfer = mock.Mock(returncode=0, stdout="", stderr="")
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=(migration, "a" * 64)), mock.patch.object(postgres_pgvector_adapter, "subprocess") as process, mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True, "stdout": "", "stderr": ""}) as remote:
+        process.run.side_effect = [conversion, mkdir, transfer]
+        assert postgres_pgvector_adapter.stage_m33_pro_forma_commission_schema()["ok"]
+    staged = remote.call_args.args[0]
+    assert "026_m33_demo_pro_forma_commission.sql" in staged
+    assert "sha256sum" in staged and "install -m 0644" in staged
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=(migration, "a" * 64)), mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True, "stdout": "", "stderr": ""}) as remote:
+        assert postgres_pgvector_adapter.apply_m33_pro_forma_commission_schema()["ok"]
+    assert "sha256sum" in remote.call_args.args[0]
+    with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True, "stdout": "", "stderr": ""}) as remote:
+        assert postgres_pgvector_adapter.m33_pro_forma_commission_verify()["ok"]
+    query = remote.call_args.args[0]
+    assert "GO_PLUS_AUD_V1" in query and "open_positions_included=false" in query
+    assert "INSERT" not in query and "UPDATE" not in query and "password" not in query.lower()
+
+
+def test_m33_fixed_remote_operations_fit_the_t480_encoded_transport_envelope():
+    migration = "sql/migrations/026_m33_demo_pro_forma_commission.sql"
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=(migration, "a" * 64)), mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True, "stdout": "", "stderr": ""}) as remote:
+        postgres_pgvector_adapter.apply_m33_pro_forma_commission_schema()
+    bodies = [remote.call_args.args[0]]
+    with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True, "stdout": "", "stderr": ""}) as remote:
+        postgres_pgvector_adapter.m33_pro_forma_commission_summary()
+        bodies.append(remote.call_args.args[0])
+        postgres_pgvector_adapter.m33_pro_forma_commission_verify()
+        bodies.append(remote.call_args.args[0])
+    for body in bodies:
+        script = f"set -euo pipefail\ncd {postgres_pgvector_adapter.REMOTE_LAB}\ntest -f .env\nset -a\nsource .env\nset +a\n{body}\n"
+        command = postgres_pgvector_adapter.build_ssh_command(
+            postgres_pgvector_adapter.TARGET,
+            postgres_pgvector_adapter.build_wsl_powershell_command(script, postgres_pgvector_adapter.SETTINGS),
+            postgres_pgvector_adapter.SETTINGS,
+        )
+        assert len(command[-1]) < 7_500
 
 
 def test_m1_closed_candle_identity_schema_operations_are_fixed_and_hash_bound():

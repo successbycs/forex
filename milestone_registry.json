@@ -4111,6 +4111,39 @@
       "target_date": null,
       "target_date_owner": "HUMAN_OPERATOR",
       "notes": "Three-phase historical-first roadmap. M32 includes the short final MVP quality review; it grants no live-trading authority. Completion remains proof-gated; historical evidence is never a substitute for Phase 3 real-time Demo proof."
+    },
+    {
+      "milestone_id": "M33",
+      "review_board_required": true,
+      "title": "Demo commission-adjusted P&L comparison",
+      "objective": "Provide an auditable, closed-trade-only comparison of attributable Demo broker P&L with a declared GO Markets commission scenario. This grants no Live, order, risk or account authority.",
+      "delivery_type": "CAPABILITY_DELIVERING",
+      "proof_type": "REAL_SYSTEM_INTEGRATION",
+      "dependencies": ["M32"],
+      "entry_conditions": ["M32 is PROVEN and remains valid.", "The GO Plus+ AUD pricing assumption, formula and independent design review are retained.", "The Demo-only boundary remains intact."],
+      "from_state": "No source-versioned commission-adjusted Demo P&L projection exists.",
+      "to_state": "Attributable closed Demo trades show actual broker P&L and a separately labelled, source-versioned commission-adjusted comparison.",
+      "scope": ["Add immutable PostgreSQL pricing-profile and pro-forma projection records for closed, reconciled, listener-attributed EUR/USD Demo trades.", "Use the explicit ASSUMED GO_PLUS_AUD_V1 AUD 3-per-side-per-standard-lot scenario; actual broker P&L remains unchanged.", "Expose a fixed read-only projection in the terminal trade ledger and verify source, rounding, idempotency and Demo-only boundaries."],
+      "out_of_scope": ["Live trading or access to GOMarketsMU-Live.", "Any change to order submission, risk, strategy, account, MT5 terminal or position-management settings.", "Open-position mark-to-market modelling, manual-position attribution, spread/slippage/financing simulation, automatic pricing-profile discovery, generic SQL or generic remote shell access."],
+      "operator_config_affected": ["config/t480.json", "t480/command-catalog.json"],
+      "expected_artifacts": ["docs/milestones/M33-proof.md", "sql/migrations/026_m33_demo_pro_forma_commission.sql", "tests/milestones/test_m33.py"],
+      "acceptance_criteria": [
+        {"id":"M33-C1","description":"A closed, reconciled, listener-attributed 0.01-lot Demo trade retains actual broker P&L and shows a separate GO Plus+ AUD estimated round-trip commission of AUD -0.06 and comparison P&L.","kind":"CAPABILITY"},
+        {"id":"M33-C2","description":"The projection is source/profile/calculation-version bound, idempotent and unavailable for incomplete, invalidated, repaired-incomplete, partial or unattributed records.","kind":"SAFETY"},
+        {"id":"M33-C3","description":"Fixed PostgreSQL operations stage, apply and verify the additive schema without generic SQL or a trading action; the terminal view displays actual and assumed values distinctly.","kind":"REAL_WORLD_PROOF"},
+        {"id":"M33-C4","description":"Targeted tests, independent review and evidence prove that actual broker P&L, Demo-only boundary and existing execution/risk controls remain unchanged.","kind":"VERIFICATION"}
+      ],
+      "verification_commands": [
+        {"id":"governance","argv":["python3","scripts/forex_milestones.py","validate"]},
+        {"id":"milestone-tests","argv":["python3","-m","pytest","-q","tests/milestones/test_m33.py"]}
+      ],
+      "real_world_proof": {"real_world_execution":true,"provenance_assurance":"SELF_ATTESTED_INTEGRITY","surface":"fixed PostgreSQL commission-adjusted Demo P&L projection and read-only terminal ledger","capture_command":["bash","scripts/capture_m33_evidence.sh"],"verifier_command":["bash","scripts/verify_m33_evidence.sh","{bundle}"],"freshness_hours":24,"success_markers":["FOREX_M33_PRO_FORMA_COMMISSION_OK"]},
+      "evidence_requirements": ["Hash-bound immutable pricing-profile source, migration/projection receipt and redaction declaration.", "Git revision, configuration fingerprint, source/profile/calculation identifiers and SHA-256 artifact hashes.", "A human-readable terminal ledger example that distinguishes actual broker P&L from the GO Plus+ AUD assumption."],
+      "human_review_required": true,
+      "proof_invalidated_by": ["A material change to the projection formula, profile source/version, PostgreSQL schema, adapter, terminal ledger contract or governed configuration.", "Evidence exceeding its 24-hour freshness window.", "A violation of the Demo-only, actual-P&L preservation or fixed-operation boundary."],
+      "target_date": null,
+      "target_date_owner": "HUMAN_OPERATOR",
+      "notes": "Chris explicitly authorised execution on 2026-09-23 after independent Astra design review. M33 is a closed-trade accounting comparison only and grants no Live or order authority."
     }
   ],
   "roadmap_phases": [
@@ -4172,13 +4205,15 @@
         "M29",
         "M30",
         "M31",
-        "M32"
+        "M32",
+        "M33"
       ],
       "purpose": "When the Demo market is active, validate fresh data, collection safety, controlled human-approved Demo execution, reconciliation, and forward evaluation before any live-readiness assessment.",
       "constraints": [
         "Use GOMarketsMU-Demo only; GOMarketsMU-Live remains prohibited.",
         "Outside the active M20 exception, no order capability exists before M27; later Demo execution remains separately governed by its own contracts.",
-        "M32 is an assessment only and does not authorize live trading."
+        "M32 is an assessment only and does not authorize live trading.",
+        "M33 is closed-trade Demo accounting only; it cannot modify orders, risk, position ownership or Live access."
       ]
     }
   ]
