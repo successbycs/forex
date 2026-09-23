@@ -44,7 +44,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-23T04:03:35Z",
+  "last_updated_at": "2026-09-23T04:09:08Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -4201,8 +4201,8 @@
       "status": "AWAITING_REAL_WORLD_PROOF",
       "started_at": "2026-09-23T03:47:40Z",
       "implementation_finished_at": "2026-09-23T04:03:35Z",
-      "verification_passed_at": "2026-09-23T04:03:35Z",
-      "real_world_proof_captured_at": "2026-09-23T04:03:34Z",
+      "verification_passed_at": "2026-09-23T04:09:08Z",
+      "real_world_proof_captured_at": "2026-09-23T04:08:51Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
@@ -4210,27 +4210,27 @@
       "checks": {
         "M33-C1": {
           "result": "PASS",
-          "recorded_at": "2026-09-23T04:03:34Z",
-          "evidence": "runs/evidence/M33/formal-20260923-m33-v4/manifest.json",
-          "note": "Verified 0.01-lot closed Demo rows retain actual P&L and show AUD -0.06 assumed round-trip commission."
+          "recorded_at": "2026-09-23T04:09:06Z",
+          "evidence": "runs/evidence/M33/formal-20260923-m33-v5/manifest.json",
+          "note": "Fresh v5 proof: eligible 0.01-lot closed Demo rows retain actual P&L and separately show the AUD -0.06 assumption."
         },
         "M33-C2": {
           "result": "PASS",
-          "recorded_at": "2026-09-23T04:03:34Z",
-          "evidence": "runs/evidence/M33/formal-20260923-m33-v4/manifest.json",
-          "note": "Source/profile/calculation binding, immutability, formula, rounding and open-position exclusion verified."
+          "recorded_at": "2026-09-23T04:09:07Z",
+          "evidence": "runs/evidence/M33/formal-20260923-m33-v5/manifest.json",
+          "note": "Fresh v5 proof: source/profile/version binding, exact full-fill eligibility, refresh trigger, formula and rounding verified."
         },
         "M33-C3": {
           "result": "PASS",
-          "recorded_at": "2026-09-23T04:03:34Z",
-          "evidence": "runs/evidence/M33/formal-20260923-m33-v4/manifest.json",
-          "note": "Fixed stage/apply/verify operations and terminal distinction observed on T480 PostgreSQL."
+          "recorded_at": "2026-09-23T04:09:07Z",
+          "evidence": "runs/evidence/M33/formal-20260923-m33-v5/manifest.json",
+          "note": "Fixed operations deployed without an order action; terminal and listener views distinguish actual and assumed values."
         },
         "M33-C4": {
           "result": "PASS",
-          "recorded_at": "2026-09-23T04:03:35Z",
-          "evidence": "runs/evidence/M33/formal-20260923-m33-v4/manifest.json",
-          "note": "Targeted tests and fresh Demo-only evidence passed; execution/risk controls were not changed."
+          "recorded_at": "2026-09-23T04:09:07Z",
+          "evidence": "runs/evidence/M33/formal-20260923-m33-v5/manifest.json",
+          "note": "Focused tests and fresh Demo-only proof pass; no execution or risk code changed."
         }
       },
       "evidence": [
@@ -4242,12 +4242,21 @@
           "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
           "git_revision": "5048182247dce707c29a319a856b83fdfd8942f8",
           "summary": "FOREX_M33_PRO_FORMA_COMMISSION_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M33/formal-20260923-m33-v5/manifest.json",
+          "manifest_sha256": "c71959ce2209c4f847eef17ecf23bebecfd748be018448ae1361a41c7a311dc7",
+          "captured_at": "2026-09-23T04:08:51Z",
+          "recorded_at": "2026-09-23T04:09:07Z",
+          "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+          "git_revision": "c9b9fb7d8ad8db752920b6e69df423e01aedbe0f",
+          "summary": "FOREX_M33_PRO_FORMA_COMMISSION_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-23T04:03:35Z",
-        "git_revision": "5048182247dce707c29a319a856b83fdfd8942f8",
+        "recorded_at": "2026-09-23T04:09:08Z",
+        "git_revision": "c9b9fb7d8ad8db752920b6e69df423e01aedbe0f",
         "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
         "commands": [
           {
@@ -4259,8 +4268,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M33/20260923T040335Z/governance.stdout.txt",
-            "stderr": "runs/verification/M33/20260923T040335Z/governance.stderr.txt"
+            "stdout": "runs/verification/M33/20260923T040907Z/governance.stdout.txt",
+            "stderr": "runs/verification/M33/20260923T040907Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -4273,8 +4282,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M33/20260923T040335Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M33/20260923T040335Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M33/20260923T040907Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M33/20260923T040907Z/milestone-tests.stderr.txt"
           }
         ]
       },

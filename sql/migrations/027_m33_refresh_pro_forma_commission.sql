@@ -28,15 +28,15 @@ JOIN forex.demo_trade_session session ON session.session_id = proposal.session_i
 JOIN forex.demo_execution_attempt attempt ON attempt.proposal_id = proposal.proposal_id
 JOIN LATERAL (
     SELECT
-        MAX(CASE WHEN event.payload->>'volume' ~ '^[0-9]+(\.[0-9]{1,4})?$'
+        MAX(CASE WHEN event.payload->>'volume' ~ '^[0-9]{1,8}(\.[0-9]{1,4})?$'
                  THEN (event.payload->>'volume')::NUMERIC(12, 4) END)::NUMERIC(12, 4) AS volume_lots,
         MIN(event.payload_sha256) AS payload_sha256
     FROM forex.demo_position_event event
     WHERE event.attempt_id = attempt.attempt_id AND event.event_type = 'OPENED'
     HAVING COUNT(*) = 1
        AND MIN(event.payload->>'fill_status') = 'FULL'
-       AND MIN(event.payload->>'volume') ~ '^[0-9]+(\.[0-9]{1,4})?$'
-       AND MAX(CASE WHEN event.payload->>'volume' ~ '^[0-9]+(\.[0-9]{1,4})?$'
+       AND MIN(event.payload->>'volume') ~ '^[0-9]{1,8}(\.[0-9]{1,4})?$'
+       AND MAX(CASE WHEN event.payload->>'volume' ~ '^[0-9]{1,8}(\.[0-9]{1,4})?$'
                     THEN (event.payload->>'volume')::NUMERIC(12, 4) END) > 0
 ) opening ON true
 LEFT JOIN LATERAL (
