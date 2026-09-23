@@ -31,7 +31,7 @@ def write_new(path: Path, data: bytes) -> None:
 
 
 def digest(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _terminal_render() -> bytes:
@@ -74,15 +74,18 @@ def capture(bundle: Path) -> None:
         write_new(bundle / "summary.txt", summary)
         names = sorted(path.name for path in bundle.iterdir() if path.is_file())
         manifest = {
-            "schema_version": "forex.m33.evidence-bundle.v1",
+            "schema_version": "1.0.0",
             "milestone_id": "M33",
-            "captured_at_utc": captured.isoformat().replace("+00:00", "Z"),
+            "captured_at": captured.isoformat().replace("+00:00", "Z"),
             "git_revision": revision.decode().strip(),
             "configuration_fingerprint": json.loads(status)["configuration_fingerprint"],
             "surface": "fixed PostgreSQL commission-adjusted Demo P&L projection and read-only terminal ledger",
             "operation": "fixed M33 PostgreSQL schema/projection verification and read-only terminal render",
+            "expected_result": MARKER,
             "observed_result": MARKER,
-            "execution_authority": False,
+            "exit_code": 0,
+            "dirty_worktree": False,
+            "summary": MARKER,
             "redactions": ["No credentials, account balances, open-position details, order actions, or MT5 settings are retained."],
             "artifacts": [{"path": name, "sha256": digest(bundle / name)} for name in names],
         }
@@ -100,9 +103,9 @@ def require(condition: bool, message: str) -> None:
 def verify(bundle: Path) -> None:
     bundle = bundle.resolve()
     manifest = json.loads((bundle / "manifest.json").read_text())
-    require(manifest.get("schema_version") == "forex.m33.evidence-bundle.v1", "wrong M33 manifest schema")
+    require(manifest.get("schema_version") == "1.0.0", "wrong M33 manifest schema")
     require(manifest.get("milestone_id") == "M33", "wrong milestone")
-    captured = datetime.fromisoformat(manifest["captured_at_utc"].replace("Z", "+00:00"))
+    captured = datetime.fromisoformat(manifest["captured_at"].replace("Z", "+00:00"))
     require(datetime.now(timezone.utc) - captured <= timedelta(hours=24), "M33 evidence exceeds 24-hour freshness")
     require(manifest.get("git_revision") == run("git", "rev-parse", "HEAD").decode().strip(), "capture revision differs from current source")
     for artifact in manifest["artifacts"]:

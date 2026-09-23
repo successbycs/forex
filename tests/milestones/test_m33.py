@@ -50,7 +50,7 @@ def test_m33_proof_surface_has_fixed_capture_and_offline_verification():
     proof = (ROOT / "docs/milestones/M33-proof.md").read_text()
     assert "m33_pro_forma_evidence.py capture" in capture
     assert "m33_pro_forma_evidence.py verify" in verify
-    for required in ("FOREX_M33_PRO_FORMA_COMMISSION_OK", "m33-projection.json", "terminal-ledger.txt", "open_positions_included=false"):
+    for required in ("FOREX_M33_PRO_FORMA_COMMISSION_OK", "m33-projection.json", "terminal-ledger.txt", "open_positions_included=false", '"schema_version": "1.0.0"', '"dirty_worktree": False'):
         assert required in collector
     assert "Decimal(str(value))" in collector
     assert "GO_PLUS_AUD_V1" in proof and "Demo-only" in proof
