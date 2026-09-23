@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 import hashlib
 import json
 from pathlib import Path
@@ -112,8 +113,9 @@ def verify(bundle: Path) -> None:
     for token in ("FOREX_M33_PRO_FORMA_COMMISSION_DB_OK", "profile=true", "immutable=true", "formula=true", "rounding=true", "source_bound=true", "open_positions_included=false"):
         require(token in output, f"M33 database verification missing {token}")
     projection = json.loads(json.loads((bundle / "m33-projection.json").read_text())["result"]["stdout"])
-    require(any(row["volume_lots"] == 0.01 and row["estimated_round_trip_commission_aud"] == -0.06 for row in projection), "missing 0.01 lot / -0.06 M33 projection")
-    require(all(row["pro_forma_live_pnl_aud"] == row["actual_broker_net_aud"] - row["actual_broker_commission_aud"] + row["estimated_round_trip_commission_aud"] for row in projection), "pro-forma equation failed")
+    decimal = lambda value: Decimal(str(value))
+    require(any(decimal(row["volume_lots"]) == Decimal("0.01") and decimal(row["estimated_round_trip_commission_aud"]) == Decimal("-0.06") for row in projection), "missing 0.01 lot / -0.06 M33 projection")
+    require(all(decimal(row["pro_forma_live_pnl_aud"]) == decimal(row["actual_broker_net_aud"]) - decimal(row["actual_broker_commission_aud"]) + decimal(row["estimated_round_trip_commission_aud"]) for row in projection), "pro-forma equation failed")
     terminal = (bundle / "terminal-ledger.txt").read_text()
     require("Actual broker P&L:" in terminal and "Commission-adjusted Demo P&L — GO Plus+ AUD assumption:" in terminal, "terminal comparison label missing")
     require(MARKER in (bundle / "summary.txt").read_text(), "M33 success marker missing")
