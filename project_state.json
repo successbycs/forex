@@ -44,7 +44,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-23T03:47:40Z",
+  "last_updated_at": "2026-09-23T04:02:02Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -4207,7 +4207,32 @@
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
-      "checks": {},
+      "checks": {
+        "M33-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-23T04:02:01Z",
+          "evidence": "runs/evidence/M33/formal-20260923-m33-v2/manifest.json",
+          "note": "Verified 0.01-lot closed Demo rows retain actual P&L and show AUD -0.06 assumed round-trip commission."
+        },
+        "M33-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-23T04:02:02Z",
+          "evidence": "runs/evidence/M33/formal-20260923-m33-v2/manifest.json",
+          "note": "Source/profile/calculation binding, immutability, formula, rounding and open-position exclusion verified."
+        },
+        "M33-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-23T04:02:02Z",
+          "evidence": "runs/evidence/M33/formal-20260923-m33-v2/manifest.json",
+          "note": "Fixed stage/apply/verify operations and terminal distinction observed on T480 PostgreSQL."
+        },
+        "M33-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-23T04:02:02Z",
+          "evidence": "runs/evidence/M33/formal-20260923-m33-v2/manifest.json",
+          "note": "Targeted tests and fresh Demo-only evidence passed; execution/risk controls were not changed."
+        }
+      },
       "evidence": [],
       "verification": null,
       "human_signoff": null,

@@ -53,6 +53,7 @@ def capture(bundle: Path) -> None:
     bundle = bundle.resolve()
     if bundle.exists():
         raise RuntimeError(f"evidence directory already exists: {bundle}")
+    require(not run("git", "status", "--porcelain").strip(), "M33 evidence capture requires a clean committed worktree")
     bundle.mkdir(parents=True)
     try:
         revision = run("git", "rev-parse", "HEAD").strip() + b"\n"
