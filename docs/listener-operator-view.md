@@ -5,6 +5,12 @@ workflow from candle price through assessment and trade, reusable later on web
 and Discord. Implemented locally through docs/plans/listener-workflow-view.md.
 Run `python3 scripts/m20_listener_dashboard.py`; use `--once` for a snapshot,
 `--width 60` for a narrow view, or `--json` for the reusable report object.
+Following Chris's readability feedback, the default is a short operator summary:
+health, observed exposure, closed-candle price, five strategy signals, decision,
+and three latest verified closes. Use `--full` for the complete layout below.
+Trade rows show recorded filled entry and exit prices. Open ledger rows also
+show recorded size, stop and target; current position price/protection remains
+explicitly unverified. Rows update on each successful refresh, not by streaming.
 
 ## Review of the existing views
 
@@ -108,8 +114,9 @@ and a future Discord renderer can summarise meaningful state changes keyed by
 event identity. Display code must not recompute trading rules.
 
 No web server, Discord integration or new transport is needed for this design.
-The stable dashboard command remains the operator entry point. Keep full detail
-as the default; a future compact mode may be optional, never a silent replacement.
+The stable dashboard command remains the operator entry point. Chris explicitly
+requested a simpler terminal default after trying the full view; full detail is
+retained behind `--full` and the JSON report remains unchanged.
 
 ## Implementation acceptance
 

@@ -1,0 +1,13 @@
+{
+  "schema_version":"forex.execution-work.v1",
+  "task_id":"TRADING-OPERATING-MODEL-DISCOVERY",
+  "authorization":"Chris authorised execution of the discovery ExecPlan. Local research, isolated prototype, tests and read-only review only; no production changes.",
+  "markdown_plan":"docs/plans/trading-operating-model-discovery.md",
+  "items":[
+    {"id":"D1","title":"Map rules and ownership","state":"DONE","requires":[],"evidence":["2026-09-23: report D1 inventories twelve rule areas and traces loader/release/bridge/report ownership; independent reviewer checked scope and source facts."],"blocker":null},
+    {"id":"D2","title":"Qualify available broker evidence","state":"DONE","requires":[],"evidence":["2026-09-23: report D2 records opened MU and MetaQuotes primary sources, failed PDF fetch and exact remaining schedule uncertainty. No server schedule fabricated; reviewer accepted uncertainty treatment."],"blocker":null},
+    {"id":"D3","title":"Compare authority options","state":"DONE","requires":["D1","D2"],"evidence":["2026-09-23: report D3 compares A/B/C and recommends existing-source composition, full PostgreSQL publications and activation records; independent ownership review passed."],"blocker":null},
+    {"id":"D4","title":"Demonstrate common human and machine views","state":"DONE","requires":["D3"],"evidence":["2026-09-23: 17 synthetic CLI scenarios in JSON and text; 9 unittest tests passed including reviewer-discovered future-transition conflict regression. Reviewer reran tests and verified repair."],"blocker":null},
+    {"id":"D5","title":"Review recommendation and delivery proposal","state":"DONE","requires":["D4"],"evidence":["2026-09-23: /root/operating_model_review reports no remaining discovery blockers, with reviewed digests recorded in the research report. P1/P2/P3 proposal separates visibility, policy enforcement and broader deferred model. No production or formal M30 approval claimed."],"blocker":null}
+  ]
+}

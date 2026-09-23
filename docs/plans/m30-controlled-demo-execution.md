@@ -75,6 +75,25 @@ able to run an offline verifier over the retained M30 evidence bundle.
   deployed `ba65739` configuration reports `DEFERRED_FOR_DEMO`; existing
   Demo risk, cost, position, protection, monitoring, and reconciliation gates
   remain mandatory.
+- [ ] (Deferred, 2026-09-23) Add a commission-aware closed-result view after
+  M30 closeout. It must retain broker-reported commission separately from any
+  account-specific Live-equivalent estimate, show the tariff source and
+  per-lot/per-side basis, and visibly report unavailable rather than assume
+  zero. The public AU GO Plus+ AUD 3-per-lot rate is not evidence for the
+  active `GOMarketsMU-Demo` account and must not be configured now. Evidence
+  and acceptance inputs: `docs/research/m30-demo-commission-reporting-deferral-2026-09-23.md`.
+- [ ] (Deferred to the first post-M30 phase, 2026-09-23) Define and implement
+  an append-only PostgreSQL broker-account ledger for every governed-account
+  order, deal, balance/credit event, cost component, account snapshot, and
+  ownership classification. It must preserve immutable source receipts and
+  exact listener/manual/external attribution, then reconcile it to persistent
+  risk state. **Design error:** the current schema stores listener-owned
+  lifecycles and risk-resume records but has no manual-trade entity or ownership
+  field; therefore a known manual broker trade can relatch as unexplained after
+  an MT5/account-observation interruption. This is not an M30 entry prerequisite
+  and must not delay the active protected Demo lifecycle, be used to clear the
+  current pause, or be implemented without a separately authorised
+  schema/ingestion ExecPlan.
 - [x] (2026-09-17) Performed M30's one declared capture attempt on the
   deployed deferred-policy revision. It produced `NO_TRADE` (no fixed strategy
   selected); no broker order was submitted. The capture contract refused to
@@ -181,6 +200,27 @@ able to run an offline verifier over the retained M30 evidence bundle.
   later Live-policy input. Existing Demo-only, risk, cost-coverage, position,
   protection, monitoring, and reconciliation gates remain unchanged.
   Date/Author: 2026-09-17 / Chris.
+
+- Decision: defer commission-aware results reporting until after M30. A later
+  reporting-only task must evidence the exact account tariff and display
+  broker-reported and estimated amounts as distinct values; it cannot use the
+  public Australian GO Plus+ rate as a proxy for the active Mauritius Demo
+  account. Rationale: the official pricing page is a useful candidate source,
+  but it does not establish this account's rate or make Demo P&L identical to
+  Live P&L. Date/Author: 2026-09-23 / Chris, recorded by Codex.
+
+- Decision: defer universal broker-account ledger ingestion to the first
+  post-M30 phase. Rationale: PostgreSQL must ultimately retain all account
+  trading facts, including manual and external broker events, but adding its
+  schema, idempotent ingestion, reconciliation, and deployment now would
+  broaden and delay M30's already-defined protected Demo proof. Date/Author:
+  2026-09-23 / Chris, recorded by Codex.
+
+- Decision: classify the missing manual-trade ownership representation as a
+  deferred design error, not a new operator failure. Rationale: the durable
+  resume record and expected balance match the observed account, but the schema
+  cannot retain the manual broker event as a first-class fact for later risk
+  attribution. Date/Author: 2026-09-23 / Chris, recorded by Codex.
 
 - Decision: amend the active M1 MVP goal to reflect the deployed Demo policy.
   Package D is complete. Package F/M30 remains a real-world proof requirement,

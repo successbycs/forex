@@ -1,0 +1,240 @@
+# M31 — evaluate controlled Demo outcomes against a frozen baseline
+
+This ExecPlan is a living document. Maintain it and its execution record,
+`docs/plans/m31-demo-baseline-evaluation-work.json`, under `PLANS.md`.
+
+## Purpose / Big Picture
+
+M30 proved that the EURUSD Demo listener can make, protect, close, and reconcile
+a natural trade. M31 answers a different question: what did the controlled Demo
+workflow actually do during a pre-declared observation interval, compared with a
+baseline that is defined before the result is viewed? The visible outcome is an
+operator-readable scorecard showing decisions, refusals, selected trades,
+broker-reconciled outcomes, cost coverage, and uncertainty. It is not an income
+target, financial advice, proof of an edge, or authority to change the listener.
+
+## Formal milestone dependency map
+
+M30 is `PROVEN` in the imported clean evidence state: its bundle, verification,
+four-role `RECOMMEND_COMPLETE` review, acceptance records, and Chris's approval
+are local retained prerequisites. M31 is now `READY`; its contract permits only
+controlled `GOMarketsMU-Demo` workflow evaluation and provenance retention.
+The active M31 work fits because it reads and evaluates existing records without
+adding an order route, rule, account, or risk control. M32 depends on M31 being
+formally `PROVEN`; its planning and implementation are blocked until then.
+
+## Scope and safety boundary
+
+The only broker identity is `GOMarketsMU-Demo`, the only instrument is EURUSD,
+and the existing M1 listener remains unchanged. The scorecard consumes retained
+data through existing fixed read-only operations or immutable local evidence.
+It must never issue SQL, shell, MT5, or network commands outside an existing
+allowlist. It does not reset a risk latch, release a hold, create a position,
+retry an order, alter an entry rule, or estimate missing costs from a tariff.
+
+The frozen baseline is `NO_CHANGE`: no exposure, zero trades, zero realised P&L,
+and zero costs during the exact M31 interval. A historical reference is admitted
+only if the same M1 rules, point-in-time inputs, interval, and cost assumptions
+are demonstrably comparable. A non-comparable source is reported as context,
+never made into a numerical performance comparison.
+
+## Progress
+
+<!-- forex-work-projection:start task=M31-DEMO-BASELINE-EVALUATION schema=forex.execution-work-projection.v1 -->
+<!-- forex-work-item id=m30-handoff state=DONE -->
+- [x] m30-handoff — Preserve and validate the approved M30 evidence, review, and formal state in the normal worktree (DONE)
+<!-- forex-work-item id=evaluation-protocol state=DONE -->
+- [x] evaluation-protocol — Define the M31 interval-freezing method, no-exposure baseline, metrics, cost labels, and no-promotion rule (DONE)
+<!-- forex-work-item id=source-inventory state=DONE -->
+- [x] source-inventory — Inspect the existing fixed read-only evidence surface and classify interval completeness (DONE)
+<!-- forex-work-item id=scorecard state=DONE -->
+- [x] scorecard — Implement a deterministic M31 scorecard from retained interval evidence (DONE)
+<!-- forex-work-item id=evaluation-capture state=PENDING -->
+- [ ] evaluation-capture — Freeze the controlled M31 interval, capture raw evidence, and produce the scorecard (PENDING)
+<!-- forex-work-item id=verification-review state=PENDING -->
+- [ ] verification-review — Verify M31 evidence and obtain required independent recommendation (PENDING)
+<!-- forex-work-item id=human-closeout state=PENDING -->
+- [ ] human-closeout — Obtain human approval and prove M31 when all contract gates pass (PENDING)
+<!-- forex-work-item id=m32-boundary state=PENDING -->
+- [ ] m32-boundary — Create M32 plan only after M31 is formally PROVEN (PENDING)
+<!-- forex-work-projection:end -->
+
+## Context and orientation
+
+`t480/m20_demo_listener_service.py` runs the continuous M1 listener. It retains
+one proposal per completed candle; a proposal may be `NO_TRADE`, `BUY`, or
+`SELL`. `t480/m20_demo_trading_session.py` owns bounded Demo submission and
+position management. The PostgreSQL audit bridge retains decisions, proposals,
+attempts, position events, and reconciled outcomes. The listener's M5/H1 and
+calendar outputs are context only; they cannot be reinterpreted as M31 entry
+filters. `docs/milestones/M16-proof.md` is a methodological precedent for frozen
+chronological evaluation but is not a same-timeframe M1 strategy benchmark.
+
+An evaluation interval is an inclusive UTC start and exclusive UTC end. It is
+chosen and stored before querying the results. A cost-coverage label identifies
+which of broker commission, fee, swap, observed spread, and slippage are present
+for each selected trade. A row with missing cost facts remains usable for gross
+outcome reporting but cannot support a net or Live-equivalent conclusion.
+
+## Plan of work
+
+First, use existing fixed read-only listener/audit evidence to inventory what
+can be exported for a bounded interval. Record every source response's digest,
+declared timestamps, row count, source/release identity, and gaps. If an existing
+operation cannot provide a required bounded fact, add only a fixed read-only
+adapter operation with a schema and tests; never introduce generic database or
+remote access.
+
+The M31 method is frozen now; the actual interval is intentionally not. It is
+created by the capture command in a clean committed checkout immediately before
+the first bounded result read. This distinction prevents a plan document from
+claiming a pre-declared interval that has not actually been declared.
+
+Second, implement a pure scorecard module. It receives supplied immutable
+records; it cannot contact MT5, PostgreSQL, or the network. It must group by
+strategy/version and disposition, reconcile each selected proposal to one
+attempt/outcome or state the exact missing relationship, calculate counts and
+observed gross/net fields, and render both JSON and concise terminal text from
+the same result. It must place `NO_CHANGE` alongside results but never call it a
+trading strategy. It must reject duplicate decision keys, source-version drift,
+future timestamps, malformed costs, and outcomes outside the frozen interval.
+
+The implementation is `src/forex/m31_scorecard.py`; it has no subprocess,
+database, MT5, adapter, or network dependency. `scripts/m31_scorecard.py`
+reads exactly three regular local files: a frozen protocol, a bounded
+completeness response, and the lifecycle response. It renders the same result
+as concise terminal text or JSON. It rejects duplicate proposal identities,
+identity drift, foreign interval rows, source-version drift, malformed cost
+values, and outcomes that close outside the frozen interval.
+
+Third, capture a new M31 bundle only after the protocol and scorecard are
+committed and tests pass. The capture has no argument that can alter broker
+state. It stores fixed-operation outputs unchanged, the protocol, scorecard,
+test/governance receipts, revision/configuration identities, and a manifest.
+The verifier checks hashes, M31 identity, freshness, interval binding, baseline
+identity, no-Live declaration, and scorecard consistency. Independent review
+and Chris's approval remain formal gates before M31 proof.
+
+`scripts/capture_m31_evidence.sh` implements that capture contract. It accepts
+only a new bundle path and two whole-second UTC bounds, writes the protocol
+first, and refuses a dirty checkout before it creates the bundle. It then calls
+only the named fixed read-only operations, renders the scorecard from their
+retained bytes, records the exact Git revision and artifact digests, and runs
+`scripts/verify_m31_evidence.sh`. The verifier is local-only and re-computes the
+scorecard from the retained protocol, completeness, and lifecycle files.
+
+## Concrete steps
+
+From `/home/chris/projects/forex`:
+
+1. Inspect source completeness with named fixed read-only operations. Expect a
+   redacted result that identifies Demo/EURUSD, an interval, joins, and any
+   unavailable fields. Do not use a generic SQL or remote command.
+2. Add pure parser, scorecard, JSON/text renderer, fixtures, and tests. Expect
+   deterministic output for a complete fixture and explicit `UNKNOWN` or
+   `NON_COMPARABLE_CONTEXT` for incomplete fixtures.
+3. Add a fixed capture and offline verifier. Capture only a frozen interval
+   after the source inventory and tests pass. Expect `FOREX_M31_PROOF_OK` only
+   when all required identities and evidence hashes match.
+4. Run focused tests, governance validation, the evidence verifier, a separate
+   read-only review, and then the registry closeout route.
+
+## Validation and acceptance
+
+M31-C1 is satisfied only when an operator can inspect a real bounded
+`GOMarketsMU-Demo` interval scorecard showing all decisions, selected outcomes,
+baseline, cost coverage, source identities, and uncertainty. M31-C2 requires
+focused M31 tests and governance validation. M31-C3 requires a fresh hash-bound
+real-world evaluation bundle matching the evaluator revision and configuration.
+M31-C4 requires point-in-time interval enforcement, no look-ahead, Demo-only
+binding, no unsafe fallback, and no unresolved critical review finding.
+
+The mandatory checks are:
+
+    python3 -m pytest -q tests/milestones/test_m31.py
+    python3 scripts/forex_milestones.py validate
+    bash scripts/verify_m31_evidence.sh runs/evidence/M31/<timestamp>
+    python3 scripts/check_execution_continuation.py --work-plan docs/plans/m31-demo-baseline-evaluation-work.json
+
+## Idempotence and recovery
+
+Source inventory and scorecard rendering are read-only and repeatable. Capture
+creates a new timestamped evidence directory and never modifies a prior one. A
+missing source, bad join, stale observation, malformed cost, or unclear interval
+is an explicit scorecard limitation and blocks only a conclusion that needs it;
+it never triggers a broker retry or inferred replacement value. A failed
+deployment is out of scope because this plan does not deploy the listener.
+
+## Surprises & Discoveries
+
+- Observation: the normal worktree initially lacked the M30 closeout bundle and
+  formal state because capture occurred in a clean checkout. Evidence: the
+  bundle and review directories were absent locally while the clean checkout
+  verified them. The exact absent paths were copied without overwrite and local
+  governance validation now passes.
+- Observation: M16 provides historical methodology but not a like-for-like M1
+  numerical comparator. Evidence: its retained proof is H1 and uses a distinct
+  retrospective availability assumption. M31 must label it contextual.
+- Observation: the existing bounded `forex-m1-postgres-completeness-summary`
+  reader can provide candle-keyed proposals, attempts, statuses, and basic
+  outcome linkage for an inclusive/exclusive UTC interval of no more than 24
+  hours. The full hash-bound lifecycle extract can provide strategy ownership,
+  reconciled outcomes, and observed cost fields; M31 must filter it locally to
+  the frozen interval and reject rows outside those bounds. Evidence: source
+  inventory read on 2026-09-23 used only named read-only operations.
+- Observation: `m20_all_demo_history_export` returned a complete
+  `GOMarketsMU-Demo`/AUD broker history at 2026-09-23T00:22:38Z (149 deals, 146
+  orders) with a fixed account-scope hash. It is a broker cross-check, not a
+  decision/refusal source.
+- Limitation: the legacy `forex-m20-strategy-trial-summary` is not admissible
+  for M31. Its 2026-09-23 source-inventory read failed because the deployed
+  database does not contain `demo_trade_ledger.trade_owner_strategy_id`.
+  M31 will derive strategy ownership only from the lifecycle source field that
+  actually exists, and will retain the failed response as evidence of this
+  excluded source. No schema migration or guessed replacement is in scope.
+- Limitation: `forex-m20-current-lineage-summary` is permanently bound to
+  2026-09-10 and therefore is contextual diagnostic evidence only, not an M31
+  interval source.
+- Observation: the local scorecard implementation passed its deterministic,
+  duplicate, drift, interval-boundary, missing-join, Demo-identity and CLI
+  tests on 2026-09-23. It has not captured or evaluated a real M31 interval.
+- Observation: the M31 capture/verifier package passed 12 focused tests on
+  2026-09-23. The capture test confirms the current dirty checkout is refused
+  before a bundle path is created; the verifier test confirms altered scorecard
+  bytes are rejected by their manifest digest. This is implementation proof,
+  not an M31 evaluation capture.
+- Correction: earlier plan wording said the evaluation-protocol task “froze the
+  M31 interval.” That was not true: it defined the freezing method and baseline
+  only. The task label now states that fact, and a real interval remains a
+  capture-time artifact written before source reads.
+
+## Decision Log
+
+- Decision: use `NO_CHANGE` as the only initial numerical baseline. Rationale:
+  it is fully specified, does not invent a strategy or execution cost, and
+  makes no profitability claim. Date/Author: 2026-09-23 / M31 evidence brief.
+- Decision: require a frozen protocol before data evaluation. Rationale:
+  choosing an interval after results are seen creates selection bias. Date/Author:
+  2026-09-23 / M31 evidence brief.
+- Decision: defer commission estimates, manual attribution, session-policy
+  publication, and strategy promotion. Rationale: none is required to measure
+  retained outcomes honestly, and each needs separate evidence or authority.
+  Date/Author: 2026-09-23 / Chris's Demo MVP goal.
+- Decision: use the existing bounded completeness reader as the canonical
+  decision denominator and the lifecycle extract for enriched outcome fields.
+  Rationale: the first is parameter-bound to the frozen 24-hour interval; the
+  second supplies fields absent from that summary and is locally re-bounded by
+  the pure evaluator. Date/Author: 2026-09-23 / source inventory.
+- Decision: defer actual interval declaration until a clean committed evaluator
+  checkout is available. Rationale: this preserves the required ordering
+  (protocol before results) while allowing the capture to bind its scorecard to
+  an immutable revision. Date/Author: 2026-09-23 / M31 capture design.
+
+## Outcomes & Retrospective
+
+M31 planning, M30 handoff, source inventory, and pure scorecard implementation
+are complete. The capture/verifier package is also implemented. Focused tests
+passed (13 total: M31 plus related completeness and broker-history reporting),
+governance validation passed, and whitespace checks passed. The next item is a
+fresh M31 capture after the implementation revision is committed in a clean
+checkout. No real M31 scorecard result, broker action, or M32 work has occurred.

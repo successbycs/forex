@@ -65,17 +65,17 @@
     {
       "id": "proof-verification",
       "title": "Verify the retained proof against M30 acceptance, exact revision, configuration fingerprint, and safety boundaries",
-      "state": "PENDING",
+      "state": "DONE",
       "requires": ["natural-lifecycle"],
-      "evidence": ["PENDING at capture time is the post-capture offline verification gate. It does not negate the retained natural lifecycle above."],
+      "evidence": ["2026-09-22T21:54Z: clean capture checkout /tmp/forex-m30-capture-b4e1bde at b4e1bdec6de07f60127e4ba52f3441a3665d386f retained runs/evidence/M30/natural-raw-20260922T215346442193Z. Manifest SHA256 0321cd2c6339f7d38d8723e2d0fe242eb1eb9ecbfb0ca5f81821fc5a15bba7c2. 92 tests and governance passed; offline verifier emitted FOREX_M30_EVIDENCE_VERIFIED and FOREX_M30_PROOF_OK. Independent reviewer /root/m30_bundle_review_current reran verifier and accepted target C1/C2/C3 evidence; broader C4 disposition remains in independent-review."],
       "blocker": null
     },
     {
       "id": "independent-review",
       "title": "Obtain independent read-only review and record the M30 closeout recommendation or remaining defect",
-      "state": "PENDING",
+      "state": "DONE",
       "requires": ["proof-verification"],
-      "evidence": [],
+      "evidence": ["2026-09-23 replacement four-role cycle M30-20260922T220448Z-b4e1bdec, bound to manifest 0321cd2c6339f7d38d8723e2d0fe242eb1eb9ecbfb0ca5f81821fc5a15bba7c2, returned RECOMMEND_COMPLETE with no blocking reasons: Solution Architect PASS, Senior Software Developer PASS, AI Engineer PASS_WITH_FINDINGS, and Financial Domain Expert PASS_WITH_FINDINGS.", "Accepted observations: self-attested integrity, historical mutable risk headroom not replayed, calendar context advisory in the shipped Demo path, and operational proof is not profitability/edge evidence. The distinct nine-second-late lifecycle is excluded from the selected one-lifecycle proof under the existing documented timing limitation; no universal cutoff claim is made.", "Recommendation requires mandatory human approval. No formal milestone state, deployment, risk control, terminal setting or broker state changed by review."],
       "blocker": null
     }
   ]

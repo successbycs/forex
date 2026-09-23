@@ -1,0 +1,43 @@
+{
+  "policy": {
+    "version": "synthetic-operating-model-v1",
+    "known_at": "2026-01-01T00:00:00Z",
+    "valid_from": "2026-09-21T00:00:00Z",
+    "valid_until": "2026-11-01T00:00:00Z",
+    "sources": ["Synthetic dated intervals; not GO Markets hours"],
+    "rule_references": ["config/runtime.yaml: maximum_open_positions=1", "t480/m20_demo_trading_session.py: MAX_TICK_AGE_SECONDS=30, normal spread <=12 points"],
+    "maximum_quote_age_seconds": 30,
+    "maximum_spread_points": 12,
+    "intervals": [
+      {"start":"2026-09-22T08:00:00+03:00","end":"2026-09-22T09:00:00+03:00","state":"CLOSED","reason":"SYNTHETIC_PRE_OPEN"},
+      {"start":"2026-09-22T09:00:00+03:00","end":"2026-09-22T17:00:00+03:00","state":"OPEN","reason":"SYNTHETIC_SESSION"},
+      {"start":"2026-09-22T17:00:00+03:00","end":"2026-09-22T17:10:00+03:00","state":"BREAK","reason":"SYNTHETIC_DAILY_BREAK"},
+      {"start":"2026-09-22T17:10:00+03:00","end":"2026-09-22T18:00:00+03:00","state":"OPEN","reason":"SYNTHETIC_SESSION"},
+      {"start":"2026-09-22T18:00:00+03:00","end":"2026-09-23T00:00:00+03:00","state":"CLOSED","reason":"SYNTHETIC_DAILY_CLOSE"},
+      {"start":"2026-09-23T00:00:00+03:00","end":"2026-09-24T00:00:00+03:00","state":"HOLIDAY","reason":"SYNTHETIC_HOLIDAY_OVERRIDE"},
+      {"start":"2026-09-25T18:00:00+03:00","end":"2026-09-28T09:00:00+03:00","state":"CLOSED","reason":"SYNTHETIC_WEEKEND"},
+      {"start":"2026-09-28T09:00:00+03:00","end":"2026-09-28T18:00:00+03:00","state":"OPEN","reason":"SYNTHETIC_SESSION"},
+      {"start":"2026-10-23T09:00:00+03:00","end":"2026-10-23T18:00:00+03:00","state":"OPEN","reason":"SYNTHETIC_BEFORE_OFFSET_CHANGE"},
+      {"start":"2026-10-26T09:00:00+02:00","end":"2026-10-26T18:00:00+02:00","state":"OPEN","reason":"SYNTHETIC_AFTER_OFFSET_CHANGE"}
+    ]
+  },
+  "examples": [
+    {"name":"before_open","at":"2026-09-22T05:59:59Z","connected":true,"quote_age_seconds":1,"spread_points":8},
+    {"name":"at_open","at":"2026-09-22T06:00:00Z","connected":true,"quote_age_seconds":1,"spread_points":8},
+    {"name":"daily_break","at":"2026-09-22T14:00:00Z","connected":true,"quote_age_seconds":1,"spread_points":8},
+    {"name":"break_end","at":"2026-09-22T14:10:00Z","connected":true,"quote_age_seconds":1,"spread_points":8},
+    {"name":"at_close","at":"2026-09-22T15:00:00Z","connected":true,"quote_age_seconds":1,"spread_points":8},
+    {"name":"holiday","at":"2026-09-23T08:00:00Z","connected":true,"quote_age_seconds":1,"spread_points":8},
+    {"name":"weekend","at":"2026-09-26T08:00:00Z","connected":true,"quote_age_seconds":1,"spread_points":8},
+    {"name":"before_dst_change","at":"2026-10-23T06:00:00Z","connected":true,"quote_age_seconds":1,"spread_points":8},
+    {"name":"after_dst_change","at":"2026-10-26T07:00:00Z","connected":true,"quote_age_seconds":1,"spread_points":8},
+    {"name":"unknown_calendar","at":"2026-09-22T08:00:00Z","calendar_unknown":true,"connected":true,"quote_age_seconds":1,"spread_points":8},
+    {"name":"expired_calendar","at":"2026-11-02T08:00:00Z","connected":true,"quote_age_seconds":1,"spread_points":8},
+    {"name":"stale_feed","at":"2026-09-22T08:00:00Z","connected":true,"quote_age_seconds":90,"spread_points":8},
+    {"name":"wide_spread","at":"2026-09-22T08:00:00Z","connected":true,"quote_age_seconds":1,"spread_points":60},
+    {"name":"policy_conflict","at":"2026-09-22T08:00:00Z","expected_hash":"wrong","connected":true,"quote_age_seconds":1,"spread_points":8},
+    {"name":"near_close_position","at":"2026-09-22T14:59:59Z","connected":true,"quote_age_seconds":1,"spread_points":8,"open_position":true},
+    {"name":"exit_unavailable","at":"2026-09-22T15:00:00Z","connected":true,"quote_age_seconds":90,"spread_points":60,"open_position":true,"exit_due":true,"exit_available":false},
+    {"name":"coverage_gap","at":"2026-09-24T08:00:00Z","connected":true,"quote_age_seconds":1,"spread_points":8}
+  ]
+}

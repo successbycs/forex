@@ -35,9 +35,11 @@ def test_interactive_probe_transport_and_catalog():
     assert 'GetOwnerSid' in command
     assert 'Stop-Process' not in command and 'Stop-ScheduledTask' not in command
     post_isolation = adapter.OPERATIONS['m30_single_client_post_isolation_probe_run'].powershell_command
-    assert "former tasks must remain disabled" in post_isolation
+    assert "interactive listener and disabled legacy watchdog required" in post_isolation
+    assert "$listener.Principal.LogonType.ToString() -ne 'Interactive'" in post_isolation
     assert "--post-isolation" in post_isolation and "--post-isolation-observe" not in post_isolation
-    assert 'worker absence unproven' in post_isolation
+    assert 'one release-bound listener worker required' in post_isolation
+    assert 'm20_demo_listener_service.payload' in post_isolation
     assert 'sole visible terminal required' in post_isolation
     assert '$hold.enabled -ne $true' in post_isolation
     assert 'Start-ScheduledTask' in post_isolation

@@ -132,8 +132,8 @@ Keep bounded-lifecycle and independent-verification pending until those pass.
 - [x] resume-decisions — Release the maintenance hold through the fixed operation and retain fresh decision evidence (DONE)
 <!-- forex-work-item id=bounded-lifecycle state=DONE -->
 - [x] bounded-lifecycle — Retain a natural protected Demo order, mandatory close, and broker reconciliation (DONE)
-<!-- forex-work-item id=independent-verification state=PENDING -->
-- [ ] independent-verification — Verify the M30 bundle and obtain required read-only recommendation (PENDING)
+<!-- forex-work-item id=independent-verification state=DONE -->
+- [x] independent-verification — Verify the M30 bundle and obtain required read-only recommendation (DONE)
 <!-- forex-work-projection:end -->
 
 ## Plan of work
@@ -380,6 +380,70 @@ a release blocker even after an operator resume request.
   envelope at 8,158 encoded characters even though it had happened to return.
   Its compact fixed replacement preserves the required read-only binding and
   process fields at 6,122 characters; no remote deployment was needed.
+- Observation (2026-09-23 08:34 NZST): the governed T480 control path returned
+  after the approved restart, but current Forex readiness is not established.
+  The held listener initially reported `MT5_INITIALIZE_FAILED`, failed durable
+  position recovery and `LAST_KNOWN_UNVERIFIED` protection. A later fixed
+  terminal-identity observation was `MAPPED` to the Interactive Demo terminal
+  with submission permission, but the fixed held-readiness assessment still
+  failed to initialise MT5. Two `terminal64.exe` processes were observed across
+  Sessions 2 and 0. These contradictory observations cannot support account,
+  exposure, risk, protection, or exit readiness, so the maintenance hold stays
+  active and no order is permitted.
+- Observation (2026-09-23 08:50 NZST): the fixed held-only listener recovery
+  restarted the scheduled task without an order path. The subsequent
+  held-readiness assessment successfully connected to `GOMarketsMU-Demo` in
+  AUD for EURUSD and observed zero open positions, while the matching redacted
+  account binding reported balance and equity of AUD 100,989.45. It refused
+  entry because persistent risk carries `EXTERNAL_CASH_FLOW` and
+  `UNKNOWN_ACCOUNT_STATE`. This is a fresh risk-policy condition; the hold
+  cannot be released until the operator attributes and authorises a fixed
+  append-only resume request, and the follow-up readiness assessment passes.
+- Observation (2026-09-23 08:52 NZST): the fixed complete broker-history
+  export covers 2000-01-01 through 2026-09-22 23:52 UTC for the same redacted
+  Demo account. It contains a non-listener (`magic=0`) EURUSD order opened at
+  2026-09-17T11:06:19Z and closed by stop loss at 2026-09-17T11:07:16Z, with
+  realised AUD -0.34 and zero reported commission, swap, and fee. This is
+  broker evidence for the previously reported manual trade, not a listener
+  proposal or an automatic permission to resume risk.
+- Observation (2026-09-23 08:56 NZST): the fixed PostgreSQL risk summary
+  proves the 2026-09-22 operator resume record
+  `c3aba485-d05c-4ef1-a457-6a631257d0da` remains durable. Its
+  `expected_balance` is AUD 100,989.45, exactly equal to the fresh broker
+  balance and equity. The persistent `EXTERNAL_CASH_FLOW` and
+  `UNKNOWN_ACCOUNT_STATE` reasons therefore do not evidence a newly
+  unexplained balance movement. They were re-latched after the MT5
+  initialisation failure and are not being cleared from the stored reason set
+  by a matching later observation. Do not request a duplicate operator
+  attestation; treat this as a narrowly scoped persistent-risk recovery defect
+  requiring a tested repair before any hold release.
+- Observation (2026-09-23 09:01 NZST): under Chris's renewed authority, fixed
+  append-only resume records `6a691289-9725-442d-a880-8d16926f8ddd`
+  (`EXTERNAL_CASH_FLOW`) and `cc0bfce9-8657-409c-9c8a-2f1bd89e4c63`
+  (`UNKNOWN_ACCOUNT_STATE`) cleared both durable risk latches without changing
+  caps, exposure, or placing an order. The listener briefly returned a mapped,
+  permissioned Interactive Demo binding with an idle monitor and no position,
+  then immediately returned `MT5_INITIALIZE_FAILED` on the next held-readiness
+  check. The current release cannot provide a stable MT5 binding; maintenance
+  hold remains active pending operator-managed client recovery or a separately
+  authorised repair of that observed reliability defect.
+- Observation (2026-09-23 09:02 NZST): a further fixed recheck found the same
+  failure and two configured `terminal64.exe` processes again, one in visible
+  Session 2 and one in hidden Session 0. The listener's runtime binding is
+  `UNAVAILABLE` with `MT5_INITIALIZE_FAILED`, while protection correctly shows
+  no active position and the monitor remains idle. Do not release the hold or
+  create another terminal; the operator must resolve the duplicate/client
+  session condition before a fresh held readiness result can prove safety.
+- Observation (2026-09-23 09:04–09:06 NZST): after the operator restored one
+  Interactive MT5 client, fixed held readiness again passed for the flat
+  `GOMarketsMU-Demo`/AUD/EURUSD account with a mapped, permissioned listener
+  and idle monitor. The fixed hold-release operation returned
+  `maintenance_hold: false`. A subsequent fresh status observation reports the
+  listener `RUNNING`, runtime binding `MAPPED`, submission permission true, and
+  normal closed-M1 assessment `b9d3ac63-1b20-5380-98c9-818ff5470553` as
+  `NO_TRADE_RECONCILED`; the observed 60-point spread made the market unsafe,
+  so no broker order was submitted. This restores the normal continuous
+  Demo-evaluation path; it is not a new M30 proof bundle or formal closeout.
 
 ## Decision Log
 
@@ -402,10 +466,74 @@ a release blocker even after an operator resume request.
   inspectable. Rationale: `milestone_registry.json` requires that continuous,
   cap-constrained operating model; it does not permit a different session or
   relax any cap. Date/Author: 2026-09-22 / Codex.
+- Decision: retain the current maintenance hold after restart until one fresh
+  fixed held-readiness assessment can initialise the mapped Interactive MT5
+  client and returns the complete Demo account, flat exposure, entry-risk, and
+  protection/exit observations. Rationale: an identity mapping alone does not
+  prove that the separate readiness operation can safely inspect the broker
+  state; the failed monitor and unresolved protected-position record require a
+  fail-closed outcome. Date/Author: 2026-09-23 / Codex.
 
 ## Outcomes & Retrospective
 
-Planning revision only; no execution or fresh runtime observation occurred.
-The last reported listener state was installed and held. This plan is complete
-only when its evidence and verification results are recorded; formal M30
-completion remains a separate human-approved registry action.
+Continuation 2026-09-23 09:54 NZST: fresh capture from the existing clean
+`/tmp/forex-m30-capture-b4e1bde` checkout retained
+`runs/evidence/M30/natural-raw-20260922T215346442193Z`. The exact original natural
+proposal `a88ae86c-6b7e-5a03-9367-157389f0f0b5` passed source/runtime/lifecycle
+verification; 92 targeted tests passed and the verifier emitted
+`FOREX_M30_EVIDENCE_VERIFIED` and `FOREX_M30_PROOF_OK`. Manifest SHA-256:
+`0321cd2c6339f7d38d8723e2d0fe242eb1eb9ecbfb0ca5f81821fc5a15bba7c2`.
+Evidence and successful milestone verification were registered in that isolated
+checkout for review preparation. After Chris's approval, the final criterion
+records, sign-off, and `prove` command recorded M30 as `PROVEN` at
+`2026-09-22T22:49:18Z` in the same clean evidence checkout.
+
+Independent reviewer `/root/m30_bundle_review_current` confirmed the selected
+trade but identified a separate retained lifecycle,
+`66613d2d-5fba-5cdf-915b-44323e424b30`, with broker close nine seconds past its
+600-second deadline. The monitor initiates a time-stop close at or after the
+deadline, while the controlled-execution contract requires broker close by it.
+Keep that discrepancy explicit for C4 review; passing the selected lifecycle
+does not resolve it. Formal four-role review was launched in the clean checkout
+under `runs/triad/M30/M30-20260922T215608Z-b4e1bdec`; recommendation pending.
+
+Review disposition: the same independent reviewer subsequently inspected the
+existing controlled-execution plan's explicit timing limitation. M30 requires
+one qualifying natural lifecycle; the selected trade closed in 298 seconds,
+inside its 600-second limit. The separate nine-second-late trade is excluded
+from proof and is not, by itself, a critical C4 defect. Retain time-stop
+initiation/broker-fill timing as a follow-up. No grace interval, universal
+deadline claim, or additional M30 redesign prerequisite is introduced.
+
+Formal review 2026-09-23 10:04 NZST: cycle
+`M30-20260922T215608Z-b4e1bdec` returned `DO_NOT_COMPLETE`: three roles passed
+with findings; AI-M30-001 classified nested calendar/holding advisory fields as
+an execution denial. Original reviews and recommendation remain unchanged.
+Read-only investigation traced the fields to
+`decision_snapshot.calendar_overlay.gate_observation.new_entry_permitted=null`
+and `decision_snapshot.holding_review.execution_authority=false`. Bound code
+and workflow documentation distinguish those advisory fields from entry refusal;
+the retained overlay preserves SELL, selection is SELECTED_EXECUTABLE and all
+recorded safety gates pass. This is a disputed interpretation requiring formal
+reconsideration, not an operator waiver or evidence repair.
+
+A new isolated cycle `M30-20260922T220448Z-b4e1bdec` was run on the same
+immutable proof. Its reviewer input permitted the committed runtime, advisory
+gate code, workflow contract and existing tests needed to trace authority.
+The original helper restricted reviewers to evidence/governance/verifier paths.
+The expanded read-only scope changed model input only; no source, raw evidence,
+prior verdict, trading rule or formal milestone state was rewritten. It completed
+with `RECOMMEND_COMPLETE` and no blocking reasons. The four roles were Solution
+Architect (PASS), Senior Software Developer (PASS), AI Engineer
+(PASS_WITH_FINDINGS), and Financial Domain Expert (PASS_WITH_FINDINGS). Accepted
+observations are self-attested integrity, no replay of historical mutable risk
+headroom, advisory calendar context, and no profitability conclusion. Chris
+approved closeout after the criterion records were linked to the verified bundle;
+the final sign-off and `prove` command completed formal M30 closeout in the
+clean evidence checkout.
+
+Historical planning outcome: the original plan was installed and held. The
+2026-09-23 post-restart observations above supersede that status for current
+release decisions. This plan is complete only when its evidence and verification
+results are recorded. Formal M30 closeout was completed after Chris's explicit
+approval; later milestone work remains separately authorised.

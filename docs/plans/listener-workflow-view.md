@@ -78,3 +78,15 @@ were preserved. No deployment or formal milestone change was needed.
 Revision note 2026-09-22: updated progress and outcomes after implementation,
 live observation and reviewer-directed repairs. This task does not complete the
 ongoing M30 trading goal.
+
+Readability revision 2026-09-22: Chris found the full default too hard to read.
+The default now shows a short summary with five strategy signals and three
+verified closes. The original full workflow and diagnostics remain available
+with --full. Existing report data and collectors are unchanged. Focused report
+and dashboard regression checks: 12 passed. Live short output checked separately.
+
+Trade-price revision: compact rows now show entry and exit, plus recorded size,
+SL and TP for open ledger rows. Live read at 19:00 NZST showed flat exposure
+and verified closes including a BUY close at 1.14617 for -0.11 AUD. The ledger
+omits actual_entry_price in this observation; display the proposed entry with
+an explicit planned/fill-unavailable label, never as an executed fill.

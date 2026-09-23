@@ -1599,27 +1599,18 @@ def _m30_interactive_probe_operations() -> dict[str, Operation]:
     # principal. The diagnostic proves that current identity and requires the
     # legacy watchdog to remain disabled; it cannot change either task.
     post_guard = (
-        "$s='C:\\ProgramData\\ForexListener\\state';$l=Get-ScheduledTask 'Forex-M20-Demo-Listener';$w=Get-ScheduledTask 'Forex-M20-Listener-Watchdog';"
-        "if($l.Principal.LogonType -ne 'Interactive' -or $w.State -ne 'Disabled'){throw 'interactive listener and disabled legacy watchdog required'};"
-        "$h=gc -Raw ($s+'\\m20_demo_maintenance_hold.local.json')|ConvertFrom-Json;if(!$h.enabled -or $h.schema_version -ne 'forex.m20.maintenance-hold.v1'){throw 'maintenance hold required'};"
+        "$s='C:\\ProgramData\\ForexListener\\state';$listener=Get-ScheduledTask 'Forex-M20-Demo-Listener';$w=Get-ScheduledTask 'Forex-M20-Listener-Watchdog';"
+        "if($listener.Principal.LogonType.ToString() -ne 'Interactive' -or $w.State -ne 'Disabled'){throw 'interactive listener and disabled legacy watchdog required'};"
+        "$hold=gc -Raw ($s+'\\m20_demo_maintenance_hold.local.json')|ConvertFrom-Json;if($hold.enabled -ne $true -or $hold.schema_version -ne 'forex.m20.maintenance-hold.v1'){throw 'maintenance hold required'};"
         "$z=@(Get-CimInstance Win32_Process);$k=@($z|?{$_.Name -match '^python(w)?\\.exe$' -and $_.CommandLine -like '*\\ProgramData\\ForexListener\\releases\\*m20_demo_listener_service.payload*'});"
         "if($k.Count -ne 1 -or @($z|?{$_.Name -match '^python(w)?\\.exe$' -and ($_.CommandLine -like '*ForexListener*' -or !$_.CommandLine)}).Count -ne 1){throw 'one release-bound listener worker required'};"
         "$a=@($z|?{$_.Name -in 'terminal.exe','terminal64.exe'});if($a.Count -ne 1 -or $a[0].SessionId -eq 0 -or !$a[0].ExecutablePath){throw 'sole visible terminal required'};"
     )
     name = 'm30_single_client_post_isolation_probe_run'
-    post_guard += (
-        "$hold=gc -Raw (Join-Path $state 'm20_demo_maintenance_hold.local.json')|ConvertFrom-Json;"
-        "if($hold.enabled -ne $true -or $hold.schema_version -ne 'forex.m20.maintenance-hold.v1'){throw 'maintenance hold required'};"
-        "$ps=@(Get-CimInstance Win32_Process);"
-        "$workers=@($ps|Where-Object{$_.Name -match '^python(w)?\\.exe$' -and $_.CommandLine -like '*\\ProgramData\\ForexListener\\releases\\*m20_demo_listener_service.payload*'});"
-        "if($workers.Count -ne 1 -or @($ps|Where-Object{$_.Name -match '^python(w)?\\.exe$' -and ($_.CommandLine -like '*ForexListener*' -or !$_.CommandLine)}).Count -ne 1){throw 'one release-bound listener worker required'};"
-        "$all=@($ps|Where-Object{$_.Name -in @('terminal.exe','terminal64.exe')});"
-        "if($all.Count -ne 1 -or $all[0].SessionId -eq 0 -or !$all[0].ExecutablePath){throw 'sole visible terminal required'};"
-    )
     operations[name] = Operation(name, 'Run the fixed no-order visible-client probe only while the former Session0 topology remains isolated and held.',
         powershell_command=prefix + "$p=Join-Path $r 'probe.py';if((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLower() -ne '" + digest + "'){throw 'probe hash mismatch'};"
         + post_guard +
-        "$c=gc -Raw ($s+'\\m20_demo_listener_service.local.json')|ConvertFrom-Json;$u=$l.Principal.UserId;$i=(New-Object Security.Principal.NTAccount($u)).Translate([Security.Principal.SecurityIdentifier]).Value;"
+        "$c=gc -Raw ($s+'\\m20_demo_listener_service.local.json')|ConvertFrom-Json;$u=$listener.Principal.UserId;$i=(New-Object Security.Principal.NTAccount($u)).Translate([Security.Principal.SecurityIdentifier]).Value;"
         "$t=@($a|?{$_.SessionId -gt 0 -and $_.ExecutablePath -eq $c.terminal_path});if($t.Count -ne 1){throw 'one interactive terminal required'};$o=Invoke-CimMethod -InputObject $t[0] -MethodName GetOwnerSid;if($o.ReturnValue -ne 0 -or $o.Sid -ne $i){throw 'interactive terminal owner mismatch'};"
         "$n='Forex-M30-Client-PostIsolation-Probe-" + digest[:16] + "';$q=Get-ScheduledTask $n -ErrorAction SilentlyContinue;if($q -and $q.State -eq 'Running'){throw 'probe already running'};$x=New-ScheduledTaskAction -Execute $c.python_path -Argument ('\"'+$p+'\" --post-isolation-observe');$q=New-ScheduledTaskPrincipal -UserId $u -LogonType Interactive -RunLevel Highest;$v=New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 1) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries;Register-ScheduledTask -TaskName $n -Action $x -Principal $q -Settings $v -Force|Out-Null;Start-ScheduledTask $n;[pscustomobject]@{started=$true;task=$n;expected_session_id=$t[0].SessionId;source_sha256='" + digest + "';broker_mutation='NONE'}|ConvertTo-Json -Compress")
     name = 'm30_single_client_post_isolation_probe_status'

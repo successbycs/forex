@@ -85,6 +85,70 @@ def build_report(sources):
             'account': account if account_ok else {}, 'trades': trades}
 
 
+def render_summary(report, width=80):
+    """Short operator screen; detailed evidence remains in the full view."""
+    def value(item):
+        return 'unavailable' if item is None or item == '' else str(item)
+
+    def price(item):
+        return f'{item:.5f}' if isinstance(item, (float, int)) else 'unavailable'
+
+    def entry(row):
+        if row.get('actual_entry_price') is not None:
+            return 'Filled entry ' + price(row['actual_entry_price'])
+        return 'Planned entry ' + price(row.get('proposed_entry')) + ' (fill unavailable)'
+
+    status, result, account = report['status'], report['decision'], report['account']
+    proposal = result.get('proposal') or {}
+    metrics = result.get('assessment_metrics') or {}
+    action = proposal.get('action')
+    decision = 'WAIT — no qualifying setup' if action == 'NO_TRADE' else value(action)
+    state = value(status.get('state')).replace('_', ' ').capitalize()
+    age = report.get('heartbeat_age_seconds')
+    lines = ['EUR/USD DEMO',
+             f"{state} | Heartbeat: {local_time(status.get('heartbeat_at_utc'))}",
+             f"Open positions: {value(account.get('open_positions'))} | Balance: {value(account.get('balance'))} AUD"]
+    if age is not None and (age < 0 or age >= 30):
+        lines.append(f'ATTENTION: heartbeat is stale ({age:.0f}s).')
+    # Keep errors visible without filling the screen with transport diagnostics.
+    for warning in report['attention']:
+        lines.append('! ' + textwrap.shorten(warning, width=max(38, width - 2), placeholder='…'))
+    lines.extend(['', 'PRICE → ASSESSMENT → DECISION',
+                  f"Closed candle: {local_time(proposal.get('decision_candle_closed_at_utc') or metrics.get('last_closed_at_utc'))}",
+                  f"Close: {price(metrics.get('last_close'))} | Spread: {value(metrics.get('spread_points'))} points",
+                  f'Decision: {decision}'])
+    strategies = result.get('strategy_assessments') or []
+    for strategy in strategies:
+        signal = strategy.get('signal')
+        lines.append(f"  {value(strategy.get('label')):<20} {'No signal' if signal == 'NO_TRADE' else value(signal)}")
+    if not strategies:
+        lines.append('  Strategy assessments unavailable')
+    if action != 'NO_TRADE' and proposal.get('rationale'):
+        lines.append('Reason: ' + proposal['rationale'])
+    if action in ('BUY', 'SELL'):
+        lines.append(f"Order: {value((result.get('execution') or {}).get('status'))}")
+        lines.append(f"Planned entry {price(proposal.get('proposed_entry'))} | SL {price(proposal.get('stop_loss'))} | TP {price(proposal.get('take_profit'))}")
+    lines.extend(['', 'TRADES — entries and verified closes'])
+    active = [row for row in report['trades'] if row['display_state'] == 'MONITORING']
+    for row in active:
+        lines.append(f"{local_time(row.get('submitted_at_utc'))} | {value(row.get('action'))} | OPEN in ledger")
+        lines.append(f"  {entry(row)} | {value(row.get('volume_lots'))} lots")
+        lines.append(f"  Recorded SL {price(row.get('stop_loss'))} | TP {price(row.get('take_profit'))}")
+        lines.append('  Current position price/protection: not verified by this view')
+    closed = sorted([row for row in report['trades'] if row['display_state'] == 'SOLD / VERIFIED'],
+                    key=lambda row: str(row.get('closed_at_utc') or row.get('submitted_at_utc') or ''), reverse=True)
+    for row in closed[:3]:
+        lines.append(f"{local_time(row.get('closed_at_utc'))} | {value(row.get('action'))} | CLOSED | {row['display_pnl']}")
+        lines.append(f"  {entry(row)} → exit {price(row.get('exit_price'))}")
+    if not closed:
+        lines.append('No verified closes available in this report.')
+    unresolved = sum(row['display_state'] not in ('SOLD / VERIFIED', 'MONITORING', 'REJECTED') for row in report['trades'])
+    if unresolved:
+        lines.append(f'{unresolved} unresolved historical ledger rows — see --full.')
+    lines.extend(['', 'Read-only | Ctrl+C exits | --full shows all details'])
+    return '\n'.join('\n'.join(textwrap.wrap(line, width=max(40, width), subsequent_indent='  ')) if line else '' for line in lines)
+
+
 def render_workflow(report, width=100):
     def val(value):
         return 'UNKNOWN' if value is None or value == '' else str(value)

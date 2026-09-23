@@ -176,13 +176,14 @@ def main() -> int:
     parser.add_argument("--interval", type=float, default=2.0, help="Dashboard refresh seconds (default: 2).")
     parser.add_argument("--once", action="store_true", help="Render one status update then exit.")
     parser.add_argument("--json", action="store_true", help="Emit one reusable operator report as JSON.")
+    parser.add_argument("--full", action="store_true", help="Show complete workflow and diagnostic details.")
     parser.add_argument("--width", type=int, default=None, help="Override terminal column width (minimum 40).")
     args = parser.parse_args()
     if args.interval < 1:
         parser.error("--interval must be at least one second")
     if args.width is not None and args.width < 40:
         parser.error("--width must be at least 40")
-    from scripts.listener_workflow_report import collect, render_workflow
+    from scripts.listener_workflow_report import collect, render_workflow, render_summary
     while True:
         try:
             report = collect(listener_status, ROOT, sys.executable)
@@ -193,8 +194,11 @@ def main() -> int:
             print(json.dumps(report, indent=2))
             return 0
         width = args.width or max(40, shutil.get_terminal_size((100, 30)).columns)
-        details = '\n'.join('\n'.join(textwrap.wrap(line, width=width, subsequent_indent='  ')) if line else '' for line in render(report['status']).splitlines())
-        screen = render_workflow(report, width) + '\n\nFULL ASSESSMENT DETAILS\n' + details
+        if args.full:
+            details = '\n'.join('\n'.join(textwrap.wrap(line, width=width, subsequent_indent='  ')) if line else '' for line in render(report['status']).splitlines())
+            screen = render_workflow(report, width) + '\n\nFULL ASSESSMENT DETAILS\n' + details
+        else:
+            screen = render_summary(report, width)
         print(("\033[2J\033[H" if sys.stdout.isatty() and not args.once else '') + screen, flush=True)
         if args.once:
             return 0

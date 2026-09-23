@@ -46,13 +46,35 @@ risk settings, another timeframe, a scheduler, or a Live path.
 - [x] execution-drill — Run the fixed one-shot Demo terminal-to-broker diagnostic and retain its distinct outcome without treating it as M30 proof (DONE)
 <!-- forex-work-item id=natural-lifecycle state=DONE -->
 - [x] natural-lifecycle — Retain one naturally eligible final-version Demo order, close, and broker reconciliation without forcing or retrying an order (DONE)
-<!-- forex-work-item id=proof-verification state=PENDING -->
-- [ ] proof-verification — Verify the retained proof against M30 acceptance, exact revision, configuration fingerprint, and safety boundaries (PENDING)
-<!-- forex-work-item id=independent-review state=PENDING -->
-- [ ] independent-review — Obtain independent read-only review and record the M30 closeout recommendation or remaining defect (PENDING)
+<!-- forex-work-item id=proof-verification state=DONE -->
+- [x] proof-verification — Verify the retained proof against M30 acceptance, exact revision, configuration fingerprint, and safety boundaries (DONE)
+<!-- forex-work-item id=independent-review state=DONE -->
+- [x] independent-review — Obtain independent read-only review and record the M30 closeout recommendation or remaining defect (DONE)
 <!-- forex-work-projection:end -->
 
 ## Current observed state
+
+2026-09-23 09:54 NZST superseding proof update: clean checkout
+`/tmp/forex-m30-capture-b4e1bde` captured
+`runs/evidence/M30/natural-raw-20260922T215346442193Z`; 92 targeted tests and
+offline verification passed for original proposal
+`a88ae86c-6b7e-5a03-9367-157389f0f0b5`. Manifest hash:
+`0321cd2c6339f7d38d8723e2d0fe242eb1eb9ecbfb0ca5f81821fc5a15bba7c2`.
+Evidence and verification were registered in that isolated checkout only.
+The first four-role review cycle `M30-20260922T215608Z-b4e1bdec` is retained as
+an unsuccessful, scope-limited review attempt; it is not the closeout result.
+Separate independent review accepted the selected lifecycle evidence but flagged
+another retained trade closing nine seconds beyond its owner cutoff. The known
+time-stop initiation versus broker-fill deadline distinction requires explicit
+disposition in the recommendation; no universal cutoff compliance or formal
+M30 completion is claimed. Older capture-pending notes below are historical.
+
+Subsequent independent disposition: the existing controlled-execution plan
+already distinguishes time-stop initiation from broker close and permits an
+earlier qualifying exit as the sole M30 proof surface. The selected trade closed
+in 298 seconds, within 600 seconds. Exclude the separate late trade from proof;
+retain its timing limitation as a follow-up rather than a critical C4 finding
+or new prerequisite for the selected lifecycle. Formal review remains pending.
 
 Continuation 2026-09-22: natural source, lifecycle, runtime and proof-envelope
 verifiers are now implemented in `scripts/m30_natural_{sources,lifecycle,runtime,evidence}.py`.
@@ -321,8 +343,12 @@ generic remote command as a substitute.
 
 The release and continuous closed-candle assessment loop have produced a
 retained natural closed trade. Historical terminal/risk blockers are resolved.
-M30 remains incomplete until clean committed capture, formal verification,
-evidence-bound review and human approval. Historical mutable risk headroom is
+The clean committed capture, formal verification, evidence-bound review, and
+Chris's explicit approval are complete. The governed closeout command recorded
+M30 as `PROVEN` at `2026-09-22T22:49:18Z` in the clean evidence checkout. This
+proves the declared Demo operating surface only; it does not claim profitability
+or authorise Live trading.
+Historical mutable risk headroom is
 not independently replayed; protection evidence is the accepted protected
 request plus guarded deployed implementation, not a retained independent
 position-SL/TP observation. Preserve these limitations in the closeout review.
@@ -339,3 +365,13 @@ M30 closeout ExecPlan after the operator reported a manual Demo trade. The
 revision records that manual trade correctly as supporting context, adds the
 observed terminal-permission gate, and preserves the contract's natural-order
 proof requirement.
+
+Closeout review update, 2026-09-23: the replacement cycle
+`M30-20260922T220448Z-b4e1bdec`, bound to manifest
+`0321cd2c6339f7d38d8723e2d0fe242eb1eb9ecbfb0ca5f81821fc5a15bba7c2`,
+completed all four read-only roles. Its recommendation is `RECOMMEND_COMPLETE`
+with no blocking reasons. The accepted observations remain: self-attested
+integrity, historical mutable-risk-headroom not replayed, advisory-only calendar
+context, and no profitability/edge conclusion from this operational proof. The
+review files are retained in the isolated checkout; no formal state or broker
+setting changed. Human approval remains required.
