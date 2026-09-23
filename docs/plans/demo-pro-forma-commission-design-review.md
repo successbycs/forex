@@ -43,10 +43,10 @@ and formal proof described here. It does not grant broker/Live authority.
 - [x] terminal-ledger — Show separate actual and assumed commission-adjusted P&L in the terminal ledger (DONE)
 <!-- forex-work-item id=local-verification state=DONE -->
 - [x] local-verification — Run targeted unit, migration-contract and governance checks (DONE)
-<!-- forex-work-item id=deploy-and-verify state=PENDING -->
-- [ ] deploy-and-verify — Stage and apply only the fixed M33 assets, then collect Demo-only proof (PENDING)
-<!-- forex-work-item id=proof-review state=PENDING -->
-- [ ] proof-review — Prepare the M33 proof and obtain independent read-only review (PENDING)
+<!-- forex-work-item id=deploy-and-verify state=DONE -->
+- [x] deploy-and-verify — Stage and apply only the fixed M33 assets, then collect Demo-only proof (DONE)
+<!-- forex-work-item id=proof-review state=IN_PROGRESS -->
+- [ ] proof-review — Prepare the M33 proof and obtain independent read-only review (IN_PROGRESS)
 <!-- forex-work-item id=human-closeout state=PENDING -->
 - [ ] human-closeout — Request the required human closeout decision after implementation and evidence review (PENDING)
 <!-- forex-work-projection:end -->
@@ -234,6 +234,10 @@ evidence, independent read-only review and Chris's separate human decision.
 Local implementation now has an additive migration, fixed hash-bound adapter
 and terminal presentation. On 2026-09-23, 69 focused tests passed; governance,
 the work projection and whitespace checks passed; T480 PostgreSQL preflight
-and inspection were healthy. Deployment and real-system proof remain pending.
+and inspection were healthy. The fixed migration then staged by SHA-256 and
+applied on T480 PostgreSQL, creating one assumed profile and 42 projections.
+The fresh `formal-20260923-m33-v4` bundle independently verifies the database
+invariants and human terminal rendering; formal M33 verification passed.
+Independent review and human closeout remain pending.
 Revision note: revised 2026-09-23 following Astra's high-severity
 reconciliation and source-versioning findings.

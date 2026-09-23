@@ -42,6 +42,8 @@ def test_adapter_exposes_only_fixed_forex_operations():
         "forex-m1-closed-candle-decision-identity-verify",
         "forex-m33-stage-pro-forma-commission-schema",
         "forex-m33-apply-pro-forma-commission-schema",
+        "forex-m33-stage-pro-forma-commission-refresh-schema",
+        "forex-m33-apply-pro-forma-commission-refresh-schema",
         "forex-m33-pro-forma-commission-summary",
         "forex-m33-pro-forma-commission-verify",
     })

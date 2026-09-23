@@ -36,6 +36,15 @@ def test_m33_migration_is_additive_source_bound_and_excludes_open_positions():
     assert "DELETE FROM forex.demo_trade_outcome" not in source
 
 
+def test_m33_refresh_rejects_multiple_or_invalid_opening_fills_and_projects_new_closes():
+    source = (ROOT / "sql/migrations/027_m33_refresh_pro_forma_commission.sql").read_text()
+    for required in ("COUNT(*) = 1", "fill_status') = 'FULL'", "volume' ~", "volume_lots, 2)",
+                     "refresh_demo_m33_pro_forma_commission", "AFTER INSERT ON forex.demo_trade_outcome",
+                     "ON CONFLICT (proposal_id, profile_version_id, calculation_version,"):
+        assert required in source
+    assert "ORDER BY event.observed_at_utc, event.event_id\n    LIMIT 1" not in source
+
+
 def test_m33_terminal_ledger_uses_an_explicit_assumption_label():
     source = (ROOT / "scripts/m20_trade_ledger_dashboard.py").read_text()
     assert "Commission-adjusted Demo P&L — GO Plus+ AUD assumption" in source

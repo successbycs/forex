@@ -6,7 +6,7 @@ import textwrap
 import math
 
 from scripts.m20_listener_evidence_view import latest_assessment, lifecycle_rows, _run_json
-from scripts.m20_trade_ledger_dashboard import _state, _pnl
+from scripts.m20_trade_ledger_dashboard import _state, _pnl, _pro_forma_detail
 
 
 def local_time(value):
@@ -151,6 +151,9 @@ def render_summary(report, width=80):
     for row in closed[:3]:
         lines.append(f"{local_time(row.get('closed_at_utc'))} | {value(row.get('action'))} | CLOSED | {row['display_pnl']}")
         lines.append(f"  {entry(row)} → exit {price(row.get('exit_price'))}")
+        comparison = _pro_forma_detail(row)
+        if comparison:
+            lines.append(f"  {comparison}")
     if not closed:
         lines.append('No verified closes available in this report.')
     unresolved = sum(row['display_state'] not in ('SOLD / VERIFIED', 'MONITORING', 'REJECTED') for row in report['trades'])
@@ -210,6 +213,9 @@ def render_workflow(report, width=100):
                       f"  Entry {val(row.get('actual_entry_price') or row.get('proposed_entry'))} | exit {val(row.get('exit_price'))} | reason {val(row.get('close_reason') or row.get('reconciliation_reason') or (row.get('rejection_context') or {}).get('broker_comment'))} | attempt {val(row.get('attempt_id'))}"])
         if row.get('reconciliation_reason'):
             lines.append(f"  Reconciliation detail: {row['reconciliation_reason']}")
+        comparison = _pro_forma_detail(row)
+        if comparison:
+            lines.append(f"  {comparison}")
     lines.extend(['', 'SOURCE FRESHNESS — fetch times are not trade or candle times'])
     for name, source in report['sources'].items():
         d = source.get('data')
