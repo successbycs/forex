@@ -1,0 +1,13 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "M32-DEMO-MVP-QUALITY",
+  "authorization": "Chris's existing Demo MVP goal authorises M32 only after proven M31. Chris approved M31 closeout and it was proven at 2026-09-23T03:05:27Z. M32 is retained-evidence assessment and read-only operator verification, not broker mutation, Live access, risk/strategy changes, new UI, or account switching.",
+  "markdown_plan": "docs/plans/m32-demo-mvp-quality.md",
+  "items": [
+    {"id":"prerequisites","title":"Confirm approved M31 and retained M30/M31 scope","state":"DONE","requires":[],"evidence":["project_state.json records M31 PROVEN at 2026-09-23T03:05:27Z with Chris's explicit signoff and bound four-role recommendation; M32 entry/start passed. M30 raw lifecycle and M31 refusal-window sources remain unchanged."],"blocker":null},
+    {"id":"source-assessment","title":"Validate retained sources and capture the existing read-only operator view","state":"DONE","requires":["prerequisites"],"evidence":["M30 raw audit and M31 raw evaluation exactly recompute. Actual operator-report-v2.json observed at 2026-09-23T03:17:38Z passes: RUNNING, MATCHED, 113 ledger rows, four positions, NO_TRADE. Independent reviewer /root/m32_quality_review reproduced both parent results and actual view."],"blocker":null},
+    {"id":"quality-report","title":"Build and test the bounded quality assessment and operator handoff","state":"DONE","requires":["source-assessment"],"evidence":["59 focused tests passed. Independent /root/m32_quality_review repair review passes: missing audit sources, Live runtime, stale decisions, forged age/warnings rejected. Numeric-string fill prices now render; no trading-rule change. docs/milestones/M32-proof.md documents bounded handoff and Live gaps."],"blocker":null},
+    {"id":"proof-review","title":"Capture current-revision M32 proof and obtain independent review","state":"IN_PROGRESS","requires":["quality-report"],"evidence":["Independent implementation repair review passes; clean capture and bound four-role recommendation remain."],"blocker":null},
+    {"id":"human-closeout","title":"Obtain result approval and prove M32 through the governed gates","state":"PENDING","requires":["proof-review"],"evidence":[],"blocker":null}
+  ]
+}

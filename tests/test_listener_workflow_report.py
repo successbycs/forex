@@ -1,4 +1,5 @@
-from scripts.listener_workflow_report import build_report, render_workflow
+from scripts.listener_workflow_report import build_report, render_workflow, render_summary
+import pytest
 
 
 def fixture(action='NO_TRADE', assessment_id='new'):
@@ -66,3 +67,23 @@ def test_reconciliation_error_reason_survives_normal_close_reason():
                                  'close_reason': 'TAKE_PROFIT',
                                  'reconciliation_reason': 'unmatched broker deal'}]
     assert 'Reconciliation detail: unmatched broker deal' in render_workflow(build_report(sources))
+
+
+def test_summary_renders_postgres_numeric_fills_and_exact_refusal():
+    sources = fixture()
+    sources['status']['data']['last_result']['proposal']['rationale'] = 'Existing position blocks entry.'
+    sources['ledger']['data'] = [{'lifecycle': 'CLOSED_MATCHED', 'actual_entry_price': '1.1451500000000001',
+        'exit_price': '1.14483', 'realized_pnl_account': 0.45, 'account_currency': 'AUD'}]
+    text = render_summary(build_report(sources), 60)
+    assert 'Filled entry 1.14515' in text and 'exit 1.14483' in text
+    assert 'Existing position blocks entry.' in text
+    assert 'no qualifying setup' not in text
+    assert all(len(line) <= 60 for line in text.splitlines())
+
+
+@pytest.mark.parametrize('value', [True, False, 'NaN', 'Infinity', '-Infinity', 'bad', '', -1, 0, '1e9999'])
+def test_summary_rejects_invalid_recorded_prices(value):
+    sources = fixture()
+    sources['ledger']['data'] = [{'lifecycle': 'CLOSED_MATCHED', 'actual_entry_price': value,
+                                'realized_pnl_account': 0.0, 'account_currency': 'AUD'}]
+    assert 'Filled entry unavailable' in render_summary(build_report(sources))

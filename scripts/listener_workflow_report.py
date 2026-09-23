@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import textwrap
+import math
 
 from scripts.m20_listener_evidence_view import latest_assessment, lifecycle_rows, _run_json
 from scripts.m20_trade_ledger_dashboard import _state, _pnl
@@ -37,7 +38,8 @@ def collect(status_reader, root, python):
     return build_report(sources)
 
 
-def build_report(sources):
+def build_report(sources, *, observed_at=None):
+    observed_at = observed_at or datetime.now(timezone.utc)
     def data(name):
         return sources.get(name, {}).get('data')
     status = data('status') if isinstance(data('status'), dict) else {}
@@ -53,7 +55,7 @@ def build_report(sources):
                   and account.get('currency') == 'AUD')
     attention = []
     try:
-        age = (datetime.now(timezone.utc) - datetime.fromisoformat(
+        age = (observed_at - datetime.fromisoformat(
             status['heartbeat_at_utc'].replace('Z', '+00:00'))).total_seconds()
         if age < 0 or age >= 30:
             attention.append(f'STALE listener heartbeat: {age:.0f}s age; recorded state is historical')
@@ -79,6 +81,7 @@ def build_report(sources):
         pnl = _pnl(row) if state in ('SOLD / VERIFIED', 'REJECTED', 'RECONCILIATION ERROR') else 'Pending'
         trades.append({**row, 'display_state': state, 'display_pnl': pnl})
     return {'schema_version': 'forex.listener-operator-report.v1', 'sources': sources,
+            'report_generated_at_utc': observed_at.isoformat(),
             'status': status, 'decision': result, 'attention': attention, 'heartbeat_age_seconds': age,
             'assessment_join': 'MATCHED' if matched else 'UNKNOWN / proposal mismatch or unavailable',
             'risk': assessment.get('risk_policy') if matched else None,
@@ -91,7 +94,15 @@ def render_summary(report, width=80):
         return 'unavailable' if item is None or item == '' else str(item)
 
     def price(item):
-        return f'{item:.5f}' if isinstance(item, (float, int)) else 'unavailable'
+        # PostgreSQL NUMERIC facts can arrive as JSON strings. Rendering must
+        # preserve those recorded fills without accepting booleans/NaN/inf.
+        if isinstance(item, bool) or not isinstance(item, (float, int, str)):
+            return 'unavailable'
+        try:
+            number = float(item)
+        except (ValueError, OverflowError):
+            return 'unavailable'
+        return f'{number:.5f}' if math.isfinite(number) and number > 0 else 'unavailable'
 
     def entry(row):
         if row.get('actual_entry_price') is not None:
@@ -102,7 +113,7 @@ def render_summary(report, width=80):
     proposal = result.get('proposal') or {}
     metrics = result.get('assessment_metrics') or {}
     action = proposal.get('action')
-    decision = 'WAIT — no qualifying setup' if action == 'NO_TRADE' else value(action)
+    decision = 'WAIT — no trade' if action == 'NO_TRADE' else value(action)
     state = value(status.get('state')).replace('_', ' ').capitalize()
     age = report.get('heartbeat_age_seconds')
     lines = ['EUR/USD DEMO',
@@ -123,7 +134,7 @@ def render_summary(report, width=80):
         lines.append(f"  {value(strategy.get('label')):<20} {'No signal' if signal == 'NO_TRADE' else value(signal)}")
     if not strategies:
         lines.append('  Strategy assessments unavailable')
-    if action != 'NO_TRADE' and proposal.get('rationale'):
+    if proposal.get('rationale'):
         lines.append('Reason: ' + proposal['rationale'])
     if action in ('BUY', 'SELL'):
         lines.append(f"Order: {value((result.get('execution') or {}).get('status'))}")

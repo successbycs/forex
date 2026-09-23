@@ -76,7 +76,7 @@ def _verifier_paths(root: Path, milestone: dict[str, Any]) -> list[str]:
         "config/schemas/triad-review.schema.json",
         "config/schemas/triad-recommendation.schema.json",
     }
-    if milestone["milestone_id"] == "M31":
+    if milestone["milestone_id"] in {"M31", "M32"}:
         # The shell wrapper dispatches to Python. Bind both retained and legacy
         # paths plus their local validation dependencies, not just the launcher.
         candidates.update({
@@ -88,6 +88,20 @@ def _verifier_paths(root: Path, milestone: dict[str, Any]) -> list[str]:
             "src/forex/m20_history_report.py",
             "src/forex/evidence_runner.py",
             "src/forex/m0_evidence.py",
+        })
+    if milestone["milestone_id"] == "M32":
+        candidates.update({
+            "scripts/m32_quality_assessment.py", "scripts/m30_natural_evidence.py",
+            "scripts/m30_evidence_contract.py", "src/forex/m20_spool_page.py",
+            "src/forex/m20_spool_drain.py", "src/forex/m20_assessment_spool.py",
+            "scripts/m30_natural_sources.py", "scripts/m30_natural_lifecycle.py",
+            "scripts/m30_natural_runtime.py", "scripts/listener_workflow_report.py",
+            "scripts/m20_listener_evidence_view.py", "scripts/m20_trade_ledger_dashboard.py",
+            "scripts/m20_listener_dashboard.py", "scripts/m31_scorecard.py",
+            "scripts/capture_m31_evidence.sh", "scripts/declare_m31_protocol.py",
+            "scripts/capture_m32_evidence.sh", "tests/test_listener_workflow_report.py",
+            "tests/test_m20_listener_dashboard.py", "tests/test_m20_listener_evidence_view.py",
+            "tests/test_triad.py",
         })
     commands = milestone["verification_commands"] + [
         {"argv": milestone["real_world_proof"]["verifier_command"]}

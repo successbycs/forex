@@ -61,10 +61,10 @@ conversion of historical percentage returns, or evidence of trading ability.
 - [x] evaluation-capture — Freeze the controlled M31 interval, capture raw evidence, and produce the scorecard (DONE)
 <!-- forex-work-item id=verification-review state=DONE -->
 - [x] verification-review — Verify M31 implementation and complete independent repair review (DONE)
-<!-- forex-work-item id=human-closeout state=BLOCKED -->
-- [ ] human-closeout — Complete bound recommendation and obtain human approval before proving M31 (BLOCKED)
-<!-- forex-work-item id=m32-boundary state=PENDING -->
-- [ ] m32-boundary — Create M32 plan only after M31 is formally PROVEN (PENDING)
+<!-- forex-work-item id=human-closeout state=DONE -->
+- [x] human-closeout — Complete bound recommendation and obtain human approval before proving M31 (DONE)
+<!-- forex-work-item id=m32-boundary state=DONE -->
+- [x] m32-boundary — Create M32 plan only after M31 is formally PROVEN (DONE)
 <!-- forex-work-projection:end -->
 
 ## Context and orientation
@@ -337,3 +337,9 @@ may the agent hand off for Chris's result approval. The authoritative current
 recommendation and evidence are recorded in `project_state.json` and
 `runs/run_history.json`; do not rewrite prior reviews or infer human approval
 from the instruction to execute.
+
+Closeout update: Chris explicitly approved M31 closeout; governed signoff and
+proof succeeded at 2026-09-23T03:05:27Z after the current four-role recommendation.
+M31 is PROVEN. The subsequent authorised plan is
+`docs/plans/m32-demo-mvp-quality.md`; its entry/start passed. Earlier pending
+review/approval descriptions above are retained history, not current blockers.
