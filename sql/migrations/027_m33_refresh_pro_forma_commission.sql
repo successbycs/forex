@@ -29,7 +29,7 @@ JOIN forex.demo_execution_attempt attempt ON attempt.proposal_id = proposal.prop
 JOIN LATERAL (
     SELECT
         MAX(CASE WHEN event.payload->>'volume' ~ '^[0-9]+(\.[0-9]{1,4})?$'
-                 THEN (event.payload->>'volume')::NUMERIC(12, 4) END) AS volume_lots,
+                 THEN (event.payload->>'volume')::NUMERIC(12, 4) END)::NUMERIC(12, 4) AS volume_lots,
         MIN(event.payload_sha256) AS payload_sha256
     FROM forex.demo_position_event event
     WHERE event.attempt_id = attempt.attempt_id AND event.event_type = 'OPENED'
