@@ -31,3 +31,10 @@ Measured encoded T480 commands: account identity 4338, status 6910, prepare
 4142, install 7134, enable hold 2094, disable hold 1002 characters. New fixed
 incident stage/apply/verify bodies also pass the less-than-7500 regression.
 Payload fragments and final verifiers must pass sizing before actual staging.
+
+Pre-deployment sizing caught runner fragments at 7726 characters. Removing
+the unused payload variable and constructing the same fixed release root
+directly reduced the maximum to 7490. Independent reviewer confirmed unchanged
+source binding, all 96 fragment names/content and assembly/hash verification.
+All nine focused transport/install/account checks pass, including a new check
+of every registered release fragment. No oversized command was sent.

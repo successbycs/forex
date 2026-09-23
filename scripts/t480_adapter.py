@@ -1399,7 +1399,7 @@ def _m20_listener_runner_stage_command(index: int) -> str:
     parts = 96
     chunk_size = ((len(encoded) + (parts * 4) - 1) // (parts * 4)) * 4
     chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
-    prefix = "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; $root=Join-Path $base 'releases\\" + release_id + "'; New-Item -ItemType Directory -Force $root|Out-Null; $payload=Join-Path $root 'm20_demo_trading_session.payload'; "
+    prefix = "$ErrorActionPreference='Stop';$root='C:\\ProgramData\\ForexListener\\releases\\" + release_id + "';New-Item -ItemType Directory -Force $root|Out-Null;"
     if index <= parts:
         return prefix + "[IO.File]::WriteAllText((Join-Path $root 'm20_demo_trading_session.part" + f"{index:02d}" + "'),'" + chunks[index - 1] + "',(New-Object Text.UTF8Encoding($false))); [pscustomobject]@{stage=" + str(index) + ";ok=$true}|ConvertTo-Json -Compress"
     raise ValueError("M20 listener runner stage index is invalid")

@@ -1325,6 +1325,17 @@ def test_position_gate_is_reported_as_position_block_not_absent_signal(monkeypat
     assert result['selected_strategy_id'] is None
 
 
+def test_incident_release_all_payload_fragments_fit_hard_transport_limit():
+    from t480_core import build_ssh_command
+    prefixes=('m20_listener_stage_','m20_listener_runner_stage_',
+              'm20_listener_bridge_stage_','m20_listener_discord_stage_')
+    for name,operation in t480_adapter.OPERATIONS.items():
+        if name.startswith(prefixes):
+            encoded=build_ssh_command('OEM@192.168.0.210',operation.powershell_command,
+                                                   t480_adapter.TRANSPORT_SETTINGS)[-1]
+            assert len(encoded)<7500, (name,len(encoded))
+
+
 def test_position_gate_reason_survives_complete_assessment_with_buy_signal(monkeypatch):
     runner = _m20_probe_module(monkeypatch)
     signals = [{'id': 'momentum_breakout', 'signal': 'BUY', 'eligible_for_execution': True}]

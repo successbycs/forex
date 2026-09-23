@@ -218,6 +218,13 @@ All 24 incident tests passed, including actual SQL on disposable PostgreSQL16;
 all 28 adapter tests passed. Independent review and final repaired-source hashes
 are recorded in `docs/reviews/demo-execution-incident-20260923.md`.
 
+First implementation commit: `0b0360c`. Subsequent pre-deployment sizing found
+the existing runner fragment wrapper exceeded the transport limit. The unused
+payload assignment and redundant root construction were removed; maximum
+encoded fragment is now 7490 (<7500). Separate review cleared this repair and
+all nine focused transport/install/account checks passed. No remote deployment
+or maintenance hold occurred before this size check was repaired.
+
 ## Execution-work projection
 
 <!-- forex-work-projection:start task=DEMO-EXECUTION-INCIDENT-REPAIR schema=forex.execution-work-projection.v1 -->
