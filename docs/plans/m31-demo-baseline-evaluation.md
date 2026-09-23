@@ -93,6 +93,13 @@ files into the evidence bundle before it reads results. This ordering prevents
 a plan document from claiming a pre-declared interval that has not actually
 been declared.
 
+For this MVP, the interval is deliberately short: it must contain enough
+completed M1 candles to prove the decision workflow, not a target number of
+trades or a 24-hour sample. A normal all-`NO_TRADE` result is valid operational
+evidence and is reported honestly; it is not a reason to force an entry. The
+earlier 24-hour declaration is retained as superseded evidence and will not be
+used for M31 capture.
+
 Second, implement a pure scorecard module. It receives supplied immutable
 records; it cannot contact MT5, PostgreSQL, or the network. It must group by
 strategy/version and disposition, reconcile each selected proposal to one
@@ -242,6 +249,12 @@ deployment is out of scope because this plan does not deploy the listener.
   passed to capture. Rationale: the receipt establishes both the declared time
   and exact evaluator revision before the interval begins. Date/Author:
   2026-09-23 / M31 evidence repair.
+- Decision: use a short, pre-declared M1 observation interval for the MVP,
+  rather than wait 24 hours. Rationale: M31 requires controlled, reproducible
+  Demo workflow evaluation, not a trade-count target; the existing scorecard
+  records natural `NO_TRADE` decisions and any natural selected outcome without
+  changing execution behaviour. The original 24-hour declaration is retained
+  but superseded. Date/Author: 2026-09-23 / Chris's MVP feedback.
 
 ## Outcomes & Retrospective
 
