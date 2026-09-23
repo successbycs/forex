@@ -59,10 +59,10 @@ conversion of historical percentage returns, or evidence of trading ability.
 - [x] scorecard — Implement a deterministic M31 scorecard from retained interval evidence (DONE)
 <!-- forex-work-item id=evaluation-capture state=DONE -->
 - [x] evaluation-capture — Freeze the controlled M31 interval, capture raw evidence, and produce the scorecard (DONE)
-<!-- forex-work-item id=verification-review state=IN_PROGRESS -->
-- [ ] verification-review — Verify M31 evidence and obtain required independent recommendation (IN_PROGRESS)
-<!-- forex-work-item id=human-closeout state=PENDING -->
-- [ ] human-closeout — Obtain human approval and prove M31 when all contract gates pass (PENDING)
+<!-- forex-work-item id=verification-review state=DONE -->
+- [x] verification-review — Verify M31 implementation and complete independent repair review (DONE)
+<!-- forex-work-item id=human-closeout state=BLOCKED -->
+- [ ] human-closeout — Complete bound recommendation and obtain human approval before proving M31 (BLOCKED)
 <!-- forex-work-item id=m32-boundary state=PENDING -->
 - [ ] m32-boundary — Create M32 plan only after M31 is formally PROVEN (PENDING)
 <!-- forex-work-projection:end -->
@@ -310,7 +310,7 @@ deployment is out of scope because this plan does not deploy the listener.
 The original ten-minute capture is complete; an additive evaluation is retained
 at `runs/evidence/M31/derived-20260923-mvp-repair-02`. It reports ten NO_TRADE
 decisions, consistent decision provenance and zero broker deals in that window.
-Sixty focused M31/adapter/completeness/history tests, governance validation
+Sixty-eight focused M31/adapter/completeness/history/Triad tests, governance validation
 and whitespace checks pass. Dirty-checkout tests now use an isolated simulated
 Git state and do not depend on this worktree accidentally being dirty.
 
@@ -323,3 +323,17 @@ Remaining work is the bound completion recommendation and human
 signoff. The original failing formal checks must pass before closeout. M32
 remains gated. No broker mutation or new observation period is required for
 these evaluation repairs.
+
+The first bound completion review found SSD-M31-001: the verifier fingerprint
+did not cover the Python implementation dispatched by the shell wrapper. The
+M31-only dependency list and mutation regression test repair this gap; separate
+repair review passed. Supersede the old review binding with a clean-revision
+capture and fresh completion review. Preserve the failed review unchanged.
+
+The closeout work item records the genuine final human-signoff boundary, not
+permission to stop while reviews are still actionable. Complete the renewed
+bound recommendation first and repair any blocking finding. Only when it passes
+may the agent hand off for Chris's result approval. The authoritative current
+recommendation and evidence are recorded in `project_state.json` and
+`runs/run_history.json`; do not rewrite prior reviews or infer human approval
+from the instruction to execute.

@@ -36,3 +36,19 @@ already adds an explicit technical-proof versus closeout explanation.
 
 Remaining: actual clean-revision capture/verification and required bound
 completion recommendation, then human signoff. No broker changes were made.
+
+## Bound-review repair: SSD-M31-001
+
+The first formal cycle `M31-20260923T022714Z-25e1b591` found a HIGH gap:
+the review fingerprint included the shell verifier but omitted its dispatched
+Python implementations. That cycle cannot support completion.
+
+The M31-only `_verifier_paths` selection in `src/forex/triad.py` now explicitly
+includes both dispatch branches and local validation dependencies. A regression
+test changes each copied dependency and requires a changed review fingerprint.
+The capture receipt now also runs `tests/test_triad.py`.
+
+Independent reviewer `/root/m31_gap_review` accepted this repair and ran all
+eight Triad tests successfully. The full focused run passed 68 tests. A fresh
+committed M31 evidence/review binding is required; the original observation and
+M30 runtime proof do not need repeating. No runtime behavior was changed.

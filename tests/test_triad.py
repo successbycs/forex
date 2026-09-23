@@ -20,6 +20,28 @@ from forex.triad import TriadError
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_m31_review_binds_dispatched_verifier_dependencies(tmp_path):
+    from forex.triad import _verifier_paths, verifier_fingerprint
+    registry = json.loads((ROOT / "milestone_registry.json").read_text())
+    milestone = next(m for m in registry["milestones"] if m["milestone_id"] == "M31")
+    paths = _verifier_paths(ROOT, milestone)
+    dependencies = {"scripts/m31_retained_evidence.py", "src/forex/m31_supplement.py",
+        "src/forex/m31_scorecard.py", "src/forex/m31_evidence.py", "src/forex/m20_history_report.py",
+        "scripts/m20_demo_evidence_contract.py", "src/forex/evidence_runner.py", "src/forex/m0_evidence.py"}
+    assert dependencies <= set(paths)
+    for name in paths:
+        target = tmp_path / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / name, target)
+    original = verifier_fingerprint(tmp_path, paths)
+    for name in dependencies:
+        target = tmp_path / name
+        old = target.read_bytes()
+        target.write_bytes(old + b"\n# changed implementation\n")
+        assert verifier_fingerprint(tmp_path, paths) != original, name
+        target.write_bytes(old)
+
+
 def _root(tmp_path: Path) -> Path:
     for relative in ("milestone_registry.json", "project_state.json", "runs/run_history.json"):
         destination = tmp_path / relative

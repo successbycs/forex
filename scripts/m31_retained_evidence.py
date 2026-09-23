@@ -122,7 +122,7 @@ def capture(args: argparse.Namespace) -> None:
     fingerprint = m20.project_fingerprint(ROOT)
     (args.bundle / "configuration.json").write_text(json.dumps({"configuration_fingerprint": fingerprint,
         "runtime_mode": "DEMO_TRADING", "live_trading_enabled": False, "permitted_mt5_server": "GOMarketsMU-Demo"}, sort_keys=True) + "\n")
-    for name, command in (("tests.txt", [sys.executable, "-m", "pytest", "-o", "addopts=", "-q", "tests/milestones/test_m31.py", "tests/test_postgres_pgvector_adapter.py", "tests/test_m1_postgres_completeness.py", "tests/test_m20_history_report.py"]),
+    for name, command in (("tests.txt", [sys.executable, "-m", "pytest", "-o", "addopts=", "-q", "tests/milestones/test_m31.py", "tests/test_postgres_pgvector_adapter.py", "tests/test_m1_postgres_completeness.py", "tests/test_m20_history_report.py", "tests/test_triad.py"]),
                           ("governance.txt", [sys.executable, "scripts/forex_milestones.py", "validate"])):
         result = subprocess.run(command, cwd=ROOT, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         (args.bundle / name).write_text(result.stdout)
