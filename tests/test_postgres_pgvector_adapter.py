@@ -67,7 +67,7 @@ def test_m33_pro_forma_operations_are_fixed_hash_bound_and_read_only_when_verify
     with mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True, "stdout": "", "stderr": ""}) as remote:
         assert postgres_pgvector_adapter.m33_pro_forma_commission_verify()["ok"]
     query = remote.call_args.args[0]
-    assert "GO_PLUS_AUD_V1" in query and "open_positions_included=false" in query
+    assert "GO_PLUS_AUD_V1" in query and "open_positions_included=false" in query and "refresh_trigger=" in query
     assert "INSERT" not in query and "UPDATE" not in query and "password" not in query.lower()
 
 

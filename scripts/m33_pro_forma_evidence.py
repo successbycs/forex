@@ -114,12 +114,15 @@ def verify(bundle: Path) -> None:
         require(path.is_file() and digest(path) == artifact["sha256"], f"artifact hash mismatch: {artifact['path']}")
     database = json.loads((bundle / "m33-verify.json").read_text())
     output = database["result"]["stdout"]
-    for token in ("FOREX_M33_PRO_FORMA_COMMISSION_DB_OK", "profile=true", "immutable=true", "formula=true", "rounding=true", "source_bound=true", "open_positions_included=false"):
+    for token in ("FOREX_M33_PRO_FORMA_COMMISSION_DB_OK", "profile=true", "immutable=true", "refresh_trigger=true", "formula=true", "rounding=true", "source_bound=true", "open_positions_included=false"):
         require(token in output, f"M33 database verification missing {token}")
     projection = json.loads(json.loads((bundle / "m33-projection.json").read_text())["result"]["stdout"])
     decimal = lambda value: Decimal(str(value))
     require(any(decimal(row["volume_lots"]) == Decimal("0.01") and decimal(row["estimated_round_trip_commission_aud"]) == Decimal("-0.06") for row in projection), "missing 0.01 lot / -0.06 M33 projection")
     require(all(decimal(row["pro_forma_live_pnl_aud"]) == decimal(row["actual_broker_net_aud"]) - decimal(row["actual_broker_commission_aud"]) + decimal(row["estimated_round_trip_commission_aud"]) for row in projection), "pro-forma equation failed")
+    lifecycle = json.loads(json.loads((bundle / "m20-lifecycle.json").read_text())["result"]["stdout"])
+    lifecycle_by_proposal = {row.get("proposal_id"): row for row in lifecycle}
+    require(all(row["proposal_id"] in lifecycle_by_proposal and decimal(row["actual_broker_net_aud"]) == decimal(lifecycle_by_proposal[row["proposal_id"]]["realized_pnl_account"]) and decimal(row["actual_broker_commission_aud"]) == decimal(lifecycle_by_proposal[row["proposal_id"]]["commission_account"]) for row in projection), "projection does not match retained broker lifecycle values")
     terminal = (bundle / "terminal-ledger.txt").read_text()
     require("Actual broker P&L:" in terminal and "Commission-adjusted Demo P&L — GO Plus+ AUD assumption:" in terminal, "terminal comparison label missing")
     require(MARKER in (bundle / "summary.txt").read_text(), "M33 success marker missing")
