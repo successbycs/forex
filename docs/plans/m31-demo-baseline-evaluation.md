@@ -57,10 +57,10 @@ conversion of historical percentage returns, or evidence of trading ability.
 - [x] source-inventory — Inspect the existing fixed read-only evidence surface and classify interval completeness (DONE)
 <!-- forex-work-item id=scorecard state=DONE -->
 - [x] scorecard — Implement a deterministic M31 scorecard from retained interval evidence (DONE)
-<!-- forex-work-item id=evaluation-capture state=IN_PROGRESS -->
-- [ ] evaluation-capture — Freeze the controlled M31 interval, capture raw evidence, and produce the scorecard (IN_PROGRESS)
-<!-- forex-work-item id=verification-review state=PENDING -->
-- [ ] verification-review — Verify M31 evidence and obtain required independent recommendation (PENDING)
+<!-- forex-work-item id=evaluation-capture state=DONE -->
+- [x] evaluation-capture — Freeze the controlled M31 interval, capture raw evidence, and produce the scorecard (DONE)
+<!-- forex-work-item id=verification-review state=IN_PROGRESS -->
+- [ ] verification-review — Verify M31 evidence and obtain required independent recommendation (IN_PROGRESS)
 <!-- forex-work-item id=human-closeout state=PENDING -->
 - [ ] human-closeout — Obtain human approval and prove M31 when all contract gates pass (PENDING)
 <!-- forex-work-item id=m32-boundary state=PENDING -->
@@ -314,9 +314,12 @@ Sixty focused M31/adapter/completeness/history tests, governance validation
 and whitespace checks pass. Dirty-checkout tests now use an isolated simulated
 Git state and do not depend on this worktree accidentally being dirty.
 
-The derived result is not formal M31 proof. The retained-evidence wrapper is
-implemented and tested. Remaining work is independent review of repairs,
-clean-revision capture/verification, the required completion recommendation and human
+The first clean retained-evidence capture
+`runs/evidence/M31/formal-20260923-f0ac41d` passed with `FOREX_M31_PROOF_OK`.
+Independent repair review passed. Commit this progress update and regenerate
+the final technical bundle from the same retained sources so HEAD bindings
+remain exact. This is local evaluation, not another observation window.
+Remaining work is the bound completion recommendation and human
 signoff. The original failing formal checks must pass before closeout. M32
 remains gated. No broker mutation or new observation period is required for
 these evaluation repairs.
