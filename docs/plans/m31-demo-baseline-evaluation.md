@@ -17,7 +17,7 @@ target, financial advice, proof of an edge, or authority to change the listener.
 
 M30 is `PROVEN` in the imported clean evidence state: its bundle, verification,
 four-role `RECOMMEND_COMPLETE` review, acceptance records, and Chris's approval
-are local retained prerequisites. M31 is now `READY`; its contract permits only
+are local retained prerequisites. M31 is now `IN_PROGRESS`; its contract permits only
 controlled `GOMarketsMU-Demo` workflow evaluation and provenance retention.
 The active M31 work fits because it reads and evaluates existing records without
 adding an order route, rule, account, or risk control. M32 depends on M31 being
@@ -38,6 +38,14 @@ only if the same M1 rules, point-in-time inputs, interval, and cost assumptions
 are demonstrably comparable. A non-comparable source is reported as context,
 never made into a numerical performance comparison.
 
+The already selected NO_CHANGE policy is a narrow exception to timeframe
+comparability: taking no new exposure produces no new trade costs on either
+timeframe. The retained M16 `overall.no_change` result may document that
+historical null policy, but its active H1 strategy returns are not comparable
+with this M1 interval. The exact M16 artifact was bound after observation; this
+timing must remain visible. This is not a newly selected baseline, a currency
+conversion of historical percentage returns, or evidence of trading ability.
+
 ## Progress
 
 <!-- forex-work-projection:start task=M31-DEMO-BASELINE-EVALUATION schema=forex.execution-work-projection.v1 -->
@@ -49,8 +57,8 @@ never made into a numerical performance comparison.
 - [x] source-inventory — Inspect the existing fixed read-only evidence surface and classify interval completeness (DONE)
 <!-- forex-work-item id=scorecard state=DONE -->
 - [x] scorecard — Implement a deterministic M31 scorecard from retained interval evidence (DONE)
-<!-- forex-work-item id=evaluation-capture state=PENDING -->
-- [ ] evaluation-capture — Freeze the controlled M31 interval, capture raw evidence, and produce the scorecard (PENDING)
+<!-- forex-work-item id=evaluation-capture state=IN_PROGRESS -->
+- [ ] evaluation-capture — Freeze the controlled M31 interval, capture raw evidence, and produce the scorecard (IN_PROGRESS)
 <!-- forex-work-item id=verification-review state=PENDING -->
 - [ ] verification-review — Verify M31 evidence and obtain required independent recommendation (PENDING)
 <!-- forex-work-item id=human-closeout state=PENDING -->
@@ -134,6 +142,16 @@ the exact Git revision and artifact digests, and runs
 `scripts/verify_m31_evidence.sh`. The verifier is local-only and re-computes the
 scorecard, including the declaration-receipt timing/binding check.
 
+For the completed original window, use its `--retained` route described in
+`docs/milestones/M31-proof.md`. This invokes `scripts/m31_retained_evidence.py`
+to retain unchanged original bytes, the additive fixed-query v2 response and
+historical null source in a new bundle. It records the repaired evaluator
+revision separately from the declaration/runtime revisions. Its verifier checks
+current revision/configuration, original digests, deterministic recomputation,
+Demo-only scope, verification receipts and observation freshness. It does not
+start another window, deploy, or contact the broker. The technical proof marker
+is not an independent completion recommendation or human signoff.
+
 ## Concrete steps
 
 From `/home/chris/projects/forex`:
@@ -178,6 +196,29 @@ it never triggers a broker retry or inferred replacement value. A failed
 deployment is out of scope because this plan does not deploy the listener.
 
 ## Surprises & Discoveries
+
+- Correction (2026-09-23): the ten-minute observation has completed. Original
+  `runs/evidence/M31/mvp-20260923T012500Z-afce837` retains 01:15–01:25 UTC,
+  ten NO_TRADE decisions and no selected outcomes. The original v1 verifier
+  did not establish the registry's full proof contract. It remains unchanged.
+  Do not repeat the window or wait 24 hours to repair local evidence checks.
+- Repair: the bounded fixed PostgreSQL query now exports decision versions,
+  rationale, timeframe and session Demo/EURUSD scope. Its v2 result is retained
+  at `runs/evidence/M31/supplement-20260923T0208Z/completeness-v2.json`.
+  Every original field and proposal matches; all ten records share revision
+  `875b3280ad0e4552bcb143d707ca57ca0e4b6c62` and the current configuration.
+- Additive evaluation: `scripts/m31_supplement.py` verifies original artifact
+  hashes before enriching the report. It validates declaration timing,
+  strategy/version/scope, rejects altered original fields, and cross-checks
+  complete broker history with the declared server clock offset. There are
+  zero EURUSD deals in this interval. Existing positions and account P&L are
+  excluded, not assumed zero. Proposal/session schema does not retain an
+  account hash for a direct decision-to-broker-account join; report that limit.
+- Runtime diagnosis correction: four desktop-origin positions were observed
+  separately, and the current existing-position gate was false. The interval
+  proposals themselves record only `No selected actionable M1 strategy.`
+  Do not rewrite that generic persisted rationale as a specific gate reason.
+  No positions or trading controls were changed.
 
 - Observation: the normal worktree initially lacked the M30 closeout bundle and
   formal state because capture occurred in a clean checkout. Evidence: the
@@ -226,6 +267,14 @@ deployment is out of scope because this plan does not deploy the listener.
 
 ## Decision Log
 
+- Decision (2026-09-23): retain the original declaration and raw bundle and
+  evaluate supplemental provenance separately. Independent read-only reviewer
+  `/root/m31_gap_review` supports the preselected historical null comparison
+  with explicit post-observation binding disclosure. This does not waive the
+  required formal verification, review or human signoff. Reviewer-required
+  repairs added timeframe/session scope, strategy version drift checks, original
+  manifest verification and data-derived historical session counts.
+
 - Decision: use `NO_CHANGE` as the only initial numerical baseline. Rationale:
   it is fully specified, does not invent a strategy or execution cost, and
   makes no profitability claim. Date/Author: 2026-09-23 / M31 evidence brief.
@@ -258,9 +307,16 @@ deployment is out of scope because this plan does not deploy the listener.
 
 ## Outcomes & Retrospective
 
-M31 planning, M30 handoff, source inventory, and pure scorecard implementation
-are complete. The capture/verifier package is also implemented. Focused tests
-passed (13 total: M31 plus related completeness and broker-history reporting),
-governance validation passed, and whitespace checks passed. The next item is a
-fresh M31 capture after the implementation revision is committed in a clean
-checkout. No real M31 scorecard result, broker action, or M32 work has occurred.
+The original ten-minute capture is complete; an additive evaluation is retained
+at `runs/evidence/M31/derived-20260923-mvp-repair-02`. It reports ten NO_TRADE
+decisions, consistent decision provenance and zero broker deals in that window.
+Sixty focused M31/adapter/completeness/history tests, governance validation
+and whitespace checks pass. Dirty-checkout tests now use an isolated simulated
+Git state and do not depend on this worktree accidentally being dirty.
+
+The derived result is not formal M31 proof. The retained-evidence wrapper is
+implemented and tested. Remaining work is independent review of repairs,
+clean-revision capture/verification, the required completion recommendation and human
+signoff. The original failing formal checks must pass before closeout. M32
+remains gated. No broker mutation or new observation period is required for
+these evaluation repairs.

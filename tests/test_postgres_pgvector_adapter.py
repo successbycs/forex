@@ -34,6 +34,7 @@ def test_adapter_exposes_only_fixed_forex_operations():
         "forex-m20-apply-not-submitted-execution-schema",
     })
     expected.add("forex-m20-current-lineage-summary")
+    expected.add("forex-m30-natural-entry-facts")
     expected.add("forex-m1-postgres-completeness-summary")
     expected.update({
         "forex-m1-stage-closed-candle-decision-identity-schema",

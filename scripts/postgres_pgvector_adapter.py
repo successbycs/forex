@@ -1103,17 +1103,20 @@ _M1_COMPLETENESS_QUERY = '''WITH bounds AS (
   SELECT :'from_utc'::timestamptz AS from_utc, :'to_utc'::timestamptz AS to_utc
 ), records AS (
   SELECT p.proposal_id, p.decision_at_utc, p.action, a.attempt_id, a.status,
+         p.application_revision, p.configuration_fingerprint, p.strategy_version,
+         p.rationale, p.selected_timeframe, p.session_id, s.server, s.instrument,
          a.submitted_at_utc, l.closed_at_utc, l.reconciliation_status,
          CASE WHEN a.attempt_id IS NULL THEN 'NO_ATTEMPT' ELSE 'PROJECTED' END AS projection_status
   FROM forex.demo_trade_proposal p
   CROSS JOIN bounds b
+  LEFT JOIN forex.demo_trade_session s ON s.session_id=p.session_id
   LEFT JOIN forex.demo_execution_attempt a ON a.proposal_id=p.proposal_id
   LEFT JOIN forex.demo_trade_ledger l ON l.proposal_id=p.proposal_id
   WHERE p.decision_at_utc >= b.from_utc AND p.decision_at_utc < b.to_utc
 )
 SELECT json_build_object(
   'schema_version','forex.m1.postgres-completeness-summary.v1',
-  'query_contract_version','forex.m1.postgres-completeness-query.v1',
+  'query_contract_version','forex.m1.postgres-completeness-query.v2',
   'query_sha256', :'query_sha256',
   'interval',json_build_object('from_utc', :'from_utc', 'to_utc', :'to_utc', 'bounds','inclusive/exclusive'),
   'records',COALESCE((SELECT json_agg(row_to_json(records) ORDER BY decision_at_utc, proposal_id) FROM records),'[]'::json)

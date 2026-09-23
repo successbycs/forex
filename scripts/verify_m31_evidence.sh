@@ -7,6 +7,17 @@ if [[ $# -ne 1 ]]; then
 fi
 
 bundle=$1
+if python3 - "$bundle/manifest.json" <<'PY'
+import json, sys
+try:
+    value = json.load(open(sys.argv[1]))
+    raise SystemExit(0 if value.get("schema_version") == "1.0.0" else 1)
+except (OSError, ValueError):
+    raise SystemExit(1)
+PY
+then
+  exec python3 scripts/m31_retained_evidence.py verify --bundle "$bundle"
+fi
 PYTHONPATH=src python3 - "$bundle" <<'PY'
 from pathlib import Path
 import json

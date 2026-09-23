@@ -51,6 +51,16 @@ too little data, unavailable costs, or no improvement over the reference.
 
 ### Reasonable inferences
 
+- Clarification after the 2026-09-23 independent gap review: the predeclared
+  NO_CHANGE policy is invariant only in its absence of new exposure and new
+  trade costs. Retained M16 `overall.no_change` (12 historical sessions, zero
+  actionable sessions and zero return) supplies historical provenance for that
+  null policy. Binding the artifact after observation is explicitly disclosed.
+  It does not qualify active H1 strategy results for an M1 performance comparison.
+  Source: `runs/evidence/M16/20260902T023427Z/walk-forward-probe.json`;
+  snapshot `m2-m1-eurusd-h1-720`, evaluator `eurusd-walk-forward.v1`, retrospective
+  H1 availability assumption. No percentage return is converted into AUD.
+
 - The smallest valid baseline is a frozen `NO_CHANGE`/no-exposure reference:
   zero trades, zero realised P&L, and zero costs. It lets the scorecard state
   whether the Demo workflow took risk and what it realised, but it cannot show

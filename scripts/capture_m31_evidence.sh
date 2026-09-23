@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ ${1:-} == --retained ]]; then
+  shift
+  exec python3 scripts/m31_retained_evidence.py capture "$@"
+fi
+
 if [[ $# -ne 2 ]]; then
   echo "usage: $0 runs/evidence/M31/<timestamp> runs/protocols/M31/<timestamp>" >&2
   exit 2
@@ -53,6 +58,10 @@ path.write_bytes(raw)
 PY
 cp -- "$protocol_directory/receipt.json" "$bundle/protocol-receipt.json"
 
+# The validation subprocess cannot set variables in this parent shell. Read
+# only the validated retained bounds; never accept ambient environment values.
+from_utc=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["interval"]["from_utc"])' "$bundle/protocol.json")
+to_utc=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["interval"]["to_utc"])' "$bundle/protocol.json")
 python3 scripts/postgres_pgvector_adapter.py forex-m1-postgres-completeness-summary --from-utc "$from_utc" --to-utc "$to_utc" >"$bundle/completeness.json"
 python3 scripts/postgres_pgvector_adapter.py forex-m20-lifecycle-summary >"$bundle/lifecycle.json"
 python3 scripts/t480_adapter.py execute --operation m20_all_demo_history_export >"$bundle/broker-history.json"

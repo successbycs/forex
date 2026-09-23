@@ -113,6 +113,9 @@ def build_scorecard(*, protocol: dict[str, Any], completeness: dict[str, Any], l
         raise M31ScorecardInputError("completeness records are invalid")
     proposal_ids: set[str] = set()
     actions: Counter[str] = Counter()
+    decision_versions: set[tuple[str, str]] = set()
+    missing_decision_versions = False
+    refusal_reasons: Counter[str] = Counter()
     selected: list[dict[str, Any]] = []
     for row in records:
         if not isinstance(row, dict) or not isinstance(row.get("proposal_id"), str) or row["proposal_id"] in proposal_ids:
@@ -125,6 +128,13 @@ def build_scorecard(*, protocol: dict[str, Any], completeness: dict[str, Any], l
             raise M31ScorecardInputError("proposal action is invalid")
         proposal_ids.add(row["proposal_id"])
         actions[action] += 1
+        revision, fingerprint = row.get("application_revision"), row.get("configuration_fingerprint")
+        if isinstance(revision, str) and revision and isinstance(fingerprint, str) and fingerprint:
+            decision_versions.add((revision, fingerprint))
+        else:
+            missing_decision_versions = True
+        if action == "NO_TRADE" and isinstance(row.get("rationale"), str) and row["rationale"]:
+            refusal_reasons[row["rationale"]] += 1
         if action != "NO_TRADE":
             selected.append(row)
 
@@ -148,6 +158,7 @@ def build_scorecard(*, protocol: dict[str, Any], completeness: dict[str, Any], l
         if closed_at is not None and not start <= _instant(closed_at, "outcome closed_at_utc") < end:
             raise M31ScorecardInputError("outcome lies outside frozen interval")
         lifecycle_by_proposal[proposal_id] = row
+    revisions.update(decision_versions)
     if len(revisions) > 1:
         raise M31ScorecardInputError("source version drift within frozen interval")
 
@@ -170,10 +181,21 @@ def build_scorecard(*, protocol: dict[str, Any], completeness: dict[str, Any], l
         limitations.append("INCOMPLETE_SELECTED_LIFECYCLE_COVERAGE")
     reconciled = [row for row in joined if row["reconciliation_status"] == "MATCHED" and isinstance(row["realized_pnl_aud"], (int, float))]
     provenance = {"completeness_query_sha256": completeness.get("query_sha256"), "application_revision": next(iter(revisions))[0] if revisions else "UNKNOWN", "configuration_fingerprint": next(iter(revisions))[1] if revisions else "UNKNOWN"}
+    # These inputs cannot establish a complete evaluation, even when their
+    # joins happen to be empty. Never render missing evidence as 'no limits'.
+    limitations.append("HISTORICAL_COMPARISON_UNQUALIFIED")
+    if not reconciled:
+        limitations.append("NO_RECONCILED_TRADE_OUTCOMES_IN_INTERVAL")
+    if missing_decision_versions or any(not provenance[key] or provenance[key] == "UNKNOWN"
+           for key in ("application_revision", "configuration_fingerprint")):
+        limitations.append("DECISION_VERSION_PROVENANCE_UNAVAILABLE")
+    if sum(refusal_reasons.values()) < actions["NO_TRADE"]:
+        limitations.append("NO_TRADE_REASONS_NOT_EXPORTED")
     return {"schema_version": SCHEMA_VERSION, "interval": protocol["interval"], "baseline": protocol["baseline"],
             "counts": {"decisions": len(records), "no_trade": actions["NO_TRADE"], "buy": actions["BUY"], "sell": actions["SELL"], "selected": len(selected), "joined_selected": len(joined), "reconciled_closed": len(reconciled)},
             "outcomes": joined, "realized_pnl_aud": round(sum(float(row["realized_pnl_aud"]) for row in reconciled), 2),
             "cost_field_coverage": dict(sorted(cost_coverage.items())), "provenance": provenance,
+            "no_trade_reasons": dict(sorted(refusal_reasons.items())),
             "limitations": sorted(set(limitations)), "historical_comparator": "NON_COMPARABLE_CONTEXT", "execution_authority": False}
 
 
@@ -188,7 +210,9 @@ def render_terminal(scorecard: dict[str, Any]) -> str:
              f"Outcomes: {counts['reconciled_closed']} reconciled | realized: AUD {scorecard['realized_pnl_aud']:.2f}",
              f"Costs: {json.dumps(scorecard['cost_field_coverage'], sort_keys=True)}",
              f"Limits: {', '.join(scorecard['limitations']) if scorecard['limitations'] else 'none'}",
-             "Historical comparator: NON_COMPARABLE_CONTEXT", "Execution authority: false"]
+             f"Historical comparator: {scorecard['historical_comparator']}",
+             "Evaluation incomplete: formal M31 acceptance remains unproven.",
+             "Execution authority: false"]
     return "\n".join(lines)
 
 
