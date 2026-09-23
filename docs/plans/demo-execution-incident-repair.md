@@ -24,8 +24,8 @@ Do not alter formal milestone state or describe this task as M33 closeout.
 - [x] Display persistent risk blocks and position gates in both terminal views.
 - [x] Correct runner refusal reasons and retain heartbeat risk fields locally.
 - [x] Verify local repairs and specify the exact operational accounting correction.
-- [ ] Deploy reviewed runtime/accounting changes under the operational amendment.
-- [ ] Verify risk readiness, a fresh eligible decision and broker reconciliation.
+- [x] Deploy reviewed runtime/accounting changes under the operational amendment.
+- [x] Verify risk readiness, a fresh eligible decision and broker reconciliation.
 
 ## Evidence and discoveries
 
@@ -102,9 +102,10 @@ cash movement. Do not force a trade or loosen strategy criteria for proof.
 2026-09-23: prioritize specific refusal evidence and existing report repairs.
 The half-day investigation must separate pre-close position blocking from
 post-close balance blocking. No additional waiting period is a repair.
-Runtime deployment, incident accounting and execution recovery remain pending.
+At the initial decision, deployment and recovery were pending. The later
+Operational outcome and final verification below record their completion.
 
-## Approved exact accounting amendment — application pending
+## Approved exact accounting amendment — applied and verified
 
 Use policy `forex.m20.conservative-risk.v1`, currency AUD, Demo account scope
 `4b12a2cebac68fadc4009c52f46e1cda20bd3c731ef94428ed2b47a2d29faabf`.
@@ -146,7 +147,7 @@ explicit risk-accounting amendment to M33's reporting-only restriction.
 Acceptance tests must include exact application, duplicate replay, changed
 balance/source/scope, already-accounted deal, rollback and preservation of
 other pauses and drawdown anchors. The migration and fixed apply operation
-are now implemented locally; actual application remains pending verification.
+are implemented, applied and verified by the operational evidence below.
 
 ## Verification, review and remaining boundary
 
@@ -176,15 +177,12 @@ Retained `entry-diagnostic.json` SHA-256 is
 `risk-policy.json` SHA-256 is
 `5e2e75616a5e7bf5d0a8fd5a719117ab6f905fd44766de09391e618b47f597f2`.
 
-At the initial review, release readiness was NO-GO: source was uncommitted,
-and the risk correction conflicts with M33's explicit exclusion of risk/account
-changes. The current repair request permits local diagnostics/reporting fixes;
-it does not silently amend that formal restriction. Reporting-query staging and
-runtime reason deployment remain pending source binding; no remote mutation was
-performed. The narrow operator decision is to authorize the incident-specific
-risk-accounting amendment above and a commit/deployment of this repair package.
-No strategy loosening, forced trade, general cash-flow approval or Live access
-is requested. Do not describe current trading or whole-account P&L as repaired.
+At the initial review, release readiness was NO-GO because source was
+uncommitted and the risk correction was excluded by M33. Chris's subsequent
+explicit approval removed those authority blockers; source binding and actual
+deployment are now verified in Operational outcome below. This exception grants
+no strategy loosening, forced trade, general cash-flow approval or Live access.
+Whole-account historical P&L completeness remains outside this narrow repair.
 
 ## Decision Log
 
@@ -225,6 +223,73 @@ encoded fragment is now 7490 (<7500). Separate review cleared this repair and
 all nine focused transport/install/account checks passed. No remote deployment
 or maintenance hold occurred before this size check was repaired.
 
+## Operational outcome — September 23
+
+Deployed source revision `efce23e45ba92ce67019190abfbcd782bbc762c4`, release
+`b29085685fda473d`. All 201 initial fragments and final assembly/hash checks
+passed. The fixed scoreboard now executes successfully against actual T480
+PostgreSQL and returns all five strategy rows. A first local invocation used
+an unsupported Forex `--approve` flag and exited during argument parsing;
+no remote action occurred. Corrected invocation receipts are retained with
+`-v2` suffixes; the empty original stdout files were not overwritten.
+
+At approximately 17:48 NZST, the approved correction committed eight incident
+deal records and AUD -28.64. Expected balance became 100960.81; baseline
+100995.51, peak 100995.17, daily 100989.45 and weekly 100988.91 were unchanged.
+EXTERNAL_CASH_FLOW cleared, cash_flow_review_approved remained false. The
+held readiness assessment then reported entry_allowed=true; MT5 submission
+permissions passed. Installation retained Interactive topology and the temporary
+hold was explicitly released only after healthy source-bound observations.
+
+A natural compression-breakout SELL subsequently opened at broker time
+17:49:40.678 NZST: position 43159884, deal 35669636, 0.01 lots at 1.14234,
+SL 1.14278 and TP 1.14168. PostgreSQL retains owner compression_breakout,
+proposal `9319e46c-d7df-54a2-83c8-7bbd30296117` and attempt
+`86f8d90e-0b97-559b-96c2-9cc041df61ef`. Ledger submission time is 17:49:41.
+This was ordinary strategy-driven execution, not a forced drill. A separate
+read-only review verified accounting, deployment and owned entry evidence.
+Initial lifecycle observation was OPEN_MONITORING; the final closing evidence
+below completes this observed workflow.
+
+All 248 targeted tests now pass, including real isolated PostgreSQL behavior.
+Raw operational receipts live under
+`runs/incidents/demo-entry-20260923/deployment-20260923/`. The offline check
+`verification-initial.txt` reports FOREX_INCIDENT_LOSS_AND_OWNED_NATURAL_ENTRY_VERIFIED.
+The terminal visibly shows the owned open SELL, fill price and the existing-position
+block for subsequent entries. The 45 legacy unresolved ledger rows are preserved
+and are not claimed to have been reconciled by this narrow incident correction.
+No formal milestone closeout or GitHub push was performed.
+
+## Outcomes & Retrospective
+
+At 17:57:08 NZST the natural SELL closed automatically at 1.14262 following
+two opposite completed M1 candles. Broker closing deal 35669951 and PostgreSQL
+CLOSED_MATCHED agree: actual P&L -0.39 AUD, zero broker commission/swap/fee.
+The existing M33 projection also refreshed automatically: assumed round-trip
+commission -0.06 AUD, separate GO Plus+ comparison -0.45 AUD. These are distinct
+actual and modelled results, not a claim about live execution or profitability.
+
+Subsequent account and risk observations agree on expected/broker balance
+100960.42 AUD, zero positions, zero pending orders and no pause. All baseline
+and drawdown anchors remain unchanged. The listener continues normal M1 Demo
+evaluation; there is no maintenance hold. The final terminal capture visibly
+shows the new closed trade, both prices and both P&L values.
+
+Separate reviewer `incident_repair_review` verified the complete owned
+entry→close→reconciliation and found no discrepancy. Offline retained-byte
+verification in `verification-final.txt` reports
+FOREX_INCIDENT_REPAIR_AND_NATURAL_CLOSED_LIFECYCLE_VERIFIED. This task is complete
+at its observed operational surface; no formal milestone was closed. The 45
+historical unresolved rows and broader account-history/attribution design remain
+outside this approved incident correction. Raw evidence remains local and
+unchanged; only source, tests, the approved exception and reports are committed.
+
+Lesson: a running heartbeat and generic NO_TRADE cannot explain why execution
+stopped. Preserve specific gate reasons, compare against recorded signals and
+broker facts, and reconcile actual losses without treating them as withdrawals.
+All 248 targeted tests and final governance/diff checks passed. The temporary
+local PostgreSQL test server was stopped after verification.
+
 ## Execution-work projection
 
 <!-- forex-work-projection:start task=DEMO-EXECUTION-INCIDENT-REPAIR schema=forex.execution-work-projection.v1 -->
@@ -240,12 +305,12 @@ or maintenance hold occurred before this size check was repaired.
 - [x] commit-authority — Authorize commit for source-bound deployment (DONE)
 <!-- forex-work-item id=risk-amendment state=DONE -->
 - [x] risk-amendment — Authorize the incident-specific risk-accounting amendment (DONE)
-<!-- forex-work-item id=scoreboard-deploy state=PENDING -->
-- [ ] scoreboard-deploy — Stage and verify the fixed PostgreSQL scoreboard (PENDING)
+<!-- forex-work-item id=scoreboard-deploy state=DONE -->
+- [x] scoreboard-deploy — Stage and verify the fixed PostgreSQL scoreboard (DONE)
 <!-- forex-work-item id=accounting-implementation state=DONE -->
 - [x] accounting-implementation — Implement and test the additive fixed reconciliation operation (DONE)
-<!-- forex-work-item id=runtime-deploy state=PENDING -->
-- [ ] runtime-deploy — Deploy reviewed reason and accounting repairs through fixed adapters (PENDING)
-<!-- forex-work-item id=real-world-proof state=PENDING -->
-- [ ] real-world-proof — Verify balance agreement and a subsequent eligible Demo lifecycle (PENDING)
+<!-- forex-work-item id=runtime-deploy state=DONE -->
+- [x] runtime-deploy — Deploy reviewed reason and accounting repairs through fixed adapters (DONE)
+<!-- forex-work-item id=real-world-proof state=DONE -->
+- [x] real-world-proof — Verify balance agreement and a subsequent eligible Demo lifecycle (DONE)
 <!-- forex-work-projection:end -->

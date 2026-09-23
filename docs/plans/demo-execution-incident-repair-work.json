@@ -78,11 +78,13 @@
     {
       "id": "scoreboard-deploy",
       "title": "Stage and verify the fixed PostgreSQL scoreboard",
-      "state": "PENDING",
+      "state": "DONE",
       "requires": [
         "commit-authority"
       ],
-      "evidence": [],
+      "evidence": [
+        "Fixed staged scoreboard query succeeded on T480; five strategy rows in deployment-20260923/scoreboard-after.json."
+      ],
       "blocker": null
     },
     {
@@ -100,23 +102,27 @@
     {
       "id": "runtime-deploy",
       "title": "Deploy reviewed reason and accounting repairs through fixed adapters",
-      "state": "PENDING",
+      "state": "DONE",
       "requires": [
         "commit-authority",
         "accounting-implementation"
       ],
-      "evidence": [],
+      "evidence": [
+        "efce23e deployed as b29085685fda473d; SQL committed eight deals/-28.64 with loss anchors preserved. Held readiness and broker permissions passed; hold released. Raw receipts independently reviewed."
+      ],
       "blocker": null
     },
     {
       "id": "real-world-proof",
       "title": "Verify balance agreement and a subsequent eligible Demo lifecycle",
-      "state": "PENDING",
+      "state": "DONE",
       "requires": [
         "scoreboard-deploy",
         "runtime-deploy"
       ],
-      "evidence": [],
+      "evidence": [
+        "Ticket43159884 naturally opened/closed with compression_breakout ownership, broker close35669951 and PostgreSQL CLOSED_MATCHED. Actual -0.39 AUD, comparison -.45 with assumed -.06 commission. Flat broker/expected balance100960.42, preserved anchors, no pauses. Independent review and verification-final.txt passed."
+      ],
       "blocker": null
     }
   ]
