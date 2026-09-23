@@ -36,7 +36,8 @@ JOIN LATERAL (
     HAVING COUNT(*) = 1
        AND MIN(event.payload->>'fill_status') = 'FULL'
        AND MIN(event.payload->>'volume') ~ '^[0-9]+(\.[0-9]{1,4})?$'
-       AND MAX((event.payload->>'volume')::NUMERIC(12, 4)) > 0
+       AND MAX(CASE WHEN event.payload->>'volume' ~ '^[0-9]+(\.[0-9]{1,4})?$'
+                    THEN (event.payload->>'volume')::NUMERIC(12, 4) END) > 0
 ) opening ON true
 LEFT JOIN LATERAL (
     SELECT revision.disposition
