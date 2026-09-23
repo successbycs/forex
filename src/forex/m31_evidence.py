@@ -11,7 +11,7 @@ from forex.m20_history_report import HistoryReportInputError, build_history_repo
 
 
 MARKER = "FOREX_M31_EVIDENCE_VERIFIED"
-REQUIRED = {"protocol.json", "completeness.json", "lifecycle.json", "broker-history.json", "scorecard.json", "revision.txt", "manifest.json"}
+REQUIRED = {"protocol.json", "protocol-receipt.json", "completeness.json", "lifecycle.json", "broker-history.json", "scorecard.json", "revision.txt", "manifest.json"}
 
 
 class M31EvidenceError(ValueError):
@@ -69,6 +69,18 @@ def verify_bundle(bundle: Path, *, expected_revision: str | None = None) -> dict
         raise M31EvidenceError("stored scorecard differs from deterministic result")
     if computed.get("execution_authority") is not False or protocol["server"] != "GOMarketsMU-Demo" or protocol["symbol"] != "EURUSD":
         raise M31EvidenceError("Demo-only safety binding is invalid")
+    receipt = _json(raw["protocol-receipt.json"], "protocol receipt")
+    if (receipt.get("schema_version") != "forex.m31.protocol-receipt.v1" or receipt.get("git_revision") != revision
+            or receipt.get("protocol_sha256") != _sha(raw["protocol.json"]) or receipt.get("execution_authority") is not False):
+        raise M31EvidenceError("protocol receipt binding is invalid")
+    from datetime import datetime
+    try:
+        declared = datetime.fromisoformat(str(receipt["declared_at_utc"]).replace("Z", "+00:00"))
+        start = datetime.fromisoformat(protocol["interval"]["from_utc"].replace("Z", "+00:00"))
+    except (KeyError, ValueError) as exc:
+        raise M31EvidenceError("protocol receipt timestamp is invalid") from exc
+    if declared.tzinfo is None or start.tzinfo is None or declared >= start:
+        raise M31EvidenceError("protocol was not declared before its interval")
     return {"marker": MARKER, "milestone_id": "M31", "git_revision": revision,
             "interval": protocol["interval"], "decision_count": computed["counts"]["decisions"],
             "reconciled_closed": computed["counts"]["reconciled_closed"],

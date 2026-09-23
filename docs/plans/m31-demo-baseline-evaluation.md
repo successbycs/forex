@@ -85,10 +85,13 @@ operation cannot provide a required bounded fact, add only a fixed read-only
 adapter operation with a schema and tests; never introduce generic database or
 remote access.
 
-The M31 method is frozen now; the actual interval is intentionally not. It is
-created by the capture command in a clean committed checkout immediately before
-the first bounded result read. This distinction prevents a plan document from
-claiming a pre-declared interval that has not actually been declared.
+The M31 method is frozen now; the actual interval is intentionally not. A
+separate `scripts/declare_m31_protocol.py` command creates an immutable protocol
+and receipt in a clean committed checkout while its UTC start is still in the
+future. After the interval ends, the capture command copies those unchanged
+files into the evidence bundle before it reads results. This ordering prevents
+a plan document from claiming a pre-declared interval that has not actually
+been declared.
 
 Second, implement a pure scorecard module. It receives supplied immutable
 records; it cannot contact MT5, PostgreSQL, or the network. It must group by
@@ -116,12 +119,13 @@ identity, no-Live declaration, and scorecard consistency. Independent review
 and Chris's approval remain formal gates before M31 proof.
 
 `scripts/capture_m31_evidence.sh` implements that capture contract. It accepts
-only a new bundle path and two whole-second UTC bounds, writes the protocol
-first, and refuses a dirty checkout before it creates the bundle. It then calls
-only the named fixed read-only operations, renders the scorecard from their
-retained bytes, records the exact Git revision and artifact digests, and runs
+only a new bundle path and a declared protocol directory, refuses a dirty
+checkout, requires the declared protocol revision to match the evaluator, and
+refuses to capture before the interval ends. It then calls only the named fixed
+read-only operations, renders the scorecard from their retained bytes, records
+the exact Git revision and artifact digests, and runs
 `scripts/verify_m31_evidence.sh`. The verifier is local-only and re-computes the
-scorecard from the retained protocol, completeness, and lifecycle files.
+scorecard, including the declaration-receipt timing/binding check.
 
 ## Concrete steps
 
@@ -133,9 +137,10 @@ From `/home/chris/projects/forex`:
 2. Add pure parser, scorecard, JSON/text renderer, fixtures, and tests. Expect
    deterministic output for a complete fixture and explicit `UNKNOWN` or
    `NON_COMPARABLE_CONTEXT` for incomplete fixtures.
-3. Add a fixed capture and offline verifier. Capture only a frozen interval
-   after the source inventory and tests pass. Expect `FOREX_M31_PROOF_OK` only
-   when all required identities and evidence hashes match.
+3. Declare a future fixed interval from a clean evaluator revision. After that
+   interval ends, use the fixed capture and offline verifier. Expect
+   `FOREX_M31_PROOF_OK` only when all required identities and evidence hashes
+   match.
 4. Run focused tests, governance validation, the evidence verifier, a separate
    read-only review, and then the registry closeout route.
 
@@ -207,6 +212,10 @@ deployment is out of scope because this plan does not deploy the listener.
   M31 interval.” That was not true: it defined the freezing method and baseline
   only. The task label now states that fact, and a real interval remains a
   capture-time artifact written before source reads.
+- Correction: the initial capture implementation created its protocol at
+  capture time. That could not demonstrate the window was chosen before its
+  results existed. It now requires a separately retained future-window protocol
+  receipt whose timestamp and evaluator revision are verified offline.
 
 ## Decision Log
 
@@ -229,6 +238,10 @@ deployment is out of scope because this plan does not deploy the listener.
   checkout is available. Rationale: this preserves the required ordering
   (protocol before results) while allowing the capture to bind its scorecard to
   an immutable revision. Date/Author: 2026-09-23 / M31 capture design.
+- Decision: make pre-declaration a separate artifact, rather than an argument
+  passed to capture. Rationale: the receipt establishes both the declared time
+  and exact evaluator revision before the interval begins. Date/Author:
+  2026-09-23 / M31 evidence repair.
 
 ## Outcomes & Retrospective
 

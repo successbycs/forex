@@ -88,11 +88,12 @@ def evidence_bundle(tmp_path):
     bundle = tmp_path / "bundle"
     bundle.mkdir()
     raw = {"protocol.json": json.dumps(protocol()).encode(), "completeness.json": json.dumps(completeness()).encode(), "lifecycle.json": json.dumps(lifecycle()).encode(), "broker-history.json": json.dumps(broker_history()).encode(), "revision.txt": b"a" * 40 + b"\n"}
+    import hashlib
+    raw["protocol-receipt.json"] = json.dumps({"schema_version": "forex.m31.protocol-receipt.v1", "declared_at_utc": "2026-09-23T00:00:00Z", "git_revision": "a" * 40, "protocol_sha256": "sha256:" + hashlib.sha256(raw["protocol.json"]).hexdigest(), "execution_authority": False}).encode()
     scorecard = scorecard_from_raw(protocol_raw=raw["protocol.json"], completeness_raw=raw["completeness.json"], lifecycle_raw=raw["lifecycle.json"])
     raw["scorecard.json"] = json.dumps(scorecard, sort_keys=True).encode()
     for name, content in raw.items():
         (bundle / name).write_bytes(content)
-    import hashlib
     manifest = {"schema_version": "forex.m31.evidence-bundle.v1", "milestone_id": "M31", "observed_result": "FOREX_M31_EVIDENCE_CAPTURED", "git_revision": "a" * 40,
                 "artifacts": [{"path": name, "sha256": "sha256:" + hashlib.sha256(content).hexdigest()} for name, content in raw.items()]}
     (bundle / "manifest.json").write_text(json.dumps(manifest))
@@ -123,7 +124,15 @@ def test_evidence_verifier_cli_checks_broker_history_binding(tmp_path):
 
 def test_capture_refuses_dirty_checkout_before_creating_bundle(tmp_path):
     target = tmp_path / "new-bundle"
-    process = subprocess.run(["bash", "scripts/capture_m31_evidence.sh", str(target), START, END], cwd=ROOT, text=True, capture_output=True, check=False)
+    process = subprocess.run(["bash", "scripts/capture_m31_evidence.sh", str(target), str(tmp_path / "protocol")], cwd=ROOT, text=True, capture_output=True, check=False)
     assert process.returncode == 2
     assert "clean, committed checkout" in process.stderr
+    assert not target.exists()
+
+
+def test_protocol_declaration_refuses_dirty_checkout_before_creating_directory(tmp_path):
+    target = tmp_path / "protocol"
+    process = subprocess.run([sys.executable, "scripts/declare_m31_protocol.py", "--directory", str(target), "--from-utc", "2026-09-24T00:00:00Z", "--to-utc", "2026-09-24T01:00:00Z"], cwd=ROOT, text=True, capture_output=True, check=False)
+    assert process.returncode == 2
+    assert "clean committed checkout" in process.stderr
     assert not target.exists()
