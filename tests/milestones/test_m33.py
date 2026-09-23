@@ -41,3 +41,15 @@ def test_m33_terminal_ledger_uses_an_explicit_assumption_label():
     assert "Commission-adjusted Demo P&L — GO Plus+ AUD assumption" in source
     assert "Actual broker P&L" in source
     assert "('commission_account', 'fee_account', 'swap_account')" in source
+
+
+def test_m33_proof_surface_has_fixed_capture_and_offline_verification():
+    capture = (ROOT / "scripts/capture_m33_evidence.sh").read_text()
+    verify = (ROOT / "scripts/verify_m33_evidence.sh").read_text()
+    collector = (ROOT / "scripts/m33_pro_forma_evidence.py").read_text()
+    proof = (ROOT / "docs/milestones/M33-proof.md").read_text()
+    assert "m33_pro_forma_evidence.py capture" in capture
+    assert "m33_pro_forma_evidence.py verify" in verify
+    for required in ("FOREX_M33_PRO_FORMA_COMMISSION_OK", "m33-projection.json", "terminal-ledger.txt", "open_positions_included=false"):
+        assert required in collector
+    assert "GO_PLUS_AUD_V1" in proof and "Demo-only" in proof
