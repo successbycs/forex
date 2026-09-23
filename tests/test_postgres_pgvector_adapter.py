@@ -1,4 +1,5 @@
 from unittest import mock
+import pytest
 
 from scripts import postgres_pgvector_adapter
 
@@ -35,6 +36,8 @@ def test_adapter_exposes_only_fixed_forex_operations():
     })
     expected.add("forex-m20-current-lineage-summary")
     expected.add("forex-m30-natural-entry-facts")
+    expected.add("forex-m20-entry-diagnostic")
+    expected.update({'forex-m20-stage-incident-20260923','forex-m20-apply-incident-20260923','forex-m20-verify-incident-20260923'})
     expected.add("forex-m1-postgres-completeness-summary")
     expected.update({
         "forex-m1-stage-closed-candle-decision-identity-schema",
@@ -253,6 +256,73 @@ def test_m20_lifecycle_summary_is_hash_bound_read_only_and_keeps_lifecycle_state
         postgres_pgvector_adapter.SETTINGS,
     )
     assert len(command[-1]) < 8191
+
+
+def test_entry_diagnostic_validates_bounds_and_preserves_signal_vs_selection():
+    with mock.patch.object(postgres_pgvector_adapter, 'remote', return_value={'ok': True}) as remote:
+        assert postgres_pgvector_adapter.m20_entry_diagnostic('2026-09-23T00:00:00Z', '2026-09-23T05:00:00Z')['ok']
+    query = remote.call_args.args[0]
+    assert 'decisions_with_signal' in query and 'market_regime_reason' in query
+    assert "t.server='GOMarketsMU-Demo'" in query
+    script = f"set -euo pipefail\ncd {postgres_pgvector_adapter.REMOTE_LAB}\ntest -f .env\nset -a\nsource .env\nset +a\n{query}\n"
+    command = postgres_pgvector_adapter.build_ssh_command(
+        postgres_pgvector_adapter.TARGET,
+        postgres_pgvector_adapter.build_wsl_powershell_command(script, postgres_pgvector_adapter.SETTINGS),
+        postgres_pgvector_adapter.SETTINGS,
+    )
+    assert len(command[-1]) < 7500
+    for start, end in [('bad', '2026-09-23T05:00:00Z'),
+                       ('2026-09-23T05:00:00Z', '2026-09-23T00:00:00Z'),
+                       ('2026-09-21T00:00:00Z', '2026-09-23T00:00:00Z')]:
+        with pytest.raises(ValueError):
+            postgres_pgvector_adapter.m20_entry_diagnostic(start, end)
+
+
+def test_fixed_incident_stage_and_verify_transport_fit():
+    completed = mock.Mock(returncode=0, stdout='C:\\fixed.sql', stderr='')
+    for operation in (postgres_pgvector_adapter.stage_incident_20260923,
+                      postgres_pgvector_adapter.verify_incident_20260923):
+        with mock.patch.object(postgres_pgvector_adapter.subprocess,'run',return_value=completed), \
+             mock.patch.object(postgres_pgvector_adapter,'remote',return_value={'ok':True}) as remote:
+            assert operation()['ok']
+        body=remote.call_args.args[0]
+        script=f'set -euo pipefail\ncd {postgres_pgvector_adapter.REMOTE_LAB}\ntest -f .env\nset -a\nsource .env\nset +a\n{body}\n'
+        encoded=postgres_pgvector_adapter.build_ssh_command(postgres_pgvector_adapter.TARGET,
+            postgres_pgvector_adapter.build_wsl_powershell_command(script,postgres_pgvector_adapter.SETTINGS),
+            postgres_pgvector_adapter.SETTINGS)[-1]
+        assert len(encoded)<7500
+
+
+def test_incident_apply_refuses_before_remote_sql_on_bad_observation():
+    with mock.patch('forex.incident_reconciliation.validate_source'), \
+         mock.patch.object(postgres_pgvector_adapter,'_incident_observation',return_value=({},{})), \
+         mock.patch.object(postgres_pgvector_adapter,'remote') as remote:
+        with pytest.raises(ValueError): postgres_pgvector_adapter.apply_incident_20260923()
+        remote.assert_not_called()
+
+
+def test_incident_apply_is_preflight_and_hash_bound_and_transport_safe():
+    with mock.patch('forex.incident_reconciliation.validate_source') as source, \
+         mock.patch('forex.incident_reconciliation.validate_observations') as observations, \
+         mock.patch.object(postgres_pgvector_adapter,'_incident_observation',return_value=({},{})), \
+         mock.patch.object(postgres_pgvector_adapter,'remote',return_value={'ok':True}) as remote:
+        assert postgres_pgvector_adapter.apply_incident_20260923()['ok']
+    source.assert_called_once(); observations.assert_called_once()
+    body=remote.call_args.args[0]
+    assert 'sha256sum' in body and 'm20_demo_maintenance_hold.local.json' in body
+    assert 'resume-risk-policy' not in body
+    script=f'set -euo pipefail\ncd {postgres_pgvector_adapter.REMOTE_LAB}\ntest -f .env\nset -a\nsource .env\nset +a\n{body}\n'
+    encoded=postgres_pgvector_adapter.build_ssh_command(postgres_pgvector_adapter.TARGET,
+        postgres_pgvector_adapter.build_wsl_powershell_command(script,postgres_pgvector_adapter.SETTINGS),
+        postgres_pgvector_adapter.SETTINGS)[-1]
+    assert len(encoded)<7500
+
+
+def test_scoreboard_uses_selection_owner_and_verified_wins():
+    source = (postgres_pgvector_adapter.ROOT / 'sql/m20_strategy_trial_summary.sql').read_text()
+    assert 'l.trade_owner_strategy_id' not in source
+    assert 'JOIN forex.demo_strategy_selection s USING (proposal_id)' in source
+    assert "WHERE l.reconciliation_status IN ('MATCHED','REPAIRED') AND l.realized_pnl_account > 0" in source
 
 
 def test_m1_completeness_summary_is_bounded_read_only_and_rejects_unsafe_bounds():

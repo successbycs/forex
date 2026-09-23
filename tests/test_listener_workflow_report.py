@@ -28,7 +28,48 @@ def test_no_trade_does_not_hide_older_open_trade_or_invent_exposure():
 def test_mismatched_assessment_cannot_supply_permission():
     report = build_report(fixture(assessment_id='other'))
     assert report['risk'] is None
-    assert 'Risk entry permission: UNKNOWN' in render_workflow(report)
+    assert 'Assessment risk entry permission: UNKNOWN' in render_workflow(report)
+
+
+def test_summary_shows_database_pause_even_without_matched_assessment():
+    sources = fixture(assessment_id='other')
+    sources['risk_state'] = {'data': {'pause_reasons': ['EXTERNAL_CASH_FLOW']}}
+    text = render_summary(build_report(sources))
+    assert 'ENTRIES BLOCKED: EXTERNAL_CASH_FLOW' in text
+    assert text.index('ENTRIES BLOCKED') < text.index('PRICE')
+
+
+def test_summary_shows_unknown_risk_and_existing_positions():
+    sources = fixture(assessment_id='other')
+    sources['account']['data'] = {'ok': True, 'server': 'GOMarketsMU-Demo',
+                                 'currency': 'AUD', 'open_positions': 4}
+    text = render_summary(build_report(sources))
+    assert 'Entry readiness UNKNOWN' in text
+    assert 'ENTRIES BLOCKED: existing broker positions' in text
+    assert 'ENTRIES BLOCKED: existing broker positions' in render_workflow(build_report(sources))
+
+
+def test_summary_shows_risk_pause_even_with_no_signal():
+    sources = fixture()
+    sources['assessment']['data']['assessment']['risk_policy'] = {
+        'entry_allowed': False, 'pause_reason': 'WEEKLY_LOSS'}
+    assert 'Last assessment blocked entries: WEEKLY_LOSS' in render_summary(build_report(sources))
+
+
+def test_full_view_displays_database_pause_over_old_permission():
+    sources = fixture()
+    sources['risk_state'] = {'data': {'pause_reasons': ['EXTERNAL_CASH_FLOW']}}
+    assert 'ENTRIES BLOCKED: EXTERNAL_CASH_FLOW' in render_workflow(build_report(sources))
+
+
+def test_previous_permission_cannot_claim_readiness_with_stale_or_failed_sources():
+    sources = fixture()
+    sources['risk_state'] = {'data': {'error': 'database unavailable'}}
+    for render in (render_summary, render_workflow):
+        assert 'Entry readiness UNKNOWN' in render(build_report(sources))
+    sources['risk_state'] = {'data': {'pause_reasons': []}}
+    sources['status']['data']['heartbeat_at_utc'] = '2020-01-01T00:00:00Z'
+    assert 'Entry readiness UNKNOWN' in render_summary(build_report(sources))
 
 
 def test_accepted_execution_does_not_verify_retained_protection():

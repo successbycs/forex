@@ -1,0 +1,123 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "DEMO-EXECUTION-INCIDENT-REPAIR",
+  "authorization": "Chris explicitly approved the precise AUD -28.64 loss-preserving incident reconciliation, commit and fixed deployment on September 23. M33 records the narrow exception; no threshold changes, forced orders or Live access.",
+  "markdown_plan": "docs/plans/demo-execution-incident-repair.md",
+  "items": [
+    {
+      "id": "diagnose",
+      "title": "Retain broker and PostgreSQL incident evidence",
+      "state": "DONE",
+      "requires": [],
+      "evidence": [
+        "runs/incidents/demo-entry-20260923 contains immutable broker capture and bounded diagnostic/risk responses; 35 signal-bearing decisions, zero attempts, current EXTERNAL_CASH_FLOW pause."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "local-repair",
+      "title": "Implement truthful reporting and diagnostic fixes",
+      "state": "DONE",
+      "requires": [
+        "diagnose"
+      ],
+      "evidence": [
+        "Both operator views expose current pause/positions; runner retains gate reason; heartbeat retains risk; scoreboard source owner join repaired."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "verify-review",
+      "title": "Test and independently review local changes",
+      "state": "DONE",
+      "requires": [
+        "local-repair"
+      ],
+      "evidence": [
+        "220 targeted tests passed. Independent incident_repair_review found earlier blockers fixed; remote scoreboard behavior and accounting recovery remain unverified."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "accounting-design",
+      "title": "Specify the exact loss-preserving incident correction",
+      "state": "DONE",
+      "requires": [
+        "diagnose",
+        "verify-review"
+      ],
+      "evidence": [
+        "ExecPlan binds account, eight deals, raw digest and -28.64 AUD; specifies idempotence, matching preconditions, preserved anchors and no generic resume."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "commit-authority",
+      "title": "Authorize commit for source-bound deployment",
+      "state": "DONE",
+      "requires": [
+        "verify-review"
+      ],
+      "evidence": [
+        "Chris replied approve to the exact incident exception and commit/deployment request; milestone_registry.json records the approved narrow exception."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "risk-amendment",
+      "title": "Authorize the incident-specific risk-accounting amendment",
+      "state": "DONE",
+      "requires": [
+        "accounting-design"
+      ],
+      "evidence": [
+        "Chris replied approve to the exact incident exception and commit/deployment request; milestone_registry.json records the approved narrow exception."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "scoreboard-deploy",
+      "title": "Stage and verify the fixed PostgreSQL scoreboard",
+      "state": "PENDING",
+      "requires": [
+        "commit-authority"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "accounting-implementation",
+      "title": "Implement and test the additive fixed reconciliation operation",
+      "state": "DONE",
+      "requires": [
+        "risk-amendment"
+      ],
+      "evidence": [
+        "24 incident tests passed, including isolated PostgreSQL16 application/replay/rollback/scoreboard behavior; independent reviewer cleared repaired ownership and source-hash checks."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "runtime-deploy",
+      "title": "Deploy reviewed reason and accounting repairs through fixed adapters",
+      "state": "PENDING",
+      "requires": [
+        "commit-authority",
+        "accounting-implementation"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "real-world-proof",
+      "title": "Verify balance agreement and a subsequent eligible Demo lifecycle",
+      "state": "PENDING",
+      "requires": [
+        "scoreboard-deploy",
+        "runtime-deploy"
+      ],
+      "evidence": [],
+      "blocker": null
+    }
+  ]
+}

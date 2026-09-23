@@ -4116,7 +4116,7 @@
       "milestone_id": "M33",
       "review_board_required": true,
       "title": "Demo commission-adjusted P&L comparison",
-      "objective": "Provide an auditable, closed-trade-only comparison of attributable Demo broker P&L with a declared GO Markets commission scenario. This grants no Live, order, risk or account authority.",
+      "objective": "Provide an auditable, closed-trade-only comparison of attributable Demo broker P&L with a declared GO Markets commission scenario. No Live or order authority is granted. Chris's 2026-09-23 incident exception additionally permits the exact AUD -28.64 reconciliation and fixed repair deployment in docs/plans/demo-execution-incident-repair.md, preserving loss anchors and existing Demo execution gates.",
       "delivery_type": "CAPABILITY_DELIVERING",
       "proof_type": "REAL_SYSTEM_INTEGRATION",
       "dependencies": ["M32"],
@@ -4124,7 +4124,7 @@
       "from_state": "No source-versioned commission-adjusted Demo P&L projection exists.",
       "to_state": "Attributable closed Demo trades show actual broker P&L and a separately labelled, source-versioned commission-adjusted comparison.",
       "scope": ["Add immutable PostgreSQL pricing-profile and pro-forma projection records for closed, reconciled, listener-attributed EUR/USD Demo trades.", "Use the explicit ASSUMED GO_PLUS_AUD_V1 AUD 3-per-side-per-standard-lot scenario; actual broker P&L remains unchanged.", "Expose a fixed read-only projection in the terminal trade ledger and verify source, rounding, idempotency and Demo-only boundaries."],
-      "out_of_scope": ["Live trading or access to GOMarketsMU-Live.", "Any change to order submission, risk, strategy, account, MT5 terminal or position-management settings.", "Open-position mark-to-market modelling, manual-position attribution, spread/slippage/financing simulation, automatic pricing-profile discovery, generic SQL or generic remote shell access."],
+      "out_of_scope": ["Live trading or access to GOMarketsMU-Live.", "Any change to order submission, risk, strategy, account, MT5 terminal or position-management settings except the explicitly approved fixed 2026-09-23 AUD -28.64 incident accounting correction; loss thresholds and equity anchors remain unchanged.", "Open-position mark-to-market modelling, speculative attribution of unknown entry ownership, spread/slippage/financing simulation, automatic pricing-profile discovery, generic SQL or generic remote shell access."],
       "operator_config_affected": ["config/t480.json", "t480/command-catalog.json"],
       "expected_artifacts": ["docs/milestones/M33-proof.md", "sql/migrations/026_m33_demo_pro_forma_commission.sql", "tests/milestones/test_m33.py"],
       "acceptance_criteria": [

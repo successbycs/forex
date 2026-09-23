@@ -1317,6 +1317,34 @@ def test_m20_risk_pause_can_persist_a_no_trade_assessment_but_never_reserve_an_e
     assert "M20 reservation requires fresh, unpaused, account-bound risk state" in reserved
 
 
+def test_position_gate_is_reported_as_position_block_not_absent_signal(monkeypatch):
+    runner = _m20_probe_module(monkeypatch)
+    result = runner._market_selection(tick={'freshness_seconds': 1, 'spread_points': 8},
+        m1=[{}] * 64, assessments=[], safety_gates={'fresh_quote': True, 'no_existing_position': False})
+    assert result['market_regime_reason'] == 'ENTRY_BLOCKED: no_existing_position'
+    assert result['selected_strategy_id'] is None
+
+
+def test_position_gate_reason_survives_complete_assessment_with_buy_signal(monkeypatch):
+    runner = _m20_probe_module(monkeypatch)
+    signals = [{'id': 'momentum_breakout', 'signal': 'BUY', 'eligible_for_execution': True}]
+    monkeypatch.setattr(runner, '_strategy_assessments', lambda **_: signals)
+    captured = datetime(2026, 9, 23, 0, 1, tzinfo=timezone.utc)
+    snapshot, proposal, selection, assessments = runner._assessment(
+        session={'session_id': 'incident-test', 'expires_at_utc': '2026-09-23T02:00:00Z'},
+        tick={'observed_at_utc': '2026-09-23T00:01:00Z', 'bid': 1.14, 'ask': 1.14008,
+              'freshness_seconds': 1, 'spread_points': 8},
+        bars={'M1': [{'closed_at_utc': '2026-09-23T00:01:00Z'}] * 64, 'M5': []},
+        captured_at=captured, risk={}, listener_poll_seconds=1,
+        safety_gates={'fresh_quote': True, 'no_existing_position': False})
+    assert assessments[0]['signal'] == 'BUY'
+    assert proposal['action'] == 'NO_TRADE'
+    assert proposal['rationale'] == 'ENTRY_BLOCKED: no_existing_position'
+    assert proposal['proposed_entry'] is None
+    assert selection['trade_owner_strategy_id'] is None
+    assert snapshot['safety_gates']['no_existing_position'] is False
+
+
 def test_m20_all_demo_history_export_is_fixed_complete_and_read_only():
     command = t480_adapter._m20_all_demo_history_export_command()
     assert "GOMarketsMU-Demo" in command and "a.currency==''AUD''" in command

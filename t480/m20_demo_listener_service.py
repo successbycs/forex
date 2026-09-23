@@ -907,7 +907,7 @@ def run() -> None:
         try:
             output = json.loads(completed.stdout)
             proposal = output.get("proposal", {})
-            last_result = {key: output.get(key) for key in ("marker", "server", "symbol", "captured_at_utc", "proposal", "strategy_selection", "strategy_assessments", "multi_timeframe_context", "execution", "reconciliation")}
+            last_result = {key: output.get(key) for key in ("marker", "server", "symbol", "captured_at_utc", "risk_policy", "proposal", "strategy_selection", "strategy_assessments", "multi_timeframe_context", "execution", "reconciliation")}
             last_result["assessment_metrics"] = _assessment_metrics(output.get("decision_snapshot", {}), proposal)
             last_result["latest_assessment_retention"] = _write_latest_assessment(
                 output, assessment_started_at_utc=assessment_started_at_utc,

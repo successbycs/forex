@@ -9,6 +9,22 @@ import pytest
 SOURCE = Path("t480/m20_demo_listener_service.py")
 
 
+def test_heartbeat_result_projection_retains_risk_without_other_runner_payloads():
+    import ast
+    tree = ast.parse(SOURCE.read_text())
+    assignments = [node for node in ast.walk(tree) if isinstance(node, ast.Assign)
+                   and any(isinstance(target, ast.Name) and target.id == 'last_result'
+                           for target in node.targets)
+                   and isinstance(node.value, ast.DictComp)]
+    assert len(assignments) == 1
+    expression = ast.Expression(assignments[0].value)
+    risk = {'entry_allowed': False, 'pause_reason': 'EXTERNAL_CASH_FLOW'}
+    projected = eval(compile(expression, str(SOURCE), 'eval'),
+                     {'output': {'risk_policy': risk, 'postgres_audit': {'not_for_heartbeat': True}}})
+    assert projected['risk_policy'] == risk
+    assert 'postgres_audit' not in projected
+
+
 @pytest.fixture(autouse=True)
 def isolate_protected_restart_drill(tmp_path, monkeypatch):
     """Keep every dynamically loaded listener module off the repository tree."""

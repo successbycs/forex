@@ -12,10 +12,12 @@ import argparse
 import base64
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -978,6 +980,73 @@ def apply_m20_not_submitted_execution_schema() -> dict:
     return wrap("forex_m20_apply_not_submitted_execution_schema", remote(body), digest)
 
 
+INCIDENT_SQL = 'sql/operations/incident_20260923_reconciliation.sql'
+MUTATING.update({'forex-m20-stage-incident-20260923', 'forex-m20-apply-incident-20260923'})
+READ_ONLY.add('forex-m20-verify-incident-20260923')
+
+
+def stage_incident_20260923() -> dict:
+    """Transfer only the reviewed incident SQL through the existing fixed staging route."""
+    digest = hashlib.sha256((ROOT / INCIDENT_SQL).read_bytes()).hexdigest()
+    source = subprocess.run(['wslpath', '-w', str(ROOT / INCIDENT_SQL)], text=True,
+                            capture_output=True, check=True).stdout.strip()
+    staged = r'C:\Users\chris\Documents\Code\forex-m1-probe\incident_20260923_reconciliation.sql'
+    quote = lambda value: "'" + value.replace("'", "''") + "'"
+    command = "$ErrorActionPreference='Stop'; & scp.exe -B -o BatchMode=yes -o StrictHostKeyChecking=yes -- " + quote(source) + ' ' + quote(TARGET + ':' + staged) + '; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }'
+    transfer = subprocess.run(['powershell.exe','-NoProfile','-NonInteractive','-EncodedCommand',
+                              base64.b64encode(command.encode('utf-16-le')).decode()], text=True, capture_output=True, check=False)
+    if transfer.returncode:
+        return wrap('forex_m20_stage_incident_20260923', {'ok':False,'exit_code':transfer.returncode,'stdout':transfer.stdout,'stderr':transfer.stderr}, digest)
+    body = f'''source="/mnt/c/Users/chris/Documents/Code/forex-m1-probe/incident_20260923_reconciliation.sql"
+file="{REMOTE_FOREX}/{INCIDENT_SQL}"
+[[ "$(sha256sum "$source" | head -c 64)" == "{digest}" ]]
+mkdir -p "$(dirname "$file")"
+install -m 0644 "$source" "$file"
+[[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]'''
+    return wrap('forex_m20_stage_incident_20260923', remote(body), digest)
+
+
+def _incident_observation(operation):
+    completed = subprocess.run([sys.executable, str(ROOT / 'scripts/t480_adapter.py'),
+                                'execute', '--operation', operation], text=True,
+                               capture_output=True, check=True, timeout=20)
+    envelope = json.loads(completed.stdout)
+    if envelope.get('ok') is not True or envelope['result']['exit_code'] != 0:
+        raise ValueError('Incident observation failed')
+    return envelope, json.loads(envelope['result']['stdout'])
+
+
+def apply_incident_20260923() -> dict:
+    from forex.incident_reconciliation import validate_observations, validate_source
+    started = time.monotonic()
+    source = (ROOT / INCIDENT_SQL).read_text()
+    deals = json.loads(re.search(r"deals CONSTANT JSONB := '(.*?)'::jsonb;", source).group(1))
+    validate_source((ROOT / 'runs/incidents/demo-entry-20260923/m20-all-history-068bb6d05046fbf0/adapter-response.json').read_bytes(), deals)
+    history_raw, history = _incident_observation('m20_all_demo_history_export')
+    account_raw, account = _incident_observation('m20_listener_account_identity')
+    status_raw, status = _incident_observation('m20_listener_status')
+    validate_observations(history, account, status, deals)
+    if time.monotonic() - started >= 30:
+        raise ValueError('Incident observations exceeded freshness bound')
+    digest = hashlib.sha256((ROOT / INCIDENT_SQL).read_bytes()).hexdigest()
+    body = f'''file="{REMOTE_FOREX}/{INCIDENT_SQL}"
+test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+test -f /mnt/c/ProgramData/ForexListener/state/m20_demo_maintenance_hold.local.json
+docker compose exec -T postgres psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$file"'''
+    result = wrap('forex_m20_apply_incident_20260923', remote(body), digest)
+    result['preflight_evidence'] = {'history':history_raw,'account':account_raw,'status':status_raw}
+    return result
+
+
+def verify_incident_20260923() -> dict:
+    body = '''docker compose exec -T postgres psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -qAt <<'SQL'
+SELECT json_build_object('incident',(SELECT row_to_json(i) FROM forex.demo_account_incident i WHERE incident_id='demo-20260923-four-unattributed-positions'),
+'deal_count',(SELECT count(*) FROM forex.demo_account_incident_deal WHERE incident_id='demo-20260923-four-unattributed-positions'),
+'risk',(SELECT row_to_json(r) FROM forex.demo_risk_policy_state r WHERE policy_version='forex.m20.conservative-risk.v1'));
+SQL'''
+    return wrap('forex_m20_verify_incident_20260923', remote(body))
+
+
 def stage_m20_wave1_gap_reconciliation() -> dict:
     """Stage the hash-bound independent-pause migration without applying it."""
     relative, digest = asset("m20_wave1_gap_reconciliation")
@@ -1161,6 +1230,39 @@ def m30_natural_entry_facts(proposal_id: str | None = None) -> dict:
 
 
 READ_ONLY.add('forex-m30-natural-entry-facts')
+READ_ONLY.add('forex-m20-entry-diagnostic')
+
+
+def m20_entry_diagnostic(from_utc: str, to_utc: str) -> dict:
+    """Explain one bounded Demo decision interval without changing state."""
+    start, end = _bounded_utc(from_utc), _bounded_utc(to_utc)
+    duration = (datetime.fromisoformat(end.replace('Z', '+00:00')) -
+                datetime.fromisoformat(start.replace('Z', '+00:00'))).total_seconds()
+    if not 0 < duration <= 86400:
+        raise ValueError('diagnostic interval must be positive and at most 24 hours')
+    query = f"""WITH rows AS (
+ SELECT p.proposal_id,p.decision_at_utc,p.action,p.rationale,
+ s.market_regime,s.market_regime_reason,s.selection_status,
+ a.attempt_id,
+ (SELECT count(*) FROM forex.demo_strategy_signal g WHERE g.proposal_id=p.proposal_id AND g.signal IN ('BUY','SELL')) AS signals
+ FROM forex.demo_trade_proposal p
+ JOIN forex.demo_trade_session t ON t.session_id=p.session_id
+ LEFT JOIN forex.demo_strategy_selection s ON s.proposal_id=p.proposal_id
+ LEFT JOIN forex.demo_execution_attempt a ON a.proposal_id=p.proposal_id
+ WHERE t.server='GOMarketsMU-Demo' AND t.instrument='EURUSD'
+ AND p.decision_at_utc>='{start}' AND p.decision_at_utc<'{end}'
+), groups AS (
+ SELECT date_trunc('hour',decision_at_utc) AS hour_utc,action,rationale,
+ market_regime,market_regime_reason,selection_status,count(*) AS decisions,
+ count(*) FILTER (WHERE signals>0) AS decisions_with_signal,
+ count(attempt_id) AS attempts FROM rows GROUP BY 1,2,3,4,5,6
+)
+SELECT json_build_object('from_utc','{start}','to_utc','{end}',
+ 'groups',COALESCE((SELECT json_agg(groups ORDER BY hour_utc,rationale) FROM groups),'[]'::json));"""
+    body = '''docker compose exec -T postgres psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -qAt <<'SQL'
+SET TIME ZONE 'UTC';
+''' + query + '\nSQL'
+    return wrap('forex_m20_entry_diagnostic', remote(body), hashlib.sha256(query.encode()).hexdigest())
 
 
 def m20_lifecycle_summary() -> dict:
@@ -1321,13 +1423,14 @@ def m20_strategy_trial_summary() -> dict:
       LEFT JOIN attempt_events ev USING (attempt_id)
       WHERE s.selected_strategy_id IS NOT NULL GROUP BY s.selected_strategy_id
     ), outcome_stats AS (
-      SELECT l.trade_owner_strategy_id AS strategy_id,
+      SELECT s.trade_owner_strategy_id AS strategy_id,
              count(*) FILTER (WHERE l.reconciliation_status IN ('MATCHED','REPAIRED') AND l.realized_pnl_account IS NOT NULL) AS verified_closed_count,
-             count(*) FILTER (WHERE l.realized_pnl_account > 0) AS win_count,
-             count(*) FILTER (WHERE l.realized_pnl_account < 0) AS loss_count,
+             count(*) FILTER (WHERE l.reconciliation_status IN ('MATCHED','REPAIRED') AND l.realized_pnl_account > 0) AS win_count,
+             count(*) FILTER (WHERE l.reconciliation_status IN ('MATCHED','REPAIRED') AND l.realized_pnl_account < 0) AS loss_count,
              COALESCE(sum(l.realized_pnl_account) FILTER (WHERE l.reconciliation_status IN ('MATCHED','REPAIRED')),0) AS net_realized_pnl_aud
       FROM forex.demo_trade_ledger l JOIN trial_proposals p USING (proposal_id)
-      WHERE l.trade_owner_strategy_id IS NOT NULL GROUP BY l.trade_owner_strategy_id
+      JOIN forex.demo_strategy_selection s USING (proposal_id)
+      WHERE s.trade_owner_strategy_id IS NOT NULL GROUP BY s.trade_owner_strategy_id
     ), strategy_ids AS (
       SELECT strategy_id FROM signal_stats UNION SELECT strategy_id FROM selection_stats
       UNION SELECT strategy_id FROM attempt_stats UNION SELECT strategy_id FROM outcome_stats
@@ -1356,6 +1459,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--to-utc")
     parser.add_argument("--proposal-id")
     args = parser.parse_args(argv)
+    if args.command == 'forex-m20-entry-diagnostic':
+        if args.from_utc is None or args.to_utc is None:
+            parser.error('entry diagnostic requires --from-utc and --to-utc')
+        payload = m20_entry_diagnostic(args.from_utc, args.to_utc)
+        print(json.dumps(payload, indent=2))
+        return 0 if payload['ok'] else 1
     if args.command in MUTATING and not args.approve:
         parser.error("this mutating operation requires --approve")
     actions = {"preflight": preflight, "inspect": inspect, "vector-probe": vector_probe, "forex-m2-apply-schema": apply_schema, "forex-m2-import": import_snapshot, "forex-m2-verify": verify_snapshot, "forex-m2-provenance-negative-control": provenance_negative_control, "forex-m11-apply-schema": apply_m11_schema, "forex-m11-r1-apply-stage-schema": apply_m11_r1_stage_schema, "forex-m11-verify-schema": verify_m11_schema, "forex-m11-verify-data": verify_m11_data, "forex-m11-r1-verify-hour": verify_m11_r1_hour, "forex-m12-quality-probe": m12_quality_probe, "forex-m13-replay-probe": m13_replay_probe, "forex-m14-regime-probe": m14_regime_probe, "forex-m15-baseline-probe": m15_baseline_probe, "forex-m16-walk-forward-probe": m16_walk_forward_probe, "forex-m17-context-probe": m17_context_probe, "forex-m18-ollama-probe": m18_ollama_probe, "forex-m19-apply-schema": apply_m19_schema, "forex-m19-lineage-probe": m19_lineage_probe, "forex-m19-lineage-verify": m19_lineage_verify, "forex-m20-stage-schema": stage_m20_schema, "forex-m20-apply-schema": apply_m20_schema, "forex-m20-stage-ledger-schema": stage_m20_ledger_schema, "forex-m20-apply-ledger-schema": apply_m20_ledger_schema, "forex-m20-stage-cost-ledger-schema": stage_m20_cost_ledger_schema, "forex-m20-apply-cost-ledger-schema": apply_m20_cost_ledger_schema, "forex-m20-open-position-schema": stage_m20_open_position_schema, "forex-m20-apply-open-position-schema": apply_m20_open_position_schema, "forex-m20-stage-continuous-lease-schema": stage_m20_continuous_lease_schema, "forex-m20-apply-continuous-lease-schema": apply_m20_continuous_lease_schema, "forex-m20-stage-outcome-reconciliation-schema": stage_m20_outcome_reconciliation_schema, "forex-m20-apply-outcome-reconciliation-schema": apply_m20_outcome_reconciliation_schema, "forex-m20-stage-regime-strategy-schema": stage_m20_regime_strategy_schema, "forex-m20-apply-regime-strategy-schema": apply_m20_regime_strategy_schema, "forex-m20-stage-projected-cost-schema": stage_m20_projected_cost_schema, "forex-m20-apply-projected-cost-schema": apply_m20_projected_cost_schema, "forex-m20-stage-mtf-context-schema": stage_m20_multi_timeframe_context_schema, "forex-m20-apply-mtf-context-schema": apply_m20_multi_timeframe_context_schema, "forex-m20-stage-strategy-trial-query": stage_m20_strategy_trial_query, "forex-m20-stage-lifecycle-summary-query": stage_m20_lifecycle_summary_query, "forex-m20-audit-verify": m20_audit_verify, "forex-m20-mtf-context-verify": m20_multi_timeframe_context_verify, "forex-m20-mtf-context-summary": m20_multi_timeframe_context_summary}
@@ -1380,6 +1489,9 @@ def main(argv: list[str] | None = None) -> int:
     actions["forex-m20-stage-risk-resume-audit-schema"] = stage_m20_risk_resume_audit_schema
     actions["forex-m20-apply-risk-resume-audit-schema"] = apply_m20_risk_resume_audit_schema
     actions["forex-m20-stage-wave1-gap-reconciliation"] = stage_m20_wave1_gap_reconciliation
+    actions['forex-m20-stage-incident-20260923'] = stage_incident_20260923
+    actions['forex-m20-apply-incident-20260923'] = apply_incident_20260923
+    actions['forex-m20-verify-incident-20260923'] = verify_incident_20260923
     actions["forex-m20-apply-wave1-gap-reconciliation"] = apply_m20_wave1_gap_reconciliation
     actions["forex-m20-stage-listener-release"] = stage_m20_listener_release
     actions["forex-m20-stage-independent-risk-pauses-schema"] = stage_m20_independent_risk_pauses_schema

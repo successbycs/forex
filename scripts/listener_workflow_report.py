@@ -31,8 +31,11 @@ def collect(status_reader, root, python):
         return {'fetched_at_utc': datetime.now(timezone.utc).isoformat(), 'data': data}
 
     readers = dict(status=status_reader, assessment=latest_assessment,
-                   account=account_reader, ledger=lifecycle_rows)
-    with ThreadPoolExecutor(max_workers=4) as pool:
+                   account=account_reader, ledger=lifecycle_rows,
+                   risk_state=lambda: _run_json(
+                       [python, str(root / 'scripts/postgres_pgvector_adapter.py'),
+                        'forex-m20-risk-policy-summary'], timeout=8, label='risk observation'))
+    with ThreadPoolExecutor(max_workers=5) as pool:
         jobs = {key: pool.submit(timed, reader) for key, reader in readers.items()}
         sources = {key: job.result() for key, job in jobs.items()}
     return build_report(sources)
@@ -85,7 +88,23 @@ def build_report(sources, *, observed_at=None):
             'status': status, 'decision': result, 'attention': attention, 'heartbeat_age_seconds': age,
             'assessment_join': 'MATCHED' if matched else 'UNKNOWN / proposal mismatch or unavailable',
             'risk': assessment.get('risk_policy') if matched else None,
+            'risk_state': data('risk_state') if isinstance(data('risk_state'), dict) else {},
             'account': account if account_ok else {}, 'trades': trades}
+
+
+def entry_status_lines(report):
+    """Report current blocks without upgrading old assessment permission."""
+    risk = report.get('risk') or {}
+    current = report.get('risk_state') or {}
+    pauses = current.get('pause_reasons') or []
+    if pauses:
+        return ['ENTRIES BLOCKED: ' + ', '.join(str(p) for p in pauses)]
+    if risk.get('entry_allowed') is False:
+        return ['Last assessment blocked entries: ' + str(risk.get('pause_reason') or 'unknown reason')]
+    age = report.get('heartbeat_age_seconds')
+    if age is None or age < 0 or age >= 30 or current.get('error') or 'pause_reasons' not in current:
+        return ['Entry readiness UNKNOWN: current risk/freshness unavailable']
+    return ['No database pause reported; execution gates still apply']
 
 
 def render_summary(report, width=80):
@@ -119,6 +138,9 @@ def render_summary(report, width=80):
     lines = ['EUR/USD DEMO',
              f"{state} | Heartbeat: {local_time(status.get('heartbeat_at_utc'))}",
              f"Open positions: {value(account.get('open_positions'))} | Balance: {value(account.get('balance'))} AUD"]
+    lines.extend(entry_status_lines(report))
+    if isinstance(account.get('open_positions'), int) and account['open_positions'] > 0:
+        lines.append('ENTRIES BLOCKED: existing broker positions')
     if age is not None and (age < 0 or age >= 30):
         lines.append(f'ATTENTION: heartbeat is stale ({age:.0f}s).')
     # Keep errors visible without filling the screen with transport diagnostics.
@@ -171,6 +193,9 @@ def render_workflow(report, width=100):
     q, selection = status.get('quote') or {}, result.get('strategy_selection') or {}
     risk, account = report.get('risk') or {}, report['account']
     lines = ['EUR/USD DEMO — operator workflow',
+             *entry_status_lines(report),
+             *(['ENTRIES BLOCKED: existing broker positions']
+               if isinstance(account.get('open_positions'), int) and account['open_positions'] > 0 else []),
              f"Listener: {val(status.get('state'))} | heartbeat {local_time(status.get('heartbeat_at_utc'))}",
              f"Broker positions observed: {val(account.get('open_positions'))} | balance {val(account.get('balance'))} AUD",
              *[f'ATTENTION: {item}' for item in report['attention']],
@@ -194,7 +219,7 @@ def render_workflow(report, width=100):
     lines.extend([f"Owner: {val(selection.get('selected_strategy_id'))} | regime {val(selection.get('market_regime'))}",
                   '', '3. DECISION & CHECKS',
                   f"{val(p.get('action'))}: {val(p.get('rationale'))}",
-                  f"Risk entry permission: {val(risk.get('entry_allowed'))} | pause {val(risk.get('pause_reason'))}",
+                  f"Assessment risk entry permission: {val(risk.get('entry_allowed'))} | pause {val(risk.get('pause_reason'))}",
                   f"Assessment join: {report['assessment_join']}",
                   f"Cost gate: {val(selection.get('cost_coverage_status'))}",
                   f"Plan: entry {val(p.get('proposed_entry'))} | size {val(p.get('volume_lots'))} lots | SL {val(p.get('stop_loss'))} | TP {val(p.get('take_profit'))}",

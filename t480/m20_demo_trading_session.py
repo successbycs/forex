@@ -912,7 +912,8 @@ def _market_selection(*, tick: dict[str, Any], m1: list[dict[str, Any]], assessm
     executable ownership. Other signals remain recorded context.
     """
     if not all(safety_gates.values()) or int(tick["freshness_seconds"]) > MAX_TICK_AGE_SECONDS or float(tick["spread_points"]) > 12.0 or len(m1) < 12:
-        reason = "Freshness, spread, or completed-candle safety gate is not satisfied."
+        failed = sorted(name for name, passed in safety_gates.items() if passed is not True)
+        reason = "ENTRY_BLOCKED: " + (", ".join(failed) if failed else "freshness, spread or candle history")
         return {"market_regime": "UNSAFE_OR_UNTRADEABLE", "market_regime_reason": reason,
                 "selected_strategy_id": None, "strategy_rule_version": None,
                 "selection_status": "NO_SELECTION"}
@@ -1224,6 +1225,8 @@ def _assessment(session: dict[str, Any], tick: dict[str, Any], bars: dict[str, l
     )
     if not financing_allowed and candidate_side in {"BUY", "SELL"}:
         reason = "FINANCING_UNQUALIFIED: " + str(financing.get("reason", "missing financing terms"))
+    if selection["market_regime"] == "UNSAFE_OR_UNTRADEABLE":
+        reason = selection["market_regime_reason"]
     cost_coverage = _project_cost_coverage(action=action, entry=float(entry or 0), take_profit=float(take or 0), risk=risk)
     selection.update(cost_coverage)
     if action != "NO_TRADE" and selection["selection_status"] != "SELECTED_EXECUTABLE":
