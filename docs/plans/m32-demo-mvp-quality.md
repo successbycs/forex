@@ -40,10 +40,10 @@ unrelated proof merely because an M32 evaluator receives a new Git revision.
 - [x] source-assessment — Validate retained sources and capture the existing read-only operator view (DONE)
 <!-- forex-work-item id=quality-report state=DONE -->
 - [x] quality-report — Build and test the bounded quality assessment and operator handoff (DONE)
-<!-- forex-work-item id=proof-review state=IN_PROGRESS -->
-- [ ] proof-review — Capture current-revision M32 proof and obtain independent review (IN_PROGRESS)
-<!-- forex-work-item id=human-closeout state=PENDING -->
-- [ ] human-closeout — Obtain result approval and prove M32 through the governed gates (PENDING)
+<!-- forex-work-item id=proof-review state=DONE -->
+- [x] proof-review — Capture current-revision M32 proof and obtain independent review (DONE)
+<!-- forex-work-item id=human-closeout state=BLOCKED -->
+- [ ] human-closeout — Obtain result approval and prove M32 through the governed gates (BLOCKED)
 <!-- forex-work-projection:end -->
 
 ## Evidence basis and critical assumption
@@ -151,9 +151,36 @@ missing assessment/ledger, Live runtime binding, stale decision and forged
 age/warnings are now rejected. Deterministic generation time binds presentation
 to acquisition without changing raw sources. The reviewer reports no remaining
 critical issue preventing capture; this is not formal closeout approval.
-Clean-revision capture, bound four-role review and human M32 approval remain.
+Clean-revision capture `runs/evidence/M32/formal-20260923-v1` passed at e611152
+with 59 tests. Bound cycle `M32-20260923T032356Z-e6111526` has four valid
+PASS_WITH_FINDINGS reviews, no HIGH/CRITICAL finding and RECOMMEND_COMPLETE;
+recommendation assessment is HEALTHY and the result is recorded in project
+state. The retained summary shows SELL 1.14623 to 1.14616, reconciled, and ten
+NO_TRADE decisions in the separate M31 interval. No new trade was forced.
+
+Medium/low findings remain explicitly bounded: operator-managed availability,
+unverified unrelated-position/account attribution, no qualified performance or
+Live-equivalent cost basis, self-attestation, optional-component exclusion rather
+than new removal, generic test-receipt parsing and an existing duplicate review
+summary write. These do not justify expanding the MVP or its trading authority.
+Later Live or unattended promotion requires separate design and evidence.
+
+Only Chris's M32 result approval remains; M31 approval does not approve M32.
+Before presenting the approval handoff, commit this factual progress record and
+refresh the offline bundle and bound recommendation against that committed
+revision. Use the unchanged retained sources, a new evidence directory, and all
+four independent roles; do not edit prior reviews or claim a stale binding is
+current. The latest manifest/recommendation in `project_state.json` is canonical.
+If refreshed verification/review fails, reopen proof-review and repair in scope.
 This plan creates no authority to trade Live or alter positions.
 
 2026-09-23 update: recorded actual source validation, presentation repair and
 independent repair review so the next step is proof capture, not another trade
 observation. `docs/milestones/M32-proof.md` provides the bounded operator handoff.
+
+2026-09-23 closeout preparation: recorded actual passing proof and independent
+four-role recommendation, retained limitations, and the registry-required human
+approval blocker. Revision-only rebinding uses retained evidence, not a fresh
+market-observation period. After explicit M32 approval, assess the latest
+recommendation and evidence again, record signoff with both reviewed flags,
+and prove M32 using `scripts/forex_milestones.py`; do not sign off in advance.

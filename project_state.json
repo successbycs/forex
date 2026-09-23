@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "IN_PROGRESS",
+  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -44,7 +44,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-23T03:07:10Z",
+  "last_updated_at": "2026-09-23T03:26:25Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -4077,20 +4077,105 @@
       }
     },
     "M32": {
-      "status": "IN_PROGRESS",
+      "status": "AWAITING_REAL_WORLD_PROOF",
       "started_at": "2026-09-23T03:07:10Z",
-      "implementation_finished_at": null,
-      "verification_passed_at": null,
-      "real_world_proof_captured_at": null,
+      "implementation_finished_at": "2026-09-23T03:23:47Z",
+      "verification_passed_at": "2026-09-23T03:23:45Z",
+      "real_world_proof_captured_at": "2026-09-23T03:23:18.627682+00:00",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
-      "checks": {},
-      "evidence": [],
-      "verification": null,
+      "checks": {
+        "M32-C1": {
+          "result": "PASS",
+          "recorded_at": "2026-09-23T03:23:46Z",
+          "evidence": "runs/evidence/M32/formal-20260923-v1/assessment.json",
+          "note": "Approved M30 lifecycle and M31 ten-decision refusal window independently recompute; real Demo operator snapshot supports bounded handoff, not profitability or current uptime."
+        },
+        "M32-C2": {
+          "result": "PASS",
+          "recorded_at": "2026-09-23T03:23:46Z",
+          "evidence": "runs/evidence/M32/formal-20260923-v1/tests.txt",
+          "note": "59 focused tests passed; formal milestone verification and governance pass; independent repair reviewer reproduced negative counterexamples and source evaluation."
+        },
+        "M32-C3": {
+          "result": "PASS",
+          "recorded_at": "2026-09-23T03:23:46Z",
+          "evidence": "runs/evidence/M32/formal-20260923-v1/manifest.json",
+          "note": "Clean e611152 evaluator bound to approved parent source, runtime and configuration; offline verifier emits FOREX_M32_PROOF_OK; evidence self-attested."
+        },
+        "M32-C4": {
+          "result": "PASS",
+          "recorded_at": "2026-09-23T03:23:46Z",
+          "evidence": "runs/evidence/M32/formal-20260923-v1/summary.txt",
+          "note": "Human-operated Demo only under unchanged protection and signed-in terminal conditions. Four observed positions are not inferred flat or protected; risk permission unknown. Live NOT_READY; no broker changes or new authority."
+        }
+      },
+      "evidence": [
+        {
+          "manifest_path": "runs/evidence/M32/formal-20260923-v1/manifest.json",
+          "manifest_sha256": "4a0a82e86fa2a8941843b155b205182819cce4b773d9b0538654f846886cae42",
+          "captured_at": "2026-09-23T03:23:18.627682+00:00",
+          "recorded_at": "2026-09-23T03:23:45Z",
+          "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+          "git_revision": "e6111526ca241d26f212be0438ff7a0d3ecd3832",
+          "summary": "FOREX_M32_PROOF_OK"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recorded_at": "2026-09-23T03:23:45Z",
+        "git_revision": "e6111526ca241d26f212be0438ff7a0d3ecd3832",
+        "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M32/20260923T032345Z/governance.stdout.txt",
+            "stderr": "runs/verification/M32/20260923T032345Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m32.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M32/20260923T032345Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M32/20260923T032345Z/milestone-tests.stderr.txt"
+          }
+        ]
+      },
       "human_signoff": null,
-      "blockers": []
+      "blockers": [],
+      "triad_recommendation": {
+        "path": "runs/triad/M32/M32-20260923T032356Z-e6111526/recommendation.json",
+        "sha256": "90c003088ae63dfbf13265b2f584969ab686702d9a7dd24e32a883e8426875c6",
+        "summary_path": "runs/triad/M32/M32-20260923T032356Z-e6111526/review-summary.md",
+        "summary_sha256": "d41128445d9a18ebef123bf930d46165ef1a0c06a9818f2d92f49659c8bdd484",
+        "review_cycle_id": "M32-20260923T032356Z-e6111526",
+        "recommendation": "RECOMMEND_COMPLETE",
+        "binding": {
+          "request_sha256": "42472d6c5f322af7f71fbc6f66bb522e0e376aa8ccd095ed76c272da78c5d1aa",
+          "git_revision": "e6111526ca241d26f212be0438ff7a0d3ecd3832",
+          "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+          "evidence_manifest_sha256": "4a0a82e86fa2a8941843b155b205182819cce4b773d9b0538654f846886cae42",
+          "verifier_fingerprint": "sha256:30d3c65e69390344b8cc12810a4019a7a29fe21e38c5adaaf02086913149f163",
+          "milestone_contract_sha256": "9d23c8f9c6f2ba5d0d1fd7d8afa5b4049e87eb0a62f5d789e143067891112a74"
+        },
+        "recorded_at": "2026-09-23T03:26:25Z"
+      }
     }
   }
 }
