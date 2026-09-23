@@ -1,0 +1,12 @@
+{
+  "tool_id": "forex_postgres_pgvector_t480",
+  "operation": "forex_m20_strategy_trial_summary",
+  "result": {
+    "exit_code": 0,
+    "stdout": "[{\"strategy_id\":\"compression_breakout\",\"signal_count\":2324,\"selected_count\":83,\"attempt_count\":44,\"opened_count\":29,\"rejected_count\":9,\"verified_closed_count\":18,\"win_count\":5,\"loss_count\":12,\"net_realized_pnl_aud\":-0.82}, {\"strategy_id\":\"momentum_breakout\",\"signal_count\":5844,\"selected_count\":27,\"attempt_count\":11,\"opened_count\":4,\"rejected_count\":2,\"verified_closed_count\":2,\"win_count\":0,\"loss_count\":2,\"net_realized_pnl_aud\":-0.71}, {\"strategy_id\":\"range_reversion\",\"signal_count\":1638,\"selected_count\":0,\"attempt_count\":0,\"opened_count\":0,\"rejected_count\":0,\"verified_closed_count\":0,\"win_count\":0,\"loss_count\":0,\"net_realized_pnl_aud\":0}, {\"strategy_id\":\"session_breakout\",\"signal_count\":3654,\"selected_count\":19,\"attempt_count\":19,\"opened_count\":11,\"rejected_count\":0,\"verified_closed_count\":11,\"win_count\":1,\"loss_count\":10,\"net_realized_pnl_aud\":-3.08}, {\"strategy_id\":\"trend_pullback\",\"signal_count\":2069,\"selected_count\":33,\"attempt_count\":16,\"opened_count\":13,\"rejected_count\":0,\"verified_closed_count\":12,\"win_count\":3,\"loss_count\":9,\"net_realized_pnl_aud\":-1.11}]\n",
+    "stderr": "#< CLIXML\n<Objs Version=\"1.1.0.1\" xmlns=\"http://schemas.microsoft.com/powershell/2004/04\"><Obj S=\"progress\" RefId=\"0\"><TN RefId=\"0\"><T>System.Management.Automation.PSCustomObject</T><T>System.Object</T></TN><MS><I64 N=\"SourceId\">1</I64><PR N=\"Record\"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj></Objs>",
+    "ok": true
+  },
+  "ok": true,
+  "asset_sha256": "sha256:0904d565e4ebeab58d75187b24c74dd743c9b0b96d32f38f563cd6e5ed402b5d"
+}

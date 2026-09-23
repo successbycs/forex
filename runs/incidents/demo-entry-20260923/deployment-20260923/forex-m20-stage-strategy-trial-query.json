@@ -1,0 +1,12 @@
+{
+  "tool_id": "forex_postgres_pgvector_t480",
+  "operation": "forex_m20_stage_strategy_trial_query",
+  "result": {
+    "exit_code": 0,
+    "stdout": "FOREX_M20_STRATEGY_TRIAL_QUERY_STAGED sha256:0904d565e4ebeab58d75187b24c74dd743c9b0b96d32f38f563cd6e5ed402b5d\n",
+    "stderr": "#< CLIXML\n<Objs Version=\"1.1.0.1\" xmlns=\"http://schemas.microsoft.com/powershell/2004/04\"><Obj S=\"progress\" RefId=\"0\"><TN RefId=\"0\"><T>System.Management.Automation.PSCustomObject</T><T>System.Object</T></TN><MS><I64 N=\"SourceId\">1</I64><PR N=\"Record\"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj></Objs>",
+    "ok": true
+  },
+  "ok": true,
+  "asset_sha256": "sha256:0904d565e4ebeab58d75187b24c74dd743c9b0b96d32f38f563cd6e5ed402b5d"
+}

@@ -1,0 +1,3 @@
+FOREX_INCIDENT_REPAIR_AND_NATURAL_CLOSED_LIFECYCLE_VERIFIED
+Actual P&L AUD -0.39; assumed commission-adjusted comparison AUD -0.45.
+Account flat at capture; expected/broker balance AUD 100960.42; anchors unchanged.

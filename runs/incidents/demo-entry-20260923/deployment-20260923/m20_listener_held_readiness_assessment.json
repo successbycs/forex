@@ -1,0 +1,20 @@
+{
+  "operation": "m20_listener_held_readiness_assessment",
+  "approval_required": false,
+  "approved": false,
+  "result": {
+    "started_at": "2026-09-23T05:49:10+00:00",
+    "started_at_nz": "2026-09-23T17:49:10+12:00",
+    "finished_at": "2026-09-23T05:49:13+00:00",
+    "finished_at_nz": "2026-09-23T17:49:13+12:00",
+    "duration_ms": 2839,
+    "exit_code": 0,
+    "stdout": "{\"listener_release_id\":\"b29085685fda473d\",\"maintenance_hold\":true,\"assessment\":{\"marker\":\"FOREX_M20_DEMO_HELD_READINESS_ASSESSMENT_OK\",\"schema_version\":\"forex.m20.held-readiness-assessment.v1\",\"operation\":\"m20_demo_held_readiness_assessment\",\"server\":\"GOMarketsMU-Demo\",\"currency\":\"AUD\",\"symbol\":\"EURUSD\",\"captured_at_utc\":\"2026-09-23T05:49:12Z\",\"application_revision\":\"efce23e45ba92ce67019190abfbcd782bbc762c4\",\"configuration_fingerprint\":\"sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd\",\"risk_policy\":{\"entry_allowed\":true,\"pause_reason\":null,\"pause_reasons\":[],\"policy_equity\":100960.81,\"maximum_loss_aud\":100.0},\"open_positions\":0,\"broker_mutation\":\"NONE\",\"order_submission\":\"STRUCTURALLY_UNAVAILABLE\"}}",
+    "stderr": "#< CLIXML\n<Objs Version=\"1.1.0.1\" xmlns=\"http://schemas.microsoft.com/powershell/2004/04\"><Obj S=\"progress\" RefId=\"0\"><TN RefId=\"0\"><T>System.Management.Automation.PSCustomObject</T><T>System.Object</T></TN><MS><I64 N=\"SourceId\">1</I64><PR N=\"Record\"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj><Obj S=\"progress\" RefId=\"1\"><TNRef RefId=\"0\" /><MS><I64 N=\"SourceId\">1</I64><PR N=\"Record\"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj></Objs>",
+    "ok": true
+  },
+  "ok": true,
+  "tool_id": "forex_t480",
+  "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+  "adapter_configuration_fingerprint": "7729c7f974b7f4c960f3d2ae40ce153ca52ebb40bf20685eb03010fbc70e586c"
+}

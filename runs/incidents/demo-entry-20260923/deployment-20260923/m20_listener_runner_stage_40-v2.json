@@ -1,0 +1,20 @@
+{
+  "operation": "m20_listener_runner_stage_40",
+  "approval_required": false,
+  "approved": false,
+  "result": {
+    "started_at": "2026-09-23T05:46:04+00:00",
+    "started_at_nz": "2026-09-23T17:46:04+12:00",
+    "finished_at": "2026-09-23T05:46:05+00:00",
+    "finished_at_nz": "2026-09-23T17:46:05+12:00",
+    "duration_ms": 1142,
+    "exit_code": 0,
+    "stdout": "{\"stage\":40,\"ok\":true}",
+    "stderr": "#< CLIXML\n<Objs Version=\"1.1.0.1\" xmlns=\"http://schemas.microsoft.com/powershell/2004/04\"><Obj S=\"progress\" RefId=\"0\"><TN RefId=\"0\"><T>System.Management.Automation.PSCustomObject</T><T>System.Object</T></TN><MS><I64 N=\"SourceId\">1</I64><PR N=\"Record\"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj><Obj S=\"progress\" RefId=\"1\"><TNRef RefId=\"0\" /><MS><I64 N=\"SourceId\">1</I64><PR N=\"Record\"><AV>Preparing modules for first use.</AV><AI>0</AI><Nil /><PI>-1</PI><PC>-1</PC><T>Completed</T><SR>-1</SR><SD> </SD></PR></MS></Obj></Objs>",
+    "ok": true
+  },
+  "ok": true,
+  "tool_id": "forex_t480",
+  "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+  "adapter_configuration_fingerprint": "7729c7f974b7f4c960f3d2ae40ce153ca52ebb40bf20685eb03010fbc70e586c"
+}

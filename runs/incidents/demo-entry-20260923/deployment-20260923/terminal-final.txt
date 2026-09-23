@@ -1,0 +1,32 @@
+EUR/USD DEMO
+Running | Heartbeat: 23/09 17:58:41 NZST
+Open positions: 0 | Balance: 100960.42 AUD
+No database pause reported; execution gates still apply
+
+PRICE → ASSESSMENT → DECISION
+Closed candle: 23/09 17:58:00 NZST
+Close: 1.14255 | Spread: 8.0 points
+Decision: WAIT — no trade
+  Momentum breakout    No signal
+  Compression breakout No signal
+  Trend pullback       No signal
+  Range reversion      No signal
+  Session breakout     No signal
+Reason: No selected actionable M1 strategy.
+
+TRADES — entries and verified closes
+23/09 17:57:08 NZST | SELL | CLOSED | -0.39 AUD
+  Filled entry 1.14234 → exit 1.14262
+  Actual broker P&L: -0.39 AUD | Commission-adjusted Demo P&L — GO Plus+ AUD assumption: -0.45 AUD |
+  Modelled commission: -0.06 AUD round trip
+22/09 19:58:58 NZST | SELL | CLOSED | +0.45 AUD
+  Filled entry 1.14515 → exit 1.14483
+  Actual broker P&L: +0.45 AUD | Commission-adjusted Demo P&L — GO Plus+ AUD assumption: +0.39 AUD |
+  Modelled commission: -0.06 AUD round trip
+22/09 19:54:16 NZST | SELL | CLOSED | +0.03 AUD
+  Filled entry 1.14537 → exit 1.14535
+  Actual broker P&L: +0.03 AUD | Commission-adjusted Demo P&L — GO Plus+ AUD assumption: -0.03 AUD |
+  Modelled commission: -0.06 AUD round trip
+45 unresolved historical ledger rows — see --full.
+
+Read-only | Ctrl+C exits | --full shows all details

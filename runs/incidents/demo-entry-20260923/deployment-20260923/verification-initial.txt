@@ -1,0 +1,2 @@
+FOREX_INCIDENT_LOSS_AND_OWNED_NATURAL_ENTRY_VERIFIED
+Closing lifecycle remains pending; no formal milestone closeout.
