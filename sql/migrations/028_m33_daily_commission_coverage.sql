@@ -74,8 +74,14 @@ BEGIN
 END $$;
 
 DROP TRIGGER IF EXISTS demo_trade_outcome_m33_daily_coverage_refresh ON forex.demo_trade_outcome;
+CREATE OR REPLACE FUNCTION forex.refresh_demo_m33_daily_commission_coverage_trigger()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ PERFORM forex.refresh_demo_m33_daily_commission_coverage();
+ RETURN NEW;
+END $$;
 CREATE TRIGGER demo_trade_outcome_m33_daily_coverage_refresh AFTER INSERT ON forex.demo_trade_outcome
-FOR EACH STATEMENT EXECUTE FUNCTION forex.refresh_demo_m33_daily_commission_coverage();
+FOR EACH STATEMENT EXECUTE FUNCTION forex.refresh_demo_m33_daily_commission_coverage_trigger();
 SELECT forex.refresh_demo_m33_daily_commission_coverage();
 
 CREATE OR REPLACE VIEW forex.demo_m33_daily_commission_coverage AS
