@@ -42,6 +42,23 @@ def test_m31_review_binds_dispatched_verifier_dependencies(tmp_path):
         target.write_bytes(old)
 
 
+def test_m33_review_binds_delegated_evidence_verifier(tmp_path):
+    from forex.triad import _verifier_paths, verifier_fingerprint
+    registry = json.loads((ROOT / "milestone_registry.json").read_text())
+    milestone = next(m for m in registry["milestones"] if m["milestone_id"] == "M33")
+    paths = _verifier_paths(ROOT, milestone)
+    assert "scripts/m33_pro_forma_evidence.py" in paths
+    for name in paths:
+        target = tmp_path / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / name, target)
+    original = verifier_fingerprint(tmp_path, paths)
+    target = tmp_path / "scripts/m33_pro_forma_evidence.py"
+    original_bytes = target.read_bytes()
+    target.write_bytes(original_bytes + b"\n# delegated verifier changed\n")
+    assert verifier_fingerprint(tmp_path, paths) != original
+
+
 def _root(tmp_path: Path) -> Path:
     for relative in ("milestone_registry.json", "project_state.json", "runs/run_history.json"):
         destination = tmp_path / relative

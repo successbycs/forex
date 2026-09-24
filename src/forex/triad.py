@@ -103,6 +103,11 @@ def _verifier_paths(root: Path, milestone: dict[str, Any]) -> list[str]:
             "tests/test_m20_listener_dashboard.py", "tests/test_m20_listener_evidence_view.py",
             "tests/test_triad.py",
         })
+    if milestone["milestone_id"] == "M33":
+        # The shell verifier delegates all effective validation to this Python
+        # implementation.  Bind it so a delegated verifier change invalidates
+        # the review packet as well as the wrapper itself.
+        candidates.add("scripts/m33_pro_forma_evidence.py")
     commands = milestone["verification_commands"] + [
         {"argv": milestone["real_world_proof"]["verifier_command"]}
     ]
