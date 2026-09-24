@@ -786,6 +786,65 @@ def pre_isolation_readiness(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+
+def _pnl_money(value: Any, label: str) -> Decimal:
+    if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(float(value)):
+        raise SystemExit(f"M33 broker P&L {label} is invalid")
+    return Decimal(str(value)).quantize(Decimal("0.01"))
+
+
+def _pnl_timestamp(value: Any, label: str) -> str:
+    return _parse_utc(value, label).isoformat().replace("+00:00", "Z")
+
+
+def record_broker_pnl_capture(payload: dict[str, Any]) -> dict[str, Any]:
+    """Append one bounded, read-only MT5 deal-history receipt and unseen revisions."""
+    if set(payload) != {"capture"}:
+        raise SystemExit("M33 broker P&L capture payload is invalid")
+    capture = _object(payload, "capture")
+    required = {"account_scope_sha256", "captured_at_utc", "account_balance_aud", "account_currency", "deals", "collection_version"}
+    if set(capture) != required or capture.get("account_currency") != "AUD" or capture.get("collection_version") != "forex.m33.broker-pnl-journal.v1":
+        raise SystemExit("M33 broker P&L capture contract is invalid")
+    scope = capture["account_scope_sha256"]
+    if not isinstance(scope, str) or not scope.startswith("sha256:") or len(scope) != 71:
+        raise SystemExit("M33 broker P&L account scope is invalid")
+    captured_at, balance = _pnl_timestamp(capture["captured_at_utc"], "capture time"), _pnl_money(capture["account_balance_aud"], "account balance")
+    fields = {"ticket", "order", "position_identifier", "broker_time_utc", "occurred_at_utc", "entry", "type", "volume", "price", "commission", "fee", "swap", "profit", "reason", "symbol"}
+    if not isinstance(capture["deals"], list) or len(capture["deals"]) > 10000:
+        raise SystemExit("M33 broker P&L history is unavailable or exceeds its bound")
+    rows, tickets = [], set()
+    for item in capture["deals"]:
+        if not isinstance(item, dict) or set(item) != fields or not isinstance(item.get("ticket"), int) or item["ticket"] <= 0 or item["ticket"] in tickets:
+            raise SystemExit("M33 broker P&L deal shape is invalid")
+        if (not all(isinstance(item.get(k), int) for k in ("order", "position_identifier", "entry", "type", "reason")) or not isinstance(item.get("symbol"), str)):
+            raise SystemExit("M33 broker P&L deal identity is invalid")
+        tickets.add(item["ticket"])
+        row = {**item, "broker_time_utc": _pnl_timestamp(item["broker_time_utc"], "broker deal time"), "occurred_at_utc": _pnl_timestamp(item["occurred_at_utc"], "deal time")}
+        for key in ("volume", "price"):
+            if not isinstance(row[key], (int,float)) or isinstance(row[key], bool) or not math.isfinite(float(row[key])) or float(row[key]) < 0:
+                raise SystemExit(f"M33 broker P&L deal {key} is invalid")
+        for key in ("commission", "fee", "swap", "profit"):
+            row[key] = float(_pnl_money(row[key], key))
+        rows.append(row)
+    rows.sort(key=lambda x: (x["occurred_at_utc"], x["ticket"]))
+    history = {"account_scope_sha256":scope,"captured_at_utc":captured_at,"account_balance_aud":float(balance),"account_currency":"AUD","deals":rows,"collection_version":capture["collection_version"]}
+    history_sha, capture_id = _digest(history), "M33PC-" + _digest(history)[7:]
+    movements = [_pnl_money(x["profit"],"profit")+_pnl_money(x["commission"],"commission")+_pnl_money(x["fee"],"fee")+_pnl_money(x["swap"],"swap") for x in rows]
+    running, journal = balance-sum(movements,Decimal("0.00")), []
+    for row, movement in zip(rows, movements):
+        before, after = running, running+movement; running=after
+        market = row["type"] in {0,1} and float(row["volume"]) > 0
+        event = ({0:"OPEN",1:"CLOSE",2:"INOUT",3:"CLOSE_BY"}.get(row["entry"],"OTHER") if market else ("BALANCE" if row["type"] == 2 else "OTHER"))
+        side = "BUY" if row["type"] == 0 else ("SELL" if row["type"] == 1 else None)
+        expected = (-(Decimal("3.00")*Decimal(str(row["volume"]))).quantize(Decimal("0.01"))) if market else None
+        adjusted, deal_sha = (movement+expected if expected is not None else None), _digest(row)
+        journal.append(("M33P-"+str(row["ticket"])+"-"+deal_sha[7:],scope,row["ticket"],capture_id,deal_sha,row["broker_time_utc"],row["occurred_at_utc"],row["entry"],row["type"],event,side,row["position_identifier"] or None,Decimal(str(row["volume"])),Decimal(str(row["price"])),_pnl_money(row["commission"],"commission"),_pnl_money(row["fee"],"fee"),_pnl_money(row["swap"],"swap"),_pnl_money(row["profit"],"profit"),movement,expected,adjusted,before,after,"AUD",capture["collection_version"],captured_at))
+    if running != balance: raise SystemExit("M33 broker P&L balance reconstruction is invalid")
+    with _connection() as conn, conn.cursor() as cursor:
+        cursor.execute("INSERT INTO forex.demo_trade_pnl_capture (capture_id,account_scope_sha256,captured_at_utc,account_balance_aud,account_currency,deal_count,source_history_sha256,collection_version,raw_history) VALUES (%s,%s,%s,%s,'AUD',%s,%s,%s,%s::jsonb) ON CONFLICT (account_scope_sha256,source_history_sha256) DO NOTHING",(capture_id,scope,captured_at,balance,len(rows),history_sha,capture["collection_version"],json.dumps(history,sort_keys=True,separators=(",",":"))))
+        cursor.executemany("INSERT INTO forex.demo_trade_pnl (pnl_id,account_scope_sha256,deal_ticket,source_capture_id,source_deal_sha256,broker_time_utc,occurred_at_utc,entry_code,deal_type_code,event_kind,side,position_identifier,volume_lots,price,broker_commission_aud,broker_fee_aud,broker_swap_aud,trade_pnl_aud,net_movement_aud,expected_live_commission_aud,commission_adjusted_net_aud,balance_before_aud,balance_after_aud,account_currency,collection_version,observed_at_utc) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (account_scope_sha256,deal_ticket,source_deal_sha256) DO NOTHING",journal)
+    return {"ok":True,"capture_id":capture_id,"source_history_sha256":history_sha,"deal_count":len(rows),"balance_aud":float(balance),"collection_version":capture["collection_version"]}
+
 def reconcile(payload: dict[str, Any]) -> dict[str, Any]:
     """Read back the immutable lifecycle for one fixed persisted proposal."""
     proposal_id = payload.get("proposal_id")
@@ -816,6 +875,7 @@ def _actions() -> dict[str, Any]:
             "record-open-position": record_open_position, "update-open-position": update_open_position,
             "record-closed-outcome": record_closed_outcome,
             "record-historical-reconciliation": record_historical_reconciliation,
+            "record-broker-pnl-capture": record_broker_pnl_capture,
             "load-open-positions": load_open_positions,
             "pre-isolation-readiness": pre_isolation_readiness,
             "reconcile": reconcile}

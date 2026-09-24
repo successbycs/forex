@@ -1396,7 +1396,7 @@ def _m20_listener_runner_stage_command(index: int) -> str:
     # Ninety-six fixed fragments keep the fully encoded SSH command below the
     # hard 7,500-character T480 envelope.  Eighty was no longer sufficient
     # after the listener-owned runtime-binding addition.
-    parts = 96
+    parts = 98
     chunk_size = ((len(encoded) + (parts * 4) - 1) // (parts * 4)) * 4
     chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
     prefix = "$ErrorActionPreference='Stop';$root='C:\\ProgramData\\ForexListener\\releases\\" + release_id + "';New-Item -ItemType Directory -Force $root|Out-Null;"
@@ -1405,8 +1405,8 @@ def _m20_listener_runner_stage_command(index: int) -> str:
     raise ValueError("M20 listener runner stage index is invalid")
 
 
-for _index in range(1, 97):
-    _final = _index == 96
+for _index in range(1, 99):
+    _final = _index == 98
     OPERATIONS[f"m20_listener_runner_stage_{_index}"] = Operation(
         f"m20_listener_runner_stage_{_index}",
         ("Stage and verify" if _final else "Stage") + f" fixed M20 listener runner payload part {_index}.",
@@ -1427,7 +1427,7 @@ OPERATIONS["m20_listener_runner_verify"] = Operation(
         "$root=Join-Path $base 'releases\\" + _runner_release_id + "'; "
         "$file=Join-Path $root 'm20_demo_trading_session.payload'; "
         "$fragments=@(Get-ChildItem -LiteralPath $root|Where-Object {$_.Name -match '^m20_demo_trading_session\\.part\\d{2}$'}|Sort-Object Name|ForEach-Object {$_.FullName}); "
-        "if ($fragments.Count -ne 96) { throw ('M20 listener runner fragments are incomplete: '+$fragments.Count) }; "
+        "if ($fragments.Count -ne 98) { throw ('M20 listener runner fragments are incomplete: '+$fragments.Count) }; "
         "$encoded=(($fragments|ForEach-Object {[IO.File]::ReadAllText($_)}) -join ''); "
         "[IO.File]::WriteAllBytes($file,[Convert]::FromBase64String($encoded)); "
         "if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -ne '" + _runner_source_digest + "') { throw 'M20 listener runner staged source hash failed' }; "

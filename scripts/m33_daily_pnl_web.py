@@ -15,28 +15,26 @@ except ModuleNotFoundError:  # direct execution from scripts/
 
 
 def render_html(report: dict) -> str:
-    rows = ''.join(
-        '<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(
-            html.escape(str(row['closed_at_utc'])),
-            html.escape(str(row['proposal_id'])),
-            html.escape(money(row['actual_broker_net_aud'])),
-            html.escape(money(row['actual_broker_commission_aud'])),
-            html.escape(money(row['broker_fee_aud'])),
-            html.escape(money(row['broker_swap_aud'])),
-            html.escape(money(row['expected_round_trip_commission_aud']) if row['coverage_status'] == 'APPLIED' else 'UNAVAILABLE: ' + row['unavailable_reason']),
-            html.escape(money(row['commission_adjusted_pnl_aud'])),
-        ) for row in report['rows']
-    )
-    profile = next((row.get('profile_version_id') for row in report['rows'] if row.get('profile_version_id')), 'No applied profile')
-    generated = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
     selected = html.escape(report['date'])
-    return f'''<!doctype html><html><head><meta charset="utf-8"><title>M33 Daily P&amp;L</title></head><body>
-<h1>M33 Daily Demo P&amp;L — {selected} NZST</h1>
+    generated = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+    if report['status'] != 'AVAILABLE':
+        table = '<p>UNAVAILABLE: ' + html.escape(report['unavailable_reason']) + '</p>'
+        totals = ''
+    else:
+        body = ''.join('<tr>' + ''.join('<td>{}</td>'.format(html.escape(str(value))) for value in (
+            row['occurred_at_utc'], row['event_kind'], row['side'] or '—', f"{float(row['volume_lots']):.2f}",
+            money(row['broker_commission_aud']), money(row['expected_live_commission_aud']), money(row['broker_fee_aud']),
+            money(row['broker_swap_aud']), money(row['trade_pnl_aud']), money(row['net_movement_aud']), money(row['commission_adjusted_net_aud'])
+        )) + '</tr>' for row in report['rows'])
+        table = '<table border="1"><tr><th>NZST</th><th>Event</th><th>Side</th><th>Lots</th><th>Broker commission</th><th>Expected Live commission</th><th>Fee</th><th>Swap</th><th>Trade P&amp;L</th><th>Net movement</th><th>Adjusted net</th></tr>' + body + '</table>'
+        totals = '<p>Balance at start: {}; broker balance change: {}; balance at end: {}.</p><p>Expected Live commission: {}; commission-adjusted P&amp;L: {}.</p>'.format(
+            money(report['opening_balance_aud']), money(report['broker_balance_change_aud']), money(report['closing_balance_aud']),
+            money(report['expected_live_commission_aud_total']), money(report['commission_adjusted_net_aud_total']))
+    return f"""<!doctype html><html><head><meta charset="utf-8"><title>Broker P&amp;L journal</title></head><body>
+<h1>Broker P&amp;L journal — {selected} NZST</h1>
 <form action="/report" method="get"><label>Auckland day <input name="date" type="date" value="{selected}" required></label><button type="submit">Show report</button></form>
-<p>Generated {generated}. Profile: {html.escape(str(profile))}. Actual broker P&amp;L is the record. Adjusted P&amp;L uses the ASSUMED GO Plus+ AUD profile.</p>
-<table border="1"><tr><th>Closed</th><th>Trade</th><th>Actual broker P&amp;L</th><th>Broker commission</th><th>Broker fee</th><th>Broker swap</th><th>Expected commission/status</th><th>Adjusted P&amp;L</th></tr>{rows}</table>
-<p>Closed: {report['closed_outcome_count']}; Applied: {report['applied_count']}; Unavailable: {report['unavailable_count']}</p>
-</body></html>'''
+<p>Generated {generated}. Actual broker balance and P&amp;L are recorded facts. Expected Live commission uses the ASSUMED GO Plus+ AUD profile.</p>
+{table}{totals}</body></html>"""
 
 
 def main() -> int:

@@ -55,6 +55,7 @@ def test_adapter_exposes_only_fixed_forex_operations():
         "forex-m33-apply-daily-coverage-refresh-sources-schema",
         "forex-m33-daily-commission-coverage-summary",
     })
+    expected.update({"forex-m33-stage-broker-pnl-journal-schema", "forex-m33-apply-broker-pnl-journal-schema", "forex-m33-stage-broker-pnl-journal-summary-query", "forex-m33-broker-pnl-journal-summary"})
     assert postgres_pgvector_adapter.READ_ONLY | postgres_pgvector_adapter.MUTATING == expected
 
 

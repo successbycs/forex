@@ -2,50 +2,226 @@
   "schema_version": "forex.t480.operations.v1",
   "scope": "fixed_read_only_operations_only",
   "operations": [
-    {"id":"m30_single_client_probe_stage_1","purpose":"Stage fixed no-order interactive probe fragment 1.","approval_required":false},
-    {"id":"m30_single_client_probe_stage_2","purpose":"Stage fixed no-order interactive probe fragment 2.","approval_required":false},
-    {"id":"m30_single_client_probe_stage_3","purpose":"Stage fixed no-order interactive probe fragment 3.","approval_required":false},
-    {"id":"m30_single_client_probe_stage_4","purpose":"Stage fixed no-order interactive probe fragment 4.","approval_required":false},
-    {"id":"m30_single_client_probe_stage_5","purpose":"Stage fixed no-order interactive probe fragment 5.","approval_required":false},
-    {"id":"m30_single_client_probe_stage_6","purpose":"Stage fixed no-order interactive probe fragment 6.","approval_required":false},
-    {"id":"m30_single_client_probe_stage_7","purpose":"Stage fixed no-order interactive probe fragment 7.","approval_required":false},
-    {"id":"m30_single_client_probe_stage_8","purpose":"Stage fixed no-order interactive probe fragment 8.","approval_required":false},
-    {"id":"m30_single_client_probe_verify","purpose":"Assemble and hash-verify the fixed no-order interactive probe.","approval_required":false},
-    {"id":"m30_single_client_probe_run","purpose":"Run the fixed observation-only probe in the existing interactive user session.","approval_required":false},
-    {"id":"m30_single_client_probe_status","purpose":"Read immutable interactive probe observations and one-shot task status.","approval_required":false},
-    {"id":"m30_single_client_post_isolation_probe_run","purpose":"Run the fixed no-order visible-client probe only while the former Session0 topology remains isolated and held.","approval_required":false},
-    {"id":"m30_single_client_post_isolation_probe_status","purpose":"Read the held post-isolation visible-client probe result without changing the former listener topology.","approval_required":false},
-    {"id":"m30_single_client_post_isolation_observe_run","purpose":"Run the bounded no-child-restriction attachment comparison with current isolation guards.","approval_required":false},
-    {"id":"m30_single_client_post_isolation_observe_status","purpose":"Read the exact bounded no-child-restriction attachment comparison result.","approval_required":false},
-    {"id":"m30_single_client_post_isolation_race_run","purpose":"Run the 30-second child-restricted close-during-connect race observation.","approval_required":false},
-    {"id":"m30_single_client_post_isolation_race_status","purpose":"Read the exact close-during-connect race result.","approval_required":false},
-    {"id":"m30_session0_probe_run","purpose":"Run the fixed observation-only Session 0 account/exposure probe under the listener S4U principal.","approval_required":false},
-    {"id":"m30_session0_probe_status","purpose":"Read immutable Session 0 account/exposure observations and the bounded S4U task status.","approval_required":false},
-    {"id":"m30_session0_isolation_stage_1","purpose":"Stage fixed held-only Session0 isolation payload fragment 1.","approval_required":false},
-    {"id":"m30_session0_isolation_stage_2","purpose":"Stage fixed held-only Session0 isolation payload fragment 2.","approval_required":false},
-    {"id":"m30_session0_isolation_stage_3","purpose":"Stage fixed held-only Session0 isolation payload fragment 3.","approval_required":false},
-    {"id":"m30_session0_isolation_stage_4","purpose":"Stage fixed held-only Session0 isolation payload fragment 4.","approval_required":false},
-    {"id":"m30_session0_isolation_stage_5","purpose":"Stage fixed held-only Session0 isolation payload fragment 5.","approval_required":false},
-    {"id":"m30_session0_isolation_stage_6","purpose":"Stage fixed held-only Session0 isolation payload fragment 6.","approval_required":false},
-    {"id":"m30_session0_isolation_stage_7","purpose":"Stage fixed held-only Session0 isolation payload fragment 7.","approval_required":false},
-    {"id":"m30_session0_isolation_stage_8","purpose":"Stage fixed held-only Session0 isolation payload fragment 8.","approval_required":false},
-    {"id":"m30_session0_isolation_verify","purpose":"Assemble and hash-verify the fixed held-only Session0 isolation payload.","approval_required":false},
-    {"id":"m30_session0_isolation_parse","purpose":"Parse the verified fixed Session0 isolation PowerShell payload without running it.","approval_required":false},
-    {"id":"m30_session0_isolation_run","purpose":"Run the reviewed held-only Session0 isolation experiment after its fresh preflight evidence has been captured.","approval_required":false},
-    {"id":"m30_session0_isolation_status","purpose":"Read the exact held-only Session0 isolation task and retained outcome without changing state.","approval_required":false},
-    {"id":"m30_runner_isolation_spike_run","purpose":"Run the staged non-MT5 runner/audit-bridge compatibility spike in the existing interactive user session.","approval_required":false},
-    {"id":"m30_runner_isolation_spike_status","purpose":"Read the staged runner/audit-bridge compatibility spike task and retained result.","approval_required":false},
-    {"id":"m30_runner_isolation_spike_stage_1","purpose":"Stage fixed runner-isolation launcher fragment 1.","approval_required":false},
-    {"id":"m30_runner_isolation_spike_stage_2","purpose":"Stage fixed runner-isolation launcher fragment 2.","approval_required":false},
-    {"id":"m30_runner_isolation_spike_verify","purpose":"Assemble and hash-verify the fixed runner-isolation launcher.","approval_required":false},
-    {"id":"m30_runner_mt5_probe_run","purpose":"Run the staged runner restricted MT5 quote read in the existing interactive user session.","approval_required":false},
-    {"id":"m30_runner_mt5_probe_status","purpose":"Read the staged runner restricted MT5 quote task and retained result.","approval_required":false},
-    {"id":"m30_runner_binding_probe_run","purpose":"Run the staged runner restricted MT5 binding and permission read in the existing interactive user session.","approval_required":false},
-    {"id":"m30_runner_binding_probe_status","purpose":"Read the staged runner restricted MT5 binding task and retained result.","approval_required":false},
-    {"id":"m30_runner_binding_post_isolation_run","purpose":"Run the restricted staged runner binding probe only while the former Session0 topology remains isolated and held.","approval_required":false},
-    {"id":"m30_runner_binding_post_isolation_status","purpose":"Read the held post-isolation restricted runner binding result without changing listener topology.","approval_required":false},
-    {"id":"m30_pre_isolation_readiness_run","purpose":"Read the fixed durable pre-isolation state through the restricted staged runner and audit bridge.","approval_required":false},
-    {"id":"m30_pre_isolation_readiness_status","purpose":"Read the exact pre-isolation readiness task and retained fixed durable-state result.","approval_required":false},
+    {
+      "id": "m30_single_client_probe_stage_1",
+      "purpose": "Stage fixed no-order interactive probe fragment 1.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_probe_stage_2",
+      "purpose": "Stage fixed no-order interactive probe fragment 2.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_probe_stage_3",
+      "purpose": "Stage fixed no-order interactive probe fragment 3.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_probe_stage_4",
+      "purpose": "Stage fixed no-order interactive probe fragment 4.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_probe_stage_5",
+      "purpose": "Stage fixed no-order interactive probe fragment 5.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_probe_stage_6",
+      "purpose": "Stage fixed no-order interactive probe fragment 6.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_probe_stage_7",
+      "purpose": "Stage fixed no-order interactive probe fragment 7.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_probe_stage_8",
+      "purpose": "Stage fixed no-order interactive probe fragment 8.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_probe_verify",
+      "purpose": "Assemble and hash-verify the fixed no-order interactive probe.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_probe_run",
+      "purpose": "Run the fixed observation-only probe in the existing interactive user session.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_probe_status",
+      "purpose": "Read immutable interactive probe observations and one-shot task status.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_post_isolation_probe_run",
+      "purpose": "Run the fixed no-order visible-client probe only while the former Session0 topology remains isolated and held.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_post_isolation_probe_status",
+      "purpose": "Read the held post-isolation visible-client probe result without changing the former listener topology.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_post_isolation_observe_run",
+      "purpose": "Run the bounded no-child-restriction attachment comparison with current isolation guards.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_post_isolation_observe_status",
+      "purpose": "Read the exact bounded no-child-restriction attachment comparison result.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_post_isolation_race_run",
+      "purpose": "Run the 30-second child-restricted close-during-connect race observation.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_single_client_post_isolation_race_status",
+      "purpose": "Read the exact close-during-connect race result.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_session0_probe_run",
+      "purpose": "Run the fixed observation-only Session 0 account/exposure probe under the listener S4U principal.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_session0_probe_status",
+      "purpose": "Read immutable Session 0 account/exposure observations and the bounded S4U task status.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_session0_isolation_stage_1",
+      "purpose": "Stage fixed held-only Session0 isolation payload fragment 1.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_session0_isolation_stage_2",
+      "purpose": "Stage fixed held-only Session0 isolation payload fragment 2.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_session0_isolation_stage_3",
+      "purpose": "Stage fixed held-only Session0 isolation payload fragment 3.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_session0_isolation_stage_4",
+      "purpose": "Stage fixed held-only Session0 isolation payload fragment 4.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_session0_isolation_stage_5",
+      "purpose": "Stage fixed held-only Session0 isolation payload fragment 5.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_session0_isolation_stage_6",
+      "purpose": "Stage fixed held-only Session0 isolation payload fragment 6.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_session0_isolation_stage_7",
+      "purpose": "Stage fixed held-only Session0 isolation payload fragment 7.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_session0_isolation_stage_8",
+      "purpose": "Stage fixed held-only Session0 isolation payload fragment 8.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_session0_isolation_verify",
+      "purpose": "Assemble and hash-verify the fixed held-only Session0 isolation payload.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_session0_isolation_parse",
+      "purpose": "Parse the verified fixed Session0 isolation PowerShell payload without running it.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_session0_isolation_run",
+      "purpose": "Run the reviewed held-only Session0 isolation experiment after its fresh preflight evidence has been captured.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_session0_isolation_status",
+      "purpose": "Read the exact held-only Session0 isolation task and retained outcome without changing state.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_runner_isolation_spike_run",
+      "purpose": "Run the staged non-MT5 runner/audit-bridge compatibility spike in the existing interactive user session.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_runner_isolation_spike_status",
+      "purpose": "Read the staged runner/audit-bridge compatibility spike task and retained result.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_runner_isolation_spike_stage_1",
+      "purpose": "Stage fixed runner-isolation launcher fragment 1.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_runner_isolation_spike_stage_2",
+      "purpose": "Stage fixed runner-isolation launcher fragment 2.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_runner_isolation_spike_verify",
+      "purpose": "Assemble and hash-verify the fixed runner-isolation launcher.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_runner_mt5_probe_run",
+      "purpose": "Run the staged runner restricted MT5 quote read in the existing interactive user session.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_runner_mt5_probe_status",
+      "purpose": "Read the staged runner restricted MT5 quote task and retained result.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_runner_binding_probe_run",
+      "purpose": "Run the staged runner restricted MT5 binding and permission read in the existing interactive user session.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_runner_binding_probe_status",
+      "purpose": "Read the staged runner restricted MT5 binding task and retained result.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_runner_binding_post_isolation_run",
+      "purpose": "Run the restricted staged runner binding probe only while the former Session0 topology remains isolated and held.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_runner_binding_post_isolation_status",
+      "purpose": "Read the held post-isolation restricted runner binding result without changing listener topology.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_pre_isolation_readiness_run",
+      "purpose": "Read the fixed durable pre-isolation state through the restricted staged runner and audit bridge.",
+      "approval_required": false
+    },
+    {
+      "id": "m30_pre_isolation_readiness_status",
+      "purpose": "Read the exact pre-isolation readiness task and retained fixed durable-state result.",
+      "approval_required": false
+    },
     {
       "id": "m30_child_process_policy_probe",
       "purpose": "Test child-process restriction in an isolated Python diagnostic without contacting MT5.",
@@ -961,31 +1137,111 @@
       "purpose": "Stage fixed M20 Discord lifecycle-notification adapter part 6.",
       "approval_required": false
     },
-    {"id":"m20_listener_discord_stage_7","purpose":"Stage fixed M20 Discord lifecycle-notification adapter part 7.","approval_required":false},
-    {"id":"m20_listener_discord_stage_8","purpose":"Stage fixed M20 Discord lifecycle-notification adapter part 8.","approval_required":false},
-    {"id":"m20_listener_discord_stage_9","purpose":"Stage fixed M20 Discord lifecycle-notification adapter part 9.","approval_required":false},
-    {"id":"m20_listener_discord_stage_10","purpose":"Assemble and verify the fixed M20 Discord lifecycle-notification adapter.","approval_required":false},
+    {
+      "id": "m20_listener_discord_stage_7",
+      "purpose": "Stage fixed M20 Discord lifecycle-notification adapter part 7.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_discord_stage_8",
+      "purpose": "Stage fixed M20 Discord lifecycle-notification adapter part 8.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_discord_stage_9",
+      "purpose": "Stage fixed M20 Discord lifecycle-notification adapter part 9.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_discord_stage_10",
+      "purpose": "Assemble and verify the fixed M20 Discord lifecycle-notification adapter.",
+      "approval_required": false
+    },
     {
       "id": "m20_listener_runner_verify",
       "purpose": "Verify the fully staged fixed M20 listener runner payload hash.",
       "approval_required": false
     },
-    {"id":"m20_listener_bridge_stage_33","purpose":"Stage fixed M20 listener PostgreSQL bridge payload part 33.","approval_required":false},
-    {"id":"m20_listener_bridge_stage_34","purpose":"Stage fixed M20 listener PostgreSQL bridge payload part 34.","approval_required":false},
-    {"id":"m20_listener_bridge_stage_35","purpose":"Stage fixed M20 listener PostgreSQL bridge payload part 35.","approval_required":false},
-    {"id":"m20_listener_bridge_stage_36","purpose":"Stage fixed M20 listener PostgreSQL bridge payload part 36.","approval_required":false},
-    {"id":"m20_listener_bridge_stage_37","purpose":"Stage fixed M20 listener PostgreSQL bridge payload part 37.","approval_required":false},
-    {"id":"m20_listener_bridge_stage_38","purpose":"Stage fixed M20 listener PostgreSQL bridge payload part 38.","approval_required":false},
-    {"id":"m20_listener_bridge_stage_39","purpose":"Stage fixed M20 listener PostgreSQL bridge payload part 39.","approval_required":false},
-    {"id":"m20_listener_bridge_stage_40","purpose":"Stage fixed M20 listener PostgreSQL bridge payload part 40.","approval_required":false},
-    {"id":"m20_listener_bridge_stage_41","purpose":"Stage fixed M20 listener PostgreSQL bridge payload part 41.","approval_required":false},
-    {"id":"m20_listener_bridge_stage_42","purpose":"Stage fixed M20 listener PostgreSQL bridge payload part 42.","approval_required":false},
-    {"id":"m20_listener_bridge_stage_43","purpose":"Stage fixed M20 listener PostgreSQL bridge payload part 43.","approval_required":false},
-    {"id":"m20_listener_bridge_stage_44","purpose":"Stage fixed M20 listener PostgreSQL bridge payload part 44.","approval_required":false},
-    {"id":"m20_listener_bridge_stage_45","purpose":"Stage fixed M20 listener PostgreSQL bridge payload part 45.","approval_required":false},
-    {"id":"m20_listener_bridge_stage_46","purpose":"Stage fixed M20 listener PostgreSQL bridge payload part 46.","approval_required":false},
-    {"id":"m20_listener_bridge_stage_47","purpose":"Stage fixed M20 listener PostgreSQL bridge payload part 47.","approval_required":false},
-    {"id":"m20_listener_bridge_stage_48","purpose":"Stage and verify fixed M20 listener PostgreSQL bridge payload part 48.","approval_required":false},
+    {
+      "id": "m20_listener_bridge_stage_33",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 33.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_34",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 34.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_35",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 35.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_36",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 36.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_37",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 37.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_38",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 38.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_39",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 39.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_40",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 40.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_41",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 41.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_42",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 42.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_43",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 43.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_44",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 44.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_45",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 45.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_46",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 46.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_47",
+      "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 47.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_bridge_stage_48",
+      "purpose": "Stage and verify fixed M20 listener PostgreSQL bridge payload part 48.",
+      "approval_required": false
+    },
     {
       "id": "m20_listener_bridge_verify",
       "purpose": "Assemble and verify the fully staged fixed M20 listener PostgreSQL bridge payload.",
@@ -1071,38 +1327,166 @@
       "purpose": "Stage and verify fixed M20 listener runner payload part 64.",
       "approval_required": false
     },
-    {"id":"m20_listener_runner_stage_65","purpose":"Stage fixed M20 listener runner payload part 65.","approval_required":false},
-    {"id":"m20_listener_runner_stage_66","purpose":"Stage fixed M20 listener runner payload part 66.","approval_required":false},
-    {"id":"m20_listener_runner_stage_67","purpose":"Stage fixed M20 listener runner payload part 67.","approval_required":false},
-    {"id":"m20_listener_runner_stage_68","purpose":"Stage fixed M20 listener runner payload part 68.","approval_required":false},
-    {"id":"m20_listener_runner_stage_69","purpose":"Stage fixed M20 listener runner payload part 69.","approval_required":false},
-    {"id":"m20_listener_runner_stage_70","purpose":"Stage fixed M20 listener runner payload part 70.","approval_required":false},
-    {"id":"m20_listener_runner_stage_71","purpose":"Stage fixed M20 listener runner payload part 71.","approval_required":false},
-    {"id":"m20_listener_runner_stage_72","purpose":"Stage fixed M20 listener runner payload part 72.","approval_required":false},
-    {"id":"m20_listener_runner_stage_73","purpose":"Stage fixed M20 listener runner payload part 73.","approval_required":false},
-    {"id":"m20_listener_runner_stage_74","purpose":"Stage fixed M20 listener runner payload part 74.","approval_required":false},
-    {"id":"m20_listener_runner_stage_75","purpose":"Stage fixed M20 listener runner payload part 75.","approval_required":false},
-    {"id":"m20_listener_runner_stage_76","purpose":"Stage fixed M20 listener runner payload part 76.","approval_required":false},
-    {"id":"m20_listener_runner_stage_77","purpose":"Stage fixed M20 listener runner payload part 77.","approval_required":false},
-    {"id":"m20_listener_runner_stage_78","purpose":"Stage fixed M20 listener runner payload part 78.","approval_required":false},
-    {"id":"m20_listener_runner_stage_79","purpose":"Stage fixed M20 listener runner payload part 79.","approval_required":false},
-    {"id":"m20_listener_runner_stage_80","purpose":"Stage fixed M20 listener runner payload part 80.","approval_required":false},
-    {"id":"m20_listener_runner_stage_81","purpose":"Stage fixed M20 listener runner payload part 81.","approval_required":false},
-    {"id":"m20_listener_runner_stage_82","purpose":"Stage fixed M20 listener runner payload part 82.","approval_required":false},
-    {"id":"m20_listener_runner_stage_83","purpose":"Stage fixed M20 listener runner payload part 83.","approval_required":false},
-    {"id":"m20_listener_runner_stage_84","purpose":"Stage fixed M20 listener runner payload part 84.","approval_required":false},
-    {"id":"m20_listener_runner_stage_85","purpose":"Stage fixed M20 listener runner payload part 85.","approval_required":false},
-    {"id":"m20_listener_runner_stage_86","purpose":"Stage fixed M20 listener runner payload part 86.","approval_required":false},
-    {"id":"m20_listener_runner_stage_87","purpose":"Stage fixed M20 listener runner payload part 87.","approval_required":false},
-    {"id":"m20_listener_runner_stage_88","purpose":"Stage fixed M20 listener runner payload part 88.","approval_required":false},
-    {"id":"m20_listener_runner_stage_89","purpose":"Stage fixed M20 listener runner payload part 89.","approval_required":false},
-    {"id":"m20_listener_runner_stage_90","purpose":"Stage fixed M20 listener runner payload part 90.","approval_required":false},
-    {"id":"m20_listener_runner_stage_91","purpose":"Stage fixed M20 listener runner payload part 91.","approval_required":false},
-    {"id":"m20_listener_runner_stage_92","purpose":"Stage fixed M20 listener runner payload part 92.","approval_required":false},
-    {"id":"m20_listener_runner_stage_93","purpose":"Stage fixed M20 listener runner payload part 93.","approval_required":false},
-    {"id":"m20_listener_runner_stage_94","purpose":"Stage fixed M20 listener runner payload part 94.","approval_required":false},
-    {"id":"m20_listener_runner_stage_95","purpose":"Stage fixed M20 listener runner payload part 95.","approval_required":false},
-    {"id":"m20_listener_runner_stage_96","purpose":"Stage and verify fixed M20 listener runner payload part 96.","approval_required":false},
+    {
+      "id": "m20_listener_runner_stage_65",
+      "purpose": "Stage fixed M20 listener runner payload part 65.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_66",
+      "purpose": "Stage fixed M20 listener runner payload part 66.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_67",
+      "purpose": "Stage fixed M20 listener runner payload part 67.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_68",
+      "purpose": "Stage fixed M20 listener runner payload part 68.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_69",
+      "purpose": "Stage fixed M20 listener runner payload part 69.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_70",
+      "purpose": "Stage fixed M20 listener runner payload part 70.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_71",
+      "purpose": "Stage fixed M20 listener runner payload part 71.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_72",
+      "purpose": "Stage fixed M20 listener runner payload part 72.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_73",
+      "purpose": "Stage fixed M20 listener runner payload part 73.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_74",
+      "purpose": "Stage fixed M20 listener runner payload part 74.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_75",
+      "purpose": "Stage fixed M20 listener runner payload part 75.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_76",
+      "purpose": "Stage fixed M20 listener runner payload part 76.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_77",
+      "purpose": "Stage fixed M20 listener runner payload part 77.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_78",
+      "purpose": "Stage fixed M20 listener runner payload part 78.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_79",
+      "purpose": "Stage fixed M20 listener runner payload part 79.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_80",
+      "purpose": "Stage fixed M20 listener runner payload part 80.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_81",
+      "purpose": "Stage fixed M20 listener runner payload part 81.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_82",
+      "purpose": "Stage fixed M20 listener runner payload part 82.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_83",
+      "purpose": "Stage fixed M20 listener runner payload part 83.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_84",
+      "purpose": "Stage fixed M20 listener runner payload part 84.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_85",
+      "purpose": "Stage fixed M20 listener runner payload part 85.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_86",
+      "purpose": "Stage fixed M20 listener runner payload part 86.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_87",
+      "purpose": "Stage fixed M20 listener runner payload part 87.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_88",
+      "purpose": "Stage fixed M20 listener runner payload part 88.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_89",
+      "purpose": "Stage fixed M20 listener runner payload part 89.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_90",
+      "purpose": "Stage fixed M20 listener runner payload part 90.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_91",
+      "purpose": "Stage fixed M20 listener runner payload part 91.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_92",
+      "purpose": "Stage fixed M20 listener runner payload part 92.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_93",
+      "purpose": "Stage fixed M20 listener runner payload part 93.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_94",
+      "purpose": "Stage fixed M20 listener runner payload part 94.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_95",
+      "purpose": "Stage fixed M20 listener runner payload part 95.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_96",
+      "purpose": "Stage and verify fixed M20 listener runner payload part 96.",
+      "approval_required": false
+    },
     {
       "id": "m20_listener_bridge_stage_25",
       "purpose": "Stage fixed M20 listener PostgreSQL bridge payload part 25.",
@@ -1186,6 +1570,16 @@
     {
       "id": "m20_financing_preview",
       "purpose": "Run the hash-bound deployed Demo financing calculator without placing orders.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_97",
+      "purpose": "Stage fixed M20 listener runner payload part 97.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_98",
+      "purpose": "Stage and verify fixed M20 listener runner payload part 98.",
       "approval_required": false
     }
   ]

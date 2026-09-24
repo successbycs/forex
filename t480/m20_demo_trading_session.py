@@ -594,7 +594,7 @@ _RUNNER_BRIDGE_COMMANDS = {
     "record-closed-outcome", "update-open-position", "load-open-positions",
     "pre-isolation-readiness",
     "enforce-risk-policy", "persist-proposal", "reconcile", "reserve-execution",
-    "record-result", "record-open-position",
+    "record-result", "record-open-position", "record-broker-pnl-capture",
 }
 
 
@@ -2237,7 +2237,18 @@ def recover_open_positions(terminal_path: str) -> dict[str, Any]:
         mt5.shutdown()
 
 
+def _collect_broker_pnl_journal(account: Any, captured_at: datetime) -> dict[str, Any]:
+    """Send one bounded read-only MT5 history receipt to the fixed audit bridge."""
+    offset=tick_time_offset_seconds(); deals=mt5.history_deals_get(datetime(2000,1,1,tzinfo=timezone.utc),captured_at+timedelta(seconds=offset))
+    if deals is None or len(deals)>10000: raise SystemExit("M33 broker P&L history is unavailable or exceeds its fixed bound")
+    login=getattr(account,"login",None); balance=getattr(account,"balance",None)
+    if type(login) is not int or login<=0 or not isinstance(balance,(int,float)) or not math.isfinite(float(balance)): raise SystemExit("M33 broker P&L account observation is invalid")
+    rows=[{"ticket":int(getattr(d,"ticket",0)),"order":int(getattr(d,"order",0) or 0),"position_identifier":int(getattr(d,"position_id",0) or 0),"broker_time_utc":utc(datetime.fromtimestamp(int(getattr(d,"time",0)),timezone.utc)),"occurred_at_utc":utc(datetime.fromtimestamp(int(getattr(d,"time",0)),timezone.utc)-timedelta(seconds=offset)),"entry":int(getattr(d,"entry",-1)),"type":int(getattr(d,"type",-1)),"volume":float(getattr(d,"volume",0)),"price":float(getattr(d,"price",0)),"commission":float(getattr(d,"commission",0)),"fee":float(getattr(d,"fee",0)),"swap":float(getattr(d,"swap",0)),"profit":float(getattr(d,"profit",0)),"reason":int(getattr(d,"reason",-1)),"symbol":str(getattr(d,"symbol",""))} for d in deals]
+    return _bridge({"capture":{"account_scope_sha256":"sha256:"+hashlib.sha256(f"{SERVER}:{login}".encode()).hexdigest(),"captured_at_utc":utc(captured_at),"account_balance_aud":float(balance),"account_currency":"AUD","deals":rows,"collection_version":"forex.m33.broker-pnl-journal.v1"}},"record-broker-pnl-capture")
+
+
 def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int | None = None) -> dict[str, Any]:
+    journal_account: Any | None = None
     lease = load_session_lease(session_path, datetime.now(timezone.utc))
     if not mt5.initialize(path=terminal_path):
         _bridge({}, "pause-unknown-account-state")
@@ -2253,6 +2264,8 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         # This must precede all executable M1 assessment work. A mismatch has
         # no proposal reservation or broker-order path.
         _require_account_execution_profile(account)
+        journal_account = account
+        _collect_broker_pnl_journal(account, datetime.now(timezone.utc))
         symbol = mt5.symbol_info(SYMBOL)
         if not symbol or symbol.name != SYMBOL or float(symbol.point) <= 0:
             raise SystemExit("required EURUSD symbol is unavailable")
@@ -2599,7 +2612,11 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
             "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED"),
         }
     finally:
-        mt5.shutdown()
+        try:
+            if journal_account is not None:
+                _collect_broker_pnl_journal(journal_account, datetime.now(timezone.utc))
+        finally:
+            mt5.shutdown()
 
 
 def main(terminal_path: str, session_path: str, trigger_tick_time_msc: int | None = None) -> None:

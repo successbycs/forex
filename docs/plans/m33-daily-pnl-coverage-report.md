@@ -339,3 +339,29 @@ Revision note: added 2026-09-24 deferred execution-event logging follow-up at
 Chris's request; it is not part of the M33 P&L-report delivery scope.
 
 Revision note: Astra review on 2026-09-24 found M33 source-change coverage could go stale and the initial 029 staging operation omitted the fixed local-to-T480 SCP transfer. Migration 029 adds idempotent refresh triggers for outcome, execution-attempt, position-event, and reconciliation-revision changes. Its staging action now follows the existing hash-bound SCP, source-hash, copy, and destination-hash pattern; it was successfully staged and applied on T480.
+
+
+## Broker P&L ledger expansion
+
+Chris clarified on 2026-09-24 that the operator needs the entire broker account
+ledger, rather than only listener-attributed outcomes. Add the immutable
+`forex.demo_trade_pnl` table, shown as **P&L** in operator reports. Its stable
+identity is the MT5 deal ticket and it records broker time, receipt time,
+side, entry/close event, volume, price, commission, fee, swap, realised trade
+P&L, net movement, balance before, balance after, source-history digest and
+collection version. The table is insert-only; a corrected broker observation is
+a new revision linked to the original ticket, never an overwrite.
+
+A fixed, read-only MT5 history collector retains raw broker response first and
+then writes validated deal facts through a fixed PostgreSQL operation. It runs
+on the existing post-trade collection path and reconciles every retained deal,
+including `DEAL_TYPE_BALANCE` movements, before publishing a daily P&L report.
+The daily view groups the Auckland day and returns opening balance, every deal,
+trade P&L, broker costs, net movement, and closing balance. A missing anchor or
+unreconciled broker history is `UNAVAILABLE`; no balance is inferred as zero.
+
+Acceptance proof must reproduce the 2026-09-23 MT5 bridge: opening AUD
+100,989.45, all 30 broker deals, net AUD -30.50, and closing AUD 100,958.95.
+It must separately identify the 11 listener-attributed M33 outcomes and the
+four earlier 0.02-lot close deals whose AUD -28.64 loss was not in that view.
+No collection or ledger action may submit, modify, or close an order.

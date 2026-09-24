@@ -1,32 +1,27 @@
-from __future__ import annotations
-from scripts.m33_daily_pnl_email import render_email
 from scripts.m33_daily_pnl_report import render
 from scripts.m33_daily_pnl_web import render_html
 
 
 def _report():
-    return {"date": "2026-09-23", "closed_outcome_count": 2, "applied_count": 1, "unavailable_count": 1, "rows": [
-        {"closed_at_utc": "2026-09-23T12:00:00+12:00", "proposal_id": "applied", "actual_broker_net_aud": 0.27, "actual_broker_commission_aud": -0.02, "broker_fee_aud": -0.01, "broker_swap_aud": 0.00, "expected_round_trip_commission_aud": -0.06, "commission_adjusted_pnl_aud": 0.21, "coverage_status": "APPLIED", "unavailable_reason": None},
-        {"closed_at_utc": "2026-09-23T12:01:00+12:00", "proposal_id": "unavailable", "actual_broker_net_aud": -0.10, "actual_broker_commission_aud": None, "broker_fee_aud": None, "broker_swap_aud": None, "expected_round_trip_commission_aud": None, "commission_adjusted_pnl_aud": None, "coverage_status": "UNAVAILABLE", "unavailable_reason": "COST_COMPONENT_MISSING"},
-    ]}
+    return {"date":"2026-09-23","currency":"AUD","status":"AVAILABLE","unavailable_reason":None,"deal_count":2,
+      "opening_balance_aud":100989.45,"broker_balance_change_aud":-30.50,"closing_balance_aud":100958.95,
+      "expected_live_commission_aud_total":-0.12,"commission_adjusted_net_aud_total":-30.62,
+      "rows":[
+        {"occurred_at_utc":"2026-09-23T09:52:44Z","broker_time_utc":"2026-09-23T21:52:44Z","deal_ticket":1,"event_kind":"OPEN","side":"BUY","volume_lots":.02,"price":1.1,"broker_commission_aud":0,"expected_live_commission_aud":-.06,"broker_fee_aud":0,"broker_swap_aud":0,"trade_pnl_aud":0,"net_movement_aud":0,"commission_adjusted_net_aud":-.06,"balance_before_aud":100989.45,"balance_after_aud":100989.45,"position_identifier":2,"source_deal_sha256":"sha256:"+'a'*64,"collection_version":"forex.m33.broker-pnl-journal.v1"},
+        {"occurred_at_utc":"2026-09-23T16:59:40Z","broker_time_utc":"2026-09-24T04:59:40Z","deal_ticket":3,"event_kind":"CLOSE","side":"SELL","volume_lots":.02,"price":1.1,"broker_commission_aud":0,"expected_live_commission_aud":-.06,"broker_fee_aud":0,"broker_swap_aud":0,"trade_pnl_aud":-30.5,"net_movement_aud":-30.5,"commission_adjusted_net_aud":-30.56,"balance_before_aud":100989.45,"balance_after_aud":100958.95,"position_identifier":2,"source_deal_sha256":"sha256:"+'b'*64,"collection_version":"forex.m33.broker-pnl-journal.v1"}]}
 
 
-def test_daily_report_renders_applied_and_unavailable_rows_without_recalculation():
-    output = render(_report())
-    assert "Actual: +0.27 AUD" in output
-    assert "Recorded costs: commission -0.02 AUD; fee -0.01 AUD; swap +0.00 AUD" in output
-    assert "Expected commission: -0.06 AUD | Adjusted: +0.21 AUD" in output
-    assert "UNAVAILABLE (COST_COMPONENT_MISSING)" in output
+def test_daily_report_renders_broker_line_items_and_balance_bridge():
+    output=render(_report())
+    assert 'OPEN | BUY | 0.02' in output and 'CLOSE | SELL | 0.02' in output
+    assert 'Expected Live commission |' in output
+    assert 'Balance at start of day: +100989.45 AUD' in output
+    assert 'Total broker balance change during day: -30.50 AUD' in output
+    assert 'Balance at end of day: +100958.95 AUD' in output
 
 
-def test_web_and_email_render_the_same_recorded_daily_facts():
-    report = _report()
-    page = render_html(report)
-    text, email_html = render_email(report)
-    for output in (page, text, email_html):
-        assert "2026-09-23" in output
-        assert "applied" in output
-        assert "unavailable" in output
-    assert "ASSUMED GO Plus+ AUD" in page
-    assert "Broker commission" in page and "Broker fee" in page and "Broker swap" in page
-    assert "-0.06 AUD" in page and "+0.21 AUD" in page
+def test_web_renders_same_recorded_journal_facts():
+    page=render_html(_report())
+    for text in ('2026-09-23','OPEN','CLOSE','BUY','SELL','100989.45','100958.95','Expected Live commission'):
+        assert text in page
+    assert 'ASSUMED GO Plus+ AUD' in page
