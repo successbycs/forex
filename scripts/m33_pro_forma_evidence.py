@@ -22,6 +22,10 @@ REQUIRED_ARTIFACTS = frozenset({
     "m33-projection.json",
     "m20-lifecycle.json",
     "postgres-preflight.json",
+    "m33-stage.json",
+    "m33-apply.json",
+    "m33-refresh-stage.json",
+    "m33-refresh-apply.json",
     "terminal-ledger.txt",
     "summary.txt",
 })
@@ -92,12 +96,20 @@ def capture(bundle: Path) -> None:
         projection = run(sys.executable, "scripts/postgres_pgvector_adapter.py", "forex-m33-pro-forma-commission-summary")
         lifecycle = run(sys.executable, "scripts/postgres_pgvector_adapter.py", "forex-m20-lifecycle-summary")
         preflight = run(sys.executable, "scripts/postgres_pgvector_adapter.py", "preflight")
+        stage = run(sys.executable, "scripts/postgres_pgvector_adapter.py", "forex-m33-stage-pro-forma-commission-schema")
+        apply = run(sys.executable, "scripts/postgres_pgvector_adapter.py", "forex-m33-apply-pro-forma-commission-schema")
+        refresh_stage = run(sys.executable, "scripts/postgres_pgvector_adapter.py", "forex-m33-stage-pro-forma-commission-refresh-schema")
+        refresh_apply = run(sys.executable, "scripts/postgres_pgvector_adapter.py", "forex-m33-apply-pro-forma-commission-refresh-schema")
         write_new(bundle / "revision.txt", revision)
         write_new(bundle / "milestone-status.json", status)
         write_new(bundle / "m33-verify.json", verify)
         write_new(bundle / "m33-projection.json", projection)
         write_new(bundle / "m20-lifecycle.json", lifecycle)
         write_new(bundle / "postgres-preflight.json", preflight)
+        write_new(bundle / "m33-stage.json", stage)
+        write_new(bundle / "m33-apply.json", apply)
+        write_new(bundle / "m33-refresh-stage.json", refresh_stage)
+        write_new(bundle / "m33-refresh-apply.json", refresh_apply)
         write_new(bundle / "terminal-ledger.txt", _terminal_render())
         captured = datetime.now(timezone.utc).replace(microsecond=0)
         summary = (f"{MARKER}\n"
@@ -178,6 +190,18 @@ def validate_manifest(bundle: Path, manifest: object, *, current_revision: str,
                 f"artifact hash mismatch: {artifact['path']}")
 
 
+def validate_receipt(bundle: Path, name: str, operation: str) -> None:
+    receipt = json.loads((bundle / name).read_text())
+    require(receipt.get("tool_id") == "forex_postgres_pgvector_t480", f"wrong M33 receipt tool: {name}")
+    require(receipt.get("operation") == operation and receipt.get("ok") is True,
+            f"M33 fixed operation did not succeed: {name}")
+    result = receipt.get("result")
+    require(isinstance(result, dict) and result.get("ok") is True and result.get("exit_code") == 0,
+            f"M33 receipt has unsuccessful result: {name}")
+    require(isinstance(receipt.get("asset_sha256"), str) and receipt["asset_sha256"].startswith("sha256:"),
+            f"M33 receipt lacks hash-bound asset: {name}")
+
+
 def verify(bundle: Path) -> None:
     bundle = bundle.resolve()
     manifest = json.loads((bundle / "manifest.json").read_text())
@@ -188,6 +212,13 @@ def verify(bundle: Path) -> None:
         current_revision=run("git", "rev-parse", "HEAD").decode().strip(),
         current_fingerprint=current_status["configuration_fingerprint"],
     )
+    for name, operation in (
+        ("m33-stage.json", "forex_m33_stage_pro_forma_commission_schema"),
+        ("m33-apply.json", "forex_m33_apply_pro_forma_commission_schema"),
+        ("m33-refresh-stage.json", "forex_m33_stage_pro_forma_commission_refresh_schema"),
+        ("m33-refresh-apply.json", "forex_m33_apply_pro_forma_commission_refresh_schema"),
+    ):
+        validate_receipt(bundle, name, operation)
     database = json.loads((bundle / "m33-verify.json").read_text())
     output = database["result"]["stdout"]
     for token in ("FOREX_M33_PRO_FORMA_COMMISSION_DB_OK", "profile=true", "immutable=true", "refresh_trigger=true", "formula=true", "rounding=true", "source_bound=true", "open_positions_included=false"):

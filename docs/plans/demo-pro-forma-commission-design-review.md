@@ -214,6 +214,12 @@ do not deploy or expose a partial pro-forma number.
   duplicate or incomplete artifact lists, stale or future captures, and
   revision/configuration binding drift. Targeted negative-path tests cover the
   contract before fresh evidence is collected.
+- 2026-09-24: the next independent review required retained fixed-operation
+  stage/apply receipts and binding of every adapter and terminal-rendering
+  dependency used by the verifier. The capture contract now retains and checks
+  hash-bound receipts for both M33 migrations; the Triad fingerprint includes
+  the evidence verifier, PostgreSQL adapter, terminal renderer and milestone
+  status command.
 
 ## Decision log
 

@@ -47,7 +47,8 @@ def test_m33_review_binds_delegated_evidence_verifier(tmp_path):
     registry = json.loads((ROOT / "milestone_registry.json").read_text())
     milestone = next(m for m in registry["milestones"] if m["milestone_id"] == "M33")
     paths = _verifier_paths(ROOT, milestone)
-    assert "scripts/m33_pro_forma_evidence.py" in paths
+    assert {"scripts/m33_pro_forma_evidence.py", "scripts/postgres_pgvector_adapter.py",
+            "scripts/m20_trade_ledger_dashboard.py", "scripts/forex_milestones.py"} <= set(paths)
     for name in paths:
         target = tmp_path / name
         target.parent.mkdir(parents=True, exist_ok=True)

@@ -107,7 +107,12 @@ def _verifier_paths(root: Path, milestone: dict[str, Any]) -> list[str]:
         # The shell verifier delegates all effective validation to this Python
         # implementation.  Bind it so a delegated verifier change invalidates
         # the review packet as well as the wrapper itself.
-        candidates.add("scripts/m33_pro_forma_evidence.py")
+        candidates.update({
+            "scripts/m33_pro_forma_evidence.py",
+            "scripts/postgres_pgvector_adapter.py",
+            "scripts/m20_trade_ledger_dashboard.py",
+            "scripts/forex_milestones.py",
+        })
     commands = milestone["verification_commands"] + [
         {"argv": milestone["real_world_proof"]["verifier_command"]}
     ]

@@ -53,6 +53,20 @@ def test_m33_manifest_accepts_only_the_complete_capture_contract(tmp_path):
     _validate(bundle, manifest)
 
 
+def test_m33_receipt_rejects_a_non_fixed_or_unsuccessful_operation(tmp_path):
+    bundle, _ = _bundle(tmp_path)
+    receipt = {
+        "tool_id": "forex_postgres_pgvector_t480",
+        "operation": "wrong_operation",
+        "ok": True,
+        "asset_sha256": "sha256:" + "a" * 64,
+        "result": {"ok": True, "exit_code": 0},
+    }
+    (bundle / "m33-stage.json").write_text(json.dumps(receipt), encoding="utf-8")
+    with pytest.raises(RuntimeError):
+        evidence.validate_receipt(bundle, "m33-stage.json", "forex_m33_stage_pro_forma_commission_schema")
+
+
 @pytest.mark.parametrize("mutation", ["extra-key", "external-path", "extra-file", "wrong-fingerprint"])
 def test_m33_manifest_fails_closed_when_bindings_drift(tmp_path, mutation):
     bundle, manifest = _bundle(tmp_path)
