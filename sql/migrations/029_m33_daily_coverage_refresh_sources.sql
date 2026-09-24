@@ -1,0 +1,13 @@
+BEGIN;
+CREATE OR REPLACE FUNCTION forex.refresh_demo_m33_daily_commission_coverage_trigger()
+RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM forex.refresh_demo_m33_daily_commission_coverage(); RETURN NEW; END $$;
+DROP TRIGGER IF EXISTS demo_trade_outcome_m33_daily_coverage_refresh ON forex.demo_trade_outcome;
+CREATE TRIGGER demo_trade_outcome_m33_daily_coverage_refresh AFTER INSERT OR UPDATE ON forex.demo_trade_outcome FOR EACH STATEMENT EXECUTE FUNCTION forex.refresh_demo_m33_daily_commission_coverage_trigger();
+DROP TRIGGER IF EXISTS demo_execution_attempt_m33_daily_coverage_refresh ON forex.demo_execution_attempt;
+CREATE TRIGGER demo_execution_attempt_m33_daily_coverage_refresh AFTER INSERT OR UPDATE ON forex.demo_execution_attempt FOR EACH STATEMENT EXECUTE FUNCTION forex.refresh_demo_m33_daily_commission_coverage_trigger();
+DROP TRIGGER IF EXISTS demo_position_event_m33_daily_coverage_refresh ON forex.demo_position_event;
+CREATE TRIGGER demo_position_event_m33_daily_coverage_refresh AFTER INSERT OR UPDATE ON forex.demo_position_event FOR EACH STATEMENT EXECUTE FUNCTION forex.refresh_demo_m33_daily_commission_coverage_trigger();
+DROP TRIGGER IF EXISTS demo_outcome_reconciliation_revision_m33_daily_coverage_refresh ON forex.demo_outcome_reconciliation_revision;
+CREATE TRIGGER demo_outcome_reconciliation_revision_m33_daily_coverage_refresh AFTER INSERT OR UPDATE ON forex.demo_outcome_reconciliation_revision FOR EACH STATEMENT EXECUTE FUNCTION forex.refresh_demo_m33_daily_commission_coverage_trigger();
+SELECT forex.refresh_demo_m33_daily_commission_coverage();
+COMMIT;
