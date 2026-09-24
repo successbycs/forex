@@ -7,6 +7,7 @@ import html
 from datetime import date, datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
+from zoneinfo import ZoneInfo
 
 try:
     from scripts.m33_daily_pnl_report import fetch_day, money, local_time
@@ -52,7 +53,7 @@ def main() -> int:
                 self.send_error(404)
                 return
             query = parse_qs(parsed.query)
-            text = query.get('date', [date.today().isoformat()])[0]
+            text = query.get('date', [datetime.now(ZoneInfo('Pacific/Auckland')).date().isoformat()])[0]
             try:
                 body = render_html(fetch_day(date.fromisoformat(text))).encode()
                 self.send_response(200)

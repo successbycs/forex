@@ -114,3 +114,21 @@ def test_missing_timezone_data_is_visible(monkeypatch, tmp_path):
     monkeypatch.setattr(module, 'ZoneInfo', missing)
     with pytest.raises(ZoneInfoNotFoundError): module._collect_broker_pnl_journal(force=False)
     assert not sent
+
+
+def test_recovery_collects_without_open_jobs_or_entry_lease(monkeypatch, tmp_path):
+    module, mt5, row, account, sent = collector(monkeypatch, tmp_path)
+    bridge = module._bridge
+    monkeypatch.setattr(module, '_bridge', lambda payload, command:
+        {'open_positions': []} if command == 'load-open-positions' else bridge(payload, command))
+    mt5.symbol_info = lambda _: SimpleNamespace(trade_tick_size=.00001, trade_tick_value_loss=1, point=.00001)
+    assert module.recover_open_positions('fixed-terminal')['recovered'] == []
+    assert len(sent) == 1
+    module.recover_open_positions('fixed-terminal')
+    assert len(sent) == 1  # The acknowledged unchanged receipt is reused.
+    original = row._asdict()
+    row._asdict = lambda: {**original, 'profit': 1001}
+    account.balance = 1001
+    module.recover_open_positions('fixed-terminal')
+    assert len(sent) == 2
+    assert sent[-1][0]['capture']['account_balance_aud'] == 1001

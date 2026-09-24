@@ -29,8 +29,10 @@
     {
       "id": "database-proof",
       "title": "Apply repair and run rollback-only PostgreSQL regressions",
-      "state": "IN_PROGRESS",
-      "evidence": [],
+      "state": "DONE",
+      "evidence": [
+        "Fixed additive031 stage/apply succeeded; rollback-only SQL regression emitted M33_JOURNAL_SQL_VERIFIED then ROLLBACK on T480. Corrected funding-day query staged. Raw receipts: runs/local/m33-journal-repair-20260924 and -v2."
+      ],
       "requires": [
         "repair"
       ],
@@ -39,8 +41,10 @@
     {
       "id": "broker-proof",
       "title": "Stage prepared collector and verify actual 23 September report",
-      "state": "PENDING",
-      "evidence": [],
+      "state": "DONE",
+      "evidence": [
+        "Prepared release e786bc9636f756ce (code12eaaa4) collected175 real deals into PostgreSQL twice. All9 retained activity dates match independent MT5 export; September23 has30 rows,100989.45 opening,-30.50 movement,100958.95 closing,-31.64 adjusted. HTTP200 webpage exposes30 rows; current no-trade day reports0 P&L with correct balance. Evidence and checksums in runs/local/m33-journal-repair-20260924-v2."
+      ],
       "requires": [
         "database-proof"
       ],
@@ -48,13 +52,19 @@
     },
     {
       "id": "rolling-proof",
-      "title": "Verify automatic collection or document desktop-session blocker",
-      "state": "PENDING",
-      "evidence": [],
+      "title": "Verify automatic collection on an active listener",
+      "state": "BLOCKED",
+      "evidence": [
+        "Monitoring/recovery/cache regression tests and Astra review passed. Fresh fixed diagnostics show Disabled Interactive task, no desktop sessions and no listener processes. No task activation or orders were executed."
+      ],
       "requires": [
         "broker-proof"
       ],
-      "blocker": null
+      "blocker": {
+        "source": "runs/local/m33-journal-repair-20260924-v2/m20_listener_diagnostics-verification.json",
+        "reason": "Required OEM Windows desktop session is absent and the listener task is disabled. Automatic runtime collection cannot be demonstrated.",
+        "unblock_action": "Chris signs into the T480 Windows desktop as OEM and leaves the session signed in; then use fixed source-bound listener activation and verify a subsequent automatic PostgreSQL receipt."
+      }
     }
   ]
 }

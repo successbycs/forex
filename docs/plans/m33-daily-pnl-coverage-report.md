@@ -386,7 +386,7 @@ all-history trading P&L from balance funding movements.
 
 Run the fixed stage/apply broker-pnl-journal-repair-schema operations, then
 stage and run broker-pnl-journal-verify; synthetic assertions roll back. Stage
-all hash-bound listener payloads, configure and prepare the release, then use
+all hash-bound listener payloads, prepare and configure the release, then use
 `m33_broker_pnl_collect` to capture real history without starting the listener
 or entering an order path. Query 23 September and compare all 30 rows, opening
 100989.45, movement -30.50, closing 100958.95. Re-run collection and confirm
@@ -409,12 +409,12 @@ observations and unrelated milestone proof remain unchanged.
 - [x] review — Review accounting defects and failed listener startup (DONE)
 <!-- forex-work-item id=repair state=DONE -->
 - [x] repair — Repair projection, stable collection and operator report (DONE)
-<!-- forex-work-item id=database-proof state=IN_PROGRESS -->
-- [ ] database-proof — Apply repair and run rollback-only PostgreSQL regressions (IN_PROGRESS)
-<!-- forex-work-item id=broker-proof state=PENDING -->
-- [ ] broker-proof — Stage prepared collector and verify actual 23 September report (PENDING)
-<!-- forex-work-item id=rolling-proof state=PENDING -->
-- [ ] rolling-proof — Verify automatic collection or document desktop-session blocker (PENDING)
+<!-- forex-work-item id=database-proof state=DONE -->
+- [x] database-proof — Apply repair and run rollback-only PostgreSQL regressions (DONE)
+<!-- forex-work-item id=broker-proof state=DONE -->
+- [x] broker-proof — Stage prepared collector and verify actual 23 September report (DONE)
+<!-- forex-work-item id=rolling-proof state=BLOCKED -->
+- [ ] rolling-proof — Verify automatic collection on an active listener (BLOCKED)
 <!-- forex-work-projection:end -->
 
 Revision note: Astra review corrected accounting, provenance and startup assumptions; operational acceptance remains pending as indicated above.
@@ -431,3 +431,44 @@ from deposits. 189 affected tests passed before the final cache retry fix;
 15 focused cache/report tests passed afterward. PostgreSQL rollback regression
 passed on the real T480 database; initial payload staging was stopped before
 installation to include these review fixes.
+
+
+### Verified result and remaining operational blocker
+
+The fixed deployed collector for release `e786bc9636f756ce`, committed code
+`12eaaa4`, inserted all 175 actual broker deals. Repeat collection retained
+30 current September23 line items without changing balances or totals. All
+nine retained activity dates reconciled independently, including the funding
+day. September24 has no new trades and correctly shows zero daily P&L with
+opening/closing AUD100958.95. The real HTTP operator page returned200 with
+30 September23 transaction rows; terminal output agrees.
+
+September23: opening100989.45, actual net movement/trading P&L-30.50,
+closing100958.95, assumed expected commission-1.14, adjusted P&L-31.64.
+All retained trading days: actual P&L-41.05, adjusted P&L-46.51. Funding is
+excluded from trading totals. Amounts are AUD; expected commission is an
+assumption, not an observed broker charge.
+
+Open `http://127.0.0.1:8044/report?date=2026-09-23` on this host, or run
+`python3 scripts/m33_daily_pnl_report.py --date 2026-09-23 --once`. The
+loopback web process is running for operator access; reboot persistence is
+not asserted by this repair. Explicit collection is
+`python3 scripts/t480_adapter.py execute --operation m33_broker_pnl_collect`.
+
+Raw deployment, collector, PostgreSQL and HTTP evidence is retained under
+`runs/local/m33-journal-repair-20260924-v2`, with file hashes in
+`checksums.json`. The first configure attempt correctly refused an absent
+prepared binding; preparing before configuring resolved that precondition.
+The earlier directory retains the original diagnostics, SQL rollback proof,
+and the interrupted pre-review payload transfer. These are implementation
+acceptance records, not human signoff or formal milestone closure.
+
+Astra found no remaining blocker in its bounded final collector/cache review.
+The189-test combined affected suite passed before the final cache retry
+fix; later focused tests covered cache/timezone/recovery changes; final targeted collector suite11 passed,
+report suite5 passed, and M33 evidence/milestone compatibility suite11 passed.
+SQL regression ran against PostgreSQL and rolled back its synthetic data.
+Governance and diff checks passed. Final continuation remains blocked only
+on Windows desktop availability and subsequent listener activation/runtime
+proof; the task remains disabled. The operator was asked to sign in as OEM.
+No order was submitted and no formal milestone state was advanced.
