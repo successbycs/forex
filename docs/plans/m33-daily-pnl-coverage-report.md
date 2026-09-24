@@ -418,3 +418,16 @@ observations and unrelated milestone proof remain unchanged.
 <!-- forex-work-projection:end -->
 
 Revision note: Astra review corrected accounting, provenance and startup assumptions; operational acceptance remains pending as indicated above.
+
+Revision note: final Astra review added post-monitor/recovery collection even
+while entries are held, with an acknowledged-receipt cache. Any economic
+change is collected immediately; unchanged history refreshes hourly or at the
+Auckland day boundary, and explicit collection always refreshes. The cache is
+invalidated before each fresh bridge attempt so failed projections cannot
+suppress retries. Missing timezone data fails explicitly. The 1 MiB bridge
+request envelope is an additional bound below the 10,000-deal count ceiling;
+current 175-deal history fits. Funding-day reports now separate trading P&L
+from deposits. 189 affected tests passed before the final cache retry fix;
+15 focused cache/report tests passed afterward. PostgreSQL rollback regression
+passed on the real T480 database; initial payload staging was stopped before
+installation to include these review fixes.

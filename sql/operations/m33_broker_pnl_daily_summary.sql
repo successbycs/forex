@@ -12,7 +12,8 @@ WITH bounds AS (
  SELECT p.* FROM forex.demo_m33_current_trade_pnl p
  WHERE (SELECT accounts FROM scope)=1
 ), rows AS (
- SELECT p.* FROM all_rows p,bounds b
+ SELECT p.*, CASE WHEN p.deal_type_code IN(0,1) THEN p.trade_pnl_aud ELSE 0::numeric END AS trade_result_aud
+ FROM all_rows p,bounds b
  WHERE (p.occurred_at_utc AT TIME ZONE 'Pacific/Auckland')::date=b.nz_date
 ) , latest_receipt AS (
  SELECT capture_id FROM forex.demo_trade_pnl_capture
@@ -40,7 +41,8 @@ SELECT json_build_object(
  'closing_balance_aud',(SELECT account_balance_aud FROM snapshot)-COALESCE((SELECT sum(net_movement_aud) FROM all_rows,bounds WHERE (occurred_at_utc AT TIME ZONE 'Pacific/Auckland')::date>nz_date),0),
  'broker_commission_aud_total',COALESCE((SELECT sum(broker_commission_aud) FROM rows),0),
  'expected_live_commission_aud_total',CASE WHEN EXISTS(SELECT 1 FROM rows WHERE expected_live_commission_aud IS NULL) THEN NULL ELSE COALESCE((SELECT sum(expected_live_commission_aud) FROM rows),0) END,
- 'commission_adjusted_net_aud_total',CASE WHEN EXISTS(SELECT 1 FROM rows WHERE commission_adjusted_net_aud IS NULL) THEN NULL ELSE COALESCE((SELECT sum(commission_adjusted_net_aud) FROM rows),0) END,
+ 'daily_trade_pnl_aud',COALESCE((SELECT sum(net_movement_aud) FROM rows WHERE deal_type_code IN(0,1)),0),
+ 'commission_adjusted_net_aud_total',CASE WHEN EXISTS(SELECT 1 FROM rows WHERE deal_type_code IN(0,1) AND commission_adjusted_net_aud IS NULL) THEN NULL ELSE COALESCE((SELECT sum(commission_adjusted_net_aud) FROM rows WHERE deal_type_code IN(0,1)),0) END,
  'total_trade_pnl_aud',COALESCE((SELECT sum(net_movement_aud) FROM all_rows WHERE deal_type_code IN(0,1)),0),
  'total_commission_adjusted_trade_pnl_aud',CASE WHEN EXISTS(SELECT 1 FROM all_rows WHERE deal_type_code IN(0,1) AND commission_adjusted_net_aud IS NULL) THEN NULL ELSE COALESCE((SELECT sum(commission_adjusted_net_aud) FROM all_rows WHERE deal_type_code IN(0,1)),0) END
 );

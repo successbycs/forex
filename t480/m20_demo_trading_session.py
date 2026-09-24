@@ -2186,7 +2186,10 @@ def monitor(terminal_path: str, session_path: Path, *, single_pass: bool = False
             path.unlink(missing_ok=True)
         return {"marker": "FOREX_M20_DEMO_MONITOR_OPERATION_OK", "reconciliation": reconciliation, "position_ticket": position_data["ticket"]}
     finally:
-        mt5.shutdown()
+        try:
+            _finish_journal_capture()
+        finally:
+            mt5.shutdown()
 
 
 def recover_open_positions(terminal_path: str) -> dict[str, Any]:
@@ -2234,10 +2237,29 @@ def recover_open_positions(terminal_path: str) -> dict[str, Any]:
         # close merely because a current terminal query is flat.
         return {"marker": "FOREX_M20_DEMO_MONITOR_OPERATION_OK", "recovered": results}
     finally:
-        mt5.shutdown()
+        try:
+            _finish_journal_capture()
+        finally:
+            mt5.shutdown()
 
 
-def _collect_broker_pnl_journal() -> dict[str, Any]:
+def _journal_cache_path() -> Path:
+    root = Path(__file__).resolve().parent
+    state = root.parent.parent / "state" if root.parent.name == "releases" else root
+    return state / "m33_journal_receipt.local.json"
+
+
+def _finish_journal_capture() -> None:
+    """Run after broker protection; never replace an existing execution failure."""
+    primary_failure = sys.exc_info()[0] is not None
+    try:
+        _collect_broker_pnl_journal(force=False)
+    except (Exception, SystemExit):
+        if not primary_failure:
+            raise
+
+
+def _collect_broker_pnl_journal(*, force: bool = True) -> dict[str, Any]:
     """Retain a stable, account-bound history; PostgreSQL calculates money."""
     offset = tick_time_offset_seconds()
     before = mt5.account_info()
@@ -2268,13 +2290,44 @@ def _collect_broker_pnl_journal() -> dict[str, Any]:
             **{name: deal[name] for name in ("entry", "type", "volume", "price",
                 "commission", "fee", "swap", "profit", "reason", "symbol")},
         })
-    return _bridge({"capture": {
+    capture = {
         "account_scope_sha256": "sha256:" + hashlib.sha256(f"{SERVER}:{after.login}".encode()).hexdigest(),
         "captured_at_utc": captured_at.isoformat().replace("+00:00", "Z"), "account_balance_aud": after.balance,
         "account_balance_before_aud": before.balance, "account_currency": after.currency,
         "deals": rows, "raw_deals": raw, "broker_timestamp_offset_seconds": offset,
         "collection_version": "forex.m33.broker-pnl-journal.v2",
-    }}, "record-broker-pnl-capture")
+    }
+    # Cache only an acknowledged immutable receipt, never broker facts. A changed
+    # deal/balance always writes immediately; unchanged history refreshes hourly
+    # and at each Auckland day boundary. Explicit operator capture bypasses it.
+    signature = hashlib.sha256(json.dumps(
+        {key: value for key, value in capture.items() if key != "captured_at_utc"},
+        sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+    path = _journal_cache_path()
+    local_zone = ZoneInfo("Pacific/Auckland")  # Required, as for existing risk-day accounting.
+    if not force:
+        try:
+            previous = json.loads(path.read_text(encoding="utf-8"))
+            observed = datetime.fromisoformat(previous["captured_at_utc"].replace("Z", "+00:00"))
+            if (previous["signature"] == signature and previous["receipt"].get("ok") is True
+                    and 0 <= (captured_at - observed).total_seconds() < 3600
+                    and captured_at.astimezone(local_zone).date()
+                        == observed.astimezone(local_zone).date()):
+                return {**previous["receipt"], "unchanged": True}
+        except (OSError, KeyError, TypeError, ValueError, AttributeError):
+            pass
+    # A failed newer projection must be retried, not hidden by an older acknowledgement.
+    path.unlink(missing_ok=True)
+    receipt = _bridge({"capture": capture}, "record-broker-pnl-capture")
+    try:
+        temporary = path.with_suffix(f".{os.getpid()}.tmp")
+        temporary.write_text(json.dumps({"signature": signature,
+            "captured_at_utc": capture["captured_at_utc"], "receipt": receipt}), encoding="utf-8")
+        temporary.replace(path)
+    except OSError:
+        pass  # A missing cache only repeats safe, immutable collection.
+    return receipt
+
 
 
 def collect_broker_pnl_journal(terminal_path: str) -> dict[str, Any]:
@@ -2305,7 +2358,7 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         # no proposal reservation or broker-order path.
         _require_account_execution_profile(account)
         journal_account = account
-        _collect_broker_pnl_journal()
+        _collect_broker_pnl_journal(force=False)
         symbol = mt5.symbol_info(SYMBOL)
         if not symbol or symbol.name != SYMBOL or float(symbol.point) <= 0:
             raise SystemExit("required EURUSD symbol is unavailable")
@@ -2654,13 +2707,7 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
     finally:
         try:
             if journal_account is not None:
-                # Preserve a primary execution failure if journal collection also fails.
-                primary_failure = sys.exc_info()[0] is not None
-                try:
-                    _collect_broker_pnl_journal()
-                except (Exception, SystemExit):
-                    if not primary_failure:
-                        raise
+                _finish_journal_capture()
         finally:
             mt5.shutdown()
 
