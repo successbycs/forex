@@ -16,7 +16,7 @@ except ModuleNotFoundError:  # direct execution from scripts/
 
 def render_html(report: dict) -> str:
     rows = ''.join(
-        '<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(
+        '<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>'.format(
             html.escape(str(row['closed_at_utc'])),
             html.escape(str(row['proposal_id'])),
             html.escape(money(row['actual_broker_net_aud'])),

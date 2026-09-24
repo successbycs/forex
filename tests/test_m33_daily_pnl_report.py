@@ -29,3 +29,4 @@ def test_web_and_email_render_the_same_recorded_daily_facts():
         assert "unavailable" in output
     assert "ASSUMED GO Plus+ AUD" in page
     assert "Broker commission" in page and "Broker fee" in page and "Broker swap" in page
+    assert "-0.06 AUD" in page and "+0.21 AUD" in page
