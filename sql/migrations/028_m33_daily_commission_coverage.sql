@@ -37,7 +37,7 @@ WITH base AS (
         attempt.attempt_id,
         (SELECT count(*) FROM forex.demo_position_event e WHERE e.attempt_id=attempt.attempt_id AND e.event_type='OPENED') AS opened_count,
         (SELECT min(e.payload->>'fill_status') FROM forex.demo_position_event e WHERE e.attempt_id=attempt.attempt_id AND e.event_type='OPENED') AS fill_status,
-        (SELECT min(CASE WHEN e.payload->>'volume' ~ '^[0-9]{1,8}(\\.[0-9]{1,4})?$' THEN (e.payload->>'volume')::numeric(12,4) END) FROM forex.demo_position_event e WHERE e.attempt_id=attempt.attempt_id AND e.event_type='OPENED') AS volume_lots,
+        (SELECT min(CASE WHEN e.payload->>'volume' ~ '^[0-9]{1,8}(\.[0-9]{1,4})?$' THEN (e.payload->>'volume')::numeric(12,4) END) FROM forex.demo_position_event e WHERE e.attempt_id=attempt.attempt_id AND e.event_type='OPENED') AS volume_lots,
         (SELECT disposition FROM forex.demo_outcome_reconciliation_revision r WHERE r.proposal_id=outcome.proposal_id ORDER BY r.observed_at_utc DESC,r.created_at_utc DESC LIMIT 1) AS disposition
  FROM forex.demo_trade_outcome outcome
  JOIN forex.demo_trade_proposal proposal ON proposal.proposal_id=outcome.proposal_id
