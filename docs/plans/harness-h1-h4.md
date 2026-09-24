@@ -150,3 +150,7 @@ catalog but is separate from the H1–H4 → A dependency gate.
 
 Revision note — 2026-09-14: re-executed the declared validation sequence and
 recorded its passing, read-only result.
+
+Revision note — 2026-09-24: H5 Plane connectivity and board acceptance was
+explicitly deferred to a future authorised milestone. H1–H4 remain completed
+historical harness work and do not gate the active M33 reporting closeout.

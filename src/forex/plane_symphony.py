@@ -38,6 +38,7 @@ TASK_STATE_MAP = {
     "BLOCKED": "Blocked",
     "BLOCKED_EXTERNAL_PLANE": "Blocked",
     "BLOCKED_EXTERNAL_OBSERVATION": "Blocked",
+    "DEFERRED_FUTURE_MILESTONE": "Blocked",
     "COMPLETE_REVIEWED": "Done",
 }
 _TASK_ID = re.compile(r"^[A-Z][A-Z0-9_-]{0,63}$")
@@ -56,6 +57,7 @@ _TASK_TRANSITIONS = {
     "BLOCKED_EXTERNAL_PLANE": frozenset({"READY"}),
     "BLOCKED_EXTERNAL_OBSERVATION": frozenset({"READY"}),
     "BLOCKED_HUMAN_MIGRATION": frozenset({"READY"}),
+    "DEFERRED_FUTURE_MILESTONE": frozenset(),
     "READY": frozenset({"IN_REVIEW"}),
     "IN_REVIEW": frozenset({"COMPLETE_REVIEWED"}),
 }

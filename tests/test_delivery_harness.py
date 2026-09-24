@@ -35,11 +35,11 @@ def test_reports_task_metadata_formal_evidence_blockers_and_no_authority():
     next(task for task in plan["tasks"] if task["id"] == "A1")["state"] = "BLOCKED_EXTERNAL_OBSERVATION"
     report = harness_status(task_plan=plan, state=state, registry=registry, history=history)
     assert report["execution_authority"] is False and report["read_only"] is True
-    assert report["active_task"]["task_id"] == "M29"
+    assert report["active_task"]["task_id"] == "M33"
     assert report["active_task"]["task_kind"] == "FORMAL_MILESTONE"
-    assert report["demonstrated_result"]["formal_milestone_status"] == "BLOCKED"
-    assert report["demonstrated_result"]["recorded_evidence_count"] == 0
-    assert any(item.get("task_id") == "H5" and item["state"] == "BLOCKED_EXTERNAL_PLANE" for item in report["blockers"])
+    assert report["demonstrated_result"]["formal_milestone_status"] == "AWAITING_REAL_WORLD_PROOF"
+    assert report["demonstrated_result"]["recorded_evidence_count"] == 2
+    assert not any(item.get("task_id") == "H5" for item in report["blockers"])
     assert any(item.get("task_id") == "A1" and item["state"] == "BLOCKED_EXTERNAL_OBSERVATION" for item in report["blockers"])
     assert report["next_action"]["state"] == "NO_ACTIVE_DELIVERY_TASK"
     assert report["unsupported_completion_claims"] == []
@@ -51,17 +51,18 @@ def test_actionable_a1_is_selected_despite_parked_plane_and_formal_proof():
     report = harness_status(task_plan=plan, state=state, registry=registry, history=history)
     assert report["active_task"]["task_id"] == "A1"
     assert report["next_action"]["state"] == "ACTIVE_TASK"
-    assert report["demonstrated_result"]["formal_milestone_status"] == "BLOCKED"
+    assert report["demonstrated_result"]["formal_milestone_status"] == "AWAITING_REAL_WORLD_PROOF"
     assert report["execution_authority"] is False
 
 
 def test_canonical_active_plan_contains_harness_and_abc_tasks_and_parks_plane_h5():
     plan, _, _, _ = _inputs()
     assert plan["active_sequence"] == [
-        "H1", "H2", "H3", "H4", "H5", "A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3",
+        "H1", "H2", "H3", "H4", "A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3", "H5",
     ]
     by_id = {task["id"]: task for task in plan["tasks"]}
-    assert by_id["H5"]["state"] == "BLOCKED_EXTERNAL_PLANE"
+    assert by_id["H5"]["state"] == "DEFERRED_FUTURE_MILESTONE"
+    assert by_id["H5"]["deferred_to"] == "A future explicitly authorised milestone"
     assert all(task["formal_milestone"] == "M29" and task["execution_authority"] is False
                for task in plan["tasks"])
     assert all({"owned_paths", "acceptance_commands", "acceptance_results", "review_disposition", "evidence_class"} <= set(task)

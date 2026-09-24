@@ -7,8 +7,8 @@ from typing import Any
 SCHEMA = "forex.active-delivery-tasks.v2"
 _TOP = {"schema_version", "purpose", "active_sequence", "execution_authority", "tasks"}
 _TASK = {"id", "stage", "title", "state", "formal_milestone", "acceptance", "requires", "owned_paths", "acceptance_commands", "acceptance_results", "review_disposition", "evidence_class", "execution_authority"}
-_TASK_OPTIONAL = {"symphony"}
-_STATES = {"PENDING", "READY", "IN_PROGRESS", "IN_REVIEW", "COMPLETE_REVIEWED", "BLOCKED_EXTERNAL_PLANE", "BLOCKED_EXTERNAL_OBSERVATION", "BLOCKED_HUMAN_MIGRATION"}
+_TASK_OPTIONAL = {"symphony", "deferred_to"}
+_STATES = {"PENDING", "READY", "IN_PROGRESS", "IN_REVIEW", "COMPLETE_REVIEWED", "BLOCKED_EXTERNAL_PLANE", "BLOCKED_EXTERNAL_OBSERVATION", "BLOCKED_HUMAN_MIGRATION", "DEFERRED_FUTURE_MILESTONE"}
 _STAGES = {"HARNESS", "A", "B", "C"}
 _ACTIVE = {"READY", "IN_PROGRESS", "IN_REVIEW"}
 
@@ -59,6 +59,10 @@ def validate_task_plan(plan: dict[str, Any]) -> list[dict[str, Any]]:
                     or not isinstance(commands, list) or not commands or not all(isinstance(item, str) and item for item in commands)
                     or any(any(token in item.lower() for token in forbidden) for item in [*operations, *commands])):
                 raise ActiveDeliveryTaskError("task Symphony operation policy is unsafe")
+        if "deferred_to" in task and (task["state"] != "DEFERRED_FUTURE_MILESTONE"
+                                       or not isinstance(task["deferred_to"], str)
+                                       or not task["deferred_to"]):
+            raise ActiveDeliveryTaskError("task deferral metadata is invalid")
         by_id[task_id] = task
     if sequence != list(by_id):
         raise ActiveDeliveryTaskError("task sequence must exactly match task order")

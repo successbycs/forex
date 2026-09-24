@@ -57,7 +57,7 @@ def load_contract(path: Path) -> dict[str, Any]:
         raise PlaneSyncError("Plane contract schema is invalid")
     if value["enabled"] is not True or value["execution_authority"] is not False:
         raise PlaneSyncError("Plane contract authority is invalid")
-    if value["external_state"] != "H5_CONFIGURATION_REQUIRED":
+    if value["external_state"] not in {"H5_CONFIGURATION_REQUIRED", "H5_DEFERRED_FUTURE_MILESTONE"}:
         raise PlaneSyncError("Plane external state is invalid")
     if value["workflow_state_authority"] != "PLANE_VISIBLE_REPO_ACCEPTANCE":
         raise PlaneSyncError("Plane authority boundary is invalid")
@@ -99,7 +99,8 @@ def load_contract_from_value(value: dict[str, Any]) -> dict[str, Any]:
         raise PlaneSyncError("Plane contract schema is invalid")
     if value.get("enabled") is not True or value.get("execution_authority") is not False:
         raise PlaneSyncError("Plane contract authority is invalid")
-    if value.get("external_state") != "H5_CONFIGURATION_REQUIRED" or value.get("workflow_state_authority") != "PLANE_VISIBLE_REPO_ACCEPTANCE":
+    if (value.get("external_state") not in {"H5_CONFIGURATION_REQUIRED", "H5_DEFERRED_FUTURE_MILESTONE"}
+            or value.get("workflow_state_authority") != "PLANE_VISIBLE_REPO_ACCEPTANCE"):
         raise PlaneSyncError("Plane authority boundary is invalid")
     if value.get("task_source") != "docs/milestones/active-delivery-tasks.json":
         raise PlaneSyncError("Plane task source is invalid")

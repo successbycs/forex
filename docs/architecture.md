@@ -6,8 +6,8 @@ This is an architecture and target-boundary document, not a deployment ledger
 or proof record. `project_state.json` identifies the formal active milestone;
 `milestone_registry.json` defines its contract; and retained raw evidence plus
 independent verification establish whether a capability is operating. As of
-the repository's current state, M29 is the formal active milestone. Harness
-H1–H4 is the active delivery wave and a required repository-structure method;
+the repository's current state, M33 is the formal active milestone. Harness
+H1–H4 is completed repository-structure work retained for navigation;
 it operates within that contract, broker authority, and proof gate. H_SLOW
 remains deferred unless Chris explicitly reactivates it.
 

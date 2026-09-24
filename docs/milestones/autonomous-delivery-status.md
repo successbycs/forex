@@ -2,8 +2,8 @@
 
 ## Active Harness status — 2026-09-14
 
-**Active sequence:** Harness H1–H4 → Wave A → Wave B → Wave C. This is a
-delivery-status change only; formal state remains M29 `BLOCKED` and no proof,
+**Historical sequence:** Harness H1–H4 → Wave A → Wave B → Wave C. It was a
+delivery-status record under M29; M29 is now proven and the formal active milestone is M33. No proof,
 authority, Plane connectivity acceptance or trading execution is created.
 
 The canonical active task metadata is
@@ -23,7 +23,7 @@ python3 scripts/delivery_harness_status.py
 | Harness H1: concise repository map | `COMPLETE_REVIEWED`; the repository map and canonical task metadata were independently accepted. | No further H1 action. |
 | Harness H2: active sequence | `COMPLETE_REVIEWED`; the H1–H4 → A → B → C sequence and superseded wording were independently accepted. | No further H2 action. |
 | Harness H3: visible task/evidence interface | `COMPLETE_REVIEWED`; the task/evidence interface and fail-closed dependency selection were independently accepted. | No further H3 action. |
-| Harness H4: offline Plane mapping | `COMPLETE_REVIEWED`; the repository-only mapping was independently accepted. Plane remains display-only. | H5 is separately parked for T480 configuration, read-only connectivity, and board acceptance; it is not an H1–H4 → A gate. |
+| Harness H4: offline Plane mapping | `COMPLETE_REVIEWED`; the repository-only mapping was independently accepted. Plane remains display-only. | H5 is deferred to a future explicitly authorised milestone; it is not an M33 gate. |
 | Wave A | A1 n8n workflow, retention service and verified projection are implemented and independently reviewed; PostgreSQL still has `NO_STORED_BLS_FACTS`. | Clear shared T480 new-service capacity hold and obtain explicit deployment approval, then capture/project/report real BLS facts. FOMC/ECB remain A2. See the [A1 ExecPlan](../plans/wave-a1-n8n-calendar-lineage.md). |
 | Wave B | Pending Wave A: bind PostgreSQL calendar context to final M1 eligibility and produce an explainable UTC/Pacific-Auckland joined report. | Keep disabled/default policy and all existing M1 safeguards unless separately approved. |
 | Wave C | Pending Wave B: observe recurring protected Demo decision, execution and reconciliation. | Natural Demo operations only; no forced trade or fabricated proof. |
