@@ -51,6 +51,8 @@ def test_adapter_exposes_only_fixed_forex_operations():
         "forex-m33-pro-forma-commission-verify",
         "forex-m33-stage-daily-commission-coverage-schema",
         "forex-m33-apply-daily-commission-coverage-schema",
+        "forex-m33-stage-daily-coverage-refresh-sources-schema",
+        "forex-m33-apply-daily-coverage-refresh-sources-schema",
         "forex-m33-daily-commission-coverage-summary",
     })
     assert postgres_pgvector_adapter.READ_ONLY | postgres_pgvector_adapter.MUTATING == expected
@@ -426,3 +428,18 @@ def test_m20_open_position_schema_staging_and_application_are_hash_bound():
     applied = remote.call_args.args[0]
     assert "sha256sum" in applied
     assert "FOREX_M20_OPEN_POSITION_STATE_APPLIED" in applied
+
+def test_m33_daily_refresh_source_stage_transfers_before_remote_copy_and_fails_closed():
+    migration = "sql/migrations/029_m33_daily_coverage_refresh_sources.sql"
+    conversion = mock.Mock(stdout=r"\\wsl.localhost\Ubuntu\home\chris\projects\forex\sql\migrations\029_m33_daily_coverage_refresh_sources.sql\n")
+    transfer = mock.Mock(returncode=0, stdout="", stderr="")
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=(migration, "a" * 64)), mock.patch.object(postgres_pgvector_adapter, "subprocess") as process, mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True}) as remote:
+        process.run.side_effect = [conversion, transfer]
+        assert postgres_pgvector_adapter.stage_m33_daily_coverage_refresh_sources_schema()["ok"]
+    staged = remote.call_args.args[0]
+    assert "029_m33_daily_coverage_refresh_sources.sql" in staged and "sha256sum" in staged and "cp" in staged
+    failed = mock.Mock(returncode=9, stdout="", stderr="transfer failed")
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=(migration, "a" * 64)), mock.patch.object(postgres_pgvector_adapter, "subprocess") as process, mock.patch.object(postgres_pgvector_adapter, "remote") as remote:
+        process.run.side_effect = [conversion, failed]
+        assert not postgres_pgvector_adapter.stage_m33_daily_coverage_refresh_sources_schema()["ok"]
+        remote.assert_not_called()

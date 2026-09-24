@@ -337,3 +337,5 @@ Revision note: clarified 2026-09-24 that every operator view is on-demand and
 available at any time of day; no end-of-day batch is required.
 Revision note: added 2026-09-24 deferred execution-event logging follow-up at
 Chris's request; it is not part of the M33 P&L-report delivery scope.
+
+Revision note: Astra review on 2026-09-24 found M33 source-change coverage could go stale and the initial 029 staging operation omitted the fixed local-to-T480 SCP transfer. Migration 029 adds idempotent refresh triggers for outcome, execution-attempt, position-event, and reconciliation-revision changes. Its staging action now follows the existing hash-bound SCP, source-hash, copy, and destination-hash pattern; it was successfully staged and applied on T480.

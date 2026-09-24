@@ -1168,7 +1168,7 @@ def stage_m33_daily_commission_coverage_schema() -> dict:
     transfer = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", base64.b64encode(command.encode("utf-16-le")).decode("ascii")], text=True, capture_output=True, check=False)
     if transfer.returncode:
         return wrap("forex_m33_stage_daily_commission_coverage_schema", {"exit_code": transfer.returncode, "stdout": transfer.stdout, "stderr": transfer.stderr, "ok": False}, digest)
-    body = f"file='{REMOTE_FOREX}/{relative}'\nsource='/mnt/c/Users/chris/Documents/Code/forex-m1-probe/028_m33_daily_commission_coverage.sql'\ntest -f \"$source\" && [[ \"$(sha256sum \"$source\" | head -c 64)\" == \"{digest}\" ]]\nmkdir -p \"$(dirname \"$file\")\" && install -m 0644 \"$source\" \"$file\"\n[[ \"$(sha256sum \"$file\" | head -c 64)\" == \"{digest}\" ]]"
+    body = f"file='{REMOTE_FOREX}/{relative}'\nsource='/mnt/c/Users/chris/Documents/Code/forex-m1-probe/028_m33_daily_commission_coverage.sql'\ntest -f \"$source\" && [[ \"$(sha256sum \"$source\" | head -c 64)\" == \"{digest}\" ]]\nmkdir -p \"$(dirname \"$file\")\" && cp \"$source\" \"$file\"\n[[ \"$(sha256sum \"$file\" | head -c 64)\" == \"{digest}\" ]]"
     return wrap("forex_m33_stage_daily_commission_coverage_schema", remote(body), digest)
 
 
@@ -1180,7 +1180,15 @@ def apply_m33_daily_commission_coverage_schema() -> dict:
 
 def stage_m33_daily_coverage_refresh_sources_schema() -> dict:
     relative, digest = asset("m33_daily_coverage_refresh_sources_schema")
-    return wrap("forex_m33_stage_daily_coverage_refresh_sources_schema", remote(f"file='{REMOTE_FOREX}/{relative}'\ntest -f \"$file\" && [[ \"$(sha256sum \"$file\" | head -c 64)\" == \"{digest}\" ]]"), digest)
+    source = subprocess.run(["wslpath", "-w", str(ROOT / relative)], text=True, capture_output=True, check=True).stdout.strip()
+    staged = r"C:\Users\chris\Documents\Code\forex-m1-probe\029_m33_daily_coverage_refresh_sources.sql"
+    quote = lambda value: "'" + value.replace("'", "''") + "'"
+    command = "$ErrorActionPreference='Stop'; & scp.exe -B -o BatchMode=yes -o StrictHostKeyChecking=yes -- " + quote(source) + " " + quote(TARGET + ":" + staged) + "; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+    transfer = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", base64.b64encode(command.encode("utf-16-le")).decode("ascii")], text=True, capture_output=True, check=False)
+    if transfer.returncode:
+        return wrap("forex_m33_stage_daily_coverage_refresh_sources_schema", {"exit_code": transfer.returncode, "stdout": transfer.stdout, "stderr": transfer.stderr, "ok": False}, digest)
+    body = f"file='{REMOTE_FOREX}/{relative}'\nsource='/mnt/c/Users/chris/Documents/Code/forex-m1-probe/029_m33_daily_coverage_refresh_sources.sql'\ntest -f \"$source\" && [[ \"$(sha256sum \"$source\" | head -c 64)\" == \"{digest}\" ]]\nmkdir -p \"$(dirname \"$file\")\" && cp \"$source\" \"$file\"\n[[ \"$(sha256sum \"$file\" | head -c 64)\" == \"{digest}\" ]]"
+    return wrap("forex_m33_stage_daily_coverage_refresh_sources_schema", remote(body), digest)
 
 def apply_m33_daily_coverage_refresh_sources_schema() -> dict:
     relative, digest = asset("m33_daily_coverage_refresh_sources_schema")
