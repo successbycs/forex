@@ -74,6 +74,8 @@ ASSETS = {"m20_wave1_gap_reconciliation": "sql/operations/w1_reconcile_attempt_6
     "m33_pro_forma_commission_refresh_schema": "sql/migrations/027_m33_refresh_pro_forma_commission.sql",
     "m33_daily_commission_coverage_schema": "sql/migrations/028_m33_daily_commission_coverage.sql",
     "m33_daily_coverage_refresh_sources_schema": "sql/migrations/029_m33_daily_coverage_refresh_sources.sql",
+    "m33_broker_pnl_journal_verify": "sql/operations/m33_broker_pnl_journal_verify.sql",
+    "m33_broker_pnl_journal_repair_schema": "sql/migrations/031_m33_broker_pnl_journal_repair.sql",
     "m33_broker_pnl_journal_schema": "sql/migrations/030_m33_broker_pnl_journal.sql",
     "m33_broker_pnl_journal_summary_query": "sql/operations/m33_broker_pnl_daily_summary.sql",
     "m20_independent_risk_pauses_schema": "sql/migrations/022_m20_independent_risk_pauses.sql",
@@ -88,6 +90,8 @@ M2_SNAPSHOT_ARTIFACT_SHA256 = "sha256:dc5384732d71091aa2279aaf6d92e8e1780c8021ea
 READ_ONLY = {"forex-m20-wave1-reconciliation-context","preflight", "inspect", "vector-probe", "forex-m2-verify", "forex-m2-provenance-negative-control", "forex-m11-verify-schema", "forex-m11-verify-data", "forex-m11-r1-verify-hour", "forex-m12-quality-probe", "forex-m13-replay-probe", "forex-m14-regime-probe", "forex-m15-baseline-probe", "forex-m16-walk-forward-probe", "forex-m17-context-probe", "forex-m18-ollama-probe", "forex-m19-lineage-verify", "forex-m20-audit-verify", "forex-m20-rejection-summary", "forex-m20-lifecycle-summary", "forex-m20-current-lineage-summary", "forex-m20-unresolved-attempt-summary", "forex-m20-strategy-trial-summary", "forex-m20-mtf-context-verify", "forex-m20-mtf-context-summary", "forex-m20-risk-policy-summary", "forex-m1-postgres-completeness-summary", "forex-m1-closed-candle-decision-identity-verify", "forex-m33-pro-forma-commission-summary", "forex-m33-pro-forma-commission-verify", "forex-m33-daily-commission-coverage-summary"}
 MUTATING = {"forex-m20-stage-wave1-gap-reconciliation", "forex-m20-apply-wave1-gap-reconciliation","forex-m20-stage-listener-release","forex-m2-apply-schema", "forex-m2-import", "forex-m11-apply-schema", "forex-m11-r1-apply-stage-schema", "forex-m19-apply-schema", "forex-m19-lineage-probe", "forex-m20-stage-schema", "forex-m20-apply-schema", "forex-m20-stage-ledger-schema", "forex-m20-apply-ledger-schema", "forex-m20-stage-cost-ledger-schema", "forex-m20-apply-cost-ledger-schema", "forex-m20-stage-open-position-schema", "forex-m20-apply-open-position-schema", "forex-m20-stage-continuous-lease-schema", "forex-m20-apply-continuous-lease-schema", "forex-m20-stage-outcome-reconciliation-schema", "forex-m20-apply-outcome-reconciliation-schema", "forex-m20-stage-regime-strategy-schema", "forex-m20-apply-regime-strategy-schema", "forex-m20-stage-projected-cost-schema", "forex-m20-apply-projected-cost-schema", "forex-m20-stage-mtf-context-schema", "forex-m20-apply-mtf-context-schema", "forex-m20-stage-remove-trade-count-cap-schema", "forex-m20-apply-remove-trade-count-cap-schema", "forex-m20-stage-unresolved-execution-schema", "forex-m20-apply-unresolved-execution-schema", "forex-m20-stage-broker-fee-ledger-schema", "forex-m20-apply-broker-fee-ledger-schema", "forex-m20-stage-persistent-risk-policy-schema", "forex-m20-apply-persistent-risk-policy-schema", "forex-m20-stage-risk-resume-audit-schema", "forex-m20-apply-risk-resume-audit-schema", "forex-m20-stage-fee-complete-reconciliation-ledger-schema", "forex-m20-apply-fee-complete-reconciliation-ledger-schema", "forex-m20-stage-strategy-trial-query", "forex-m20-stage-lifecycle-summary-query", "forex-m20-stage-independent-risk-pauses-schema", "forex-m20-apply-independent-risk-pauses-schema", "forex-m20-stage-not-submitted-execution-schema", "forex-m20-apply-not-submitted-execution-schema", "forex-m1-stage-closed-candle-decision-identity-schema", "forex-m1-apply-closed-candle-decision-identity-schema", "forex-m33-stage-pro-forma-commission-schema", "forex-m33-apply-pro-forma-commission-schema", "forex-m33-stage-pro-forma-commission-refresh-schema", "forex-m33-apply-pro-forma-commission-refresh-schema", "forex-m33-stage-daily-commission-coverage-schema", "forex-m33-apply-daily-commission-coverage-schema", "forex-m33-stage-daily-coverage-refresh-sources-schema", "forex-m33-apply-daily-coverage-refresh-sources-schema"}
 
+MUTATING.update({"forex-m33-stage-broker-pnl-journal-repair-schema", "forex-m33-apply-broker-pnl-journal-repair-schema"})
+MUTATING.update({"forex-m33-stage-broker-pnl-journal-verify", "forex-m33-broker-pnl-journal-verify"})
 READ_ONLY.add("forex-m33-broker-pnl-journal-summary")
 MUTATING.update({"forex-m33-stage-broker-pnl-journal-schema", "forex-m33-apply-broker-pnl-journal-schema", "forex-m33-stage-broker-pnl-journal-summary-query"})
 
@@ -1213,6 +1217,26 @@ def _stage_asset(name: str, staged_name: str, operation: str) -> dict:
     return wrap(operation, remote(body), digest)
 
 
+def stage_m33_broker_pnl_journal_verify() -> dict:
+    return _stage_asset("m33_broker_pnl_journal_verify", "m33_broker_pnl_journal_verify.sql", "forex_m33_stage_broker_pnl_journal_schema")
+
+
+def apply_m33_broker_pnl_journal_verify() -> dict:
+    relative, digest = asset("m33_broker_pnl_journal_verify")
+    body = f"file='{REMOTE_FOREX}/{relative}'\ntest -f \"$file\" && [[ \"$(sha256sum \"$file\" | head -c 64)\" == \"{digest}\" ]]\ndocker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\" < \"$file\""
+    return wrap("forex_m33_apply_broker_pnl_journal_schema", remote(body), digest)
+
+
+def stage_m33_broker_pnl_journal_repair_schema() -> dict:
+    return _stage_asset("m33_broker_pnl_journal_repair_schema", "031_m33_broker_pnl_journal_repair.sql", "forex_m33_stage_broker_pnl_journal_schema")
+
+
+def apply_m33_broker_pnl_journal_repair_schema() -> dict:
+    relative, digest = asset("m33_broker_pnl_journal_repair_schema")
+    body = f"file='{REMOTE_FOREX}/{relative}'\ntest -f \"$file\" && [[ \"$(sha256sum \"$file\" | head -c 64)\" == \"{digest}\" ]]\ndocker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\" < \"$file\""
+    return wrap("forex_m33_apply_broker_pnl_journal_schema", remote(body), digest)
+
+
 def stage_m33_broker_pnl_journal_schema() -> dict:
     return _stage_asset("m33_broker_pnl_journal_schema", "030_m33_broker_pnl_journal.sql", "forex_m33_stage_broker_pnl_journal_schema")
 
@@ -1603,6 +1627,10 @@ def main(argv: list[str] | None = None) -> int:
     actions["forex-m33-apply-daily-commission-coverage-schema"] = apply_m33_daily_commission_coverage_schema
     actions["forex-m33-stage-daily-coverage-refresh-sources-schema"] = stage_m33_daily_coverage_refresh_sources_schema
     actions["forex-m33-apply-daily-coverage-refresh-sources-schema"] = apply_m33_daily_coverage_refresh_sources_schema
+    actions["forex-m33-stage-broker-pnl-journal-verify"] = stage_m33_broker_pnl_journal_verify
+    actions["forex-m33-broker-pnl-journal-verify"] = apply_m33_broker_pnl_journal_verify
+    actions["forex-m33-stage-broker-pnl-journal-repair-schema"] = stage_m33_broker_pnl_journal_repair_schema
+    actions["forex-m33-apply-broker-pnl-journal-repair-schema"] = apply_m33_broker_pnl_journal_repair_schema
     actions["forex-m33-stage-broker-pnl-journal-schema"] = stage_m33_broker_pnl_journal_schema
     actions["forex-m33-apply-broker-pnl-journal-schema"] = apply_m33_broker_pnl_journal_schema
     actions["forex-m33-stage-broker-pnl-journal-summary-query"] = stage_m33_broker_pnl_journal_summary_query

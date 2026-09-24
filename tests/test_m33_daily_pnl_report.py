@@ -25,3 +25,18 @@ def test_web_renders_same_recorded_journal_facts():
     for text in ('2026-09-23','OPEN','CLOSE','BUY','SELL','100989.45','100958.95','Expected Live commission'):
         assert text in page
     assert 'ASSUMED GO Plus+ AUD' in page
+
+
+def test_times_are_auckland_local_and_follow_daylight_saving():
+    from scripts.m33_daily_pnl_report import local_time
+    assert local_time('2026-09-23T04:59:40Z')=='2026-09-23 16:59:40 NZST'
+    assert local_time('2026-09-30T04:59:40+00:00')=='2026-09-30 17:59:40 NZDT'
+    report=_report()
+    assert '2026-09-23 21:52:44 NZST' in render(report)
+    assert '2026-09-23 21:52:44 NZST' in render_html(report)
+
+
+def test_total_trading_pnl_is_visible_in_both_operator_surfaces():
+    report={**_report(),'total_trade_pnl_aud':-45.67,'total_commission_adjusted_trade_pnl_aud':-46.89}
+    for output in (render(report),render_html(report)):
+        assert '-45.67 AUD' in output and '-46.89 AUD' in output

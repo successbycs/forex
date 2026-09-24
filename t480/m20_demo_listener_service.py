@@ -973,6 +973,24 @@ def run_guarded() -> None:
             raise
 
 
+def run_broker_pnl_collection() -> int:
+    """Run the fixed read-only broker collector without starting the listener."""
+    values = _load_environment()
+    expected = str(values["FOREX_M20_DEMO_TRADING_SESSION_SHA256"]).removeprefix("sha256:")
+    if hashlib.sha256(RUNNER_PATH.read_bytes()).hexdigest() != expected:
+        raise SystemExit("M33 journal runner hash differs from configuration")
+    completed = subprocess.run(
+        [str(values["python_path"]), str(RUNNER_PATH), str(values["terminal_path"]),
+         "--collect-broker-pnl-journal"],
+        text=True, capture_output=True, check=False, env=os.environ.copy(), timeout=120,
+    )
+    if completed.stdout:
+        print(completed.stdout.strip())
+    if completed.returncode and completed.stderr:
+        print(completed.stderr.strip(), file=sys.stderr)
+    return int(completed.returncode)
+
+
 def run_execution_drill() -> int:
     """Launch only the fixed runner diagnostic from the hash-bound release.
 
@@ -1314,6 +1332,8 @@ if __name__ == "__main__":
         raise SystemExit(arm_continuity_protocol())
     elif len(sys.argv) == 2 and sys.argv[1] == "--execution-drill":
         raise SystemExit(run_execution_drill())
+    elif len(sys.argv) == 2 and sys.argv[1] == "--collect-broker-pnl-journal":
+        raise SystemExit(run_broker_pnl_collection())
     elif len(sys.argv) == 2 and sys.argv[1] == "--held-readiness-assessment":
         raise SystemExit(run_held_readiness_assessment())
     else:

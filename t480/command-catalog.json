@@ -1581,6 +1581,41 @@
       "id": "m20_listener_runner_stage_98",
       "purpose": "Stage and verify fixed M20 listener runner payload part 98.",
       "approval_required": false
+    },
+    {
+      "id": "m33_broker_pnl_collect",
+      "purpose": "Collect all retained Demo broker deals into the P&L journal using the prepared release; no order path or listener start.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_99",
+      "purpose": "Stage fixed M20 listener runner payload part 99.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_100",
+      "purpose": "Stage fixed M20 listener runner payload part 100.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_101",
+      "purpose": "Stage fixed M20 listener runner payload part 101.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_102",
+      "purpose": "Stage fixed M20 listener runner payload part 102.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_103",
+      "purpose": "Stage fixed M20 listener runner payload part 103.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_104",
+      "purpose": "Stage and verify fixed M20 listener runner payload part 104.",
+      "approval_required": false
     }
   ]
 }

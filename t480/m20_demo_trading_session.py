@@ -1751,7 +1751,7 @@ def _historical_deal_row(deal: Any, offset_seconds: int) -> dict[str, Any]:
     return {
         "ticket": int(getattr(deal, "ticket", 0)), "order": int(getattr(deal, "order", 0)),
         "position_identifier": int(getattr(deal, "position_id", 0)),
-        "broker_time_utc": utc(broker_time), "time_utc": utc(broker_time - timedelta(seconds=offset_seconds)),
+        "broker_time_utc": broker_time.isoformat().replace("+00:00", "Z"), "time_utc": utc(broker_time - timedelta(seconds=offset_seconds)),
         "entry": int(getattr(deal, "entry", -1)), "type": int(getattr(deal, "type", -1)),
         "volume": float(getattr(deal, "volume", 0)), "price": float(getattr(deal, "price", 0)),
         "profit": float(getattr(deal, "profit", 0)), "commission": float(getattr(deal, "commission", 0)),
@@ -2237,14 +2237,54 @@ def recover_open_positions(terminal_path: str) -> dict[str, Any]:
         mt5.shutdown()
 
 
-def _collect_broker_pnl_journal(account: Any, captured_at: datetime) -> dict[str, Any]:
-    """Send one bounded read-only MT5 history receipt to the fixed audit bridge."""
-    offset=tick_time_offset_seconds(); deals=mt5.history_deals_get(datetime(2000,1,1,tzinfo=timezone.utc),captured_at+timedelta(seconds=offset))
-    if deals is None or len(deals)>10000: raise SystemExit("M33 broker P&L history is unavailable or exceeds its fixed bound")
-    login=getattr(account,"login",None); balance=getattr(account,"balance",None)
-    if type(login) is not int or login<=0 or not isinstance(balance,(int,float)) or not math.isfinite(float(balance)): raise SystemExit("M33 broker P&L account observation is invalid")
-    rows=[{"ticket":int(getattr(d,"ticket",0)),"order":int(getattr(d,"order",0) or 0),"position_identifier":int(getattr(d,"position_id",0) or 0),"broker_time_utc":utc(datetime.fromtimestamp(int(getattr(d,"time",0)),timezone.utc)),"occurred_at_utc":utc(datetime.fromtimestamp(int(getattr(d,"time",0)),timezone.utc)-timedelta(seconds=offset)),"entry":int(getattr(d,"entry",-1)),"type":int(getattr(d,"type",-1)),"volume":float(getattr(d,"volume",0)),"price":float(getattr(d,"price",0)),"commission":float(getattr(d,"commission",0)),"fee":float(getattr(d,"fee",0)),"swap":float(getattr(d,"swap",0)),"profit":float(getattr(d,"profit",0)),"reason":int(getattr(d,"reason",-1)),"symbol":str(getattr(d,"symbol",""))} for d in deals]
-    return _bridge({"capture":{"account_scope_sha256":"sha256:"+hashlib.sha256(f"{SERVER}:{login}".encode()).hexdigest(),"captured_at_utc":utc(captured_at),"account_balance_aud":float(balance),"account_currency":"AUD","deals":rows,"collection_version":"forex.m33.broker-pnl-journal.v1"}},"record-broker-pnl-capture")
+def _collect_broker_pnl_journal() -> dict[str, Any]:
+    """Retain a stable, account-bound history; PostgreSQL calculates money."""
+    offset = tick_time_offset_seconds()
+    before = mt5.account_info()
+    _require_account_execution_profile(before)
+    def history():
+        deals = mt5.history_deals_get(datetime(2000, 1, 1, tzinfo=timezone.utc),
+                                    datetime.now(timezone.utc) + timedelta(seconds=offset))
+        if deals is None or len(deals) > 10000:
+            raise SystemExit("M33 broker history is unavailable or exceeds its fixed bound")
+        return sorted((dict(deal._asdict()) for deal in deals), key=lambda row: row["ticket"])
+    raw = history()
+    repeated = history()
+    after = mt5.account_info()
+    _require_account_execution_profile(after)
+    if (raw != repeated or before.login != after.login or before.balance != after.balance):
+        raise SystemExit("M33 broker history changed during capture; retry required")
+    if not math.isfinite(float(after.balance)):
+        raise SystemExit("M33 broker balance is invalid")
+    captured_at = datetime.now(timezone.utc)
+    rows = []
+    for deal in raw:
+        broker_time = datetime.fromtimestamp(deal["time_msc"] // 1000, timezone.utc) + timedelta(milliseconds=deal["time_msc"] % 1000)
+        rows.append({
+            "ticket": deal["ticket"], "order": deal["order"],
+            "position_identifier": deal["position_id"],
+            "broker_time_utc": broker_time.isoformat().replace("+00:00", "Z"),
+            "occurred_at_utc": (broker_time - timedelta(seconds=offset)).isoformat().replace("+00:00", "Z"),
+            **{name: deal[name] for name in ("entry", "type", "volume", "price",
+                "commission", "fee", "swap", "profit", "reason", "symbol")},
+        })
+    return _bridge({"capture": {
+        "account_scope_sha256": "sha256:" + hashlib.sha256(f"{SERVER}:{after.login}".encode()).hexdigest(),
+        "captured_at_utc": captured_at.isoformat().replace("+00:00", "Z"), "account_balance_aud": after.balance,
+        "account_balance_before_aud": before.balance, "account_currency": after.currency,
+        "deals": rows, "raw_deals": raw, "broker_timestamp_offset_seconds": offset,
+        "collection_version": "forex.m33.broker-pnl-journal.v2",
+    }}, "record-broker-pnl-capture")
+
+
+def collect_broker_pnl_journal(terminal_path: str) -> dict[str, Any]:
+    """On-demand collection has no lease, proposal or order submission path."""
+    if not mt5.initialize(path=terminal_path):
+        raise SystemExit("M33 journal could not initialize the Demo terminal")
+    try:
+        return _collect_broker_pnl_journal()
+    finally:
+        mt5.shutdown()
 
 
 def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int | None = None) -> dict[str, Any]:
@@ -2265,7 +2305,7 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         # no proposal reservation or broker-order path.
         _require_account_execution_profile(account)
         journal_account = account
-        _collect_broker_pnl_journal(account, datetime.now(timezone.utc))
+        _collect_broker_pnl_journal()
         symbol = mt5.symbol_info(SYMBOL)
         if not symbol or symbol.name != SYMBOL or float(symbol.point) <= 0:
             raise SystemExit("required EURUSD symbol is unavailable")
@@ -2614,7 +2654,13 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
     finally:
         try:
             if journal_account is not None:
-                _collect_broker_pnl_journal(journal_account, datetime.now(timezone.utc))
+                # Preserve a primary execution failure if journal collection also fails.
+                primary_failure = sys.exc_info()[0] is not None
+                try:
+                    _collect_broker_pnl_journal()
+                except (Exception, SystemExit):
+                    if not primary_failure:
+                        raise
         finally:
             mt5.shutdown()
 
@@ -2672,6 +2718,9 @@ def held_readiness_assessment(terminal_path: str) -> None:
 if __name__ == "__main__":
     if len(sys.argv) == 3 and sys.argv[2] == "--held-readiness-assessment":
         _run_single_client(lambda: held_readiness_assessment(sys.argv[1]), requires_bridge=True)
+    elif len(sys.argv) == 3 and sys.argv[2] == "--collect-broker-pnl-journal":
+        result = _run_single_client(lambda: collect_broker_pnl_journal(sys.argv[1]), requires_bridge=True)
+        print(json.dumps(result, separators=(",", ":")))
     elif len(sys.argv) == 3:
         _run_single_client(lambda: main(sys.argv[1], sys.argv[2]), requires_bridge=True)
     elif len(sys.argv) == 5 and sys.argv[3] == "--assessment-trigger-tick-ms":

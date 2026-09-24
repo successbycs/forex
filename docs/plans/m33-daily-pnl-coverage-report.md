@@ -365,3 +365,56 @@ Acceptance proof must reproduce the 2026-09-23 MT5 bridge: opening AUD
 It must separately identify the 11 listener-attributed M33 outcomes and the
 four earlier 0.02-lot close deals whose AUD -28.64 loss was not in that view.
 No collection or ledger action may submit, modify, or close an order.
+
+
+## Astra journal repair — 24 September 2026
+
+Review found the initial journal deployment unproven and its balance anchoring
+unsafe: the post-execution capture reused the pre-execution balance. Individual
+deal deduplication also prevented corrected running balances and reversion to
+previous deal values. The report mixed account scopes, rounded money in Python,
+and added assumed commission on top of actual commission.
+
+The repair uses additive migration 031, leaving raw receipts unchanged. Each
+validated full capture projects its entire ledger with PostgreSQL numeric
+arithmetic. Total retained broker movements must match the observed balance.
+Raw text commits before projection so failures remain inspectable. Two identical
+history reads bracketed by equal fresh balances are required. Full MT5 objects
+and millisecond timestamps are preserved. The report refuses ambiguous accounts
+or an unreconciled latest receipt, shows local Auckland times, and separates
+all-history trading P&L from balance funding movements.
+
+Run the fixed stage/apply broker-pnl-journal-repair-schema operations, then
+stage and run broker-pnl-journal-verify; synthetic assertions roll back. Stage
+all hash-bound listener payloads, configure and prepare the release, then use
+`m33_broker_pnl_collect` to capture real history without starting the listener
+or entering an order path. Query 23 September and compare all 30 rows, opening
+100989.45, movement -30.50, closing 100958.95. Re-run collection and confirm
+unchanged economic totals. Render the same PostgreSQL receipt in CLI and web.
+
+Startup diagnosis found the task Disabled with Interactive logon, no explorer
+sessions, and no fresh failure records. A missing interactive desktop is a
+separate operational prerequisite; configuration repair alone did not restore
+it. Do not claim rolling collection until the listener runs in its required
+interactive desktop and a subsequent capture proves it. No automatic fallback
+to a Session-0 trading worker is authorised by this repair.
+
+Owned repair paths: journal bridge, runner, listener service, fixed T480 and
+PostgreSQL adapters/catalog, migration 031, journal summary/verification SQL,
+operator report/web, focused tests, and this plan/work record. Existing raw
+observations and unrelated milestone proof remain unchanged.
+
+<!-- forex-work-projection:start task=M33-JOURNAL-REPAIR schema=forex.execution-work-projection.v1 -->
+<!-- forex-work-item id=review state=DONE -->
+- [x] review — Review accounting defects and failed listener startup (DONE)
+<!-- forex-work-item id=repair state=DONE -->
+- [x] repair — Repair projection, stable collection and operator report (DONE)
+<!-- forex-work-item id=database-proof state=IN_PROGRESS -->
+- [ ] database-proof — Apply repair and run rollback-only PostgreSQL regressions (IN_PROGRESS)
+<!-- forex-work-item id=broker-proof state=PENDING -->
+- [ ] broker-proof — Stage prepared collector and verify actual 23 September report (PENDING)
+<!-- forex-work-item id=rolling-proof state=PENDING -->
+- [ ] rolling-proof — Verify automatic collection or document desktop-session blocker (PENDING)
+<!-- forex-work-projection:end -->
+
+Revision note: Astra review corrected accounting, provenance and startup assumptions; operational acceptance remains pending as indicated above.

@@ -1,0 +1,60 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "M33-JOURNAL-REPAIR",
+  "authorization": "Chris requested Astra review and fix after authorising the rolling PostgreSQL P&L journal, implementation, commits and fixed deployment. No Live orders or formal milestone closure.",
+  "markdown_plan": "docs/plans/m33-daily-pnl-coverage-report.md",
+  "items": [
+    {
+      "id": "review",
+      "title": "Review accounting defects and failed listener startup",
+      "state": "DONE",
+      "evidence": [
+        "Astra found stale balance/history pairing, per-deal revision errors, mixed-account reporting and commission double charging. Fixed diagnostic shows Interactive task Disabled, no desktop sessions and no new startup failure records."
+      ],
+      "requires": [],
+      "blocker": null
+    },
+    {
+      "id": "repair",
+      "title": "Repair projection, stable collection and operator report",
+      "state": "DONE",
+      "evidence": [
+        "Additive 031, PostgreSQL money arithmetic, preserved raw source, no-order collector, fail-closed report; 136 adapter tests and 50 listener/journal focused tests passed."
+      ],
+      "requires": [
+        "review"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "database-proof",
+      "title": "Apply repair and run rollback-only PostgreSQL regressions",
+      "state": "IN_PROGRESS",
+      "evidence": [],
+      "requires": [
+        "repair"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "broker-proof",
+      "title": "Stage prepared collector and verify actual 23 September report",
+      "state": "PENDING",
+      "evidence": [],
+      "requires": [
+        "database-proof"
+      ],
+      "blocker": null
+    },
+    {
+      "id": "rolling-proof",
+      "title": "Verify automatic collection or document desktop-session blocker",
+      "state": "PENDING",
+      "evidence": [],
+      "requires": [
+        "broker-proof"
+      ],
+      "blocker": null
+    }
+  ]
+}

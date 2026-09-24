@@ -37,7 +37,6 @@ def _m20_audit_bridge_module():
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    monkeypatch.setattr(module, "_collect_broker_pnl_journal", lambda *args, **kwargs: {"ok": True})
     return module
 
 
@@ -117,7 +116,7 @@ def test_catalog_and_adapter_operations_match():
     t480_adapter.validate_contract()
     catalog = json.loads(t480_adapter.CATALOG_PATH.read_text(encoding="utf-8"))
     assert {entry["id"] for entry in catalog["operations"]} == set(t480_adapter.OPERATIONS)
-    assert "m20_listener_runner_stage_98" in t480_adapter.OPERATIONS
+    assert "m20_listener_runner_stage_104" in t480_adapter.OPERATIONS
 
 
 def test_adapter_emits_the_governed_project_fingerprint_for_evidence_binding():
@@ -711,7 +710,7 @@ def test_m20_listener_staging_is_split_and_hash_checked():
 
 def test_m20_listener_runner_and_bridge_staging_are_fixed_and_hash_checked():
     runner_first = t480_adapter.OPERATIONS["m20_listener_runner_stage_1"].powershell_command
-    runner_final = t480_adapter.OPERATIONS["m20_listener_runner_stage_98"].powershell_command
+    runner_final = t480_adapter.OPERATIONS["m20_listener_runner_stage_104"].powershell_command
     runner_verify = t480_adapter.OPERATIONS["m20_listener_runner_verify"].powershell_command
     bridge_first = t480_adapter.OPERATIONS["m20_listener_bridge_stage_1"].powershell_command
     bridge_final = t480_adapter.OPERATIONS["m20_listener_bridge_stage_48"].powershell_command
@@ -724,7 +723,7 @@ def test_m20_listener_runner_and_bridge_staging_are_fixed_and_hash_checked():
             assert "WriteAllText" in first
             assert "WriteAllText" in final
             assert "ReadAllText" in runner_verify and "Get-FileHash" in runner_verify
-            assert "$fragments.Count -ne 98" in runner_verify
+            assert "$fragments.Count -ne 104" in runner_verify
         else:
             assert "WriteAllText" in first and "WriteAllText" in final
             assert "ReadAllText" in bridge_verify and "Get-FileHash" in bridge_verify

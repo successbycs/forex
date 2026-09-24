@@ -574,6 +574,23 @@ def _m20_listener_held_readiness_assessment_command() -> str:
     )
 
 
+def _m33_broker_pnl_collect_command() -> str:
+    sources = [ROOT / "t480" / name for name in (
+        "m20_demo_listener_service.py", "m20_demo_trading_session.py",
+        "m20_postgres_audit_bridge.py", "m20_discord_trade_notification.py")]
+    release = hashlib.sha256(b"".join(path.read_bytes() for path in sources)).hexdigest()[:16]
+    digest = hashlib.sha256(sources[0].read_bytes()).hexdigest()
+    return (
+        "$ErrorActionPreference='Stop';$s='C:\\ProgramData\\ForexListener\\state';"
+        "$d=gc -Raw (Join-Path $s 'm20_demo_listener_prepared.local.json')|ConvertFrom-Json;"
+        "if($d.release_id -ne '" + release + "'){throw 'M33 collector release not prepared'};"
+        "$v='C:\\ProgramData\\ForexListener\\releases\\" + release + "\\m20_demo_listener_service.payload';"
+        "if((Get-FileHash $v -Algorithm SHA256).Hash.ToLower() -ne '" + digest + "'){throw 'M33 collector service hash differs'};"
+        "$c=gc -Raw (Join-Path $s 'm20_demo_listener_service.local.json')|ConvertFrom-Json;"
+        "& $c.python_path $v --collect-broker-pnl-journal;exit $LASTEXITCODE"
+    )
+
+
 def _m20_listener_spool_page_command(after_assessment_sequence: int = 0) -> str:
     """Read a bounded immutable spool page after one validated local cursor."""
     if isinstance(after_assessment_sequence, bool) or not isinstance(after_assessment_sequence, int) or after_assessment_sequence < 0:
@@ -595,7 +612,7 @@ def _m20_listener_spool_page_command(after_assessment_sequence: int = 0) -> str:
 def _m20_listener_diagnostics_command() -> str:
     """Inspect the fixed task and deployment binding without recovery."""
     return (
-        "$ErrorActionPreference='Stop';$t=Get-ScheduledTask 'Forex-M20-Demo-Listener';$i=Get-ScheduledTaskInfo $t.TaskName;$s='C:\\ProgramData\\ForexListener\\state';$p=@(Get-CimInstance Win32_Process|?{$_.Name -match '^python(w)?\\.exe$' -and $_.CommandLine -like '*ForexListener*'}|%{[pscustomobject]@{process_id=[int]$_.ProcessId;parent_process_id=[int]$_.ParentProcessId;session_id=[int]$_.SessionId}});$b=[ordered]@{observation='UNAVAILABLE'};try{$h=gc -Raw (Join-Path $s 'm20_demo_listener_status.local.json')|ConvertFrom-Json;$r=[string]$h.release_id;if($r -notmatch '^[0-9a-f]{16}$'){throw 'release'};$c=gc -Raw (Join-Path $s 'm20_demo_listener_service.local.json')|ConvertFrom-Json;$l=gc -Raw (Join-Path $s 'm20_demo_session.local.json')|ConvertFrom-Json;$d=[ordered]@{};foreach($n in @('m20_demo_listener_service.payload','m20_demo_trading_session.payload','m20_postgres_audit_bridge.payload','m20_discord_trade_notification.payload')){$d[$n]='sha256:'+(Get-FileHash ('C:\\ProgramData\\ForexListener\\releases\\'+$r+'\\'+$n) -Algorithm SHA256).Hash.ToLower()};$b=[ordered]@{observation='VALID';application_revision=$c.FOREX_M20_APPLICATION_REVISION;configuration_fingerprint=$c.FOREX_M20_CONFIGURATION_FINGERPRINT;payload_sha256=$d;lease=[ordered]@{session_id=$l.session_id;server=$l.server;symbol=$l.symbol;expires_at_utc=$l.expires_at_utc;maximum_trades=$l.maximum_trades;maximum_duration_minutes=$l.maximum_duration_minutes;maximum_open_positions=$l.maximum_open_positions;maximum_notional_per_trade_usd=$l.maximum_notional_per_trade_usd;maximum_cumulative_notional_usd=$l.maximum_cumulative_notional_usd;maximum_loss_per_trade_aud=$l.maximum_loss_per_trade_aud};persistent_risk_policy=$c.FOREX_M20_PERSISTENT_RISK_POLICY;financing_policy=$c.FOREX_M20_FINANCING_POLICY}}catch{};[pscustomobject]@{captured_at_utc=(Get-Date).ToUniversalTime().ToString('o');task_state=$t.State.ToString();last_result=$i.LastTaskResult;last_run_utc=$i.LastRunTime.ToUniversalTime().ToString('o');logon_type=$t.Principal.LogonType.ToString();maintenance_hold_present=(Test-Path (Join-Path $s 'm20_demo_maintenance_hold.local.json'));deployment_binding=$b;processes=$p}|ConvertTo-Json -Depth 6 -Compress"
+        "$ErrorActionPreference='Stop';$t=Get-ScheduledTask 'Forex-M20-Demo-Listener';$i=Get-ScheduledTaskInfo $t.TaskName;$s='C:\\ProgramData\\ForexListener\\state';$p=@(Get-CimInstance Win32_Process|?{$_.Name -match '^python(w)?\\.exe$' -and $_.CommandLine -like '*ForexListener*'}|%{[pscustomobject]@{process_id=[int]$_.ProcessId;parent_process_id=[int]$_.ParentProcessId;session_id=[int]$_.SessionId}});$b=[ordered]@{observation='UNAVAILABLE'};try{$h=gc -Raw (Join-Path $s 'm20_demo_listener_status.local.json')|ConvertFrom-Json;$r=[string]$h.release_id;if($r -notmatch '^[0-9a-f]{16}$'){throw 'release'};$c=gc -Raw (Join-Path $s 'm20_demo_listener_service.local.json')|ConvertFrom-Json;$l=gc -Raw (Join-Path $s 'm20_demo_session.local.json')|ConvertFrom-Json;$d=[ordered]@{};foreach($n in @('m20_demo_listener_service.payload','m20_demo_trading_session.payload','m20_postgres_audit_bridge.payload','m20_discord_trade_notification.payload')){$d[$n]='sha256:'+(Get-FileHash ('C:\\ProgramData\\ForexListener\\releases\\'+$r+'\\'+$n) -Algorithm SHA256).Hash.ToLower()};$b=[ordered]@{observation='VALID';application_revision=$c.FOREX_M20_APPLICATION_REVISION;configuration_fingerprint=$c.FOREX_M20_CONFIGURATION_FINGERPRINT;payload_sha256=$d;lease=[ordered]@{session_id=$l.session_id;server=$l.server;symbol=$l.symbol;expires_at_utc=$l.expires_at_utc;maximum_trades=$l.maximum_trades;maximum_duration_minutes=$l.maximum_duration_minutes;maximum_open_positions=$l.maximum_open_positions;maximum_notional_per_trade_usd=$l.maximum_notional_per_trade_usd;maximum_cumulative_notional_usd=$l.maximum_cumulative_notional_usd;maximum_loss_per_trade_aud=$l.maximum_loss_per_trade_aud};persistent_risk_policy=$c.FOREX_M20_PERSISTENT_RISK_POLICY;financing_policy=$c.FOREX_M20_FINANCING_POLICY}}catch{};$fail=@(Get-Content (Join-Path $s 'm20_demo_listener_failures.local.jsonl') -Tail 3 -ea SilentlyContinue|%{try{$_|ConvertFrom-Json|Select-Object captured_at_utc,release_id,exception_type,errno,winerror,frames}catch{}});[pscustomobject]@{failure_records=$fail;interactive_sessions=@(Get-Process explorer -ea SilentlyContinue|Select-Object SessionId);task_user=$t.Principal.UserId;captured_at_utc=(Get-Date).ToUniversalTime().ToString('o');task_state=$t.State.ToString();last_result=$i.LastTaskResult;last_run_utc=$i.LastRunTime.ToUniversalTime().ToString('o');logon_type=$t.Principal.LogonType.ToString();maintenance_hold_present=(Test-Path (Join-Path $s 'm20_demo_maintenance_hold.local.json'));deployment_binding=$b;processes=$p}|ConvertTo-Json -Depth 6 -Compress"
     )
 
 
@@ -1180,6 +1197,12 @@ OPERATIONS: dict[str, Operation] = {
         "Export the one retained full GOMarketsMU-Demo EURUSD M20 assessment without starting, restarting, or trading.",
         powershell_command=_m20_listener_latest_assessment_command(),
     ),
+    "m33_broker_pnl_collect": Operation(
+        "m33_broker_pnl_collect",
+        "Collect all retained Demo broker deals into the P&L journal using the prepared release; no order path or listener start.",
+        powershell_command=_m33_broker_pnl_collect_command(),
+        timeout_seconds=150,
+    ),
     "m20_listener_held_readiness_assessment": Operation(
         "m20_listener_held_readiness_assessment",
         "Run one release-bound GOMarketsMU-Demo risk/exposure readiness evaluation only while held; it has no order path.",
@@ -1393,20 +1416,20 @@ def _m20_listener_runner_stage_command(index: int) -> str:
         + (ROOT / "t480" / "m20_discord_trade_notification.py").read_bytes()
     ).hexdigest()[:16]
     encoded = base64.b64encode(source).decode("ascii")
-    # Ninety-six fixed fragments keep the fully encoded SSH command below the
+    # One hundred and four fixed fragments keep the fully encoded SSH command below the
     # hard 7,500-character T480 envelope.  Eighty was no longer sufficient
     # after the listener-owned runtime-binding addition.
-    parts = 98
+    parts = 104
     chunk_size = ((len(encoded) + (parts * 4) - 1) // (parts * 4)) * 4
     chunks = tuple(encoded[offset:offset + chunk_size] for offset in range(0, len(encoded), chunk_size))
     prefix = "$ErrorActionPreference='Stop';$root='C:\\ProgramData\\ForexListener\\releases\\" + release_id + "';New-Item -ItemType Directory -Force $root|Out-Null;"
     if index <= parts:
-        return prefix + "[IO.File]::WriteAllText((Join-Path $root 'm20_demo_trading_session.part" + f"{index:02d}" + "'),'" + chunks[index - 1] + "',(New-Object Text.UTF8Encoding($false))); [pscustomobject]@{stage=" + str(index) + ";ok=$true}|ConvertTo-Json -Compress"
+        return prefix + "[IO.File]::WriteAllText((Join-Path $root 'm20_demo_trading_session.part" + f"{index:03d}" + "'),'" + chunks[index - 1] + "',(New-Object Text.UTF8Encoding($false))); [pscustomobject]@{stage=" + str(index) + ";ok=$true}|ConvertTo-Json -Compress"
     raise ValueError("M20 listener runner stage index is invalid")
 
 
-for _index in range(1, 99):
-    _final = _index == 98
+for _index in range(1, 105):
+    _final = _index == 104
     OPERATIONS[f"m20_listener_runner_stage_{_index}"] = Operation(
         f"m20_listener_runner_stage_{_index}",
         ("Stage and verify" if _final else "Stage") + f" fixed M20 listener runner payload part {_index}.",
@@ -1426,8 +1449,8 @@ OPERATIONS["m20_listener_runner_verify"] = Operation(
         "$ErrorActionPreference='Stop'; $base='C:\\ProgramData\\ForexListener'; "
         "$root=Join-Path $base 'releases\\" + _runner_release_id + "'; "
         "$file=Join-Path $root 'm20_demo_trading_session.payload'; "
-        "$fragments=@(Get-ChildItem -LiteralPath $root|Where-Object {$_.Name -match '^m20_demo_trading_session\\.part\\d{2}$'}|Sort-Object Name|ForEach-Object {$_.FullName}); "
-        "if ($fragments.Count -ne 98) { throw ('M20 listener runner fragments are incomplete: '+$fragments.Count) }; "
+        "$fragments=@(Get-ChildItem -LiteralPath $root|Where-Object {$_.Name -match '^m20_demo_trading_session\\.part\\d{3}$'}|Sort-Object Name|ForEach-Object {$_.FullName}); "
+        "if ($fragments.Count -ne 104) { throw ('M20 listener runner fragments are incomplete: '+$fragments.Count) }; "
         "$encoded=(($fragments|ForEach-Object {[IO.File]::ReadAllText($_)}) -join ''); "
         "[IO.File]::WriteAllBytes($file,[Convert]::FromBase64String($encoded)); "
         "if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -ne '" + _runner_source_digest + "') { throw 'M20 listener runner staged source hash failed' }; "
