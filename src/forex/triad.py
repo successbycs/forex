@@ -111,6 +111,11 @@ def _verifier_paths(root: Path, milestone: dict[str, Any]) -> list[str]:
             "scripts/m33_pro_forma_evidence.py",
             "scripts/postgres_pgvector_adapter.py",
             "scripts/m20_trade_ledger_dashboard.py",
+            "scripts/m33_daily_pnl_report.py",
+            "scripts/m33_daily_pnl_web.py",
+            "scripts/m33_daily_pnl_email.py",
+            "sql/migrations/028_m33_daily_commission_coverage.sql",
+            "tests/test_m33_daily_pnl_report.py",
             "scripts/forex_milestones.py",
         })
     commands = milestone["verification_commands"] + [

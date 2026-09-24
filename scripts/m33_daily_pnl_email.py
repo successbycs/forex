@@ -3,7 +3,10 @@
 from __future__ import annotations
 import argparse
 from datetime import date
-from scripts.m33_daily_pnl_report import fetch_day, render
+try:
+    from scripts.m33_daily_pnl_report import fetch_day, render
+except ModuleNotFoundError:  # direct execution from scripts/
+    from m33_daily_pnl_report import fetch_day, render
 RECIPIENT='pa@successbycs.com'
 def render_email(report:dict)->tuple[str,str]:
  text=render(report); return text, '<pre>'+text.replace('&','&amp;').replace('<','&lt;')+'</pre>'

@@ -4191,14 +4191,15 @@
             "-m",
             "pytest",
             "-q",
-            "tests/milestones/test_m33.py"
+            "tests/milestones/test_m33.py",
+            "tests/test_m33_daily_pnl_report.py"
           ]
         }
       ],
       "real_world_proof": {
         "real_world_execution": true,
         "provenance_assurance": "SELF_ATTESTED_INTEGRITY",
-        "surface": "fixed PostgreSQL commission-adjusted Demo P&L projection and read-only terminal ledger",
+        "surface": "fixed PostgreSQL commission-adjusted Demo P&L coverage, terminal report, loopback webpage, and email preview",
         "capture_command": [
           "bash",
           "scripts/capture_m33_evidence.sh"

@@ -27,6 +27,12 @@ REQUIRED_ARTIFACTS = frozenset({
     "m33-refresh-stage.json",
     "m33-refresh-apply.json",
     "terminal-ledger.txt",
+    "daily-coverage.json",
+    "m33-daily-stage.json",
+    "m33-daily-apply.json",
+    "daily-terminal-report.txt",
+    "daily-web.html",
+    "daily-email-preview.txt",
     "summary.txt",
 })
 REQUIRED_MANIFEST_KEYS = frozenset({
@@ -46,8 +52,9 @@ REQUIRED_MANIFEST_KEYS = frozenset({
     "artifacts",
 })
 REQUIRED_ARTIFACT_KEYS = frozenset({"path", "sha256"})
-SURFACE = "fixed PostgreSQL commission-adjusted Demo P&L projection and read-only terminal ledger"
-OPERATION = "fixed M33 PostgreSQL schema/projection verification and read-only terminal render"
+SURFACE = "fixed PostgreSQL commission-adjusted Demo P&L coverage, terminal report, loopback webpage, and email preview"
+OPERATION = "fixed M33 PostgreSQL coverage schema/read verification and read-only operator render"
+DAILY_EVIDENCE_DATE = "2026-09-23"
 REDACTION = "No credentials, account balances, open-position details, order actions, or MT5 settings are retained."
 
 
@@ -100,6 +107,15 @@ def capture(bundle: Path) -> None:
         apply = run(sys.executable, "scripts/postgres_pgvector_adapter.py", "forex-m33-apply-pro-forma-commission-schema", "--approve")
         refresh_stage = run(sys.executable, "scripts/postgres_pgvector_adapter.py", "forex-m33-stage-pro-forma-commission-refresh-schema", "--approve")
         refresh_apply = run(sys.executable, "scripts/postgres_pgvector_adapter.py", "forex-m33-apply-pro-forma-commission-refresh-schema", "--approve")
+        daily_coverage = run(sys.executable, "scripts/postgres_pgvector_adapter.py", "forex-m33-daily-commission-coverage-summary", "--date", DAILY_EVIDENCE_DATE)
+        daily_stage = run(sys.executable, "scripts/postgres_pgvector_adapter.py", "forex-m33-stage-daily-commission-coverage-schema", "--approve")
+        daily_apply = run(sys.executable, "scripts/postgres_pgvector_adapter.py", "forex-m33-apply-daily-commission-coverage-schema", "--approve")
+        daily_terminal = run(sys.executable, "scripts/m33_daily_pnl_report.py", "--date", DAILY_EVIDENCE_DATE, "--once")
+        sys.path.insert(0, str(ROOT))
+        from scripts.m33_daily_pnl_report import fetch_day
+        from scripts.m33_daily_pnl_web import render_html
+        daily_web = render_html(fetch_day(__import__("datetime").date.fromisoformat(DAILY_EVIDENCE_DATE))).encode()
+        daily_email = run(sys.executable, "scripts/m33_daily_pnl_email.py", "--date", DAILY_EVIDENCE_DATE)
         write_new(bundle / "revision.txt", revision)
         write_new(bundle / "milestone-status.json", status)
         write_new(bundle / "m33-verify.json", verify)
@@ -111,6 +127,12 @@ def capture(bundle: Path) -> None:
         write_new(bundle / "m33-refresh-stage.json", refresh_stage)
         write_new(bundle / "m33-refresh-apply.json", refresh_apply)
         write_new(bundle / "terminal-ledger.txt", _terminal_render())
+        write_new(bundle / "daily-coverage.json", daily_coverage)
+        write_new(bundle / "m33-daily-stage.json", daily_stage)
+        write_new(bundle / "m33-daily-apply.json", daily_apply)
+        write_new(bundle / "daily-terminal-report.txt", daily_terminal)
+        write_new(bundle / "daily-web.html", daily_web)
+        write_new(bundle / "daily-email-preview.txt", daily_email)
         captured = datetime.now(timezone.utc).replace(microsecond=0)
         summary = (f"{MARKER}\n"
                    "Demo-only closed-trade commission comparison; no order, risk, account or MT5 setting changed.\n").encode()
@@ -217,6 +239,8 @@ def verify(bundle: Path) -> None:
         ("m33-apply.json", "forex_m33_apply_pro_forma_commission_schema"),
         ("m33-refresh-stage.json", "forex_m33_stage_pro_forma_commission_refresh_schema"),
         ("m33-refresh-apply.json", "forex_m33_apply_pro_forma_commission_refresh_schema"),
+        ("m33-daily-stage.json", "forex_m33_stage_daily_commission_coverage_schema"),
+        ("m33-daily-apply.json", "forex_m33_apply_daily_commission_coverage_schema"),
     ):
         validate_receipt(bundle, name, operation)
     database = json.loads((bundle / "m33-verify.json").read_text())
@@ -230,6 +254,23 @@ def verify(bundle: Path) -> None:
     lifecycle = json.loads(json.loads((bundle / "m20-lifecycle.json").read_text())["result"]["stdout"])
     lifecycle_by_proposal = {row.get("proposal_id"): row for row in lifecycle}
     require(all(row["proposal_id"] in lifecycle_by_proposal and decimal(row["actual_broker_net_aud"]) == decimal(lifecycle_by_proposal[row["proposal_id"]]["realized_pnl_account"]) and decimal(row["actual_broker_commission_aud"]) == decimal(lifecycle_by_proposal[row["proposal_id"]]["commission_account"]) for row in projection), "projection does not match retained broker lifecycle values")
+    daily = json.loads(json.loads((bundle / "daily-coverage.json").read_text())["result"]["stdout"])
+    require(daily["date"] == DAILY_EVIDENCE_DATE, "wrong daily coverage date")
+    require(daily["closed_outcome_count"] == len(daily["rows"]), "daily coverage omits a closed outcome")
+    require(daily["closed_outcome_count"] > 0, "daily coverage has no closed outcomes")
+    for row in daily["rows"]:
+        require(row["coverage_status"] in ("APPLIED", "UNAVAILABLE"), "invalid daily coverage status")
+        if row["coverage_status"] == "APPLIED":
+            require(row["unavailable_reason"] is None, "applied row has unavailable reason")
+            require(decimal(row["commission_adjusted_pnl_aud"]) == decimal(row["actual_broker_net_aud"]) - decimal(row["actual_broker_commission_aud"]) + decimal(row["expected_round_trip_commission_aud"]), "daily adjusted P&L equation failed")
+        else:
+            require(row["unavailable_reason"] is not None and row["expected_round_trip_commission_aud"] is None and row["commission_adjusted_pnl_aud"] is None, "unavailable row is unsafe")
+    daily_terminal = (bundle / "daily-terminal-report.txt").read_text()
+    daily_web = (bundle / "daily-web.html").read_text()
+    daily_email = (bundle / "daily-email-preview.txt").read_text()
+    for rendered in (daily_terminal, daily_web, daily_email):
+        require(DAILY_EVIDENCE_DATE in rendered and "Actual" in rendered, "daily operator render is incomplete")
+    require("ASSUMED GO Plus+ AUD" in daily_web and "Adjusted P&amp;L" in daily_web, "daily webpage labels are incomplete")
     terminal = (bundle / "terminal-ledger.txt").read_text()
     require("Actual broker P&L:" in terminal and "Commission-adjusted Demo P&L — GO Plus+ AUD assumption:" in terminal, "terminal comparison label missing")
     require(MARKER in (bundle / "summary.txt").read_text(), "M33 success marker missing")

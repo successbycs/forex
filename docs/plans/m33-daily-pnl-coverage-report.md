@@ -55,10 +55,9 @@ risk change, or mark-to-market calculation for an open position.
   fixed adapter, and terminal dashboard contracts.
 - [x] 2026-09-24: Chris authorised reopening M33 for all closed-outcome
   coverage and the daily operator report.
-- [ ] Add the additive PostgreSQL coverage migration and fixed adapter actions.
-- [ ] Add the read-only report command, local web view, and reviewed email delivery.
-- [ ] Deploy through the fixed adapter, collect fresh proof, complete independent
-  review, and obtain a new human signoff.
+- [x] 2026-09-24: deployed the additive coverage migration and fixed stage/apply/read adapter actions.
+- [x] Added and verified the read-only terminal report, loopback web view, and non-sending email preview against the deployed selected-day coverage report. Email delivery remains intentionally unconfigured; its preview is the accepted M33 delivery-design surface.
+- [ ] Collect fresh bound proof, complete independent review, and obtain a new human signoff.
 
 ## Surprises & Discoveries
 
@@ -204,8 +203,7 @@ The operator starts it locally:
 
     python3 scripts/m33_daily_pnl_web.py --port 8044
 
-Then opens `http://127.0.0.1:8044/?date=2026-09-23`. The page should show the
-same rows and totals as `m33_daily_pnl_report.py --date 2026-09-23 --once`.
+Then opens `http://127.0.0.1:8044/?date=2026-09-23`. The page provides a date picker and fixed `/report?date=YYYY-MM-DD` route, and shows the same rows and totals as `m33_daily_pnl_report.py --date 2026-09-23 --once`.
 
 Email delivery is a second, non-authoritative channel. Create
 `scripts/m33_daily_pnl_email.py` to render the same report as plain text and
@@ -313,8 +311,20 @@ must not be committed.
 ## Outcomes & Retrospective
 
 M33 was reopened to `NEEDS_FIX` on 2026-09-24 after Chris authorised this
-expanded contract. No coverage migration, report, webpage, email configuration,
-or email delivery exists yet.
+expanded contract. The additive coverage migration, selected-day terminal report, loopback webpage, and non-sending email preview are deployed or verified. Fresh bound evidence, independent review, and fresh signoff remain.
+
+## Deferred follow-up: live execution-event logging
+
+Chris requested a future operator-visible execution log. It is deliberately
+deferred from this P&L reporting plan. The future task will add a read-only,
+timestamped event stream for listener assessment, decision, submission, monitor,
+and reconciliation events, with source time, proposal/attempt identity, and
+safe failure detail. It must not alter listener execution, generate a second
+worker, expose credentials, or make a heartbeat look like trading permission.
+Its design must first establish the fixed retained event source, redaction
+rules, retention period, browser access boundary, and testable stale/error
+behaviour. It requires separate scope and formal-authority review before
+implementation.
 
 Revision note: created 2026-09-24 in response to Chris’s request for an
 operator-visible daily report backed by deterministic PostgreSQL calculations.
@@ -325,3 +335,5 @@ Revision note: M33 contract amended and implementation authorised on 2026-09-24
 for all recorded closed-outcome coverage and the operator delivery surfaces.
 Revision note: clarified 2026-09-24 that every operator view is on-demand and
 available at any time of day; no end-of-day batch is required.
+Revision note: added 2026-09-24 deferred execution-event logging follow-up at
+Chris's request; it is not part of the M33 P&L-report delivery scope.
