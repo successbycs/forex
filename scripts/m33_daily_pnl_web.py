@@ -20,6 +20,9 @@ def render_html(report: dict) -> str:
             html.escape(str(row['closed_at_utc'])),
             html.escape(str(row['proposal_id'])),
             html.escape(money(row['actual_broker_net_aud'])),
+            html.escape(money(row['actual_broker_commission_aud'])),
+            html.escape(money(row['broker_fee_aud'])),
+            html.escape(money(row['broker_swap_aud'])),
             html.escape(money(row['expected_round_trip_commission_aud']) if row['coverage_status'] == 'APPLIED' else 'UNAVAILABLE: ' + row['unavailable_reason']),
             html.escape(money(row['commission_adjusted_pnl_aud'])),
         ) for row in report['rows']
@@ -31,7 +34,7 @@ def render_html(report: dict) -> str:
 <h1>M33 Daily Demo P&amp;L — {selected} NZST</h1>
 <form action="/report" method="get"><label>Auckland day <input name="date" type="date" value="{selected}" required></label><button type="submit">Show report</button></form>
 <p>Generated {generated}. Profile: {html.escape(str(profile))}. Actual broker P&amp;L is the record. Adjusted P&amp;L uses the ASSUMED GO Plus+ AUD profile.</p>
-<table border="1"><tr><th>Closed</th><th>Trade</th><th>Actual broker P&amp;L</th><th>Expected commission/status</th><th>Adjusted P&amp;L</th></tr>{rows}</table>
+<table border="1"><tr><th>Closed</th><th>Trade</th><th>Actual broker P&amp;L</th><th>Broker commission</th><th>Broker fee</th><th>Broker swap</th><th>Expected commission/status</th><th>Adjusted P&amp;L</th></tr>{rows}</table>
 <p>Closed: {report['closed_outcome_count']}; Applied: {report['applied_count']}; Unavailable: {report['unavailable_count']}</p>
 </body></html>'''
 

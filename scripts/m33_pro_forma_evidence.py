@@ -269,7 +269,7 @@ def verify(bundle: Path) -> None:
     daily_web = (bundle / "daily-web.html").read_text()
     daily_email = (bundle / "daily-email-preview.txt").read_text()
     for rendered in (daily_terminal, daily_web, daily_email):
-        require(DAILY_EVIDENCE_DATE in rendered and "Actual" in rendered, "daily operator render is incomplete")
+        require(DAILY_EVIDENCE_DATE in rendered and "Actual" in rendered and "commission" in rendered.lower() and "fee" in rendered.lower() and "swap" in rendered.lower(), "daily operator render is incomplete")
     require("ASSUMED GO Plus+ AUD" in daily_web and "Adjusted P&amp;L" in daily_web, "daily webpage labels are incomplete")
     terminal = (bundle / "terminal-ledger.txt").read_text()
     require("Actual broker P&L:" in terminal and "Commission-adjusted Demo P&L — GO Plus+ AUD assumption:" in terminal, "terminal comparison label missing")
