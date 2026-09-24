@@ -208,6 +208,12 @@ do not deploy or expose a partial pro-forma number.
 - 2026-09-23: the terminal `Fees` value omitted `fee_account`. M33 corrects
   that display to broker commission plus fee plus swap without altering actual
   ledger values.
+- 2026-09-24: independent closeout review found that the standalone evidence
+  verifier checked content hashes but did not fully bind its manifest contract.
+  The verifier now rejects unexpected manifest fields/files, path traversal,
+  duplicate or incomplete artifact lists, stale or future captures, and
+  revision/configuration binding drift. Targeted negative-path tests cover the
+  contract before fresh evidence is collected.
 
 ## Decision log
 

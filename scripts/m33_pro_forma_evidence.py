@@ -15,6 +15,36 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 MARKER = "FOREX_M33_PRO_FORMA_COMMISSION_OK"
+REQUIRED_ARTIFACTS = frozenset({
+    "revision.txt",
+    "milestone-status.json",
+    "m33-verify.json",
+    "m33-projection.json",
+    "m20-lifecycle.json",
+    "postgres-preflight.json",
+    "terminal-ledger.txt",
+    "summary.txt",
+})
+REQUIRED_MANIFEST_KEYS = frozenset({
+    "schema_version",
+    "milestone_id",
+    "captured_at",
+    "git_revision",
+    "configuration_fingerprint",
+    "surface",
+    "operation",
+    "expected_result",
+    "observed_result",
+    "exit_code",
+    "dirty_worktree",
+    "summary",
+    "redactions",
+    "artifacts",
+})
+REQUIRED_ARTIFACT_KEYS = frozenset({"path", "sha256"})
+SURFACE = "fixed PostgreSQL commission-adjusted Demo P&L projection and read-only terminal ledger"
+OPERATION = "fixed M33 PostgreSQL schema/projection verification and read-only terminal render"
+REDACTION = "No credentials, account balances, open-position details, order actions, or MT5 settings are retained."
 
 
 def run(*argv: str) -> bytes:
@@ -80,14 +110,14 @@ def capture(bundle: Path) -> None:
             "captured_at": captured.isoformat().replace("+00:00", "Z"),
             "git_revision": revision.decode().strip(),
             "configuration_fingerprint": json.loads(status)["configuration_fingerprint"],
-            "surface": "fixed PostgreSQL commission-adjusted Demo P&L projection and read-only terminal ledger",
-            "operation": "fixed M33 PostgreSQL schema/projection verification and read-only terminal render",
+            "surface": SURFACE,
+            "operation": OPERATION,
             "expected_result": MARKER,
             "observed_result": MARKER,
             "exit_code": 0,
             "dirty_worktree": False,
             "summary": MARKER,
-            "redactions": ["No credentials, account balances, open-position details, order actions, or MT5 settings are retained."],
+            "redactions": [REDACTION],
             "artifacts": [{"path": name, "sha256": digest(bundle / name)} for name in names],
         }
         write_new(bundle / "manifest.json", json.dumps(manifest, indent=2, sort_keys=True).encode() + b"\n")
@@ -101,17 +131,63 @@ def require(condition: bool, message: str) -> None:
         raise RuntimeError(message)
 
 
+def validate_manifest(bundle: Path, manifest: object, *, current_revision: str,
+                      current_fingerprint: str, now: datetime | None = None) -> None:
+    """Fail closed unless the bundle is exactly the M33 capture contract."""
+    require(isinstance(manifest, dict), "M33 manifest must be an object")
+    require(set(manifest) == REQUIRED_MANIFEST_KEYS, "M33 manifest keys do not match the capture contract")
+    require(manifest["schema_version"] == "1.0.0", "wrong M33 manifest schema")
+    require(manifest["milestone_id"] == "M33", "wrong milestone")
+    require(manifest["surface"] == SURFACE, "wrong M33 evidence surface")
+    require(manifest["operation"] == OPERATION, "wrong M33 evidence operation")
+    require(manifest["expected_result"] == MARKER and manifest["observed_result"] == MARKER,
+            "M33 manifest success markers do not match")
+    require(manifest["exit_code"] == 0 and type(manifest["exit_code"]) is int,
+            "M33 manifest exit code is not successful")
+    require(manifest["dirty_worktree"] is False, "M33 capture was not clean")
+    require(manifest["summary"] == MARKER, "M33 manifest summary does not match")
+    require(manifest["redactions"] == [REDACTION], "M33 manifest redaction contract does not match")
+    captured = datetime.fromisoformat(manifest["captured_at"].replace("Z", "+00:00"))
+    require(captured.tzinfo is not None, "M33 capture timestamp has no timezone")
+    age = (now or datetime.now(timezone.utc)) - captured.astimezone(timezone.utc)
+    require(timedelta(0) <= age <= timedelta(hours=24), "M33 evidence exceeds 24-hour freshness")
+    require(manifest["git_revision"] == current_revision, "capture revision differs from current source")
+    require(manifest["configuration_fingerprint"] == current_fingerprint,
+            "capture configuration differs from current configuration")
+    artifacts = manifest["artifacts"]
+    require(isinstance(artifacts, list), "M33 manifest artifacts must be a list")
+    names: list[str] = []
+    for artifact in artifacts:
+        require(isinstance(artifact, dict) and set(artifact) == REQUIRED_ARTIFACT_KEYS,
+                "M33 artifact entry does not match the capture contract")
+        name, checksum = artifact["path"], artifact["sha256"]
+        require(isinstance(name, str) and isinstance(checksum, str), "M33 artifact entry has invalid types")
+        relative = Path(name)
+        require(not relative.is_absolute() and len(relative.parts) == 1 and relative.name == name,
+                f"invalid M33 artifact path: {name}")
+        require(len(checksum) == 64 and all(char in "0123456789abcdef" for char in checksum),
+                f"invalid M33 artifact digest: {name}")
+        names.append(name)
+    require(len(names) == len(set(names)), "M33 manifest has duplicate artifact paths")
+    require(set(names) == REQUIRED_ARTIFACTS, "M33 manifest artifact set does not match the capture contract")
+    actual_files = {path.name for path in bundle.iterdir() if path.is_file()}
+    require(actual_files == REQUIRED_ARTIFACTS | {"manifest.json"}, "M33 bundle has unexpected or missing files")
+    for artifact in artifacts:
+        path = bundle / artifact["path"]
+        require(path.is_file() and digest(path) == artifact["sha256"],
+                f"artifact hash mismatch: {artifact['path']}")
+
+
 def verify(bundle: Path) -> None:
     bundle = bundle.resolve()
     manifest = json.loads((bundle / "manifest.json").read_text())
-    require(manifest.get("schema_version") == "1.0.0", "wrong M33 manifest schema")
-    require(manifest.get("milestone_id") == "M33", "wrong milestone")
-    captured = datetime.fromisoformat(manifest["captured_at"].replace("Z", "+00:00"))
-    require(datetime.now(timezone.utc) - captured <= timedelta(hours=24), "M33 evidence exceeds 24-hour freshness")
-    require(manifest.get("git_revision") == run("git", "rev-parse", "HEAD").decode().strip(), "capture revision differs from current source")
-    for artifact in manifest["artifacts"]:
-        path = bundle / artifact["path"]
-        require(path.is_file() and digest(path) == artifact["sha256"], f"artifact hash mismatch: {artifact['path']}")
+    current_status = json.loads(run(sys.executable, "scripts/forex_milestones.py", "status", "--json"))
+    validate_manifest(
+        bundle,
+        manifest,
+        current_revision=run("git", "rev-parse", "HEAD").decode().strip(),
+        current_fingerprint=current_status["configuration_fingerprint"],
+    )
     database = json.loads((bundle / "m33-verify.json").read_text())
     output = database["result"]["stdout"]
     for token in ("FOREX_M33_PRO_FORMA_COMMISSION_DB_OK", "profile=true", "immutable=true", "refresh_trigger=true", "formula=true", "rounding=true", "source_bound=true", "open_positions_included=false"):
