@@ -44,7 +44,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-24T02:56:55Z",
+  "last_updated_at": "2026-09-24T03:49:33Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -4201,9 +4201,9 @@
       "status": "AWAITING_REAL_WORLD_PROOF",
       "started_at": "2026-09-23T03:47:40Z",
       "implementation_finished_at": "2026-09-23T04:03:35Z",
-      "verification_passed_at": "2026-09-24T02:56:55Z",
-      "real_world_proof_captured_at": "2026-09-24T02:56:54Z",
-      "human_signed_off_at": null,
+      "verification_passed_at": "2026-09-24T03:07:15Z",
+      "real_world_proof_captured_at": "2026-09-24T03:07:14Z",
+      "human_signed_off_at": "2026-09-24T03:49:33Z",
       "first_proven_at": null,
       "proven_at": null,
       "last_validated_at": null,
@@ -4287,12 +4287,21 @@
           "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
           "git_revision": "2d058fe6ea8ad91a9a1061eb3bd75c457515ef29",
           "summary": "FOREX_M33_PRO_FORMA_COMMISSION_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M33/closeout-20260924-open-position-invariant/manifest.json",
+          "manifest_sha256": "c3813d07db3ead9caa9e16bbcf95c889d8cc2b1f436841f97a065ca9dcdefa7b",
+          "captured_at": "2026-09-24T03:07:14Z",
+          "recorded_at": "2026-09-24T03:07:15Z",
+          "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+          "git_revision": "86009e768423bb635f26428e4fad1c3a29665ea0",
+          "summary": "FOREX_M33_PRO_FORMA_COMMISSION_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-24T02:56:55Z",
-        "git_revision": "2d058fe6ea8ad91a9a1061eb3bd75c457515ef29",
+        "recorded_at": "2026-09-24T03:07:15Z",
+        "git_revision": "86009e768423bb635f26428e4fad1c3a29665ea0",
         "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
         "commands": [
           {
@@ -4304,8 +4313,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M33/20260924T025655Z/governance.stdout.txt",
-            "stderr": "runs/verification/M33/20260924T025655Z/governance.stderr.txt"
+            "stdout": "runs/verification/M33/20260924T030715Z/governance.stdout.txt",
+            "stderr": "runs/verification/M33/20260924T030715Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -4318,13 +4327,41 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M33/20260924T025655Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M33/20260924T025655Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M33/20260924T030715Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M33/20260924T030715Z/milestone-tests.stderr.txt"
           }
         ]
       },
-      "human_signoff": null,
-      "blockers": []
+      "human_signoff": {
+        "operator": "Chris",
+        "decision": "APPROVE",
+        "note": "Chris reviewed the M33 bound evidence, outputs, independent review findings, and Demo-only limitation; approves closeout.",
+        "inputs_reviewed": true,
+        "outputs_reviewed": true,
+        "git_revision": "86009e768423bb635f26428e4fad1c3a29665ea0",
+        "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+        "evidence_manifest_sha256": "c3813d07db3ead9caa9e16bbcf95c889d8cc2b1f436841f97a065ca9dcdefa7b",
+        "verification_recorded_at": "2026-09-24T03:07:15Z",
+        "recorded_at": "2026-09-24T03:49:33Z"
+      },
+      "blockers": [],
+      "triad_recommendation": {
+        "path": "runs/triad/M33/M33-20260924T030726Z-86009e76/recommendation.json",
+        "sha256": "0359bc0e20a323ca934241cfbcc0ed359c5886879d3494169ac86b7baec8562b",
+        "summary_path": "runs/triad/M33/M33-20260924T030726Z-86009e76/review-summary.md",
+        "summary_sha256": "aaf365c187b56545f184b33196c9f0c6cffcc7390afae7da8ceac39d3479502e",
+        "review_cycle_id": "M33-20260924T030726Z-86009e76",
+        "recommendation": "RECOMMEND_COMPLETE",
+        "binding": {
+          "request_sha256": "0a9059232e5b7fd558bdf9f35314bd4fa4b26af886590ae4e566d5c9dd892295",
+          "git_revision": "86009e768423bb635f26428e4fad1c3a29665ea0",
+          "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+          "evidence_manifest_sha256": "c3813d07db3ead9caa9e16bbcf95c889d8cc2b1f436841f97a065ca9dcdefa7b",
+          "verifier_fingerprint": "sha256:b7091ccaa84ea3a86b6365f4db6248431ac66de5da42aa6f2427a08e2da7695d",
+          "milestone_contract_sha256": "0fe1491cc1609975ac2036c9721a2373c2d937f51e49158cfc11cb38c2c99139"
+        },
+        "recorded_at": "2026-09-24T03:14:14Z"
+      }
     }
   }
 }

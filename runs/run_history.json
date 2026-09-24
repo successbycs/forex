@@ -15403,6 +15403,72 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000930",
+      "timestamp": "2026-09-24T03:07:15Z",
+      "milestone_id": "M33",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M33/closeout-20260924-open-position-invariant/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000931",
+      "timestamp": "2026-09-24T03:07:15Z",
+      "milestone_id": "M33",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M33/20260924T030715Z/governance.stdout.txt",
+            "stderr": "runs/verification/M33/20260924T030715Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m33.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M33/20260924T030715Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M33/20260924T030715Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000932",
+      "timestamp": "2026-09-24T03:14:14Z",
+      "milestone_id": "M33",
+      "action": "TRIAD_RECOMMENDATION_RECORDED",
+      "detail": {
+        "path": "runs/triad/M33/M33-20260924T030726Z-86009e76/recommendation.json",
+        "recommendation": "RECOMMEND_COMPLETE"
+      }
+    },
+    {
+      "event_id": "E000933",
+      "timestamp": "2026-09-24T03:49:33Z",
+      "milestone_id": "M33",
+      "action": "HUMAN_SIGNOFF_RECORDED",
+      "detail": {
+        "operator": "Chris",
+        "decision": "APPROVE"
+      }
     }
   ]
 }

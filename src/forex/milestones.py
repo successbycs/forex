@@ -1051,7 +1051,8 @@ def run_cli(args: argparse.Namespace) -> int:
             item["proven_at"] = None
             item["blockers"] = []
         store.state["current_milestone"] = args.id
-        store.state["next_milestone"] = f"M{int(args.id[1:]) + 1}" if args.id != "M32" else None
+        candidate_next_id = f"M{int(args.id[1:]) + 1}"
+        store.state["next_milestone"] = candidate_next_id if candidate_next_id in store.state["milestones"] else None
         store.transition(args.id, "IN_PROGRESS", "MILESTONE_STARTED", {})
     elif args.command == "finish-implementation":
         if item["status"] not in {"IN_PROGRESS", "NEEDS_FIX"}:
@@ -1227,7 +1228,8 @@ def run_cli(args: argparse.Namespace) -> int:
         item["status"] = "PROVEN"
         store.state["last_proven_milestone"] = args.id
         store.state["current_milestone"] = None
-        next_id = f"M{int(args.id[1:]) + 1}" if args.id != "M32" else None
+        candidate_next_id = f"M{int(args.id[1:]) + 1}"
+        next_id = candidate_next_id if candidate_next_id in store.state["milestones"] else None
         store.state["next_milestone"] = next_id
         store.state["implementation_status"] = "PROVEN"
         if next_id and store.milestone_state(next_id)["status"] == "PLANNED":
