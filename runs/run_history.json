@@ -15469,6 +15469,106 @@
         "operator": "Chris",
         "decision": "APPROVE"
       }
+    },
+    {
+      "event_id": "E000934",
+      "timestamp": "2026-09-24T03:50:57Z",
+      "milestone_id": "M33",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M33/closeout-20260924-terminal-transition/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000935",
+      "timestamp": "2026-09-24T03:50:58Z",
+      "milestone_id": "M33",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M33/20260924T035057Z/governance.stdout.txt",
+            "stderr": "runs/verification/M33/20260924T035057Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m33.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M33/20260924T035057Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M33/20260924T035057Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "E000936",
+      "timestamp": "2026-09-24T04:35:36Z",
+      "milestone_id": "M33",
+      "action": "NEEDS_FIX",
+      "detail": {
+        "from": "AWAITING_REAL_WORLD_PROOF",
+        "to": "NEEDS_FIX",
+        "reason": "Chris authorised execution of the daily PostgreSQL-recorded P&L coverage report, loopback operator webpage, and preview-first email delivery design."
+      }
+    },
+    {
+      "event_id": "E000937",
+      "timestamp": "2026-09-24T04:36:13Z",
+      "milestone_id": "M0",
+      "action": "CONFIGURATION_FINGERPRINT_REFRESHED",
+      "detail": {
+        "previous": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+        "current": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+        "invalidated_milestones": [],
+        "preserved_milestones": [
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9",
+          "M10",
+          "M11",
+          "M12",
+          "M13",
+          "M14",
+          "M15",
+          "M17",
+          "M18",
+          "M19",
+          "M21",
+          "M22",
+          "M23",
+          "M24",
+          "M25",
+          "M26",
+          "M27",
+          "M28",
+          "M29",
+          "M30",
+          "M31",
+          "M32"
+        ],
+        "preservation_reason": "Proven milestones remain valid; later configuration changes are recorded but do not automatically invalidate completed work."
+      }
     }
   ]
 }

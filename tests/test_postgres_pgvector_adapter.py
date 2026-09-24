@@ -49,6 +49,9 @@ def test_adapter_exposes_only_fixed_forex_operations():
         "forex-m33-apply-pro-forma-commission-refresh-schema",
         "forex-m33-pro-forma-commission-summary",
         "forex-m33-pro-forma-commission-verify",
+        "forex-m33-stage-daily-commission-coverage-schema",
+        "forex-m33-apply-daily-commission-coverage-schema",
+        "forex-m33-daily-commission-coverage-summary",
     })
     assert postgres_pgvector_adapter.READ_ONLY | postgres_pgvector_adapter.MUTATING == expected
 

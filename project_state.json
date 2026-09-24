@@ -16,7 +16,7 @@
   "live_trading_enabled": false,
   "agent_authority_mode": "DEMO_SESSION_BOUNDED",
   "development_platform": "SuccessByCS AI Lab",
-  "implementation_status": "AWAITING_REAL_WORLD_PROOF",
+  "implementation_status": "NEEDS_FIX",
   "known_blockers": [],
   "verification_status": "NOT_RUN",
   "last_successful_verification": null,
@@ -44,7 +44,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-24T03:49:33Z",
+  "last_updated_at": "2026-09-24T04:36:13Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -4198,11 +4198,11 @@
       }
     },
     "M33": {
-      "status": "AWAITING_REAL_WORLD_PROOF",
+      "status": "NEEDS_FIX",
       "started_at": "2026-09-23T03:47:40Z",
       "implementation_finished_at": "2026-09-23T04:03:35Z",
-      "verification_passed_at": "2026-09-24T03:07:15Z",
-      "real_world_proof_captured_at": "2026-09-24T03:07:14Z",
+      "verification_passed_at": "2026-09-24T03:50:58Z",
+      "real_world_proof_captured_at": "2026-09-24T03:50:56Z",
       "human_signed_off_at": "2026-09-24T03:49:33Z",
       "first_proven_at": null,
       "proven_at": null,
@@ -4296,12 +4296,21 @@
           "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
           "git_revision": "86009e768423bb635f26428e4fad1c3a29665ea0",
           "summary": "FOREX_M33_PRO_FORMA_COMMISSION_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M33/closeout-20260924-terminal-transition/manifest.json",
+          "manifest_sha256": "5cfcadcd58765bd647d76072a31140d4b8703dbc9e7e79fc80aa37305064c2d1",
+          "captured_at": "2026-09-24T03:50:56Z",
+          "recorded_at": "2026-09-24T03:50:57Z",
+          "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+          "git_revision": "55a6870c7cfcdeae49680d3102704a9c4bed9d22",
+          "summary": "FOREX_M33_PRO_FORMA_COMMISSION_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-24T03:07:15Z",
-        "git_revision": "86009e768423bb635f26428e4fad1c3a29665ea0",
+        "recorded_at": "2026-09-24T03:50:58Z",
+        "git_revision": "55a6870c7cfcdeae49680d3102704a9c4bed9d22",
         "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
         "commands": [
           {
@@ -4313,8 +4322,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M33/20260924T030715Z/governance.stdout.txt",
-            "stderr": "runs/verification/M33/20260924T030715Z/governance.stderr.txt"
+            "stdout": "runs/verification/M33/20260924T035057Z/governance.stdout.txt",
+            "stderr": "runs/verification/M33/20260924T035057Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -4327,8 +4336,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M33/20260924T030715Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M33/20260924T030715Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M33/20260924T035057Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M33/20260924T035057Z/milestone-tests.stderr.txt"
           }
         ]
       },
@@ -4344,7 +4353,12 @@
         "verification_recorded_at": "2026-09-24T03:07:15Z",
         "recorded_at": "2026-09-24T03:49:33Z"
       },
-      "blockers": [],
+      "blockers": [
+        {
+          "reason": "Chris authorised execution of the daily PostgreSQL-recorded P&L coverage report, loopback operator webpage, and preview-first email delivery design.",
+          "recorded_at": "2026-09-24T04:35:36Z"
+        }
+      ],
       "triad_recommendation": {
         "path": "runs/triad/M33/M33-20260924T030726Z-86009e76/recommendation.json",
         "sha256": "0359bc0e20a323ca934241cfbcc0ed359c5886879d3494169ac86b7baec8562b",
