@@ -44,7 +44,7 @@
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-24T02:45:52Z",
+  "last_updated_at": "2026-09-24T02:56:55Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -4201,8 +4201,8 @@
       "status": "AWAITING_REAL_WORLD_PROOF",
       "started_at": "2026-09-23T03:47:40Z",
       "implementation_finished_at": "2026-09-23T04:03:35Z",
-      "verification_passed_at": "2026-09-24T02:45:52Z",
-      "real_world_proof_captured_at": "2026-09-24T02:45:51Z",
+      "verification_passed_at": "2026-09-24T02:56:55Z",
+      "real_world_proof_captured_at": "2026-09-24T02:56:54Z",
       "human_signed_off_at": null,
       "first_proven_at": null,
       "proven_at": null,
@@ -4278,12 +4278,21 @@
           "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
           "git_revision": "6e26c1fd76a4c3ddfb54c15978c0b1a527d84921",
           "summary": "FOREX_M33_PRO_FORMA_COMMISSION_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M33/closeout-20260924-deployment-receipts-v2/manifest.json",
+          "manifest_sha256": "3b25dac1eea97a37a12f752c7ecce1cc87359e5eca51351618ad5d37492b549f",
+          "captured_at": "2026-09-24T02:56:54Z",
+          "recorded_at": "2026-09-24T02:56:55Z",
+          "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+          "git_revision": "2d058fe6ea8ad91a9a1061eb3bd75c457515ef29",
+          "summary": "FOREX_M33_PRO_FORMA_COMMISSION_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-24T02:45:52Z",
-        "git_revision": "6e26c1fd76a4c3ddfb54c15978c0b1a527d84921",
+        "recorded_at": "2026-09-24T02:56:55Z",
+        "git_revision": "2d058fe6ea8ad91a9a1061eb3bd75c457515ef29",
         "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
         "commands": [
           {
@@ -4295,8 +4304,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M33/20260924T024552Z/governance.stdout.txt",
-            "stderr": "runs/verification/M33/20260924T024552Z/governance.stderr.txt"
+            "stdout": "runs/verification/M33/20260924T025655Z/governance.stdout.txt",
+            "stderr": "runs/verification/M33/20260924T025655Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -4309,8 +4318,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M33/20260924T024552Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M33/20260924T024552Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M33/20260924T025655Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M33/20260924T025655Z/milestone-tests.stderr.txt"
           }
         ]
       },

@@ -221,7 +221,7 @@ def verify(bundle: Path) -> None:
         validate_receipt(bundle, name, operation)
     database = json.loads((bundle / "m33-verify.json").read_text())
     output = database["result"]["stdout"]
-    for token in ("FOREX_M33_PRO_FORMA_COMMISSION_DB_OK", "profile=true", "immutable=true", "refresh_trigger=true", "formula=true", "rounding=true", "source_bound=true", "open_positions_included=false"):
+    for token in ("FOREX_M33_PRO_FORMA_COMMISSION_DB_OK", "profile=true", "immutable=true", "refresh_trigger=true", "formula=true", "rounding=true", "source_bound=true", "open_position_overlap=false"):
         require(token in output, f"M33 database verification missing {token}")
     projection = json.loads(json.loads((bundle / "m33-projection.json").read_text())["result"]["stdout"])
     decimal = lambda value: Decimal(str(value))

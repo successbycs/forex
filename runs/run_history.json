@@ -15357,6 +15357,52 @@
           }
         ]
       }
+    },
+    {
+      "event_id": "E000928",
+      "timestamp": "2026-09-24T02:56:55Z",
+      "milestone_id": "M33",
+      "action": "REAL_WORLD_EVIDENCE_RECORDED",
+      "detail": {
+        "manifest_path": "runs/evidence/M33/closeout-20260924-deployment-receipts-v2/manifest.json"
+      }
+    },
+    {
+      "event_id": "E000929",
+      "timestamp": "2026-09-24T02:56:55Z",
+      "milestone_id": "M33",
+      "action": "VERIFICATION_RECORDED",
+      "detail": {
+        "passed": true,
+        "commands": [
+          {
+            "id": "governance",
+            "argv": [
+              "python3",
+              "scripts/forex_milestones.py",
+              "validate"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M33/20260924T025655Z/governance.stdout.txt",
+            "stderr": "runs/verification/M33/20260924T025655Z/governance.stderr.txt"
+          },
+          {
+            "id": "milestone-tests",
+            "argv": [
+              "python3",
+              "-m",
+              "pytest",
+              "-q",
+              "tests/milestones/test_m33.py"
+            ],
+            "exit_code": 0,
+            "passed": true,
+            "stdout": "runs/verification/M33/20260924T025655Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M33/20260924T025655Z/milestone-tests.stderr.txt"
+          }
+        ]
+      }
     }
   ]
 }
