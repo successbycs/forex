@@ -119,6 +119,32 @@ def test_catalog_and_adapter_operations_match():
     assert "m20_listener_runner_stage_104" in t480_adapter.OPERATIONS
 
 
+def test_m33_guardian_operations_are_fixed_held_no_order_and_fit_transport_limit():
+    names = sorted(name for name in t480_adapter.OPERATIONS if name.startswith("m33_guardian_"))
+    assert names == [
+        *(f"m33_guardian_guardian_stage_{index}" for index in range(1, 9)),
+        "m33_guardian_guardian_verify", "m33_guardian_install",
+        *(f"m33_guardian_policy_stage_{index}" for index in range(1, 9)),
+        "m33_guardian_policy_verify", "m33_guardian_status",
+    ]
+    from t480_core import build_ssh_command
+    for name in names:
+        command = t480_adapter.OPERATIONS[name].powershell_command or ""
+        assert "order_send" not in command and "MetaTrader5" not in command
+        assert len(build_ssh_command("OEM@192.168.0.210", command, t480_adapter.TRANSPORT_SETTINGS)[-1]) < 7500
+    install = t480_adapter.OPERATIONS["m33_guardian_install"].powershell_command or ""
+    assert "fresh maintenance hold required" in install
+    assert "listener S4U principal required" in install
+    assert "<BootTrigger>" in install
+    assert "<TimeTrigger>" in install
+    assert "<Interval>PT1M</Interval>" in install
+    assert "<Duration>P1D</Duration>" in install
+    assert "<StartWhenAvailable>true</StartWhenAvailable>" in install
+    assert "<ExecutionTimeLimit>PT50S</ExecutionTimeLimit>" in install
+    assert "Register-ScheduledTask -TaskName 'Forex-M33-Trading-Health-Guardian' -Xml $xml" in install
+    assert "FOREX_M33_ENTRY_FENCE_REQUIRED" not in install
+
+
 def test_adapter_emits_the_governed_project_fingerprint_for_evidence_binding():
     fingerprint = t480_adapter.project_configuration_fingerprint()
     assert fingerprint.startswith("sha256:")
@@ -661,6 +687,7 @@ def test_m20_reboot_recovery_protocol_is_fixed_held_only_and_has_no_order_surfac
     assert "held idle monitor required" in command
     assert "flat available Demo account required" in command
     assert "positions_get" in command
+    assert "postboot_release_id" in command and "listener_task_state" in command
     assert "order_send" not in command and "GOMarketsMU-Live" not in command
     assert len(command) < 3000
 
@@ -678,6 +705,7 @@ def test_m20_listener_release_includes_the_fixed_t480_discord_adapter_without_ex
     assert "m20_discord_trade_notification.payload" in prepare
     assert "M20 Discord adapter staged source hash failed" in stage
     assert "FOREX_M20_PERSISTENT_RISK_POLICY" in configure
+    assert "FOREX_M33_ENTRY_FENCE_REQUIRED='true'" in configure
     assert "discord.com/api/webhooks" not in configure
 
 

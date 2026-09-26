@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Forex T480 trading-health local status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observed_at_utc",
+    "boot_id",
+    "release_id",
+    "state",
+    "reasons",
+    "execution_capable",
+    "entry_eligible",
+    "recommended_action",
+    "desired_mode",
+    "managed_mt5_count",
+    "attempts_in_window"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "forex.trading-health-status.v1"
+    },
+    "observed_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "boot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "release_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "state": {
+      "enum": [
+        "STOPPED_BY_OPERATOR",
+        "MONITOR_ONLY",
+        "STARTING",
+        "RECOVERING_LISTENER",
+        "RECOVERING_MT5",
+        "RECOVERY_WAIT_INFLIGHT",
+        "RECONCILING",
+        "READY_FOR_ASSESSMENT",
+        "HEALTHY_NO_SETUP",
+        "BLOCKED_POLICY",
+        "WAITING_MARKET",
+        "BLOCKED_DEPENDENCY",
+        "BLOCKED_SESSION",
+        "BLOCKED_OWNERSHIP",
+        "EXPOSURE_RECOVERY_REQUIRED",
+        "CIRCUIT_OPEN"
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "execution_capable": {
+      "type": "boolean"
+    },
+    "entry_eligible": {
+      "type": "boolean"
+    },
+    "recommended_action": {
+      "type": "string"
+    },
+    "desired_mode": {
+      "enum": [
+        "STOPPED",
+        "MONITOR_ONLY",
+        "RUN_DEMO",
+        null
+      ]
+    },
+    "managed_mt5_count": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "attempts_in_window": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "next_retry_after_s": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "last_assessment_completed_at_utc": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "last_monitor_at_utc": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

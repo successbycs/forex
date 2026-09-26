@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Forex T480 expiring entry-readiness permit (not order authority)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "boot_id",
+    "generation",
+    "issued_at_utc",
+    "expires_at_utc",
+    "guardian_id"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "forex.trading-health-permit.v1"
+    },
+    "boot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generation": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "issued_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "guardian_id": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

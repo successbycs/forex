@@ -513,6 +513,9 @@ def _load_environment() -> None:
     optional = {
         "FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED", "FOREX_M20_DISCORD_WEBHOOK_URL",
         "FOREX_M20_ACCOUNT_EXECUTION_PROFILE",
+        # A newly staged listener enables the runner's fail-closed local
+        # guardian permit check.  Older held releases remain readable.
+        "FOREX_M33_ENTRY_FENCE_REQUIRED",
     }
     if not isinstance(values, dict) or not required <= set(values) or not set(values) <= required | optional:
         raise SystemExit("M20 listener service local configuration fields are invalid")

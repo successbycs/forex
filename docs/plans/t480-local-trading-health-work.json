@@ -1,0 +1,144 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "T480-LOCAL-TRADING-HEALTH",
+  "authorization": "Chris explicitly instructed execution of the registered M33.1-M33.4 MVP waves after design review and registry registration. Begin with the no-order unattended-runtime feasibility gate; existing Demo controls remain binding. Automatic sign-in requires its separate credential/security decision. No commit, push, Live action or formal closeout is authorised.",
+  "markdown_plan": "docs/plans/t480-local-trading-health.md",
+  "items": [
+    {
+      "id": "evidence",
+      "title": "Inspect incident, existing runtime and primary documentation",
+      "state": "DONE",
+      "requires": [],
+      "evidence": [
+        "Retained September24 listener/Windows/MT5/risk diagnostics, existing single-client contract and Microsoft/MetaQuotes documentation summarised in docs/design/t480-local-health-evidence.md."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "design",
+      "title": "Specify local health, safe recovery, tradeoffs and proof",
+      "state": "DONE",
+      "requires": [
+        "evidence"
+      ],
+      "evidence": [
+        "ExecPlan defines guardian ownership, desired state, expiring fence, zero/one/multiple client decisions, session feasibility, strengths/weaknesses, fault tests and proposed milestone amendment."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "astra-review",
+      "title": "Independently review and repair the design package",
+      "state": "DONE",
+      "requires": [
+        "design"
+      ],
+      "evidence": [
+        "Independent gpt-6-astra agent /root/astra_health_design_review re-reviewed exact draft0afe05a9d48609b4411198539930632224493b1beecb0f8bba8a2a9f8668bc08 and evidence brief d1e63f3fbfe6a9b1bcf314e4d2f3e246a8d54dd454ced630664e487cd9747466. All three required design repairs resolved; ready for human design approval only. Review in docs/design/t480-local-health-astra-review.md."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "execution-approval",
+      "title": "Approve the concrete design and operational scope amendment",
+      "state": "DONE",
+      "requires": [
+        "astra-review"
+      ],
+      "evidence": [
+        "Chris: one done please execute, following registration of M33.1-M33.4; interpreted as instruction to execute the registered sequence starting at M33.1."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "runtime-spike",
+      "title": "Prove common unattended runtime with no orders",
+      "state": "DONE",
+      "requires": [
+        "execution-approval"
+      ],
+      "evidence": [
+        "Reviewed no-order S4U Session0 probe (docs/design/m33-unattended-probe-review.md) first ran successfully pre-reboot 2026-09-24T07:45Z: MT5 observed connected, GOMarketsMU-Demo/AUD, 0 positions/0 pending, no broker mutation.",
+        "First controlled cold boot 2026-09-24T22:13-22:16Z UTC via the shared cs-ai-lab-infra windows_restart operation (Chris's explicit approval): fresh OS boot at 22:14:35Z, SSH reachable by 22:15:25Z, no human sign-in. The M33 probe dispatched successfully on its first postboot attempt and observed MT5 (S4U, Session 0) connected to the approved Demo account, flat, trade-allowed, no broker mutation. Raw receipts and summary in runs/local/m33-health-wave1/20260924T221635Z-cold-boot-1/.",
+        "Second controlled cold boot 2026-09-24T22:21-22:22Z UTC, same mechanism and approval: fresh OS boot at 22:22:06Z, no human sign-in. M33 probe dispatched successfully on its first postboot attempt again, same clean observation (GOMarketsMU-Demo/AUD, 0/0, connected, trade-allowed, no broker mutation). Raw receipts and summary in runs/local/m33-health-wave1/20260924T222257Z-cold-boot-2/. This completes the plan's required two controlled cold boots for MT5 under Runtime A.",
+        "Chris accepted MT5-only cold-boot evidence (two boots, no human sign-in) as satisfying the Wave 1 gate on 2026-09-25; listener unattended start/recovery is carried into policy/local-runtime (M33.2/M33.3). Automatic sign-in fallback (Option B) not triggered."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "policy",
+      "title": "Implement deterministic health and recovery policy",
+      "state": "DONE",
+      "requires": [
+        "runtime-spike"
+      ],
+      "evidence": [
+        "src/forex/trading_health.py (pure classify, recovery_budget, validate_entry_permit) with config/schemas/trading-health-{intent,permit,status}.schema.json; tests/test_trading_health.py 23 tests pass (2026-09-25). Independent read-only review of the engine has NOT yet been run and is required before final-review; unproven: listener readiness under Option A."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "local-runtime",
+      "title": "Integrate local guardian, process ownership and entry fence",
+      "state": "IN_PROGRESS",
+      "requires": [
+        "policy"
+      ],
+      "evidence": [
+        "Wave 1 remainder, staged 2026-09-24T23:38Z: listener release e786bc9636f756ce staged (48 service, 104 runner, 48 bridge, 10 notification fragments), service/runner/bridge verify true, m20_listener_prepare and m20_listener_configure succeeded; listener still Disabled, hold on, no processes. Receipts: runs/local/m33-health-wave1/20260924T233842Z-e786-stage/. Session 0 held S4U start-up installer written as scripts/apply_m33_session0_listener_install.py + t480/m33_listener_session0_install.ps1 (10 fixed operations, max encoded length 2990, tests/test_m33_session0_listener_install.py 3 pass). NOT yet applied to the adapter (harness classifier refused the edit; operator applies) and NOT yet run; one Session0 terminal (PID 9316) confirmed after closing stray Session2 PID 11936.",
+        "Amendment 2026-09-25 (Chris: 'amend'): interim boot-start listener recorded as a bounded deviation in docs/plans/t480-local-trading-health.md (held, guardian takes over later, independent review before apply, two cold boots). Installer remains unapplied and unrun.",
+        "Independent read-only review of the interim Session 0 installer completed 2026-09-25 (docs/design/m33-session0-install-review.md): no blockers, ten findings, nine fixed or adopted, one not adopted; 29 tests pass. Adapter edit (apply script --apply) refused by the harness classifier; still unapplied and unrun.",
+        "2026-09-25: operation set applied to adapter/catalog (165 adapter+M33 tests pass); installer payload c117b804... staged and verified (parse ok) on T480, receipts runs/local/m33-health-wave1/20260925T034235Z-session0-installer/. Install NOT run: project fingerprint refresh (forex_milestones.py refresh-fingerprint) was refused by the harness classifier and is pending; prepare/configure must be rerun after it so the T480 binding carries the new fingerprint."
+        ,
+        "Fresh live preflight 2026-09-26T00:26-00:30Z corrected the stale 'Disabled/unrun' note without inferring how the task was changed: Forex-M20-Demo-Listener is currently Running as OEM/S4U in Session 0, with a current MAINTENANCE_HOLD heartbeat, one mapped connected GOMarketsMU-Demo/AUD terminal and an idle current monitor. Its active e786bc9636f756ce release binding matches application revision ffe089f... and configuration fingerprint sha256:fc73c7.... The fixed held-readiness assessment observed 0 open positions, no risk pause and broker_mutation NONE; order_submission remained STRUCTURALLY_UNAVAILABLE. Raw fixed-adapter receipts and hashes: runs/local/m33-health-wave1/20260926T002657Z-live-preflight/. Do not reinstall or release the hold from this evidence; guardian ownership, entry fence, deployment proof and cold-boot listener proof remain open."
+        ,
+        "2026-09-26 local guardian package: added t480/trading_health_guardian.py and tests/test_trading_health_guardian.py. The separate no-order process reads only local listener/hold/intent receipts, performs a local Session 0 configured-terminal inventory, writes atomic status, defaults invalid intent or inventory to a fence and never publishes entry_eligible=true in this observation wave. 27 focused policy/guardian tests pass; it is not yet staged, scheduled or deployed."
+        ,
+        "2026-09-26 entry fence package: t480/m20_demo_trading_session.py now requires a current matching local guardian permit when FOREX_M33_ENTRY_FENCE_REQUIRED=true, both before the reservation boundary and again immediately before order_send. Missing, stale, malformed or mismatched files convert an otherwise actionable proposal to NO_TRADE before reservation, or record/reconcile NOT_SUBMITTED after a late fence. Existing held releases remain unchanged until the new configuration flag is deployed. 67 focused guardian/fence/listener tests pass; release staging and an on-T480 no-order proof remain pending."
+        ,
+        "2026-09-26 guardian fixed adapter package: registered separate no-order guardian policy/guardian fragment stage, SHA-256 verify, held S4U install and read-only status operations. Initial four-fragment candidate was rejected locally because its encoded T480 command reached 10822 characters; it was repaired to eight fragments. Measured maximum is now 5958 (<7500); no remote stage/install was attempted. Catalog changes cause governed configuration fingerprint drift; refresh-fingerprint requires Chris to name preserved proven milestone baseline(s) and a preservation reason before deployment."
+        ,
+        "2026-09-26 guardian adapter verification: added focused contract test covering the exact 20 fixed guardian operations, no MT5/order surface, required maintenance-hold and S4U guards, and encoded-command length. Adapter guardian test plus 30 health/guardian/fence tests pass. Deployment remains blocked only on the explicit governed-fingerprint preservation decision.",
+        "2026-09-26 guardian no-order deployment proof after Chris authorised preservation of the M32 Demo baseline and the governed fingerprint was refreshed to sha256:4237be.... Policy and guardian payloads were staged and SHA-256 verified through the fixed T480 adapter. Two failed install candidates were retained as raw evidence: a mutable daily-trigger repetition property was unavailable, then Task Scheduler rejected an unbounded repetition duration; neither created a guardian task or changed the held listener. The corrected fixed XML schedule registered Forex-M33-Trading-Health-Guardian as OEM/S4U with boot and daily calendar triggers, PT1M repetition for P1D, IgnoreNew, and PT50S execution limit. Initial on-T480 execution returned 1 because the immutable guardian release root was misclassified as a development checkout; the task was then re-registered with corrected adjacent-payload loading. Corrected release c2adb310e4055c59 returned task result 0, observed one managed Session 0 MT5 terminal, and published BLOCKED_POLICY / INTENT_MISSING_OR_INVALID with entry_eligible false. Its minute recurrence was directly observed: status timestamps advanced 2026-09-26T01:28:47Z to 01:29:47Z with result 0. The listener remained GOMarketsMU-Demo/AUD, mapped and in W1R_COORDINATED_MAINTENANCE with no assessment/order permitted. Raw receipts and SHA256SUMS: runs/local/m33-health-wave1/20260926T010000Z-guardian-stage/, 20260926T013000Z-guardian-install/, 20260926T014000Z-guardian-restage/, and 20260926T014100Z-guardian-corrected-install/. This proves only observation/fencing under hold; it does not deploy the entry-fenced listener release, release maintenance, or authorise a Demo order.",
+        "2026-09-26 listener integration repair: m20_demo_listener_service now accepts the optional FOREX_M33_ENTRY_FENCE_REQUIRED local configuration field, and the fixed configure operation sets it true only for a newly staged release. The existing runner then refuses an entry without a current matching guardian permit; this is fail-closed while the deployed guardian intentionally publishes no permit. Targeted adapter, health, guardian, fence and listener configuration tests passed (31) with py_compile, governed validation and diff check. The S4U listener release has not been staged, swapped or stopped by this package yet; that separate held deployment must use m33_listener_session0_install (not the legacy interactive installer), preserve the current hold, and prove a fresh post-swap heartbeat.",
+        "2026-09-26 entry-fence listener staging attempt: fixed adapter stage calls produced local success receipts, but the fixed remote hash verifiers observed only 10/48 listener fragments and 0/104 runner fragments. Treat the partial transfer as untrusted; no prepare, configure, task stop, swap, or hold change was attempted. Raw receipts including the failing verifiers are retained in runs/local/m33-health-wave1/20260926T015000Z-entry-fence-stage/. Resume only with bounded fragment batches followed by each verifier; do not reuse this partial release.",
+        "2026-09-26 bounded staging recovery: with no stale local adapter process, restaged listener fragments 1–48 in five bounded batches; m20_listener_stage_verify returned verified=true. Restaged runner fragments 1–104 in eleven bounded batches; m20_listener_runner_verify returned verified=true. Retry receipts and RETRY-SHA256SUMS are in runs/local/m33-health-wave1/20260926T015000Z-entry-fence-stage/. This is immutable release preparation only: bridge/notification payloads are still absent from the new release, and no prepare/configure/install/hold change has occurred.",
+        "2026-09-26 authorised held no-order deployment: bridge fragments 1–48 verified and Discord stage 10 assembled/verified its payload. m20_listener_prepare prepared release 29f366fc34d08917 and m20_listener_validate_account_profile confirmed M1_EURUSD_DEMO; configure installed FOREX_M33_ENTRY_FENCE_REQUIRED=true. After fresh held preflight, the reviewed S4U installer c117b804... was staged, hash-verified and PowerShell-parsed. m20_listener_stop then stopped only the listener; m33_listener_session0_install succeeded with OEM/S4U, boot trigger, maintenance-hold heartbeat, and active existing exit monitoring. Post-swap status proves release 29f366fc34d08917 running, GOMarketsMU-Demo/AUD mapped in Session 0, maintenance hold W1R_COORDINATED_MAINTENANCE, current idle monitor, and zero open positions. Held readiness at 2026-09-26T04:29:36Z returned broker_mutation NONE and order_submission STRUCTURALLY_UNAVAILABLE. Guardian remains independently Ready with task result 0, one managed terminal, BLOCKED_POLICY / INTENT_MISSING_OR_INVALID and entry_eligible false. Raw hashes/receipts: runs/local/m33-health-wave1/20260926T042500Z-entry-fence-prepare/ and 20260926T043000Z-session0-swap/. This establishes only the authorised no-order deployment proof; fault recovery, permit publication, 24-hour operation, lifecycle/P&L proof and independent review remain pending, and no hold release or Demo order was authorised.",
+        "2026-09-26 post-deployment read-only audit: diagnostics reports deployment binding VALID, expected service/runner/bridge/notification payload hashes, OEM/S4U running listener processes in Session 0 and retained maintenance hold. Fresh listener status remains release 29f366fc34d08917, GOMarketsMU-Demo/AUD mapped, held and monitor IDLE. The next independent guardian minute cycle at 2026-09-26T04:30:48Z returned result 0, release 29f366fc34d08917, one managed MT5 process and BLOCKED_POLICY / INTENT_MISSING_OR_INVALID / entry_eligible false. Raw receipts and SHA256SUMS: runs/local/m33-health-wave1/20260926T050000Z-post-deploy-audit/.",
+        "2026-09-26 completion-audit repair: the full local suite surfaced an encoded T480 configuration command length of 7538, exceeding the hard 7500 transport limit after adding the entry-fence setting. Shortened only redundant local PowerShell variables/checks in scripts/t480_adapter.py; semantics remain profile read, governed configuration preservation and FOREX_M33_ENTRY_FENCE_REQUIRED=true. New encoded length is 7326. Focused guardian/fence/Session0/transport suite passed (10), with py_compile, milestone validation and diff check. Existing T480 release/configuration was not re-run or changed by this local transport repair.",
+        "2026-09-26 approved controlled reboot and M33.2 recurrence repair: reboot protocol run bb5be253981548b5ad1392d3af7417bd was armed under the existing maintenance hold and returned broker_mutation NONE. Postboot recovery captured the same listener release 29f366fc34d08917 as Running; its S4U Session 0 heartbeat was fresh, GOMarketsMU-Demo/AUD was mapped, monitor IDLE and zero positions remained structurally no-order. The guardian boot run was healthy but fixed read-only status exposed a real recurrence defect: CalendarTrigger advertised minute next-run values while last_run_utc and observed_at_utc remained at 04:43 UTC. Replaced only the held guardian task definition with an S4U BootTrigger plus repeating TimeTrigger (PT1M/P1D, StartWhenAvailable, IgnoreNew, PT50S). The replacement transport measures 6778 encoded characters (<7500) and focused adapter test passes. After install, task result remained 0 and a scheduled recurrence advanced last_run_utc 04:51:51Z to 04:52:52Z and status observed_at_utc 04:51:12Z to 04:52:12Z, still BLOCKED_POLICY / INTENT_MISSING_OR_INVALID / entry_eligible false with one managed Session 0 MT5 process. Final read-only listener/held-readiness receipts at 04:53 UTC prove active W1R_COORDINATED_MAINTENANCE, mapped Demo/AUD terminal, 0 positions, broker_mutation NONE and order_submission STRUCTURALLY_UNAVAILABLE. Raw receipts: runs/local/m33-health-wave1/20260926T054000Z-postdeploy-coldboot/. This proves reboot recovery and the M33.2 observation/fence state under hold only; it does not prove automatic recovery, permitted entry, any Demo order, 24-hour lifecycle, or formal milestone completion."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "deployment",
+      "title": "Stage and verify coordinated fixed deployment",
+      "state": "PENDING",
+      "requires": [
+        "local-runtime"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "fault-proof",
+      "title": "Run T16-independent fault, reboot, soak and lifecycle proof",
+      "state": "PENDING",
+      "requires": [
+        "deployment"
+      ],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "final-review",
+      "title": "Review implementation and evidence without self-approval",
+      "state": "PENDING",
+      "requires": [
+        "fault-proof"
+      ],
+      "evidence": [],
+      "blocker": null
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Forex T480 trading-health operator intent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mode",
+    "revision",
+    "set_at_utc",
+    "account_scope_sha256",
+    "profile_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "forex.trading-health-intent.v1"
+    },
+    "mode": {
+      "enum": [
+        "STOPPED",
+        "MONITOR_ONLY",
+        "RUN_DEMO"
+      ]
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "set_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "account_scope_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "profile_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "reason": {
+      "type": "string",
+      "maxLength": 200
+    }
+  }
+}

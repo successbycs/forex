@@ -60,6 +60,14 @@ After meaningful changes, run relevant checks, inspect actual outputs and verify
 the affected workflow. Record owned paths, acceptance checks, actual results and
 remaining limitations in the existing plan or task report.
 
+## User-facing reporting
+
+- Retain milestone, acceptance-criterion, task and reason-code identifiers for
+  traceability, but do not rely on an identifier alone in a user-facing status
+  report. On first use, state in plain language what it governs or requires;
+  for example, write `M33-C5 — unattended restart of the approved Demo MT5
+  client and listener after a T480 reboot` rather than only `M33-C5`.
+
 Use these skills at the indicated boundaries:
 
 - `.codex/skills/research-evidence/SKILL.md` — before plans based on external

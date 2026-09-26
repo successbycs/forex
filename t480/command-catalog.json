@@ -1616,6 +1616,126 @@
       "id": "m20_listener_runner_stage_104",
       "purpose": "Stage and verify fixed M20 listener runner payload part 104.",
       "approval_required": false
+    },
+    {
+      "id": "m33_unattended_probe_run",
+      "purpose": "Run the held no-order S4U feasibility observer using the existing MT5 task principal; production tasks remain unchanged.",
+      "approval_required": false
+    },
+    {
+      "id": "m33_unattended_probe_status",
+      "purpose": "Read fixed M33 feasibility task status and immutable Session0 observations.",
+      "approval_required": false
+    },
+    {
+      "id": "m33_listener_session0_install_stage_1",
+      "purpose": "Stage fixed Session0 listener installer payload fragment 1.",
+      "approval_required": false
+    },
+    {
+      "id": "m33_listener_session0_install_stage_2",
+      "purpose": "Stage fixed Session0 listener installer payload fragment 2.",
+      "approval_required": false
+    },
+    {
+      "id": "m33_listener_session0_install_stage_3",
+      "purpose": "Stage fixed Session0 listener installer payload fragment 3.",
+      "approval_required": false
+    },
+    {
+      "id": "m33_listener_session0_install_stage_4",
+      "purpose": "Stage fixed Session0 listener installer payload fragment 4.",
+      "approval_required": false
+    },
+    {
+      "id": "m33_listener_session0_install_stage_5",
+      "purpose": "Stage fixed Session0 listener installer payload fragment 5.",
+      "approval_required": false
+    },
+    {
+      "id": "m33_listener_session0_install_stage_6",
+      "purpose": "Stage fixed Session0 listener installer payload fragment 6.",
+      "approval_required": false
+    },
+    {
+      "id": "m33_listener_session0_install_stage_7",
+      "purpose": "Stage fixed Session0 listener installer payload fragment 7.",
+      "approval_required": false
+    },
+    {
+      "id": "m33_listener_session0_install_stage_8",
+      "purpose": "Stage fixed Session0 listener installer payload fragment 8.",
+      "approval_required": false
+    },
+    {
+      "id": "m33_listener_session0_install_verify",
+      "purpose": "Assemble, hash-verify and parse the fixed Session0 listener installer payload without running it.",
+      "approval_required": false
+    },
+    {
+      "id": "m33_listener_session0_install",
+      "purpose": "Install the prepared listener as an S4U start-up task under the MT5 boot-task principal, only with maintenance hold, one Session0 terminal and a stopped listener; restores the prior disabled task on failure.",
+      "approval_required": false
+    },
+    {
+      "id": "m33_guardian_policy_stage_1", "purpose": "Stage fixed M33 guardian policy payload fragment 1.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_policy_stage_2", "purpose": "Stage fixed M33 guardian policy payload fragment 2.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_policy_stage_3", "purpose": "Stage fixed M33 guardian policy payload fragment 3.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_policy_stage_4", "purpose": "Stage fixed M33 guardian policy payload fragment 4.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_policy_stage_5", "purpose": "Stage fixed M33 guardian policy payload fragment 5.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_policy_stage_6", "purpose": "Stage fixed M33 guardian policy payload fragment 6.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_policy_stage_7", "purpose": "Stage fixed M33 guardian policy payload fragment 7.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_policy_stage_8", "purpose": "Stage fixed M33 guardian policy payload fragment 8.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_policy_verify", "purpose": "Assemble and hash-verify fixed M33 guardian policy payload.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_1", "purpose": "Stage fixed M33 guardian guardian payload fragment 1.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_2", "purpose": "Stage fixed M33 guardian guardian payload fragment 2.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_3", "purpose": "Stage fixed M33 guardian guardian payload fragment 3.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_4", "purpose": "Stage fixed M33 guardian guardian payload fragment 4.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_5", "purpose": "Stage fixed M33 guardian guardian payload fragment 5.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_6", "purpose": "Stage fixed M33 guardian guardian payload fragment 6.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_7", "purpose": "Stage fixed M33 guardian guardian payload fragment 7.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_8", "purpose": "Stage fixed M33 guardian guardian payload fragment 8.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_verify", "purpose": "Assemble and hash-verify fixed M33 guardian guardian payload.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_install", "purpose": "Install the verified observation-only M33 guardian as a held S4U startup task.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_status", "purpose": "Read the local M33 guardian task and persisted status without mutation.", "approval_required": false
     }
   ]
 }

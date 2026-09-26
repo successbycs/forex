@@ -672,7 +672,7 @@ def _m20_listener_run_reboot_recovery_protocol_command() -> str:
     """Arm the fixed held-only post-boot verifier, then request a T480 reboot."""
     return (
         "$ErrorActionPreference='Stop';$s='C:\\ProgramData\\ForexListener\\state';if(!(Test-Path (Join-Path $s 'm20_demo_maintenance_hold.local.json'))){throw 'hold required'};$l=Get-ScheduledTask 'Forex-M20-Demo-Listener';$w=Get-ScheduledTask 'Forex-M20-Listener-Watchdog';if($l.Principal.LogonType -ne 'S4U'-or $w.Principal.LogonType -ne 'S4U'){throw 'S4U required'};$h=gc -Raw (Join-Path $s 'm20_demo_listener_status.local.json')|ConvertFrom-Json;if($h.state -ne 'MAINTENANCE_HOLD'-or $h.monitor.state -ne 'IDLE'-or @($h.monitor.result.recovered).Count -ne 0){throw 'held idle monitor required'};if(((Get-Date).ToUniversalTime()-([datetime]::Parse($h.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds -ge 30){throw 'heartbeat stale'};$c=gc -Raw (Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe\\mt5.local.json')|ConvertFrom-Json;& $c.python_path -c \"import sys;import MetaTrader5 as m;m.initialize(path=sys.argv[1]);a=m.account_info();p=m.positions_get();m.shutdown();raise SystemExit(0 if a and a.server=='GOMarketsMU-Demo' and a.currency=='AUD' and p is not None and len(p)==0 else 3)\" $c.terminal_path;if($LASTEXITCODE){throw 'flat available Demo account required'};"
-        r'''$p=Join-Path $s 'm20_demo_reboot_recovery.local.json';$o=[ordered]@{run_id=([guid]::NewGuid().ToString('N'));state='ARMED';listener_release_id=$h.release_id;broker_mutation='NONE'};[IO.File]::WriteAllText($p,($o|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false)));$f=Join-Path $s 'm20_demo_reboot_recovery_postboot.ps1';$x="Start-Sleep 75;`$s='C:\ProgramData\ForexListener\state';`$p=Join-Path `$s 'm20_demo_reboot_recovery.local.json';`$r=gc -Raw `$p|ConvertFrom-Json;`$l=Get-ScheduledTask 'Forex-M20-Demo-Listener';`$w=Get-ScheduledTask 'Forex-M20-Listener-Watchdog';`$h=gc -Raw (Join-Path `$s 'm20_demo_listener_status.local.json')|ConvertFrom-Json;`$r|Add-Member postboot_release_id `$h.release_id -Force;`$r|Add-Member listener_task_state `$l.State.ToString() -Force;`$r|Add-Member watchdog_task_state `$w.State.ToString() -Force;`$r|Add-Member postboot_heartbeat_at_utc `$h.heartbeat_at_utc -Force;`$r.state='POSTBOOT_CAPTURED';[IO.File]::WriteAllText(`$p,(`$r|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding(`$false)))";[IO.File]::WriteAllText($f,$x,(New-Object Text.UTF8Encoding($false)));'''
+        r'''$p=Join-Path $s 'm20_demo_reboot_recovery.local.json';$o=@{run_id=([guid]::NewGuid().ToString('N'));state='ARMED';listener_release_id=$h.release_id;broker_mutation='NONE'};[IO.File]::WriteAllText($p,($o|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false)));$f=Join-Path $s 'm20_demo_reboot_recovery_postboot.ps1';$x="sleep 75;`$s='C:\ProgramData\ForexListener\state';`$p=Join-Path `$s 'm20_demo_reboot_recovery.local.json';`$r=gc -Raw `$p|ConvertFrom-Json;`$h=gc -Raw (Join-Path `$s 'm20_demo_listener_status.local.json')|ConvertFrom-Json;`$r|Add-Member postboot_release_id `$h.release_id -Force;`$r|Add-Member listener_task_state (Get-ScheduledTask 'Forex-M20-Demo-Listener').State.ToString() -Force;`$r.state='POSTBOOT_CAPTURED';[IO.File]::WriteAllText(`$p,(`$r|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding(`$false)))";[IO.File]::WriteAllText($f,$x,(New-Object Text.UTF8Encoding($false)));'''
         '''$t='Forex-M20-Reboot-Recovery-Verifier';$a=New-ScheduledTaskAction powershell.exe ('-NoProfile -NonInteractive -File '+$f);$g=New-ScheduledTaskTrigger -AtStartup;$q=New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U -RunLevel Highest;Register-ScheduledTask $t -Action $a -Trigger $g -Principal $q -Force|Out-Null;$z='Forex-M20-Reboot-Request';$ra=New-ScheduledTaskAction shutdown.exe '/r /f /t 5';Register-ScheduledTask $z -Action $ra -Principal $q -Force|Out-Null;Start-ScheduledTask $z;[pscustomobject]@{armed=$true;run_id=$o.run_id;broker_mutation='NONE'}|ConvertTo-Json -Compress'''
 
 
@@ -887,7 +887,7 @@ def _m20_listener_validate_account_profile_command() -> str:
     exceeding the observed Windows command-line boundary.
     """
     return (
-        "$ErrorActionPreference='Stop';$b='C:\\ProgramData\\ForexListener';$s=Join-Path $b state;$l=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe';"
+        "$ErrorActionPreference='Stop';$s='C:\\ProgramData\\ForexListener\\state';$l=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe';"
         "$path=Join-Path $l 'm1_eurusd_demo_profile.local.json';if(!(Test-Path -LiteralPath $path)){throw 'M1_EURUSD_DEMO local account profile is absent'};$raw=gc -Raw -LiteralPath $path|ConvertFrom-Json;$keys=@($raw.PSObject.Properties.Name|Sort-Object);$expected=@('account_scope_sha256','currency','profile_id','server','symbol');if(($keys -join ',') -ne ($expected -join ',') -or $raw.profile_id -ne 'M1_EURUSD_DEMO' -or $raw.server -ne 'GOMarketsMU-Demo' -or $raw.currency -ne 'AUD' -or $raw.symbol -ne 'EURUSD' -or [string]$raw.account_scope_sha256 -notmatch '^sha256:[0-9a-f]{64}$'){throw 'M1_EURUSD_DEMO local account profile is invalid'};"
         "$profile=[ordered]@{profile_id='M1_EURUSD_DEMO';server='GOMarketsMU-Demo';currency='AUD';symbol='EURUSD';account_scope_sha256=[string]$raw.account_scope_sha256};ni -it d -fo $s|out-null;$tmp=Join-Path $s 'm20_demo_account_execution_profile.local.json.tmp';[IO.File]::WriteAllText($tmp,($profile|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false)));Move-Item -LiteralPath $tmp -Destination (Join-Path $s 'm20_demo_account_execution_profile.local.json') -Force;[pscustomobject]@{profile_id=$profile.profile_id;validated=$true}|ConvertTo-Json -Compress"
     )
@@ -905,7 +905,7 @@ def _m20_listener_configure_command() -> str:
     return (
         "$ErrorActionPreference='Stop';$b='C:\\ProgramData\\ForexListener';$s=Join-Path $b state;$l=Join-Path $env:USERPROFILE 'Documents\\Code\\forex-m1-probe';"
         "$m=gc -Raw (Join-Path $s 'm20_demo_listener_prepared.local.json')|ConvertFrom-Json;if($m.release_id -ne '" + release_id + "'-or $m.configuration_fingerprint -ne '" + fingerprint + "'-or $m.application_revision -ne '" + revision + "'){throw 'M20 verified release binding is absent or stale'};"
-        "$x=gc -Raw (Join-Path $l 'mt5.local.json')|ConvertFrom-Json;$profilePath=Join-Path $s 'm20_demo_account_execution_profile.local.json';if(!(Test-Path -LiteralPath $profilePath)){throw 'M20 verified profile absent'};$profile=gc -Raw -LiteralPath $profilePath|ConvertFrom-Json;$active=Join-Path $s 'm20_demo_listener_service.local.json';$previous=gc -Raw $active|ConvertFrom-Json;$keep=@('FOREX_M20_TICK_TIME_OFFSET_SECONDS','FOREX_M20_MINIMUM_NET_PROFIT_AUD','FOREX_M20_FINANCING_POLICY','FOREX_M20_PERSISTENT_RISK_POLICY');if($keep|Where-Object{[string]::IsNullOrWhiteSpace([string]$previous.$_)}){throw 'M20 existing governed setting is absent'};$c=[ordered]@{FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "';FOREX_M20_TICK_TIME_OFFSET_SECONDS=[string]$previous.FOREX_M20_TICK_TIME_OFFSET_SECONDS;FOREX_M20_MINIMUM_NET_PROFIT_AUD=[string]$previous.FOREX_M20_MINIMUM_NET_PROFIT_AUD;FOREX_M20_FINANCING_POLICY=[string]$previous.FOREX_M20_FINANCING_POLICY;FOREX_M20_PERSISTENT_RISK_POLICY=[string]$previous.FOREX_M20_PERSISTENT_RISK_POLICY;FOREX_M20_APPLICATION_REVISION='" + revision + "';FOREX_M20_ACCOUNT_EXECUTION_PROFILE=($profile|ConvertTo-Json -Compress);python_path=$x.python_path;terminal_path=$x.terminal_path};foreach($key in @('FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED','FOREX_M20_DISCORD_WEBHOOK_URL')){if($previous.PSObject.Properties.Name -contains $key){$c[$key]=[string]$previous.$key}};"
+        "$x=gc -Raw (Join-Path $l 'mt5.local.json')|ConvertFrom-Json;$profile=gc -Raw (Join-Path $s 'm20_demo_account_execution_profile.local.json')|ConvertFrom-Json;if(!$profile){throw 'M20 verified profile absent'};$previous=gc -Raw (Join-Path $s 'm20_demo_listener_service.local.json')|ConvertFrom-Json;$keep=@('FOREX_M20_TICK_TIME_OFFSET_SECONDS','FOREX_M20_MINIMUM_NET_PROFIT_AUD','FOREX_M20_FINANCING_POLICY','FOREX_M20_PERSISTENT_RISK_POLICY');if($keep|Where-Object{[string]::IsNullOrWhiteSpace([string]$previous.$_)}){throw 'M20 existing governed setting is absent'};$c=[ordered]@{FOREX_M20_DEMO_TRADING_SESSION_SHA256='" + runner_digest + "';FOREX_M20_POSTGRES_AUDIT_BRIDGE_SHA256='sha256:" + bridge_digest + "';FOREX_M20_CONFIGURATION_FINGERPRINT='" + fingerprint + "';FOREX_M20_TICK_TIME_OFFSET_SECONDS=[string]$previous.FOREX_M20_TICK_TIME_OFFSET_SECONDS;FOREX_M20_MINIMUM_NET_PROFIT_AUD=[string]$previous.FOREX_M20_MINIMUM_NET_PROFIT_AUD;FOREX_M20_FINANCING_POLICY=[string]$previous.FOREX_M20_FINANCING_POLICY;FOREX_M20_PERSISTENT_RISK_POLICY=[string]$previous.FOREX_M20_PERSISTENT_RISK_POLICY;FOREX_M20_APPLICATION_REVISION='" + revision + "';FOREX_M20_ACCOUNT_EXECUTION_PROFILE=($profile|ConvertTo-Json -Compress);FOREX_M33_ENTRY_FENCE_REQUIRED='true';python_path=$x.python_path;terminal_path=$x.terminal_path};foreach($key in @('FOREX_M20_DISCORD_NOTIFICATIONS_ENABLED','FOREX_M20_DISCORD_WEBHOOK_URL')){if($previous.PSObject.Properties.Name -contains $key){$c[$key]=[string]$previous.$key}};"
         "if(!(Test-Path (Join-Path $s 'm20_demo_session.local.json'))){Copy-Item (Join-Path $l 'm20_demo_session.local.json') (Join-Path $s 'm20_demo_session.local.json') -ea SilentlyContinue};$t=Join-Path $s 'm20_demo_listener_service.local.json.tmp';[IO.File]::WriteAllText($t,($c|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false)));Move-Item $t $active -Force;[pscustomobject]@{configured=$true;release_id=$m.release_id}|ConvertTo-Json -Compress"
     )
 
@@ -1694,6 +1694,98 @@ def _m30_interactive_probe_operations() -> dict[str, Operation]:
 
 
 OPERATIONS.update(_m30_interactive_probe_operations())
+
+
+def _m33_unattended_probe_operations() -> dict[str, Operation]:
+    """Reuse the child-restricted observer; never alter either production task."""
+    source = (ROOT / 't480/m30_single_client_probe.py').read_bytes()
+    digest = hashlib.sha256(source).hexdigest()
+    prefix = "$ErrorActionPreference='Stop';$r='C:\\ProgramData\\ForexListener\\diagnostics\\single-client-" + digest[:16] + "';"
+    name = 'm33_unattended_probe_run'
+    command = prefix + (
+        "$p=Join-Path $r 'probe.py';if((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLower() -ne '" + digest + "'){throw 'probe hash mismatch'};"
+        "$s='C:\\ProgramData\\ForexListener\\state';$h=gc -Raw ($s+'\\m20_demo_maintenance_hold.local.json')|ConvertFrom-Json;if($h.enabled -ne $true){throw 'maintenance hold required'};"
+        "$c=gc -Raw ($s+'\\m20_demo_listener_service.local.json')|ConvertFrom-Json;"
+        "$l=Get-ScheduledTask 'Forex-M20-Demo-Listener';if($l.State.ToString() -ne 'Disabled'){throw 'disabled listener required'};"
+        "if(@(Get-CimInstance Win32_Process|?{$_.Name -match '^python(w)?\\.exe$' -and $_.CommandLine -match 'm20_demo_(listener_service|trading_session)[.]payload'}).Count){throw 'listener workers must be absent'};"
+        "$m=Get-ScheduledTask 'CS AI Lab MT5 Start';if($m.Principal.LogonType.ToString() -ne 'S4U'){throw 'existing MT5 S4U principal required'};"
+        "$u=$m.Principal.UserId;$sid=(New-Object Security.Principal.NTAccount($u)).Translate([Security.Principal.SecurityIdentifier]).Value;"
+        "$lsid=(New-Object Security.Principal.NTAccount($l.Principal.UserId)).Translate([Security.Principal.SecurityIdentifier]).Value;if($sid -ne $lsid){throw 'principal mismatch'};"
+        "$a=@(Get-CimInstance Win32_Process|?{$_.Name -in @('terminal.exe','terminal64.exe')});if($a.Count -ne 1 -or $a[0].SessionId -ne 0 -or $a[0].ExecutablePath -ne $c.terminal_path){throw 'one configured Session0 terminal required'};"
+        "$o=Invoke-CimMethod -InputObject $a[0] -MethodName GetOwnerSid;if($o.ReturnValue -ne 0 -or $o.Sid -ne $sid){throw 'terminal owner mismatch'};"
+        "$n='Forex-M33-Unattended-Probe-" + digest[:16] + "';$q=Get-ScheduledTask $n -ErrorAction SilentlyContinue;if($q -and $q.State.ToString() -in @('Running','Queued')){throw 'probe already running'};"
+        "$x=New-ScheduledTaskAction -Execute $c.python_path -Argument ('\"'+$p+'\" --session0');$q=New-ScheduledTaskPrincipal -UserId $u -LogonType S4U -RunLevel Highest;"
+        "$v=New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 1) -MultipleInstances IgnoreNew -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries;"
+        "Register-ScheduledTask -TaskName $n -Action $x -Principal $q -Settings $v -Force|Out-Null;Start-ScheduledTask $n;"
+        "[pscustomobject]@{started=$true;task=$n;source_sha256='" + digest + "';broker_mutation='NONE';production_tasks_changed=$false;captured_at_utc=(Get-Date).ToUniversalTime().ToString('o')}|ConvertTo-Json -Compress"
+    )
+    status = OPERATIONS['m30_session0_probe_status'].powershell_command.replace('Forex-M30-Session0-Probe-', 'Forex-M33-Unattended-Probe-')
+    return {
+        name: Operation(name, 'Run a held no-order S4U probe using the existing MT5 task principal while the production listener remains disabled.', powershell_command=command),
+        'm33_unattended_probe_status': Operation('m33_unattended_probe_status', 'Read immutable Session0 observations and the fixed M33 feasibility task status.', powershell_command=status),
+    }
+
+
+OPERATIONS.update(_m33_unattended_probe_operations())
+
+
+def _m33_guardian_operations() -> dict[str, Operation]:
+    """Fixed, no-order deployment surface for the separate local guardian."""
+    sources = {
+        "policy": (ROOT / "src/forex/trading_health.py").read_bytes(),
+        "guardian": (ROOT / "t480/trading_health_guardian.py").read_bytes(),
+    }
+    release = hashlib.sha256(sources["policy"] + sources["guardian"]).hexdigest()[:16]
+    operations: dict[str, Operation] = {}
+    for kind, source in sources.items():
+        encoded = base64.b64encode(source).decode("ascii")
+        parts = 8
+        width = ((len(encoded) + parts * 4 - 1) // (parts * 4)) * 4
+        runtime = "trading_health.payload" if kind == "policy" else "trading_health_guardian.payload"
+        for index in range(parts):
+            name = f"m33_guardian_{kind}_stage_{index + 1}"
+            operations[name] = Operation(name, f"Stage fixed M33 guardian {kind} payload fragment {index + 1}.",
+                powershell_command=("$ErrorActionPreference='Stop';$r='C:\\ProgramData\\ForexListener\\guardian-releases\\" + release + "';"
+                    "New-Item -ItemType Directory -Force $r|Out-Null;[IO.File]::WriteAllText((Join-Path $r '" + runtime + ".part" + str(index) + "'),'" + encoded[index * width:(index + 1) * width] + "');[pscustomobject]@{staged=$true}|ConvertTo-Json -Compress"))
+        verify_name = f"m33_guardian_{kind}_verify"
+        digest = hashlib.sha256(source).hexdigest()
+        operations[verify_name] = Operation(verify_name, f"Assemble and hash-verify fixed M33 guardian {kind} payload.",
+            powershell_command=("$ErrorActionPreference='Stop';$r='C:\\ProgramData\\ForexListener\\guardian-releases\\" + release + "';$f=Join-Path $r '" + runtime + "';"
+                "$e=((0..7|ForEach-Object{[IO.File]::ReadAllText((Join-Path $r ('" + runtime + ".part'+$_)) )})-join '');$b=[Convert]::FromBase64String($e);$h=([BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash($b))).Replace('-','').ToLower();if($h -ne '" + digest + "'){throw 'guardian payload hash mismatch'};[IO.File]::WriteAllBytes($f,$b);[pscustomobject]@{verified=$true;source_sha256=$h}|ConvertTo-Json -Compress"))
+    operations["m33_guardian_install"] = Operation("m33_guardian_install", "Install the verified observation-only M33 guardian as a held S4U startup task.", powershell_command=(
+        "$ErrorActionPreference='Stop';$s='C:\\ProgramData\\ForexListener\\state';$h=gc -Raw (Join-Path $s 'm20_demo_listener_status.local.json')|ConvertFrom-Json;$hold=gc -Raw (Join-Path $s 'm20_demo_maintenance_hold.local.json')|ConvertFrom-Json;if($hold.enabled -ne $true -or $h.state -ne 'MAINTENANCE_HOLD'){throw 'fresh maintenance hold required'};$age=((Get-Date).ToUniversalTime()-([datetime]::Parse($h.heartbeat_at_utc)).ToUniversalTime()).TotalSeconds;if($age -lt 0 -or $age -ge 30){throw 'fresh held listener required'};$l=Get-ScheduledTask 'Forex-M20-Demo-Listener';if($l.Principal.LogonType.ToString() -ne 'S4U'){throw 'listener S4U principal required'};$c=gc -Raw (Join-Path $s 'm20_demo_listener_service.local.json')|ConvertFrom-Json;$r='C:\\ProgramData\\ForexListener\\guardian-releases\\" + release + "';$p=Join-Path $r 'trading_health_guardian.payload';$q=Join-Path $r 'trading_health.payload';if(!(Test-Path $p)-or !(Test-Path $q)){throw 'verified guardian payloads absent'};$u=[Security.SecurityElement]::Escape($l.Principal.UserId);$py=[Security.SecurityElement]::Escape($c.python_path);$pa=[Security.SecurityElement]::Escape(('\"'+$p+'\"'));$b=(Get-Date).AddMinutes(1).ToString('s');$xml='<?xml version=\"1.0\" encoding=\"UTF-16\"?><Task version=\"1.4\" xmlns=\"http://schemas.microsoft.com/windows/2004/02/mit/task\"><Triggers><BootTrigger><Enabled>true</Enabled></BootTrigger><TimeTrigger><StartBoundary>'+$b+'</StartBoundary><Enabled>true</Enabled><Repetition><Interval>PT1M</Interval><Duration>P1D</Duration><StopAtDurationEnd>false</StopAtDurationEnd></Repetition></TimeTrigger></Triggers><Principals><Principal id=\"Forex\"><UserId>'+$u+'</UserId><LogonType>S4U</LogonType><RunLevel>HighestAvailable</RunLevel></Principal></Principals><Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries><StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><StartWhenAvailable>true</StartWhenAvailable><ExecutionTimeLimit>PT50S</ExecutionTimeLimit></Settings><Actions Context=\"Forex\"><Exec><Command>'+$py+'</Command><Arguments>'+$pa+'</Arguments></Exec></Actions></Task>';Register-ScheduledTask -TaskName 'Forex-M33-Trading-Health-Guardian' -Xml $xml -Force|Out-Null;Start-ScheduledTask 'Forex-M33-Trading-Health-Guardian';[pscustomobject]@{installed=$true;release_id='" + release + "';maintenance_hold=$true;broker_mutation='NONE'}|ConvertTo-Json -Compress"), timeout_seconds=60)
+    operations["m33_guardian_status"] = Operation("m33_guardian_status", "Read the local M33 guardian task and persisted status without mutation.", powershell_command=(
+        "$ErrorActionPreference='Stop';$t=Get-ScheduledTask 'Forex-M33-Trading-Health-Guardian' -ErrorAction SilentlyContinue;$i=if($t){Get-ScheduledTaskInfo $t.TaskName}else{$null};$p='C:\\ProgramData\\ForexListener\\state\\trading_health_status.local.json';$v=if(Test-Path $p){gc -Raw $p|ConvertFrom-Json}else{$null};$g=if($t){@($t.Triggers|ForEach-Object{[pscustomobject]@{start_boundary=$_.StartBoundary;enabled=$_.Enabled;repetition_interval=$_.Repetition.Interval;repetition_duration=$_.Repetition.Duration}})}else{@()};[pscustomobject]@{task_state=if($t){$t.State.ToString()}else{'ABSENT'};last_result=if($i){$i.LastTaskResult}else{$null};last_run_utc=if($i){$i.LastRunTime.ToUniversalTime().ToString('o')}else{$null};next_run_utc=if($i){$i.NextRunTime.ToUniversalTime().ToString('o')}else{$null};triggers=$g;status=$v}|ConvertTo-Json -Compress -Depth 8"))
+    return operations
+
+
+OPERATIONS.update(_m33_guardian_operations())
+
+
+def _m33_listener_session0_install_operations() -> dict[str, Operation]:
+    """Stage one reviewed installer payload; every guard is inside the hashed payload."""
+    source = (ROOT / 't480/m33_listener_session0_install.ps1').read_bytes()
+    digest = hashlib.sha256(source).hexdigest()
+    encoded = base64.b64encode(source).decode('ascii')
+    parts = 8
+    width = ((len(encoded) + (parts * 4) - 1) // (parts * 4)) * 4
+    root = 'C:\\ProgramData\\ForexListener\\diagnostics\\session0-listener-install-' + digest[:16]
+    script = root + '\\install.ps1'
+    result: dict[str, Operation] = {}
+    for index in range(parts):
+        name = 'm33_listener_session0_install_stage_' + str(index + 1)
+        result[name] = Operation(name, 'Stage fixed Session0 listener installer payload fragment ' + str(index + 1) + '.',
+            powershell_command=("$ErrorActionPreference='Stop';$d='" + root + "';New-Item -ItemType Directory -Force $d|Out-Null;[IO.File]::WriteAllText((Join-Path $d 'part" + str(index) + "'),'" + encoded[index * width:(index + 1) * width] + "');[pscustomobject]@{staged=$true}|ConvertTo-Json -Compress"))
+    result['m33_listener_session0_install_verify'] = Operation(
+        'm33_listener_session0_install_verify', 'Assemble, hash-verify and parse the fixed Session0 listener installer payload without running it.',
+        powershell_command=("$ErrorActionPreference='Stop';$d='" + root + "';$e=((0..7|ForEach-Object{[IO.File]::ReadAllText((Join-Path $d ('part'+$_)))}) -join '');$b=[Convert]::FromBase64String($e);$h=([BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash($b))).Replace('-','').ToLower();if($h -ne '" + digest + "'){throw 'installer hash mismatch'};[IO.File]::WriteAllBytes('" + script + "',$b);$t=$null;$x=$null;[System.Management.Automation.Language.Parser]::ParseFile('" + script + "',[ref]$t,[ref]$x)|Out-Null;if($x.Count -ne 0){throw 'installer parse failed'};[pscustomobject]@{verified=$true;source_sha256=$h}|ConvertTo-Json -Compress"))
+    result['m33_listener_session0_install'] = Operation(
+        'm33_listener_session0_install', 'Install the prepared listener as an S4U start-up task under the MT5 boot-task principal, only with the maintenance hold, one Session0 terminal and a stopped listener verified; restores the prior disabled task on failure.',
+        powershell_command=("$ErrorActionPreference='Stop';$p='" + script + "';if((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLower() -ne '" + digest + "'){throw 'installer hash mismatch'};$o=& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $p 2>&1;if($LASTEXITCODE -ne 0){throw ('installer refused: '+($o -join ' '))};$o"), timeout_seconds=120)
+    return result
+
+
+OPERATIONS.update(_m33_listener_session0_install_operations())
 
 
 def _m30_session0_isolation_operations() -> dict[str, Operation]:

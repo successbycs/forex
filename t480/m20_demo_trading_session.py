@@ -107,12 +107,61 @@ REFUSAL_DRILL_MAXIMUM_LOSS_AUD = 0.01
 EXECUTION_DRILL_MAGIC = 20260330
 EXECUTION_DRILL_VOLUME = 0.01
 EXECUTION_DRILL_MAXIMUM_LOSS_AUD = 1.00
+M33_ENTRY_FENCE_ENV = "FOREX_M33_ENTRY_FENCE_REQUIRED"
 
 
 RISK_POLICY_REQUIRED = {"policy_version", "reporting_currency", "maximum_risk_per_trade_percent", "maximum_risk_per_trade_aud", "daily_loss_limit_percent", "weekly_loss_limit_percent", "peak_equity_drawdown_limit_percent", "loss_budget_timezone", "daily_pause_reset", "manual_resume_reasons", "require_known_external_cashflow"}
 ACCOUNT_EXECUTION_PROFILE_ENV = "FOREX_M20_ACCOUNT_EXECUTION_PROFILE"
 ACCOUNT_EXECUTION_PROFILE_ID = "M1_EURUSD_DEMO"
 ACCOUNT_EXECUTION_PROFILE_FIELDS = {"profile_id", "server", "currency", "symbol", "account_scope_sha256"}
+
+
+def _m33_state_root() -> Path:
+    """Locate mutable T480 state beside an immutable ProgramData release."""
+    here = Path(__file__).resolve().parent
+    return here.parent.parent / "state" if here.parent.name == "releases" else here
+
+
+def _m33_entry_fence_refusal(now: datetime | None = None) -> str | None:
+    """Return a fail-closed refusal before reservation/order submission."""
+    if os.environ.get(M33_ENTRY_FENCE_ENV, "").lower() != "true":
+        return None
+    now = now or datetime.now(timezone.utc)
+    root = _m33_state_root()
+    try:
+        status = json.loads((root / "trading_health_status.local.json").read_text(encoding="utf-8-sig"))
+        permit = json.loads((root / "trading_health_permit.local.json").read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return "M33_ENTRY_FENCE_PERMIT_MISSING_OR_UNREADABLE"
+    if not isinstance(status, dict) or not isinstance(permit, dict):
+        return "M33_ENTRY_FENCE_PERMIT_CORRUPT"
+    if (status.get("schema_version") != "forex.trading-health-status.v1"
+            or status.get("desired_mode") != "RUN_DEMO"
+            or status.get("entry_eligible") is not True
+            or status.get("state") not in {"READY_FOR_ASSESSMENT", "HEALTHY_NO_SETUP"}):
+        return "M33_ENTRY_FENCE_STATUS_NOT_ELIGIBLE"
+    required = {"schema_version", "boot_id", "generation", "issued_at_utc", "expires_at_utc", "guardian_id"}
+    if set(permit) != required or permit.get("schema_version") != "forex.trading-health-permit.v1":
+        return "M33_ENTRY_FENCE_PERMIT_CORRUPT"
+    if (permit.get("boot_id") != status.get("boot_id")
+            or permit.get("generation") != status.get("generation")
+            or not isinstance(permit.get("generation"), int)
+            or isinstance(permit.get("generation"), bool)
+            or not isinstance(permit.get("guardian_id"), str) or not permit["guardian_id"]):
+        return "M33_ENTRY_FENCE_PERMIT_BINDING_MISMATCH"
+    try:
+        issued = datetime.fromisoformat(str(permit["issued_at_utc"]).replace("Z", "+00:00"))
+        expires = datetime.fromisoformat(str(permit["expires_at_utc"]).replace("Z", "+00:00"))
+        if issued.tzinfo is None or expires.tzinfo is None:
+            raise ValueError
+        issued, expires = issued.astimezone(timezone.utc), expires.astimezone(timezone.utc)
+    except (TypeError, ValueError):
+        return "M33_ENTRY_FENCE_PERMIT_CORRUPT"
+    if issued > now or expires <= issued or (expires - issued).total_seconds() > 120:
+        return "M33_ENTRY_FENCE_PERMIT_TIME_INVALID"
+    if now >= expires:
+        return "M33_ENTRY_FENCE_PERMIT_EXPIRED"
+    return None
 
 M1_EVENT_RISK_POLICY_PATH = Path(__file__).resolve().parents[1] / "config" / "m1_event_risk_gate.json"
 _M1_EVENT_RISK_POLICY_FIELDS = {"schema_version", "enabled", "scope", "required_context_state", "blackout_before_seconds", "blackout_after_seconds", "execution_authority", "activation_requirement"}
@@ -2486,6 +2535,22 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                                        "estimated_round_trip_cost_aud": None, "minimum_net_profit_aud": None,
                                        "expected_net_profit_at_take_profit_aud": None,
                                        "cost_coverage_status": "NOT_APPLICABLE"})
+        if proposal["action"] != "NO_TRADE":
+            entry_fence_refusal = _m33_entry_fence_refusal()
+            if entry_fence_refusal:
+                proposal.update({"action": "NO_TRADE", "proposed_entry": None, "stop_loss": None,
+                                 "take_profit": None, "notional_usd": None, "confidence": 100,
+                                 "rationale": "T480 local guardian fenced new entries: " + entry_fence_refusal + "."})
+                strategy_selection.update({"selected_strategy_id": None, "strategy_rule_version": None,
+                                           "selection_status": "NO_SELECTION", "trade_owner_strategy_id": None,
+                                           "market_regime": "UNSAFE_OR_UNTRADEABLE",
+                                           "market_regime_reason": entry_fence_refusal,
+                                           "entry_spread_cost_aud": None, "expected_exit_spread_cost_aud": None,
+                                           "commission_allowance_aud": None, "slippage_allowance_aud": None,
+                                           "expected_swap_aud": None, "projected_gross_profit_at_take_profit_aud": None,
+                                           "estimated_round_trip_cost_aud": None, "minimum_net_profit_aud": None,
+                                           "expected_net_profit_at_take_profit_aud": None,
+                                           "cost_coverage_status": "NOT_APPLICABLE"})
         revision, fingerprint = _provenance()
         bridge_session_keys = {"session_id", "server", "instrument", "starts_at_utc", "expires_at_utc", "max_trades", "max_notional_per_trade_usd", "max_cumulative_notional_usd", "max_open_positions", "strategy_version", "operator_label"}
         bridge_payload = {"session": {key: session[key] for key in bridge_session_keys}, "proposal": proposal,
@@ -2570,6 +2635,12 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
             )
             if submission_refusal is None:
                 submission_refusal = _terminal_submission_refusal(mt5.account_info())
+            if submission_refusal is None:
+                # A guardian cycle can fence entries while the durable
+                # reservation is being written. Recheck at the final existing
+                # refusal seam; a refusal is reconciled below and never retried
+                # as an order.
+                submission_refusal = _m33_entry_fence_refusal()
             if submission_refusal:
                 validation_at = utc(datetime.now(timezone.utc))
                 non_submission_context = {
