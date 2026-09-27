@@ -9,15 +9,19 @@ or malformed intent or observation can only fence new entries.
 from __future__ import annotations
 
 import argparse
+import ctypes
+import hashlib
 import importlib.util
 import json
 import os
 import subprocess
 import sys
-from datetime import UTC, datetime
+import uuid
+from datetime import UTC, datetime, timedelta
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
+from contextlib import contextmanager
 
 
 HERE = Path(__file__).resolve().parent
@@ -32,11 +36,12 @@ if _IMMUTABLE_RELEASE:
     _policy = importlib.util.module_from_spec(_policy_spec)
     sys.modules[_policy_spec.name] = _policy
     _policy_spec.loader.exec_module(_policy)
-    Observation, classify, recovery_budget = _policy.Observation, _policy.classify, _policy.recovery_budget
+    Observation, classify, recovery_budget, recovery_request = (_policy.Observation, _policy.classify,
+                                                                 _policy.recovery_budget, _policy.recovery_request)
 else:
     if str(HERE.parent / "src") not in sys.path:
         sys.path.insert(0, str(HERE.parent / "src"))
-    from forex.trading_health import Observation, classify, recovery_budget  # noqa: E402
+    from forex.trading_health import Observation, classify, recovery_budget, recovery_request  # noqa: E402
 
 
 def _default_state_root() -> Path:
@@ -60,6 +65,89 @@ def _atomic_json(path: Path, value: dict[str, Any]) -> None:
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
     temporary.replace(path)
+
+
+@contextmanager
+def _recovery_mutex() -> Iterator[bool]:
+    """Serialize guardian generation with the executor on a real T480 host."""
+    if os.name != "nt":
+        # Unit tests use a temporary filesystem, not a shared Windows runtime.
+        yield True
+        return
+    handle = ctypes.windll.kernel32.CreateMutexW(None, False, "Global\\Forex-M33-Trading-Health-Recovery")
+    if not handle:
+        yield False
+        return
+    acquired = ctypes.windll.kernel32.WaitForSingleObject(handle, 0) == 0
+    try:
+        yield acquired
+    finally:
+        if acquired:
+            ctypes.windll.kernel32.ReleaseMutex(handle)
+        ctypes.windll.kernel32.CloseHandle(handle)
+
+
+def _sha256_json(value: dict[str, Any]) -> str:
+    return "sha256:" + hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _status_digest(status: dict[str, Any]) -> str:
+    """Digest the immutable observation projection, excluding lifecycle links."""
+    return _sha256_json({key: value for key, value in status.items()
+                         if key not in {"status_sha256", "recovery_request_id", "recovery_phase"}})
+
+
+def _guardian_release_id() -> str:
+    return HERE.name if _IMMUTABLE_RELEASE and len(HERE.name) == 16 else "0" * 16
+
+
+def _new_ledger(boot_id: str) -> dict[str, Any]:
+    return {"schema_version": "forex.trading-health-recovery-ledger.v1", "boot_id": boot_id,
+            "last_generation": 0, "attempts_utc": [], "active_request_id": None, "phase": "NONE"}
+
+
+def _load_ledger(root: Path, boot_id: str) -> tuple[dict[str, Any] | None, str | None]:
+    path = root / "trading_health_recovery_ledger.local.json"
+    if not path.exists():
+        return _new_ledger(boot_id), None
+    value = _read_json(path)
+    if not isinstance(value, dict):
+        return None, "RECOVERY_LEDGER_CORRUPT"
+    required = {"schema_version", "boot_id", "last_generation", "attempts_utc", "active_request_id", "phase"}
+    if (set(value) != required or value.get("schema_version") != "forex.trading-health-recovery-ledger.v1"
+            or not isinstance(value.get("boot_id"), str) or not value["boot_id"]
+            or type(value.get("last_generation")) is not int or value["last_generation"] < 0
+            or not isinstance(value.get("attempts_utc"), list)
+            or value.get("phase") not in {"NONE", "PENDING", "CLAIMED", "DISPATCHED", "VERIFIED", "REFUSED", "INTERVENTION_REQUIRED"}):
+        return None, "RECOVERY_LEDGER_CORRUPT"
+    # A boot change deliberately retains the attempt ledger and fences an
+    # outstanding request rather than allowing a reboot to erase ownership.
+    if value["boot_id"] != boot_id and value["phase"] in {"PENDING", "CLAIMED", "DISPATCHED"}:
+        return None, "RECOVERY_LEDGER_UNRESOLVED_PRIOR_BOOT"
+    value["boot_id"] = boot_id
+    return value, None
+
+
+def _runtime_manifest(root: Path, listener: dict[str, Any] | None, intent: dict[str, Any] | None,
+                      boot_id: str) -> dict[str, Any] | None:
+    config = _read_json(root / "m20_demo_listener_service.local.json")
+    release = listener.get("release_id") if isinstance(listener, dict) else None
+    fingerprint = config.get("FOREX_M20_CONFIGURATION_FINGERPRINT") if isinstance(config, dict) else None
+    revision = config.get("FOREX_M20_APPLICATION_REVISION") if isinstance(config, dict) else None
+    if not (isinstance(release, str) and len(release) == 16 and isinstance(fingerprint, str)
+            and fingerprint.startswith("sha256:") and isinstance(revision, str) and len(revision) == 40
+            and isinstance(intent, dict) and isinstance(intent.get("account_scope_sha256"), str)
+            and isinstance(intent.get("profile_sha256"), str)):
+        return None
+    manifest = {"schema_version": "forex.trading-health-runtime-binding.v1", "boot_id": boot_id,
+                "listener_release_id": release, "guardian_release_id": _guardian_release_id(),
+                "configuration_fingerprint": fingerprint, "application_revision": revision,
+                "account_scope_sha256": intent["account_scope_sha256"], "profile_sha256": intent["profile_sha256"],
+                "listener_task": "Forex-M20-Demo-Listener", "observed_at_utc": _utc_now().isoformat().replace("+00:00", "Z")}
+    _atomic_json(root / "trading_health_runtime_binding.local.json", manifest)
+    return manifest
 
 
 def _age_seconds(value: Any, now: datetime) -> float | None:
@@ -190,16 +278,22 @@ def _observation(root: Path, now: datetime) -> tuple[Observation, str, int, list
 def run_once(root: Path, now: datetime | None = None) -> dict[str, Any]:
     now = now or _utc_now()
     observation, mode, next_retry, attempts = _observation(root, now)
-    circuit_open, _ = recovery_budget(attempts, now, True)
+    boot_id = _boot_id()
+    ledger, ledger_error = _load_ledger(root, boot_id)
+    circuit_open, _ = recovery_budget(attempts, now, ledger_error is None)
+    if ledger_error is not None:
+        circuit_open = True
     decision = classify(observation, mode, budget_open=circuit_open)
     release_id = "unknown"
     listener = _read_json(root / "m20_demo_listener_status.local.json")
     if isinstance(listener, dict) and isinstance(listener.get("release_id"), str):
         release_id = listener["release_id"]
+    intent = _read_json(root / "trading_health_intent.local.json")
+    manifest = _runtime_manifest(root, listener, intent, boot_id)
     status = {
         "schema_version": "forex.trading-health-status.v1",
         "observed_at_utc": now.isoformat().replace("+00:00", "Z"),
-        "boot_id": _boot_id(),
+        "boot_id": boot_id,
         "release_id": release_id if len(release_id) == 16 else "0" * 16,
         "state": decision.state,
         "reasons": list(decision.reasons),
@@ -208,12 +302,56 @@ def run_once(root: Path, now: datetime | None = None) -> dict[str, Any]:
         "recommended_action": decision.recommended_action,
         "desired_mode": mode,
         "managed_mt5_count": observation.managed_mt5_count,
+        "unattributable_mt5_count": observation.unattributable_mt5_count,
         "attempts_in_window": len(attempts),
         "next_retry_after_s": next_retry,
         "last_assessment_completed_at_utc": listener.get("assessment_completed_at_utc") if isinstance(listener, dict) else None,
         "last_monitor_at_utc": (listener.get("monitor") or {}).get("last_checked_at_utc") if isinstance(listener, dict) and isinstance(listener.get("monitor"), dict) else None,
+        "status_sha256": None,
+        "recovery_request_id": None,
+        "recovery_phase": None,
     }
+    status_digest = _status_digest(status)
+    status["status_sha256"] = status_digest
+    request_path = root / "trading_health_recovery_request.local.json"
+    prior = _read_json(request_path)
+    active = (isinstance(prior, dict) and prior.get("schema_version") == "forex.trading-health-recovery-request.v2"
+              and prior.get("request_id") == (ledger or {}).get("active_request_id")
+              and (ledger or {}).get("phase") in {"PENDING", "CLAIMED", "DISPATCHED"})
+    request = None
+    with _recovery_mutex() as acquired:
+      if not acquired:
+        status["recovery_phase"] = "INTERVENTION_REQUIRED"
+        status["reasons"].append("RECOVERY_MUTEX_UNAVAILABLE_OR_HELD")
+      elif active:
+        # Never overwrite an owned action.  An executor or later explicit
+        # intervention must move the ledger to a terminal state first.
+        request = prior
+        status["recovery_request_id"] = prior["request_id"]
+        status["recovery_phase"] = ledger["phase"]
+      elif ledger_error is not None:
+        status["recovery_phase"] = "INTERVENTION_REQUIRED"
+      else:
+        generated = recovery_request(decision, ledger["last_generation"] + 1, now)
+        if generated is not None and manifest is not None and isinstance(intent, dict):
+            request = {
+                "schema_version": "forex.trading-health-recovery-request.v2", "state": "PENDING",
+                "request_id": uuid.uuid4().hex, "generation": generated.generation, "boot_id": boot_id,
+                "guardian_release_id": manifest["guardian_release_id"], "listener_release_id": manifest["listener_release_id"],
+                "configuration_fingerprint": manifest["configuration_fingerprint"],
+                "account_scope_sha256": manifest["account_scope_sha256"], "profile_sha256": manifest["profile_sha256"],
+                "status_sha256": status_digest, "health_state": generated.state, "action": generated.action,
+                "issued_at_utc": now.isoformat().replace("+00:00", "Z"),
+                "expires_at_utc": (now + timedelta(seconds=75)).isoformat().replace("+00:00", "Z"),
+                "entry_eligible": False,
+            }
+            ledger.update({"last_generation": generated.generation, "active_request_id": request["request_id"], "phase": "PENDING"})
+            _atomic_json(root / "trading_health_recovery_ledger.local.json", ledger)
+            status["recovery_request_id"] = request["request_id"]
+            status["recovery_phase"] = "PENDING"
     _atomic_json(root / "trading_health_status.local.json", status)
+    if request is not None and not active:
+        _atomic_json(request_path, request)
     return status
 
 

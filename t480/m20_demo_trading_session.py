@@ -2805,6 +2805,9 @@ def held_readiness_assessment(terminal_path: str) -> None:
         _require_account_execution_profile(account)
         captured_at = datetime.now(timezone.utc)
         positions = _positions_or_fail(context="held-readiness", symbol=SYMBOL)
+        pending_orders = mt5.orders_get()
+        if pending_orders is None:
+            raise SystemExit("M20 held readiness could not inspect pending orders")
         policy = persistent_risk_policy()
         risk_gate = _bridge(
             {"policy": policy, "account": _entry_risk_snapshot(account, captured_at)},
@@ -2825,6 +2828,7 @@ def held_readiness_assessment(terminal_path: str) -> None:
             "configuration_fingerprint": fingerprint,
             "risk_policy": risk_gate,
             "open_positions": len(positions),
+            "pending_orders": len(pending_orders),
             "broker_mutation": "NONE",
             "order_submission": "STRUCTURALLY_UNAVAILABLE",
         }, separators=(",", ":")))

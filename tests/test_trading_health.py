@@ -49,6 +49,16 @@ def test_observed_24_sept_outage_listener_absent_mt5_running():
     assert not d.entry_eligible
 
 
+def test_listener_outage_is_not_masked_by_lost_session_or_stale_data_receipts():
+    absent = state(listener_present=False, session_ok=None, listener_heartbeat_age_s=None,
+                   data_fresh=None, broker_connected=None)
+    assert (absent.state, absent.reasons, absent.recommended_action, absent.entry_eligible) == (
+        th.RECOVERING_LISTENER, ("LISTENER_ABSENT",), "START_LISTENER", False)
+    stale = state(listener_heartbeat_age_s=45, data_fresh=False, broker_connected=False)
+    assert (stale.state, stale.reasons, stale.recommended_action, stale.entry_eligible) == (
+        th.RECOVERING_LISTENER, ("LISTENER_HEARTBEAT_STALE",), "RESTART_LISTENER", False)
+
+
 def test_startup_grace_then_recovery():
     assert state(boot_seconds=60, managed_mt5_count=0).state == th.STARTING
     d = state(boot_seconds=600, managed_mt5_count=0, exposure_flat=None)
@@ -113,6 +123,26 @@ def test_budget_three_per_window_spacing_and_no_reboot_reset():
     assert th.classify(healthy(), "RUN_DEMO", budget_open=True).state == th.CIRCUIT_OPEN
 
 
+def test_recovery_request_is_generation_bound_and_never_uses_entry_or_blocked_states():
+    request = th.recovery_request(state(listener_present=False), 4, NOW)
+    assert request == th.RecoveryRequest(4, th.RECOVERING_LISTENER, "START_LISTENER", "2026-09-25T01:00:00Z")
+    assert th.recovery_request(state(), 4, NOW) is None
+    assert th.recovery_request(state("MONITOR_ONLY"), 4, NOW) is None
+    assert th.recovery_request(state(managed_mt5_count=2, exposure_flat=None), 4, NOW) is None
+    assert th.recovery_request(state(listener_present=False), 0, NOW) is None
+
+
+def test_recovery_request_validator_rejects_stale_or_entry_capable_shapes():
+    expected = th.recovery_request(state(listener_present=False), 4, NOW)
+    assert expected
+    record = {"schema_version": "forex.trading-health-recovery-request.v1", "state": "PENDING", "generation": 4,
+              "observed_at_utc": "2026-09-25T01:00:00Z", "health_state": th.RECOVERING_LISTENER,
+              "action": "START_LISTENER", "entry_eligible": False}
+    assert th.validate_recovery_request(record, expected)
+    assert not th.validate_recovery_request({**record, "generation": 3}, expected)
+    assert not th.validate_recovery_request({**record, "entry_eligible": True}, expected)
+
+
 def permit(**kw):
     p = {"boot_id": "b1", "generation": 7,
          "issued_at_utc": (NOW - timedelta(seconds=10)).isoformat(),
@@ -148,7 +178,7 @@ def test_schemas_validate_and_refuse_extra_authority_fields():
     from jsonschema import Draft202012Validator
 
     load = lambda n: json.loads(Path(f"config/schemas/trading-health-{n}.schema.json").read_text())
-    for n in ("intent", "permit", "status"):
+    for n in ("intent", "permit", "status", "recovery-request", "recovery-ledger", "recovery-receipt"):
         Draft202012Validator.check_schema(load(n))
     permit_schema = Draft202012Validator(load("permit"))
     good = dict(schema_version="forex.trading-health-permit.v1", boot_id="b", generation=1,
@@ -157,5 +187,19 @@ def test_schemas_validate_and_refuse_extra_authority_fields():
     assert list(permit_schema.iter_errors({**good, "order_authority": True}))
     intent = Draft202012Validator(load("intent"))
     assert list(intent.iter_errors({"schema_version": "forex.trading-health-intent.v1", "mode": "LIVE"}))
+    request = Draft202012Validator(load("recovery-request"))
+    good_request = {
+        "schema_version": "forex.trading-health-recovery-request.v2", "state": "PENDING",
+        "request_id": "a" * 32, "generation": 1, "boot_id": "boot",
+        "guardian_release_id": "b" * 16, "listener_release_id": "c" * 16,
+        "configuration_fingerprint": "sha256:" + "d" * 64,
+        "account_scope_sha256": "sha256:" + "e" * 64, "profile_sha256": "sha256:" + "f" * 64,
+        "status_sha256": "sha256:" + "0" * 64, "health_state": th.RECOVERING_LISTENER,
+        "action": "START_LISTENER", "issued_at_utc": "2026-09-25T01:00:00Z",
+        "expires_at_utc": "2026-09-25T01:01:00Z", "entry_eligible": False,
+    }
+    assert not list(request.iter_errors(good_request))
+    assert list(request.iter_errors({**good_request, "entry_eligible": True}))
+    assert list(request.iter_errors({**good_request, "request_id": "not-bound"}))
     status_states = set(load("status")["properties"]["state"]["enum"])
     assert status_states == {v for k, v in vars(th).items() if k.isupper() and isinstance(v, str) and k == v}

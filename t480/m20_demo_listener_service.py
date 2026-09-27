@@ -363,6 +363,9 @@ def run_held_readiness_assessment() -> int:
     if (isinstance(result.get("open_positions"), bool) or
             not isinstance(result.get("open_positions"), int) or result["open_positions"] < 0):
         raise SystemExit("M20 held readiness assessment lacks exposure observation")
+    if (isinstance(result.get("pending_orders"), bool) or
+            not isinstance(result.get("pending_orders"), int) or result["pending_orders"] < 0):
+        raise SystemExit("M20 held readiness assessment lacks pending-order observation")
     print(json.dumps({"listener_release_id": ROOT.name, "maintenance_hold": True,
                       "assessment": result}, separators=(",", ":")))
     return 0

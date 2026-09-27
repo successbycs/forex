@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Forex T480 identity-bound recovery request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "state", "request_id", "generation", "boot_id", "guardian_release_id", "listener_release_id", "configuration_fingerprint", "account_scope_sha256", "profile_sha256", "status_sha256", "health_state", "action", "issued_at_utc", "expires_at_utc", "entry_eligible"],
+  "properties": {
+    "schema_version": {"const": "forex.trading-health-recovery-request.v2"},
+    "state": {"const": "PENDING"},
+    "request_id": {"type": "string", "pattern": "^[a-f0-9]{32}$"},
+    "generation": {"type": "integer", "minimum": 1},
+    "boot_id": {"type": "string", "minLength": 1},
+    "guardian_release_id": {"type": "string", "pattern": "^[a-f0-9]{16}$"},
+    "listener_release_id": {"type": "string", "pattern": "^[a-f0-9]{16}$"},
+    "configuration_fingerprint": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "account_scope_sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "profile_sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "status_sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "health_state": {"const": "RECOVERING_LISTENER"},
+    "action": {"enum": ["START_LISTENER", "RESTART_LISTENER"]},
+    "issued_at_utc": {"type": "string", "format": "date-time"},
+    "expires_at_utc": {"type": "string", "format": "date-time"},
+    "entry_eligible": {"const": false}
+  }
+}

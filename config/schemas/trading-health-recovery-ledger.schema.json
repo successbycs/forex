@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Forex T480 monotonic recovery ledger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "boot_id", "last_generation", "attempts_utc", "active_request_id", "phase"],
+  "properties": {
+    "schema_version": {"const": "forex.trading-health-recovery-ledger.v1"},
+    "boot_id": {"type": "string", "minLength": 1},
+    "last_generation": {"type": "integer", "minimum": 0},
+    "attempts_utc": {"type": "array", "items": {"type": "string", "format": "date-time"}},
+    "active_request_id": {"type": ["string", "null"], "pattern": "^[a-f0-9]{32}$"},
+    "phase": {"enum": ["NONE", "PENDING", "CLAIMED", "DISPATCHED", "VERIFIED", "REFUSED", "INTERVENTION_REQUIRED"]}
+  }
+}

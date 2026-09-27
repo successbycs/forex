@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Forex T480 identity-bound recovery receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "request_id", "generation", "boot_id", "listener_release_id", "configuration_fingerprint", "state", "observed_at_utc", "broker_mutation", "entry_eligible"],
+  "properties": {
+    "schema_version": {"const": "forex.trading-health-recovery-receipt.v2"},
+    "request_id": {"type": "string", "pattern": "^[a-f0-9]{32}$"},
+    "generation": {"type": "integer", "minimum": 1},
+    "boot_id": {"type": "string", "minLength": 1},
+    "listener_release_id": {"type": "string", "pattern": "^[a-f0-9]{16}$"},
+    "configuration_fingerprint": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "state": {"enum": ["REFUSED", "INTERVENTION_REQUIRED", "VERIFIED"]},
+    "observed_at_utc": {"type": "string", "format": "date-time"},
+    "reason": {"type": "string", "minLength": 1},
+    "action": {"enum": ["START_LISTENER", "RESTART_LISTENER"]},
+    "readiness": {"type": "object"},
+    "post_action_evidence": {"type": "object"},
+    "broker_mutation": {"const": "NONE"},
+    "entry_eligible": {"const": false}
+  }
+}

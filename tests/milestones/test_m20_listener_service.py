@@ -197,7 +197,7 @@ def test_held_readiness_requires_hold_and_validates_non_trading_runner_output(tm
               "schema_version": "forex.m20.held-readiness-assessment.v1",
               "operation": "m20_demo_held_readiness_assessment", "server": "GOMarketsMU-Demo",
               "currency": "AUD", "symbol": "EURUSD", "risk_policy": {"entry_allowed": True},
-              "open_positions": 0, "broker_mutation": "NONE",
+              "open_positions": 0, "pending_orders": 0, "broker_mutation": "NONE",
               "order_submission": "STRUCTURALLY_UNAVAILABLE"}
     monkeypatch.setattr(module.subprocess, "run", lambda *_, **__: type("R", (), {"returncode": 0, "stdout": json.dumps(output), "stderr": ""})())
     assert module.run_held_readiness_assessment() == 0

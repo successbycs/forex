@@ -38,6 +38,12 @@ def listener():
     }
 
 
+def runtime_config():
+    return {"FOREX_M20_CONFIGURATION_FINGERPRINT": "sha256:" + "c" * 64,
+            "FOREX_M20_APPLICATION_REVISION": "d" * 40,
+            "terminal_path": "C:\\Program Files\\MetaTrader 5\\terminal64.exe"}
+
+
 def test_missing_intent_fails_closed_and_writes_schema_valid_shape(tmp_path, monkeypatch):
     g = module()
     monkeypatch.setattr(g, "_boot_id", lambda: "test-boot")
@@ -70,14 +76,75 @@ def test_monitor_only_reports_hold_without_publishing_entry_authority(tmp_path, 
 def test_stale_or_missing_listener_is_visible_and_never_becomes_entry_eligible(tmp_path, monkeypatch):
     g = module()
     monkeypatch.setattr(g, "_boot_id", lambda: "test-boot")
-    monkeypatch.setattr(g, "_managed_mt5_inventory", lambda _: (None, 0))
+    monkeypatch.setattr(g, "_managed_mt5_inventory", lambda _: (1, 0))
+    stopped = listener()
+    stopped["state"] = "STOPPED"
+    write(tmp_path / "m20_demo_listener_status.local.json", stopped)
+    write(tmp_path / "m20_demo_listener_service.local.json", runtime_config())
     write(tmp_path / "trading_health_intent.local.json", {
         "schema_version": "forex.trading-health-intent.v1", "mode": "RUN_DEMO",
         "revision": 1, "set_at_utc": "2026-09-26T00:00:00Z",
         "account_scope_sha256": "sha256:" + "a" * 64, "profile_sha256": "sha256:" + "b" * 64,
     })
     status = g.run_once(tmp_path, NOW)
-    assert status["state"] in {"BLOCKED_SESSION", "BLOCKED_DEPENDENCY"}
+    assert status["state"] == "RECOVERING_LISTENER"
+    assert status["reasons"] == ["LISTENER_ABSENT"]
+    assert status["entry_eligible"] is False
+    request = json.loads((tmp_path / "trading_health_recovery_request.local.json").read_text())
+    assert request["state"] == "PENDING" and request["action"] == "START_LISTENER"
+
+
+def test_non_recovery_cycle_does_not_write_an_invalid_terminal_request(tmp_path, monkeypatch):
+    g = module()
+    monkeypatch.setattr(g, "_boot_id", lambda: "test-boot")
+    monkeypatch.setattr(g, "_managed_mt5_inventory", lambda _: (1, 0))
+    write(tmp_path / "m20_demo_listener_status.local.json", listener())
+    write(tmp_path / "m20_demo_maintenance_hold.local.json", {"enabled": True})
+    write(tmp_path / "trading_health_recovery_request.local.json", {"generation": 7})
+    g.run_once(tmp_path, NOW)
+    request = json.loads((tmp_path / "trading_health_recovery_request.local.json").read_text())
+    # Requests have one actionable PENDING shape.  Terminal information belongs
+    # in a receipt, so a benign guardian cycle cannot manufacture an invalid
+    # v2 request record.
+    assert request == {"generation": 7}
+
+
+def test_guardian_retains_owned_pending_request_instead_of_overwriting_it(tmp_path, monkeypatch):
+    g = module()
+    monkeypatch.setattr(g, "_boot_id", lambda: "test-boot")
+    monkeypatch.setattr(g, "_managed_mt5_inventory", lambda _: (1, 0))
+    stopped = listener()
+    stopped["state"] = "STOPPED"
+    write(tmp_path / "m20_demo_listener_status.local.json", stopped)
+    write(tmp_path / "m20_demo_listener_service.local.json", runtime_config())
+    write(tmp_path / "trading_health_intent.local.json", {
+        "schema_version": "forex.trading-health-intent.v1", "mode": "RUN_DEMO", "revision": 1,
+        "set_at_utc": "2026-09-26T00:00:00Z", "account_scope_sha256": "sha256:" + "a" * 64,
+        "profile_sha256": "sha256:" + "b" * 64,
+    })
+    g.run_once(tmp_path, NOW)
+    first = json.loads((tmp_path / "trading_health_recovery_request.local.json").read_text())
+    status = g.run_once(tmp_path, NOW.replace(second=31))
+    second = json.loads((tmp_path / "trading_health_recovery_request.local.json").read_text())
+    assert second == first
+    assert status["recovery_request_id"] == first["request_id"]
+    assert status["recovery_phase"] == "PENDING"
+
+
+def test_corrupt_recovery_ledger_opens_circuit_and_requires_intervention(tmp_path, monkeypatch):
+    g = module()
+    monkeypatch.setattr(g, "_boot_id", lambda: "test-boot")
+    monkeypatch.setattr(g, "_managed_mt5_inventory", lambda _: (1, 0))
+    write(tmp_path / "m20_demo_listener_status.local.json", listener())
+    write(tmp_path / "trading_health_intent.local.json", {
+        "schema_version": "forex.trading-health-intent.v1", "mode": "RUN_DEMO", "revision": 1,
+        "set_at_utc": "2026-09-26T00:00:00Z", "account_scope_sha256": "sha256:" + "a" * 64,
+        "profile_sha256": "sha256:" + "b" * 64,
+    })
+    (tmp_path / "trading_health_recovery_ledger.local.json").write_text("not-json")
+    status = g.run_once(tmp_path, NOW)
+    assert status["state"] == "CIRCUIT_OPEN"
+    assert status["recovery_phase"] == "INTERVENTION_REQUIRED"
     assert status["entry_eligible"] is False
 
 

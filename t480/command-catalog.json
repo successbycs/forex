@@ -1729,13 +1729,133 @@
       "id": "m33_guardian_guardian_stage_8", "purpose": "Stage fixed M33 guardian guardian payload fragment 8.", "approval_required": false
     },
     {
+      "id": "m33_guardian_guardian_stage_9", "purpose": "Stage fixed M33 guardian guardian payload fragment 9.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_10", "purpose": "Stage fixed M33 guardian guardian payload fragment 10.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_11", "purpose": "Stage fixed M33 guardian guardian payload fragment 11.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_12", "purpose": "Stage fixed M33 guardian guardian payload fragment 12.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_13", "purpose": "Stage fixed M33 guardian guardian payload fragment 13.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_14", "purpose": "Stage fixed M33 guardian guardian payload fragment 14.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_15", "purpose": "Stage fixed M33 guardian guardian payload fragment 15.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_16", "purpose": "Stage fixed M33 guardian guardian payload fragment 16.", "approval_required": false
+    },
+    {
       "id": "m33_guardian_guardian_verify", "purpose": "Assemble and hash-verify fixed M33 guardian guardian payload.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_matrix_stage_1", "purpose": "Stage fixed M33 guardian matrix payload fragment 1.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_matrix_stage_2", "purpose": "Stage fixed M33 guardian matrix payload fragment 2.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_matrix_stage_3", "purpose": "Stage fixed M33 guardian matrix payload fragment 3.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_matrix_stage_4", "purpose": "Stage fixed M33 guardian matrix payload fragment 4.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_matrix_stage_5", "purpose": "Stage fixed M33 guardian matrix payload fragment 5.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_matrix_stage_6", "purpose": "Stage fixed M33 guardian matrix payload fragment 6.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_matrix_stage_7", "purpose": "Stage fixed M33 guardian matrix payload fragment 7.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_matrix_stage_8", "purpose": "Stage fixed M33 guardian matrix payload fragment 8.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_matrix_verify", "purpose": "Assemble and hash-verify fixed M33 guardian matrix payload.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_matrix_run", "purpose": "Capture a fixed held no-order M33.2 guardian observation matrix from the live local baseline.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_matrix_status", "purpose": "Read retained M33.2 observation-matrix receipts without mutation.", "approval_required": false
     },
     {
       "id": "m33_guardian_install", "purpose": "Install the verified observation-only M33 guardian as a held S4U startup task.", "approval_required": false
     },
     {
       "id": "m33_guardian_status", "purpose": "Read the local M33 guardian task and persisted status without mutation.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_1", "purpose": "Stage fixed M33 guardian executor payload fragment 1.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_2", "purpose": "Stage fixed M33 guardian executor payload fragment 2.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_3", "purpose": "Stage fixed M33 guardian executor payload fragment 3.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_4", "purpose": "Stage fixed M33 guardian executor payload fragment 4.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_5", "purpose": "Stage fixed M33 guardian executor payload fragment 5.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_6", "purpose": "Stage fixed M33 guardian executor payload fragment 6.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_7", "purpose": "Stage fixed M33 guardian executor payload fragment 7.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_8", "purpose": "Stage fixed M33 guardian executor payload fragment 8.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_9", "purpose": "Stage fixed M33 guardian executor payload fragment 9.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_10", "purpose": "Stage fixed M33 guardian executor payload fragment 10.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_11", "purpose": "Stage fixed M33 guardian executor payload fragment 11.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_12", "purpose": "Stage fixed M33 guardian executor payload fragment 12.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_13", "purpose": "Stage fixed M33 guardian executor payload fragment 13.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_14", "purpose": "Stage fixed M33 guardian executor payload fragment 14.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_15", "purpose": "Stage fixed M33 guardian executor payload fragment 15.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_stage_16", "purpose": "Stage fixed M33 guardian executor payload fragment 16.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_executor_verify", "purpose": "Assemble and hash-verify fixed M33 guardian executor payload.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_recovery_execute", "purpose": "Execute one fixed held-only, generation-bound listener recovery request; MT5 actions are refused.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_recovery_reconcile", "purpose": "Verify one dispatched held-only listener recovery from fresh local evidence; it cannot dispatch a task.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_recovery_status", "purpose": "Read M33.3 recovery request, receipt and listener task state without mutation.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_set_held_recovery_intent", "purpose": "Set only the fixed RUN_DEMO recovery intent for one M33.3 held listener drill; it publishes no entry authority.", "approval_required": false
     }
   ]
 }

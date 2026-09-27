@@ -85,6 +85,20 @@ class HealthDecision:
     recommended_action: str = "NONE"
 
 
+@dataclass(frozen=True)
+class RecoveryRequest:
+    """A persisted intent for one later fixed recovery effect, never authority itself."""
+
+    generation: int
+    state: str
+    action: str
+    observed_at_utc: str
+
+
+RECOVERY_ACTIONS = frozenset({"START_LISTENER", "RESTART_LISTENER", "START_ONE_MT5",
+                              "RESTART_ONE_MT5_IF_SAFE", "RECYCLE_MANAGED_SET_FLAT"})
+
+
 def _d(state: str, *reasons: str, action: str = "NONE", capable: bool = False,
        eligible: bool = False) -> HealthDecision:
     return HealthDecision(state, tuple(reasons), capable, eligible and state in ENTRY_STATES, action)
@@ -100,12 +114,27 @@ def classify(obs: Observation, mode: str | None, budget_open: bool = False,
         return _d(STOPPED_BY_OPERATOR, "OPERATOR_INTENT")
     if budget_open:
         return _d(CIRCUIT_OPEN, "RECOVERY_BUDGET_EXHAUSTED")
+
+    # A missing or stale listener must remain distinguishable even when its
+    # normal runtime binding is no longer available.  The later recovery
+    # executor still has to prove ownership, flatness and reconciliation
+    # before it can act; this policy result never grants entry authority.
+    # Check this before dependent MT5/session/data observations so an outage
+    # is not misreported as a generic dependency failure.
+    starting = obs.boot_seconds is not None and obs.boot_seconds < policy.startup_grace_s
+    if not obs.listener_present:
+        if starting:
+            return _d(STARTING, "LISTENER_ABSENT_IN_GRACE")
+        return _d(RECOVERING_LISTENER, "LISTENER_ABSENT", action="START_LISTENER")
+    if (obs.listener_heartbeat_age_s is None
+            or obs.listener_heartbeat_age_s >= policy.listener_heartbeat_warn_s):
+        return _d(RECOVERING_LISTENER, "LISTENER_HEARTBEAT_STALE", action="RESTART_LISTENER")
+
     if obs.session_ok is not True:
         return _d(BLOCKED_SESSION, "SESSION_UNVERIFIED" if obs.session_ok is None else "SESSION_ABSENT")
     if obs.unattributable_mt5_count:
         return _d(BLOCKED_OWNERSHIP, "UNATTRIBUTABLE_MT5_PROCESS")
 
-    starting = obs.boot_seconds is not None and obs.boot_seconds < policy.startup_grace_s
     count = obs.managed_mt5_count
     if count is None:
         return _d(BLOCKED_DEPENDENCY, "MT5_INVENTORY_UNAVAILABLE")
@@ -129,13 +158,6 @@ def classify(obs: Observation, mode: str | None, budget_open: bool = False,
     if obs.db_available is False:
         return _d(BLOCKED_DEPENDENCY, "AUDIT_DATABASE_UNAVAILABLE", action="BOUNDED_REPROBE")
 
-    if not obs.listener_present:
-        if starting:
-            return _d(STARTING, "LISTENER_ABSENT_IN_GRACE")
-        return _d(RECOVERING_LISTENER, "LISTENER_ABSENT", action="START_LISTENER", capable=True)
-    if (obs.listener_heartbeat_age_s is None
-            or obs.listener_heartbeat_age_s >= policy.listener_heartbeat_warn_s):
-        return _d(RECOVERING_LISTENER, "LISTENER_HEARTBEAT_STALE", action="RESTART_LISTENER", capable=True)
     if (obs.source_input_advancing is True and obs.assessment_age_s is not None
             and obs.assessment_age_s >= policy.assessment_stall_s):
         return _d(RECOVERING_LISTENER, "ASSESSMENT_STALLED", action="RESTART_LISTENER", capable=True)
@@ -174,6 +196,30 @@ def recovery_budget(attempt_times: list[datetime], now: datetime, clock_trusted:
     spacing = policy.attempt_spacing_s[min(len(window), len(policy.attempt_spacing_s)) - 1]
     wait = spacing - (now - max(window)).total_seconds()
     return False, max(0.0, wait)
+
+
+def recovery_request(decision: HealthDecision, generation: int, observed_at: datetime) -> RecoveryRequest | None:
+    """Create a fail-closed, generation-bound request for the fixed executor.
+
+    The executor must independently re-observe its preconditions; this helper
+    deliberately cannot turn a healthy, policy-blocked, or entry-capable state
+    into a recovery action.
+    """
+    if (type(generation) is not int or generation < 1 or decision.entry_eligible
+            or decision.recommended_action not in RECOVERY_ACTIONS
+            or decision.state not in {RECOVERING_LISTENER, RECOVERING_MT5}):
+        return None
+    return RecoveryRequest(generation, decision.state, decision.recommended_action,
+                           observed_at.astimezone(UTC).isoformat().replace("+00:00", "Z"))
+
+
+def validate_recovery_request(request: dict[str, Any] | None, expected: RecoveryRequest) -> bool:
+    """Accept only the exact current, fail-closed persisted recovery request."""
+    return isinstance(request, dict) and request == {
+        "schema_version": "forex.trading-health-recovery-request.v1", "state": "PENDING",
+        "generation": expected.generation, "observed_at_utc": expected.observed_at_utc,
+        "health_state": expected.state, "action": expected.action, "entry_eligible": False,
+    }
 
 
 @dataclass(frozen=True)

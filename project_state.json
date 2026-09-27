@@ -37,14 +37,14 @@
     "config/t480.json",
     "t480/command-catalog.json"
   ],
-  "configuration_fingerprint": "sha256:4e3f09cde974e8a1271e2be24188cb6a4e0b50615014b991fbf46be6fc369a00",
+  "configuration_fingerprint": "sha256:824c5263793b20d43d31eb1f87ee1e9af4a7eaf22d8b74e50749303e7e79657d",
   "important_architectural_decisions": [
     "Shared T480 transport belongs to cs-ai-lab-infra; Forex owns its catalog and adapter.",
     "Mutable execution state is separate from the declarative milestone registry.",
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-24T06:44:48Z",
+  "last_updated_at": "2026-09-27T01:14:37Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",
@@ -4201,8 +4201,8 @@
       "status": "NEEDS_FIX",
       "started_at": "2026-09-23T03:47:40Z",
       "implementation_finished_at": "2026-09-23T04:03:35Z",
-      "verification_passed_at": "2026-09-24T03:50:58Z",
-      "real_world_proof_captured_at": "2026-09-24T03:50:56Z",
+      "verification_passed_at": "2026-09-24T05:28:23Z",
+      "real_world_proof_captured_at": "2026-09-24T05:28:11Z",
       "human_signed_off_at": "2026-09-24T03:49:33Z",
       "first_proven_at": null,
       "proven_at": null,
@@ -4305,12 +4305,21 @@
           "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
           "git_revision": "55a6870c7cfcdeae49680d3102704a9c4bed9d22",
           "summary": "FOREX_M33_PRO_FORMA_COMMISSION_OK"
+        },
+        {
+          "manifest_path": "runs/evidence/M33/m33-daily-web-complete-20260924T063500Z/manifest.json",
+          "manifest_sha256": "c0ac08200cbd7c8f345a6dc89c54fbc5bf0ea2268167d24209ef7feb9867f9ec",
+          "captured_at": "2026-09-24T05:28:11Z",
+          "recorded_at": "2026-09-24T05:28:22Z",
+          "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
+          "git_revision": "7a112f5240546966b10f9dba1d9f3150931b412c",
+          "summary": "FOREX_M33_PRO_FORMA_COMMISSION_OK"
         }
       ],
       "verification": {
         "passed": true,
-        "recorded_at": "2026-09-24T03:50:58Z",
-        "git_revision": "55a6870c7cfcdeae49680d3102704a9c4bed9d22",
+        "recorded_at": "2026-09-24T05:28:23Z",
+        "git_revision": "7a112f5240546966b10f9dba1d9f3150931b412c",
         "configuration_fingerprint": "sha256:e6d872e269c85684a69199721a9d597b37dd2266e54343e8f4c50c5f888103fd",
         "commands": [
           {
@@ -4322,8 +4331,8 @@
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M33/20260924T035057Z/governance.stdout.txt",
-            "stderr": "runs/verification/M33/20260924T035057Z/governance.stderr.txt"
+            "stdout": "runs/verification/M33/20260924T052822Z/governance.stdout.txt",
+            "stderr": "runs/verification/M33/20260924T052822Z/governance.stderr.txt"
           },
           {
             "id": "milestone-tests",
@@ -4332,12 +4341,13 @@
               "-m",
               "pytest",
               "-q",
-              "tests/milestones/test_m33.py"
+              "tests/milestones/test_m33.py",
+              "tests/test_m33_daily_pnl_report.py"
             ],
             "exit_code": 0,
             "passed": true,
-            "stdout": "runs/verification/M33/20260924T035057Z/milestone-tests.stdout.txt",
-            "stderr": "runs/verification/M33/20260924T035057Z/milestone-tests.stderr.txt"
+            "stdout": "runs/verification/M33/20260924T052822Z/milestone-tests.stdout.txt",
+            "stderr": "runs/verification/M33/20260924T052822Z/milestone-tests.stderr.txt"
           }
         ]
       },
@@ -4375,6 +4385,28 @@
           "milestone_contract_sha256": "0fe1491cc1609975ac2036c9721a2373c2d937f51e49158cfc11cb38c2c99139"
         },
         "recorded_at": "2026-09-24T03:14:14Z"
+      },
+      "work_packages": {
+        "M33.1": {
+          "status": "IN_PROGRESS",
+          "started_at": "2026-09-24T07:38:39Z",
+          "verified_at": null
+        },
+        "M33.2": {
+          "status": "PLANNED",
+          "started_at": null,
+          "verified_at": null
+        },
+        "M33.3": {
+          "status": "PLANNED",
+          "started_at": null,
+          "verified_at": null
+        },
+        "M33.4": {
+          "status": "PLANNED",
+          "started_at": null,
+          "verified_at": null
+        }
       }
     }
   }

@@ -83,6 +83,10 @@
       ],
       "minimum": 0
     },
+    "unattributable_mt5_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "attempts_in_window": {
       "type": "integer",
       "minimum": 0
@@ -105,6 +109,18 @@
         "string",
         "null"
       ]
+    },
+    "status_sha256": {
+      "type": ["string", "null"],
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "recovery_request_id": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "recovery_phase": {
+      "type": ["string", "null"],
+      "enum": [null, "PENDING", "CLAIMED", "DISPATCHED", "VERIFIED", "REFUSED", "INTERVENTION_REQUIRED"]
     }
   }
 }

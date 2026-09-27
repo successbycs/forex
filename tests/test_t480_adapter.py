@@ -121,12 +121,20 @@ def test_catalog_and_adapter_operations_match():
 
 def test_m33_guardian_operations_are_fixed_held_no_order_and_fit_transport_limit():
     names = sorted(name for name in t480_adapter.OPERATIONS if name.startswith("m33_guardian_"))
-    assert names == [
-        *(f"m33_guardian_guardian_stage_{index}" for index in range(1, 9)),
+    assert names == sorted([
+        *(f"m33_guardian_executor_stage_{index}" for index in range(1, 17)),
+        "m33_guardian_executor_verify",
+        *(f"m33_guardian_guardian_stage_{index}" for index in range(1, 17)),
         "m33_guardian_guardian_verify", "m33_guardian_install",
+        "m33_guardian_matrix_run",
+        *(f"m33_guardian_matrix_stage_{index}" for index in range(1, 9)),
+        "m33_guardian_matrix_status", "m33_guardian_matrix_verify",
         *(f"m33_guardian_policy_stage_{index}" for index in range(1, 9)),
-        "m33_guardian_policy_verify", "m33_guardian_status",
-    ]
+        "m33_guardian_policy_verify",
+        "m33_guardian_recovery_execute", "m33_guardian_recovery_reconcile", "m33_guardian_recovery_status",
+        "m33_guardian_set_held_recovery_intent",
+        "m33_guardian_status",
+    ])
     from t480_core import build_ssh_command
     for name in names:
         command = t480_adapter.OPERATIONS[name].powershell_command or ""
@@ -143,6 +151,29 @@ def test_m33_guardian_operations_are_fixed_held_no_order_and_fit_transport_limit
     assert "<ExecutionTimeLimit>PT50S</ExecutionTimeLimit>" in install
     assert "Register-ScheduledTask -TaskName 'Forex-M33-Trading-Health-Guardian' -Xml $xml" in install
     assert "FOREX_M33_ENTRY_FENCE_REQUIRED" not in install
+    matrix_run = t480_adapter.OPERATIONS["m33_guardian_matrix_run"].powershell_command or ""
+    assert "fresh maintenance hold required" in matrix_run
+    assert "matrix payload hash mismatch" in matrix_run
+    assert "MetaTrader5" not in matrix_run and "order_send" not in matrix_run
+    recovery = t480_adapter.OPERATIONS["m33_guardian_recovery_execute"].powershell_command or ""
+    assert "maintenance hold required" in recovery
+    assert "recovery executor payload hash mismatch" in recovery
+    assert "MetaTrader5" not in recovery and "order_send" not in recovery
+    reconcile = t480_adapter.OPERATIONS["m33_guardian_recovery_reconcile"].powershell_command or ""
+    assert "--reconcile" in reconcile
+    assert "Start-ScheduledTask" not in reconcile and "Stop-ScheduledTask" not in reconcile
+    status = t480_adapter.OPERATIONS["m33_guardian_recovery_status"].powershell_command or ""
+    assert "trading_health_recovery_receipt.local.json" in status
+    assert "Start-ScheduledTask" not in status and "Stop-ScheduledTask" not in status
+    intent = t480_adapter.OPERATIONS["m33_guardian_set_held_recovery_intent"].powershell_command or ""
+    assert "maintenance hold required" in intent and "held listener required" in intent
+    assert "mode='RUN_DEMO'" in intent and "entry_eligible=$false" in intent
+    assert "order_send" not in intent and "MetaTrader5" not in intent
+
+
+def test_m33_guardian_release_identity_binds_every_staged_payload():
+    source = Path("scripts/t480_adapter.py").read_text(encoding="utf-8")
+    assert 'b"".join(sources[name] for name in sorted(sources))' in source
 
 
 def test_adapter_emits_the_governed_project_fingerprint_for_evidence_binding():
