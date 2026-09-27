@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "M33 observer Release-A bootstrap refusal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "release_a_payload_sha256", "writer_identity", "format_version", "observed_at_utc", "refusal_reason", "broker_mutation", "entry_eligible", "receipt_sha256"],
+  "properties": {
+    "schema_version": {"const": "forex.trading-health-mt5-observer-bootstrap-refusal.v1"},
+    "release_a_payload_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "writer_identity": {"const": "fixed-release-a-collector"},
+    "format_version": {"const": 1},
+    "observed_at_utc": {"type": "string"},
+    "refusal_reason": {"enum": ["ACL_ACE_INVALID", "ACL_ADMIN_SYSTEM_REQUIRED", "ACL_OWNER_OR_INHERITANCE_INVALID", "ACL_SHAPE_INVALID", "DUPLICATE_JSON_FIELD", "NONFINITE_JSON", "OBSERVATION_FIELDS_INVALID", "OBSERVATION_INVALID", "OBSERVATION_IO_FAILED", "OBSERVATION_JSON_INVALID", "OBSERVATION_NOT_OBJECT", "OBSERVER_PRINCIPAL_PRIVILEGED", "RELEASE_DIGEST_INVALID", "STATE_ROOT_MISMATCH", "TASK_ACTION_NOT_FIXED_PORTABLE", "TASK_NOT_S4U", "TASK_OR_IDENTITY_INVALID", "WINDOWS_FIXED_OBSERVATION_FAILED", "WINDOWS_FIXED_OBSERVATION_REQUIRED"]},
+    "broker_mutation": {"const": "NONE"},
+    "entry_eligible": {"const": false},
+    "receipt_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

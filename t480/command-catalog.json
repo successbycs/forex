@@ -1942,6 +1942,12 @@
       "id": "m33_guardian_managed_mt5_executor_stage_16", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 16.", "approval_required": false
     },
     {
+      "id": "m33_guardian_managed_mt5_executor_stage_17", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 17.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_18", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 18.", "approval_required": false
+    },
+    {
       "id": "m33_guardian_managed_mt5_inventory_stage_1", "purpose": "Stage fixed M33 guardian managed_mt5_inventory payload fragment 1.", "approval_required": false
     },
     {
@@ -1979,6 +1985,36 @@
     },
     {
       "id": "m33_guardian_managed_mt5_reconcile", "purpose": "Reconcile one fixed held managed-MT5 recovery request without a process effect.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_observer_bootstrap_stage_1", "purpose": "Stage fixed M33 observer bootstrap payload fragment 1.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_observer_bootstrap_stage_2", "purpose": "Stage fixed M33 observer bootstrap payload fragment 2.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_observer_bootstrap_stage_3", "purpose": "Stage fixed M33 observer bootstrap payload fragment 3.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_observer_bootstrap_stage_4", "purpose": "Stage fixed M33 observer bootstrap payload fragment 4.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_observer_bootstrap_stage_5", "purpose": "Stage fixed M33 observer bootstrap payload fragment 5.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_observer_bootstrap_stage_6", "purpose": "Stage fixed M33 observer bootstrap payload fragment 6.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_observer_bootstrap_stage_7", "purpose": "Stage fixed M33 observer bootstrap payload fragment 7.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_observer_bootstrap_stage_8", "purpose": "Stage fixed M33 observer bootstrap payload fragment 8.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_observer_bootstrap_verify", "purpose": "Assemble and hash-verify fixed M33 observer bootstrap payload.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_observer_bootstrap_capture", "purpose": "Capture fixed read-only M33 observer candidate metadata after separately authorised provision; it cannot create a task, read a credential, start MT5 or trade.", "approval_required": false
     }
   ]
 }

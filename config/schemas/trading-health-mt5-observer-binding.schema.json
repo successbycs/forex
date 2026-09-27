@@ -1,0 +1,6 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"M33 read-only MT5 observer binding","type":"object","additionalProperties":false,
+  "required":["schema_version","task_name","task_xml_sha256","task_action_sha256","principal","terminal_path","data_directory_sha256","credential_target_sha256","session_id","binding_sha256"],
+  "properties":{"schema_version":{"const":"forex.trading-health-mt5-observer-binding.v1"},"task_name":{"const":"CS AI Lab MT5 Observer"},"task_xml_sha256":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"task_action_sha256":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"principal":{"type":"string","minLength":1},"terminal_path":{"type":"string","minLength":1},"data_directory_sha256":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"credential_target_sha256":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"session_id":{"const":0},"binding_sha256":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"}}
+}

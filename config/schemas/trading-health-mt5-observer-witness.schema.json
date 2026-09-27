@@ -1,0 +1,6 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"M33 read-only MT5 observer witness","type":"object","additionalProperties":false,
+  "required":["schema_version","observer_binding_sha256","boot_id","configuration_fingerprint","account_scope_sha256","profile_sha256","observed_at_utc","server","currency","symbol","open_positions","pending_orders","unresolved_submission","unresolved_monitoring","broker_mutation","entry_eligible","order_submission"],
+  "properties":{"schema_version":{"const":"forex.trading-health-mt5-observer-witness.v1"},"observer_binding_sha256":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"boot_id":{"type":"string","minLength":1},"configuration_fingerprint":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"account_scope_sha256":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"profile_sha256":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"observed_at_utc":{"type":"string"},"server":{"const":"GOMarketsMU-Demo"},"currency":{"const":"AUD"},"symbol":{"const":"EURUSD"},"open_positions":{"const":0},"pending_orders":{"const":0},"unresolved_submission":{"const":false},"unresolved_monitoring":{"const":false},"broker_mutation":{"const":"NONE"},"entry_eligible":{"const":false},"order_submission":{"const":"STRUCTURALLY_UNAVAILABLE"}}
+}

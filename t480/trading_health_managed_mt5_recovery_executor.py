@@ -218,6 +218,41 @@ def _collect_held_account_witness(root: Path, request: dict[str, Any], now: date
     return witness
 
 
+def _independent_observer_witness(root: Path, request: dict[str, Any], now: datetime) -> bool:
+    """Accept only a fresh, separately bound investor-observer witness.
+
+    The observer task/credential is deliberately not created by this payload.
+    Its binding must be release/ACL-provisioned on T480 in a later held step.
+    """
+    binding = _read(root / "trading_health_mt5_observer_binding.local.json")
+    witness = _read(root / "trading_health_mt5_observer_witness.local.json")
+    if not isinstance(binding, dict) or not isinstance(witness, dict):
+        return False
+    expected = {"schema_version", "task_name", "task_xml_sha256", "task_action_sha256", "principal", "terminal_path", "data_directory_sha256", "credential_target_sha256", "session_id", "binding_sha256"}
+    if (set(binding) != expected or binding.get("schema_version") != "forex.trading-health-mt5-observer-binding.v1"
+            or binding.get("task_name") != "CS AI Lab MT5 Observer" or binding.get("session_id") != 0):
+        return False
+    digest_input = {key: value for key, value in binding.items() if key != "binding_sha256"}
+    import hashlib
+    calculated = "sha256:" + hashlib.sha256(json.dumps(digest_input, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    if binding.get("binding_sha256") != calculated:
+        return False
+    observed = _parse_utc(witness.get("observed_at_utc"))
+    if observed is None or (now - observed).total_seconds() < 0 or (now - observed).total_seconds() > 30:
+        return False
+    return (witness.get("schema_version") == "forex.trading-health-mt5-observer-witness.v1"
+            and witness.get("observer_binding_sha256") == binding["binding_sha256"]
+            and witness.get("boot_id") == request.get("boot_id")
+            and witness.get("configuration_fingerprint") == request.get("configuration_fingerprint")
+            and witness.get("account_scope_sha256") == request.get("account_scope_sha256")
+            and witness.get("profile_sha256") == request.get("profile_sha256")
+            and witness.get("server") == "GOMarketsMU-Demo" and witness.get("currency") == "AUD"
+            and witness.get("symbol") == "EURUSD" and witness.get("open_positions") == 0
+            and witness.get("pending_orders") == 0 and witness.get("unresolved_submission") is False
+            and witness.get("unresolved_monitoring") is False and witness.get("broker_mutation") == "NONE"
+            and witness.get("entry_eligible") is False and witness.get("order_submission") == "STRUCTURALLY_UNAVAILABLE")
+
+
 def _execute_locked(root: Path, now: datetime) -> dict[str, Any]:
     request = _read(root / "trading_health_mt5_recovery_request.local.json")
     ledger = _read(root / "trading_health_mt5_recovery_ledger.local.json")
@@ -261,10 +296,12 @@ def _execute_locked(root: Path, now: datetime) -> dict[str, Any]:
         if reason is not None:
             result = _receipt(request, "REFUSED", reason, now)
         elif request.get("action") == "START_ONE_MT5":
-            # This remains intentionally unavailable until the independent,
-            # non-starting held-account witness described by the ExecPlan is
-            # implemented and current.
-            result = _receipt(request, "REFUSED", "MT5_START_REQUIRES_INDEPENDENT_HELD_WITNESS", now)
+            if not _independent_observer_witness(root, request, now):
+                result = _receipt(request, "REFUSED", "MT5_START_REQUIRES_INDEPENDENT_HELD_WITNESS", now)
+            else:
+                # Task start is intentionally a later separately reviewed,
+                # fixed effect. This branch proves the witness contract only.
+                result = _receipt(request, "REFUSED", "MT5_START_FIXED_EFFECT_NOT_INSTALLED", now)
         elif request.get("action") != "RECYCLE_MANAGED_SET_FLAT":
             result = _receipt(request, "REFUSED", "MT5_RECOVERY_ACTION_NOT_IMPLEMENTED", now)
         else:

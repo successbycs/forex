@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "M33 observer Release-A candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "release_a_payload_sha256", "task_name", "principal", "principal_sid", "task_xml_sha256", "task_action_sha256", "profile_path_sha256", "profile_acl_sha256", "release_acl_sha256", "state_path_sha256", "state_acl_sha256", "broker_mutation", "entry_eligible", "candidate_sha256"],
+  "properties": {
+    "schema_version": {"const": "forex.trading-health-mt5-observer-candidate.v1"},
+    "release_a_payload_sha256": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "task_name": {"const":"CS AI Lab MT5 Observer"},
+    "principal": {"type":"string","minLength":1},
+    "principal_sid": {"type":"string","pattern":"^S-[0-9-]+$"},
+    "task_xml_sha256": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "task_action_sha256": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "profile_path_sha256": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "profile_acl_sha256": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "release_acl_sha256": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "state_path_sha256": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "state_acl_sha256": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "broker_mutation": {"const":"NONE"}, "entry_eligible": {"const":false},
+    "candidate_sha256": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"}
+  }
+}

@@ -1739,6 +1739,7 @@ def _m33_guardian_operations() -> dict[str, Operation]:
         "managed_mt5": (ROOT / "t480/trading_health_managed_mt5_recovery.py").read_bytes(),
         "managed_mt5_executor": (ROOT / "t480/trading_health_managed_mt5_recovery_executor.py").read_bytes(),
         "managed_mt5_inventory": (ROOT / "t480/trading_health_managed_mt5_inventory.py").read_bytes(),
+        "observer_bootstrap": (ROOT / "t480/trading_health_mt5_observer_collector.py").read_bytes(),
     }
     # Every staged payload participates in the release identity.  Omitting the
     # executor would allow it to overwrite an already verified release path.
@@ -1749,7 +1750,7 @@ def _m33_guardian_operations() -> dict[str, Operation]:
         # Guardian and executor carry the protocol state machine; split only
         # those larger immutable payloads further to preserve the hard T480
         # encoded-command envelope.
-        parts = {"guardian": 18, "executor": 16, "managed_mt5_executor": 16}.get(kind, 8)
+        parts = {"guardian": 18, "executor": 16, "managed_mt5_executor": 18}.get(kind, 8)
         width = ((len(encoded) + parts * 4 - 1) // (parts * 4)) * 4
         runtime = {
             "policy": "trading_health.payload",
@@ -1759,6 +1760,7 @@ def _m33_guardian_operations() -> dict[str, Operation]:
             "managed_mt5": "trading_health_managed_mt5_recovery.payload",
             "managed_mt5_executor": "trading_health_managed_mt5_recovery_executor.payload",
             "managed_mt5_inventory": "trading_health_managed_mt5_inventory.payload",
+            "observer_bootstrap": "trading_health_mt5_observer_collector.payload",
         }[kind]
         for index in range(parts):
             name = f"m33_guardian_{kind}_stage_{index + 1}"
@@ -1790,11 +1792,14 @@ def _m33_guardian_operations() -> dict[str, Operation]:
         "$ErrorActionPreference='Stop';$s='C:\\ProgramData\\ForexListener\\state';$h=gc -Raw (Join-Path $s 'm20_demo_maintenance_hold.local.json')|ConvertFrom-Json;if($h.enabled -ne $true -or $h.schema_version -ne 'forex.m20.maintenance-hold.v1'){throw 'maintenance hold required'};$l=gc -Raw (Join-Path $s 'm20_demo_listener_status.local.json')|ConvertFrom-Json;if($l.state -ne 'MAINTENANCE_HOLD'){throw 'held listener required'};$p=gc -Raw (Join-Path $s 'm20_demo_account_execution_profile.local.json')|ConvertFrom-Json;if($p.profile_id -ne 'M1_EURUSD_DEMO'-or $p.server -ne 'GOMarketsMU-Demo'-or $p.currency -ne 'AUD'-or $p.symbol -ne 'EURUSD'-or [string]$p.account_scope_sha256 -notmatch '^sha256:[0-9a-f]{64}$'){throw 'approved Demo profile required'};$f=Join-Path $s 'm20_demo_account_execution_profile.local.json';$b=[IO.File]::ReadAllBytes($f);$ph='sha256:'+([BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash($b))).Replace('-','').ToLower();$path=Join-Path $s 'trading_health_intent.local.json';$old=if(Test-Path $path){gc -Raw $path|ConvertFrom-Json}else{$null};$r=if($old -and $old.revision -is [int]){[int]$old.revision+1}else{1};$o=[ordered]@{schema_version='forex.trading-health-intent.v1';mode='RUN_DEMO';revision=$r;set_at_utc=(Get-Date).ToUniversalTime().ToString('o');account_scope_sha256=[string]$p.account_scope_sha256;profile_sha256=$ph;reason='M33.3 held listener recovery drill only'};$tmp=$path+'.tmp';[IO.File]::WriteAllText($tmp,($o|ConvertTo-Json -Compress),(New-Object Text.UTF8Encoding($false)));Move-Item -LiteralPath $tmp -Destination $path -Force;[pscustomobject]@{set=$true;mode='RUN_DEMO';entry_eligible=$false;maintenance_hold=$true;broker_mutation='NONE'}|ConvertTo-Json -Compress"), timeout_seconds=60)
     managed_inventory_digest = hashlib.sha256(sources["managed_mt5_inventory"]).hexdigest()
     managed_executor_digest = hashlib.sha256(sources["managed_mt5_executor"]).hexdigest()
+    observer_bootstrap_digest = hashlib.sha256(sources["observer_bootstrap"]).hexdigest()
     managed_prefix = "$ErrorActionPreference='Stop';$s='C:\\ProgramData\\ForexListener\\state';$h=gc -Raw (Join-Path $s 'm20_demo_maintenance_hold.local.json')|ConvertFrom-Json;if($h.enabled -ne $true){throw 'maintenance hold required'};$c=gc -Raw (Join-Path $s 'm20_demo_listener_service.local.json')|ConvertFrom-Json;$r='C:\\ProgramData\\ForexListener\\guardian-releases\\" + release + "';"
     operations["m33_guardian_managed_mt5_collect"] = Operation("m33_guardian_managed_mt5_collect", "Collect fixed read-only M33 managed-MT5 task and inventory evidence under maintenance hold.", powershell_command=(
         managed_prefix + "$p=Join-Path $r 'trading_health_managed_mt5_inventory.payload';if(!(Test-Path $p)){throw 'managed MT5 collector absent'};if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne '" + managed_inventory_digest + "'){throw 'managed MT5 collector hash mismatch'};& $c.python_path $p --state-root $s;exit $LASTEXITCODE"), timeout_seconds=60)
     operations["m33_guardian_managed_mt5_capture_binding"] = Operation("m33_guardian_managed_mt5_capture_binding", "Capture fixed read-only candidate MT5 task and parent-lineage evidence; it cannot provision recovery authority.", powershell_command=(
         managed_prefix + "$p=Join-Path $r 'trading_health_managed_mt5_inventory.payload';if(!(Test-Path $p)){throw 'managed MT5 collector absent'};if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne '" + managed_inventory_digest + "'){throw 'managed MT5 collector hash mismatch'};& $c.python_path $p --state-root $s --capture-candidate;exit $LASTEXITCODE"), timeout_seconds=60)
+    operations["m33_guardian_observer_bootstrap_capture"] = Operation("m33_guardian_observer_bootstrap_capture", "Capture fixed read-only M33 observer candidate metadata after separately authorised provision; it cannot create a task, read a credential, start MT5 or trade.", powershell_command=(
+        managed_prefix + "$p=Join-Path $r 'trading_health_mt5_observer_collector.payload';$o=Join-Path $s 'm33-observer';if(!(Test-Path $p)){throw 'observer bootstrap collector absent'};if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne '" + observer_bootstrap_digest + "'){throw 'observer bootstrap collector hash mismatch'};& $c.python_path $p --state-root $o;exit $LASTEXITCODE"), timeout_seconds=60)
     operations["m33_guardian_managed_mt5_execute"] = Operation("m33_guardian_managed_mt5_execute", "Run one fixed held managed-MT5 recovery request; payload refuses until a reviewed process effect exists.", powershell_command=(
         managed_prefix + "$p=Join-Path $r 'trading_health_managed_mt5_recovery_executor.payload';if(!(Test-Path $p)){throw 'managed MT5 executor absent'};if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne '" + managed_executor_digest + "'){throw 'managed MT5 executor hash mismatch'};& $c.python_path $p --state-root $s;exit $LASTEXITCODE"), timeout_seconds=60)
     operations["m33_guardian_managed_mt5_reconcile"] = Operation("m33_guardian_managed_mt5_reconcile", "Reconcile one fixed held managed-MT5 recovery request without a process effect.", powershell_command=(

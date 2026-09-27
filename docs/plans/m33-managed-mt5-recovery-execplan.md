@@ -17,6 +17,42 @@ configured Session 0 MT5 task or removes only attributable duplicates. It must
 remain impossible for this path to trade, release the hold, alter risk, target
 Live, or terminate an unknown client.
 
+## Primary missing-terminal solution
+
+Chris selected an isolated MT5 investor-password observer as the primary
+solution for the missing-terminal branch. This preserves, rather than narrows,
+M33-C7: the observer is a second, read-only account-state source which can
+prove a held Demo account is flat before the execution-capable managed MT5
+terminal is started. A duplicate-only scope amendment is rejected unless a
+later explicit human formal-milestone decision changes the registry.
+
+The observer must be a distinct `CS AI Lab MT5 Observer` S4U Session-0 task,
+with a distinct MT5 data directory and an investor (not master) credential in
+a Windows-protected secret store. Forex source, immutable payloads, adapter
+commands, plan records and raw evidence must contain no credential. The
+observer terminal is `AUTHORIZED_OBSERVER`, never an execution terminal and
+never a duplicate-cleanup target. Its expected
+task/action/principal/data-directory/credential-target binding must be
+captured read-only, reviewed, hash-bound and ACL-protected on T480 before a
+witness is trusted.
+
+### Controlled acquisition sequence
+
+1. Commit and independently review the observer-aware local release.
+2. Under existing maintenance hold, stage/hash-verify only its fixed payloads
+   and run the read-only managed-task candidate capture. This establishes the
+   existing execution-terminal identity without changing it.
+3. Obtain a separate explicit authority to create or rotate the **Demo-only**
+   MT5 investor password, provision the isolated observer task/data directory
+   and store its credential in Windows protection. This is a T480/account
+   configuration mutation, not a consequence of staging authority.
+4. Capture and review observer task, ACL and fixed no-order snapshot evidence.
+   It must prove investor/read-only restriction, Demo/AUD/EURUSD account
+   binding, zero positions/pending orders and no unresolved work.
+5. Bind the reviewed values into a subsequent immutable release, then obtain
+   independent implementation review. Only after a separate held drill
+   approval may the exact managed-terminal start effect be tested.
+
 ## Formal milestone dependency map
 
 M32 is the proven Demo baseline and remains reusable. M33 is the active formal
@@ -233,6 +269,10 @@ witness means the plan cannot redefine completion around duplicate cleanup.
   value remains unobserved and is therefore an external staging/review gate.
   A separate fixed read-only candidate-capture operation is ready for that
   observation and cannot provision or execute recovery.
+- [~] Chose and locally implemented the independent investor-password observer
+  contract after Astra compared it with a scope amendment and broker-native
+  API alternative. It is no-secret and no-effect until separate credential,
+  T480 observer-task and held proof authority are granted; review is pending.
 - [ ] Obtain specific operator approval, then stage/hash-verify and run one
   held flat-only MT5 absence or attributable-duplicate drill.
 - [ ] Reconcile fresh evidence; carry the reviewed final release into M33.4.

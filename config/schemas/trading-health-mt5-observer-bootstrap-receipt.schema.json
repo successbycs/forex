@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "M33 observer Release-A bootstrap receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "release_a_payload_sha256", "candidate_sha256", "source_digests", "writer_identity", "format_version", "broker_mutation", "entry_eligible", "receipt_sha256"],
+  "properties": {
+    "schema_version": {"const":"forex.trading-health-mt5-observer-bootstrap-receipt.v1"},
+    "release_a_payload_sha256": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "candidate_sha256": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "source_digests": {"type":"object","additionalProperties":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"}},
+    "writer_identity": {"const":"fixed-release-a-collector"}, "format_version":{"const":1},
+    "broker_mutation": {"const":"NONE"}, "entry_eligible": {"const":false},
+    "receipt_sha256": {"type":"string","pattern":"^sha256:[0-9a-f]{64}$"}
+  }
+}

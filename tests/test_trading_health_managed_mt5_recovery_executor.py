@@ -66,3 +66,13 @@ def test_fixed_held_account_witness_is_collected_from_the_bound_listener_release
     witness=m._collect_held_account_witness(tmp_path,request,now)
     assert witness["broker_mutation"]=="NONE" and witness["entry_eligible"] is False
     assert json.loads((tmp_path/"trading_health_mt5_held_account_witness.local.json").read_text())["server"]=="GOMarketsMU-Demo"
+
+def test_independent_investor_observer_witness_is_fresh_bound_and_no_order(tmp_path):
+    m=module(); now=datetime(2026,9,27,tzinfo=UTC); request={"boot_id":"boot","configuration_fingerprint":"sha256:"+"a"*64,"account_scope_sha256":"sha256:"+"b"*64,"profile_sha256":"sha256:"+"c"*64}
+    binding={"schema_version":"forex.trading-health-mt5-observer-binding.v1","task_name":"CS AI Lab MT5 Observer","task_xml_sha256":"sha256:"+"d"*64,"task_action_sha256":"sha256:"+"e"*64,"principal":"SYSTEM","terminal_path":"C:/Observer/terminal64.exe","data_directory_sha256":"sha256:"+"f"*64,"credential_target_sha256":"sha256:"+"0"*64,"session_id":0}
+    import hashlib
+    binding["binding_sha256"]="sha256:"+hashlib.sha256(json.dumps(binding,sort_keys=True,separators=(",",":")).encode()).hexdigest(); write(tmp_path/"trading_health_mt5_observer_binding.local.json",binding)
+    witness={"schema_version":"forex.trading-health-mt5-observer-witness.v1","observer_binding_sha256":binding["binding_sha256"],**request,"observed_at_utc":now.isoformat(),"server":"GOMarketsMU-Demo","currency":"AUD","symbol":"EURUSD","open_positions":0,"pending_orders":0,"unresolved_submission":False,"unresolved_monitoring":False,"broker_mutation":"NONE","entry_eligible":False,"order_submission":"STRUCTURALLY_UNAVAILABLE"}; write(tmp_path/"trading_health_mt5_observer_witness.local.json",witness)
+    assert m._independent_observer_witness(tmp_path,request,now) is True
+    witness["pending_orders"]=1; write(tmp_path/"trading_health_mt5_observer_witness.local.json",witness)
+    assert m._independent_observer_witness(tmp_path,request,now) is False

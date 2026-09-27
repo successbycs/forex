@@ -134,7 +134,9 @@ def test_m33_guardian_operations_are_fixed_held_no_order_and_fit_transport_limit
         *(f"m33_guardian_managed_mt5_inventory_stage_{index}" for index in range(1, 9)),
         "m33_guardian_managed_mt5_inventory_verify",
         "m33_guardian_managed_mt5_capture_binding", "m33_guardian_managed_mt5_collect", "m33_guardian_managed_mt5_execute", "m33_guardian_managed_mt5_reconcile",
-            *(f"m33_guardian_managed_mt5_executor_stage_{index}" for index in range(1, 17)),
+        *(f"m33_guardian_observer_bootstrap_stage_{index}" for index in range(1, 9)),
+        "m33_guardian_observer_bootstrap_verify", "m33_guardian_observer_bootstrap_capture",
+            *(f"m33_guardian_managed_mt5_executor_stage_{index}" for index in range(1, 19)),
         "m33_guardian_managed_mt5_executor_verify",
         *(f"m33_guardian_policy_stage_{index}" for index in range(1, 9)),
         "m33_guardian_policy_verify",
@@ -169,6 +171,9 @@ def test_m33_guardian_operations_are_fixed_held_no_order_and_fit_transport_limit
     reconcile = t480_adapter.OPERATIONS["m33_guardian_recovery_reconcile"].powershell_command or ""
     assert "--reconcile" in reconcile
     assert "Start-ScheduledTask" not in reconcile and "Stop-ScheduledTask" not in reconcile
+    observer = t480_adapter.OPERATIONS["m33_guardian_observer_bootstrap_capture"].powershell_command or ""
+    assert "Join-Path $s 'm33-observer'" in observer and "--state-root $o" in observer
+    assert "Start-ScheduledTask" not in observer and "Stop-Process" not in observer
     status = t480_adapter.OPERATIONS["m33_guardian_recovery_status"].powershell_command or ""
     assert "trading_health_recovery_receipt.local.json" in status
     assert "Start-ScheduledTask" not in status and "Stop-ScheduledTask" not in status
