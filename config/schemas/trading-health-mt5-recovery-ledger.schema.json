@@ -1,0 +1,6 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"M33 managed MT5 recovery ledger","type":"object","additionalProperties":false,
+  "required":["schema_version","boot_id","last_generation","last_recovery_epoch","active_request_id","phase"],
+  "properties":{"schema_version":{"const":"forex.trading-health-mt5-recovery-ledger.v1"},"boot_id":{"type":"string","minLength":1},"last_generation":{"type":"integer","minimum":0},"last_recovery_epoch":{"type":"integer","minimum":0},"active_request_id":{"type":["string","null"]},"phase":{"enum":["NONE","PENDING","CLAIMED","DISPATCHED","VERIFIED","REFUSED","INTERVENTION_REQUIRED"]}}
+}

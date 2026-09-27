@@ -130,15 +130,15 @@ def classify(obs: Observation, mode: str | None, budget_open: bool = False,
             or obs.listener_heartbeat_age_s >= policy.listener_heartbeat_warn_s):
         return _d(RECOVERING_LISTENER, "LISTENER_HEARTBEAT_STALE", action="RESTART_LISTENER")
 
-    if obs.session_ok is not True:
-        return _d(BLOCKED_SESSION, "SESSION_UNVERIFIED" if obs.session_ok is None else "SESSION_ABSENT")
-    if obs.unattributable_mt5_count:
-        return _d(BLOCKED_OWNERSHIP, "UNATTRIBUTABLE_MT5_PROCESS")
-
     count = obs.managed_mt5_count
     if count is None:
         return _d(BLOCKED_DEPENDENCY, "MT5_INVENTORY_UNAVAILABLE")
+    if obs.unattributable_mt5_count:
+        return _d(BLOCKED_OWNERSHIP, "UNATTRIBUTABLE_MT5_PROCESS")
     if count == 0:
+        # A missing Session-0 terminal necessarily makes ``session_ok`` false.
+        # Classify that exact absence before the generic session fence so the
+        # guarded START branch can refuse or recover with an explicit reason.
         if starting:
             return _d(STARTING, "MT5_ABSENT_IN_GRACE")
         reasons = ("MT5_ABSENT",) + (() if obs.exposure_flat is True else ("EXPOSURE_UNKNOWN",))
@@ -148,6 +148,8 @@ def classify(obs: Observation, mode: str | None, budget_open: bool = False,
             return _d(RECOVERING_MT5, "MT5_DUPLICATE", action="RECYCLE_MANAGED_SET_FLAT")
         return _d(EXPOSURE_RECOVERY_REQUIRED, "MT5_DUPLICATE", "EXPOSURE_OR_INFLIGHT_NOT_CLEAR",
                   action="PRESERVE_MONITOR_FENCE_ENTRIES")
+    if obs.session_ok is not True:
+        return _d(BLOCKED_SESSION, "SESSION_UNVERIFIED" if obs.session_ok is None else "SESSION_ABSENT")
 
     if obs.mt5_identity_ok is not True or obs.permissions_ok is False:
         return _d(BLOCKED_POLICY, "MT5_IDENTITY_OR_PERMISSION_MISMATCH")

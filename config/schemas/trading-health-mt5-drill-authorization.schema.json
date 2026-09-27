@@ -1,0 +1,6 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"M33 held managed MT5 drill authorization","type":"object","additionalProperties":false,
+  "required":["schema_version","scope","request_id","boot_id","configuration_fingerprint","maintenance_hold","entry_eligible","order_authority"],
+  "properties":{"schema_version":{"const":"forex.trading-health-mt5-drill-authorization.v1"},"scope":{"const":"M33_HELD_MT5_RECOVERY_DRILL"},"request_id":{"type":"string","pattern":"^[0-9a-f]{32}$"},"boot_id":{"type":"string","minLength":1},"configuration_fingerprint":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"maintenance_hold":{"const":true},"entry_eligible":{"const":false},"order_authority":{"const":false}}
+}

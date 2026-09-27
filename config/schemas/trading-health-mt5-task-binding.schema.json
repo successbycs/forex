@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "M33 MT5 static task binding",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "task_name", "task_xml_sha256", "task_action_sha256", "principal", "terminal_path", "terminal_config_sha256", "session_id", "parent_path", "command_line_sha256", "binding_sha256"],
+  "properties": {
+    "schema_version":{"const":"forex.trading-health-mt5-task-binding.v1"}, "task_name":{"type":"string","minLength":1},
+    "task_xml_sha256":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"}, "task_action_sha256":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "principal":{"type":"string","minLength":1}, "terminal_path":{"type":"string","minLength":1}, "terminal_config_sha256":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "session_id":{"const":0}, "parent_path":{"type":"string","minLength":1}, "command_line_sha256":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"}, "binding_sha256":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"}
+  }
+}

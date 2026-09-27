@@ -1846,6 +1846,12 @@
       "id": "m33_guardian_executor_verify", "purpose": "Assemble and hash-verify fixed M33 guardian executor payload.", "approval_required": false
     },
     {
+      "id": "m33_guardian_guardian_stage_17", "purpose": "Stage fixed M33 guardian guardian payload fragment 17.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_guardian_stage_18", "purpose": "Stage fixed M33 guardian guardian payload fragment 18.", "approval_required": false
+    },
+    {
       "id": "m33_guardian_recovery_execute", "purpose": "Execute one fixed held-only, generation-bound listener recovery request; MT5 actions are refused.", "approval_required": false
     },
     {
@@ -1856,6 +1862,123 @@
     },
     {
       "id": "m33_guardian_set_held_recovery_intent", "purpose": "Set only the fixed RUN_DEMO recovery intent for one M33.3 held listener drill; it publishes no entry authority.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_stage_1", "purpose": "Stage fixed M33 guardian managed_mt5 payload fragment 1.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_stage_2", "purpose": "Stage fixed M33 guardian managed_mt5 payload fragment 2.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_stage_3", "purpose": "Stage fixed M33 guardian managed_mt5 payload fragment 3.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_stage_4", "purpose": "Stage fixed M33 guardian managed_mt5 payload fragment 4.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_stage_5", "purpose": "Stage fixed M33 guardian managed_mt5 payload fragment 5.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_stage_6", "purpose": "Stage fixed M33 guardian managed_mt5 payload fragment 6.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_stage_7", "purpose": "Stage fixed M33 guardian managed_mt5 payload fragment 7.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_stage_8", "purpose": "Stage fixed M33 guardian managed_mt5 payload fragment 8.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_verify", "purpose": "Assemble and hash-verify fixed M33 guardian managed_mt5 payload.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_1", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 1.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_2", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 2.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_3", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 3.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_4", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 4.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_5", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 5.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_6", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 6.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_7", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 7.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_8", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 8.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_verify", "purpose": "Assemble and hash-verify fixed M33 guardian managed_mt5_executor payload.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_9", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 9.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_10", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 10.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_11", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 11.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_12", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 12.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_13", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 13.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_14", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 14.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_15", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 15.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_executor_stage_16", "purpose": "Stage fixed M33 guardian managed_mt5_executor payload fragment 16.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_inventory_stage_1", "purpose": "Stage fixed M33 guardian managed_mt5_inventory payload fragment 1.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_inventory_stage_2", "purpose": "Stage fixed M33 guardian managed_mt5_inventory payload fragment 2.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_inventory_stage_3", "purpose": "Stage fixed M33 guardian managed_mt5_inventory payload fragment 3.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_inventory_stage_4", "purpose": "Stage fixed M33 guardian managed_mt5_inventory payload fragment 4.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_inventory_stage_5", "purpose": "Stage fixed M33 guardian managed_mt5_inventory payload fragment 5.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_inventory_stage_6", "purpose": "Stage fixed M33 guardian managed_mt5_inventory payload fragment 6.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_inventory_stage_7", "purpose": "Stage fixed M33 guardian managed_mt5_inventory payload fragment 7.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_inventory_stage_8", "purpose": "Stage fixed M33 guardian managed_mt5_inventory payload fragment 8.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_inventory_verify", "purpose": "Assemble and hash-verify fixed M33 guardian managed_mt5_inventory payload.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_collect", "purpose": "Collect fixed read-only M33 managed-MT5 task and inventory evidence under maintenance hold.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_capture_binding", "purpose": "Capture fixed read-only candidate MT5 task and parent-lineage evidence; it cannot provision recovery authority.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_execute", "purpose": "Run one fixed held managed-MT5 recovery request; payload refuses until a reviewed process effect exists.", "approval_required": false
+    },
+    {
+      "id": "m33_guardian_managed_mt5_reconcile", "purpose": "Reconcile one fixed held managed-MT5 recovery request without a process effect.", "approval_required": false
     }
   ]
 }

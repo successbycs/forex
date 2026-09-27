@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "M33 cross-protocol recovery coordinator",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "recovery_epoch", "protocol", "request_id", "generation", "boot_id", "configuration_fingerprint", "phase"],
+  "properties": {
+    "schema_version": {"const": "forex.trading-health-recovery-coordinator.v1"}, "recovery_epoch": {"type": "integer", "minimum": 1},
+    "protocol": {"enum": ["LISTENER_V2", "MT5_V1"]}, "request_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+    "generation": {"type": "integer", "minimum": 1}, "boot_id": {"type": "string", "minLength": 1},
+    "configuration_fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "phase": {"enum": ["PENDING", "CLAIMED", "DISPATCHED", "VERIFIED", "REFUSED", "INTERVENTION_REQUIRED"]}
+  }
+}

@@ -37,14 +37,14 @@
     "config/t480.json",
     "t480/command-catalog.json"
   ],
-  "configuration_fingerprint": "sha256:824c5263793b20d43d31eb1f87ee1e9af4a7eaf22d8b74e50749303e7e79657d",
+  "configuration_fingerprint": "sha256:8209159b80aaa0e3662599e2f03301345eb782fa54c14d08ee0dd41800c876e6",
   "important_architectural_decisions": [
     "Shared T480 transport belongs to cs-ai-lab-infra; Forex owns its catalog and adapter.",
     "Mutable execution state is separate from the declarative milestone registry.",
     "proven_at is generated only by closeout after real-world proof, verification, and every review gate declared by the active milestone.",
     "M20 permits only the fixed, session-capped GOMarketsMU-Demo EURUSD execution path; GOMarketsMU-Live remains structurally prohibited."
   ],
-  "last_updated_at": "2026-09-27T01:14:37Z",
+  "last_updated_at": "2026-09-27T04:37:12Z",
   "milestones": {
     "M0": {
       "status": "HUMAN_REVALIDATION_EXCEPTION",

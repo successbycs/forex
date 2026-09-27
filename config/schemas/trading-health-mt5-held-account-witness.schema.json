@@ -1,0 +1,6 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"M33 independent held Demo account witness","type":"object","additionalProperties":false,
+  "required":["schema_version","observed_at_utc","account_scope_sha256","profile_sha256","server","currency","symbol","open_positions","pending_orders","unresolved_submission","unresolved_monitoring","broker_mutation","entry_eligible"],
+  "properties":{"schema_version":{"const":"forex.trading-health-mt5-held-account-witness.v1"},"observed_at_utc":{"type":"string"},"account_scope_sha256":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"profile_sha256":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"server":{"const":"GOMarketsMU-Demo"},"currency":{"const":"AUD"},"symbol":{"const":"EURUSD"},"open_positions":{"const":0},"pending_orders":{"const":0},"unresolved_submission":{"const":false},"unresolved_monitoring":{"const":false},"broker_mutation":{"const":"NONE"},"entry_eligible":{"const":false}}
+}

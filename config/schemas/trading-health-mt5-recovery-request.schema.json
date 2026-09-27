@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "M33 managed MT5 recovery request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "state", "request_id", "generation", "recovery_epoch", "boot_id", "configuration_fingerprint", "account_scope_sha256", "profile_sha256", "task_binding_sha256", "inventory_sha256", "action", "issued_at_utc", "expires_at_utc", "entry_eligible"],
+  "properties": {
+    "schema_version": {"const": "forex.trading-health-mt5-recovery-request.v1"},
+    "state": {"const": "PENDING"}, "request_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+    "generation": {"type": "integer", "minimum": 1}, "recovery_epoch": {"type": "integer", "minimum": 1},
+    "boot_id": {"type": "string", "minLength": 1}, "configuration_fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "account_scope_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "profile_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "task_binding_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "inventory_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "action": {"enum": ["START_ONE_MT5", "RECYCLE_MANAGED_SET_FLAT"]}, "issued_at_utc": {"type": "string"}, "expires_at_utc": {"type": "string"}, "entry_eligible": {"const": false}
+  }
+}

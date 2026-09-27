@@ -148,6 +148,69 @@ def test_corrupt_recovery_ledger_opens_circuit_and_requires_intervention(tmp_pat
     assert status["entry_eligible"] is False
 
 
+def test_active_mt5_coordinator_blocks_listener_request(tmp_path, monkeypatch):
+    g = module()
+    monkeypatch.setattr(g, "_boot_id", lambda: "test-boot")
+    monkeypatch.setattr(g, "_managed_mt5_inventory", lambda _: (1, 0))
+    stopped = listener(); stopped["state"] = "STOPPED"
+    write(tmp_path / "m20_demo_listener_status.local.json", stopped)
+    write(tmp_path / "m20_demo_listener_service.local.json", runtime_config())
+    write(tmp_path / "trading_health_intent.local.json", {"schema_version":"forex.trading-health-intent.v1","mode":"RUN_DEMO","revision":1,"set_at_utc":"2026-09-26T00:00:00Z","account_scope_sha256":"sha256:"+"a"*64,"profile_sha256":"sha256:"+"b"*64})
+    write(tmp_path / "trading_health_mt5_recovery_coordinator.local.json", {"schema_version":"forex.trading-health-recovery-coordinator.v1","recovery_epoch":1,"protocol":"MT5_V1","request_id":"a"*32,"generation":1,"boot_id":"test-boot","configuration_fingerprint":runtime_config()["FOREX_M20_CONFIGURATION_FINGERPRINT"],"phase":"PENDING"})
+    status = g.run_once(tmp_path, NOW)
+    assert status["recovery_phase"] == "INTERVENTION_REQUIRED"
+    assert "MT5_RECOVERY_PARTIAL_BUNDLE" in status["reasons"]
+
+def test_partial_mt5_recovery_bundle_is_fenced(tmp_path, monkeypatch):
+    g = module(); monkeypatch.setattr(g, "_boot_id", lambda: "test-boot"); monkeypatch.setattr(g, "_managed_mt5_inventory", lambda _: (1, 0))
+    write(tmp_path / "m20_demo_listener_status.local.json", listener()); write(tmp_path / "m20_demo_listener_service.local.json", runtime_config())
+    write(tmp_path / "trading_health_intent.local.json", {"schema_version":"forex.trading-health-intent.v1","mode":"RUN_DEMO","revision":1,"set_at_utc":"2026-09-26T00:00:00Z","account_scope_sha256":"sha256:"+"a"*64,"profile_sha256":"sha256:"+"b"*64})
+    write(tmp_path / "trading_health_mt5_recovery_request.local.json", {"schema_version":"forex.trading-health-mt5-recovery-request.v1","request_id":"a"*32})
+    status=g.run_once(tmp_path,NOW)
+    assert status["recovery_phase"]=="INTERVENTION_REQUIRED" and "MT5_RECOVERY_PARTIAL_BUNDLE" in status["reasons"]
+
+
+def test_absent_mt5_refuses_without_writing_listener_v2_request(tmp_path, monkeypatch):
+    g = module()
+    monkeypatch.setattr(g, "_boot_id", lambda: "test-boot")
+    monkeypatch.setattr(g, "_managed_mt5_inventory", lambda _: (0, 0))
+    write(tmp_path / "m20_demo_listener_status.local.json", listener())
+    write(tmp_path / "m20_demo_listener_service.local.json", runtime_config())
+    write(tmp_path / "m20_demo_maintenance_hold.local.json", {"enabled": True})
+    write(tmp_path / "trading_health_intent.local.json", {"schema_version":"forex.trading-health-intent.v1","mode":"RUN_DEMO","revision":1,"set_at_utc":"2026-09-26T00:00:00Z","account_scope_sha256":"sha256:"+"a"*64,"profile_sha256":"sha256:"+"b"*64})
+    status = g.run_once(tmp_path, NOW)
+    assert status["state"] == "RECOVERING_MT5"
+    assert status["recovery_phase"] == "REFUSED"
+    assert "MT5_START_REQUIRES_INDEPENDENT_HELD_WITNESS" in status["reasons"]
+    assert not (tmp_path / "trading_health_recovery_request.local.json").exists()
+    assert not (tmp_path / "trading_health_mt5_recovery_request.local.json").exists()
+
+
+def test_duplicate_mt5_publishes_only_bound_mt5_protocol_request(tmp_path, monkeypatch):
+    g = module()
+    monkeypatch.setattr(g, "_boot_id", lambda: "test-boot")
+    monkeypatch.setattr(g, "_managed_mt5_inventory", lambda _: (2, 0))
+    write(tmp_path / "m20_demo_listener_status.local.json", listener())
+    write(tmp_path / "m20_demo_listener_service.local.json", runtime_config())
+    write(tmp_path / "m20_demo_maintenance_hold.local.json", {"enabled": True})
+    write(tmp_path / "trading_health_intent.local.json", {"schema_version":"forex.trading-health-intent.v1","mode":"RUN_DEMO","revision":1,"set_at_utc":"2026-09-26T00:00:00Z","account_scope_sha256":"sha256:"+"a"*64,"profile_sha256":"sha256:"+"b"*64})
+    binding = {"schema_version":"forex.trading-health-mt5-task-binding.v1","task_name":"Forex-M20-Demo-Listener","task_xml_sha256":"sha256:"+"e"*64,"task_action_sha256":"sha256:"+"f"*64,"principal":"SYSTEM","terminal_path":"C:/MT5/terminal64.exe","terminal_config_sha256":"sha256:"+"1"*64,"session_id":0,"parent_path":"C:/Windows/System32/taskeng.exe","command_line_sha256":"sha256:"+"2"*64,"binding_sha256":None}
+    binding["binding_sha256"] = g._digest_without(binding, "binding_sha256")
+    inventory = {"schema_version":"forex.trading-health-mt5-inventory.v1","processes":[{"pid":1,"path":"C:/MT5/terminal64.exe","session_id":0,"command_line_sha256":"sha256:"+"2"*64,"parent_pid":0,"parent_path":"C:/Windows/System32/taskeng.exe","creation_id":"first","classification":"PRIMARY_MANAGED"},{"pid":2,"path":"C:/MT5/terminal64.exe","session_id":0,"command_line_sha256":"sha256:"+"2"*64,"parent_pid":0,"parent_path":"C:/Windows/System32/taskeng.exe","creation_id":"second","classification":"ADDITIONAL_MANAGED"}],"inventory_sha256":None}
+    inventory["inventory_sha256"] = g._digest_without(inventory, "inventory_sha256")
+    write(tmp_path / "trading_health_mt5_task_binding.local.json", binding)
+    write(tmp_path / "trading_health_mt5_inventory.local.json", inventory)
+    status = g.run_once(tmp_path, NOW)
+    assert status["state"] == "RECOVERING_MT5", status
+    assert status["recovery_phase"] == "PENDING", status
+    request = json.loads((tmp_path / "trading_health_mt5_recovery_request.local.json").read_text())
+    coordinator = json.loads((tmp_path / "trading_health_mt5_recovery_coordinator.local.json").read_text())
+    assert request["action"] == "RECYCLE_MANAGED_SET_FLAT"
+    assert request["entry_eligible"] is False
+    assert coordinator["protocol"] == "MT5_V1" and coordinator["request_id"] == request["request_id"]
+    assert not (tmp_path / "trading_health_recovery_request.local.json").exists()
+
+
 def test_unattributable_terminal_process_is_an_ownership_incident(tmp_path, monkeypatch):
     g = module()
     monkeypatch.setattr(g, "_boot_id", lambda: "test-boot")

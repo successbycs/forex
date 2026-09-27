@@ -1,0 +1,6 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"M33 managed MT5 recovery receipt","type":"object","additionalProperties":false,
+  "required":["schema_version","request_id","generation","recovery_epoch","boot_id","configuration_fingerprint","observed_at_utc","state","reason","broker_mutation","entry_eligible"],
+  "properties":{"schema_version":{"const":"forex.trading-health-mt5-recovery-receipt.v1"},"request_id":{"type":"string","pattern":"^[0-9a-f]{32}$"},"generation":{"type":"integer","minimum":1},"recovery_epoch":{"type":"integer","minimum":1},"boot_id":{"type":"string","minLength":1},"configuration_fingerprint":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"observed_at_utc":{"type":"string"},"state":{"enum":["REFUSED","INTERVENTION_REQUIRED","VERIFIED"]},"reason":{"type":"string","minLength":1},"broker_mutation":{"const":"NONE"},"entry_eligible":{"const":false}}
+}

@@ -130,6 +130,114 @@ def _load_ledger(root: Path, boot_id: str) -> tuple[dict[str, Any] | None, str |
     return value, None
 
 
+def _cross_protocol_recovery_blocked(root: Path, boot_id: str, fingerprint: str | None) -> bool:
+    """Fail closed if the parallel MT5 protocol owns or corrupts recovery."""
+    path = root / "trading_health_mt5_recovery_coordinator.local.json"
+    if not path.exists():
+        return False
+    value = _read_json(path)
+    required = {"schema_version", "recovery_epoch", "protocol", "request_id", "generation", "boot_id", "configuration_fingerprint", "phase"}
+    if (not isinstance(value, dict) or set(value) != required
+            or value.get("schema_version") != "forex.trading-health-recovery-coordinator.v1"
+            or value.get("protocol") != "MT5_V1" or type(value.get("recovery_epoch")) is not int
+            or type(value.get("generation")) is not int or value.get("phase") not in {"PENDING", "CLAIMED", "DISPATCHED", "VERIFIED", "REFUSED", "INTERVENTION_REQUIRED"}
+            or value.get("boot_id") != boot_id or value.get("configuration_fingerprint") != fingerprint):
+        return True
+    return value["phase"] in {"PENDING", "CLAIMED", "DISPATCHED"}
+
+
+def _listener_recovery_active(root: Path, boot_id: str) -> bool:
+    """Return true for a listener-v2 action that still owns recovery.
+
+    The MT5 protocol cannot depend on a future listener coordinator migration:
+    this preserves mutual exclusion with the already deployed listener-v2
+    ledger while both publishers hold the same named mutex.
+    """
+    ledger, error = _load_ledger(root, boot_id)
+    if error is not None or ledger is None:
+        return True
+    request = _read_json(root / "trading_health_recovery_request.local.json")
+    return (ledger["phase"] in {"PENDING", "CLAIMED", "DISPATCHED"}
+            and isinstance(request, dict)
+            and request.get("schema_version") == "forex.trading-health-recovery-request.v2"
+            and request.get("request_id") == ledger["active_request_id"])
+
+
+def _digest_without(value: dict[str, Any], field: str) -> str:
+    return _sha256_json({key: item for key, item in value.items() if key != field})
+
+
+def _load_mt5_publish_inputs(root: Path, *, action: str, intent: dict[str, Any] | None,
+                             hold: dict[str, Any] | None) -> tuple[dict[str, Any] | None, dict[str, Any] | None, str | None]:
+    """Load persisted, read-only MT5 evidence for a new request.
+
+    The collector is deliberately a later fixed-adapter operation.  Until it
+    has supplied an exact static task binding and inventory, this publisher
+    cannot manufacture process authority from listener observations.
+    """
+    if not (isinstance(intent, dict) and intent.get("mode") == "RUN_DEMO"
+            and isinstance(hold, dict) and hold.get("enabled") is True):
+        return None, None, "MT5_RECOVERY_REQUIRES_HELD_RUN_DEMO_INTENT"
+    if action == "START_ONE_MT5":
+        # An absent terminal cannot attest account flatness.  Do not use a
+        # stale listener heartbeat as a substitute for the required future,
+        # non-starting authoritative held-account witness.
+        return None, None, "MT5_START_REQUIRES_INDEPENDENT_HELD_WITNESS"
+    if action != "RECYCLE_MANAGED_SET_FLAT":
+        return None, None, "MT5_RECOVERY_ACTION_NOT_IMPLEMENTED"
+    binding = _read_json(root / "trading_health_mt5_task_binding.local.json")
+    inventory = _read_json(root / "trading_health_mt5_inventory.local.json")
+    binding_required = {"schema_version", "task_name", "task_xml_sha256", "task_action_sha256", "principal",
+                        "terminal_path", "terminal_config_sha256", "session_id", "parent_path", "command_line_sha256", "binding_sha256"}
+    inventory_required = {"schema_version", "processes", "inventory_sha256"}
+    if (not isinstance(binding, dict) or set(binding) != binding_required
+            or binding.get("schema_version") != "forex.trading-health-mt5-task-binding.v1"
+            or binding.get("session_id") != 0 or binding.get("binding_sha256") != _digest_without(binding, "binding_sha256")
+            or not isinstance(inventory, dict) or set(inventory) != inventory_required
+            or inventory.get("schema_version") != "forex.trading-health-mt5-inventory.v1"
+            or inventory.get("inventory_sha256") != _digest_without(inventory, "inventory_sha256")
+            or not isinstance(inventory.get("processes"), list)):
+        return None, None, "MT5_RECOVERY_BINDING_OR_INVENTORY_INVALID"
+    processes = inventory["processes"]
+    if (any(not isinstance(item, dict) or item.get("classification") == "UNATTRIBUTABLE" for item in processes)
+            or sum(item.get("classification") == "PRIMARY_MANAGED" for item in processes) != 1
+            or sum(item.get("classification") == "ADDITIONAL_MANAGED" for item in processes) < 1):
+        return None, None, "MT5_RECOVERY_INVENTORY_NOT_SAFE"
+    return binding, inventory, None
+
+
+def _load_mt5_ledger(root: Path, boot_id: str) -> tuple[dict[str, Any] | None, str | None]:
+    path = root / "trading_health_mt5_recovery_ledger.local.json"
+    if not path.exists():
+        return {"schema_version": "forex.trading-health-mt5-recovery-ledger.v1", "boot_id": boot_id,
+                "last_generation": 0, "last_recovery_epoch": 0, "active_request_id": None, "phase": "NONE"}, None
+    value = _read_json(path)
+    required = {"schema_version", "boot_id", "last_generation", "last_recovery_epoch", "active_request_id", "phase"}
+    if (not isinstance(value, dict) or set(value) != required
+            or value.get("schema_version") != "forex.trading-health-mt5-recovery-ledger.v1"
+            or value.get("boot_id") != boot_id or type(value.get("last_generation")) is not int
+            or type(value.get("last_recovery_epoch")) is not int
+            or value.get("phase") not in {"NONE", "PENDING", "CLAIMED", "DISPATCHED", "VERIFIED", "REFUSED", "INTERVENTION_REQUIRED"}):
+        return None, "MT5_RECOVERY_LEDGER_INVALID"
+    return value, None
+
+
+def _mt5_bundle_incomplete(root: Path, request: dict[str, Any] | None, ledger: dict[str, Any] | None,
+                           coordinator: dict[str, Any] | None) -> bool:
+    """Fence a crash-partial MT5 publication before any protocol can proceed."""
+    paths = [root / "trading_health_mt5_recovery_request.local.json",
+             root / "trading_health_mt5_recovery_ledger.local.json",
+             root / "trading_health_mt5_recovery_coordinator.local.json"]
+    if not any(path.exists() for path in paths):
+        return False
+    if not all(isinstance(value, dict) for value in (request, ledger, coordinator)):
+        return True
+    return not (request.get("request_id") == ledger.get("active_request_id") == coordinator.get("request_id")
+                and request.get("generation") == ledger.get("last_generation") == coordinator.get("generation")
+                and request.get("recovery_epoch") == ledger.get("last_recovery_epoch") == coordinator.get("recovery_epoch")
+                and coordinator.get("protocol") == "MT5_V1")
+
+
 def _runtime_manifest(root: Path, listener: dict[str, Any] | None, intent: dict[str, Any] | None,
                       boot_id: str) -> dict[str, Any] | None:
     config = _read_json(root / "m20_demo_listener_service.local.json")
@@ -314,11 +422,19 @@ def run_once(root: Path, now: datetime | None = None) -> dict[str, Any]:
     status_digest = _status_digest(status)
     status["status_sha256"] = status_digest
     request_path = root / "trading_health_recovery_request.local.json"
+    mt5_request_path = root / "trading_health_mt5_recovery_request.local.json"
     prior = _read_json(request_path)
     active = (isinstance(prior, dict) and prior.get("schema_version") == "forex.trading-health-recovery-request.v2"
               and prior.get("request_id") == (ledger or {}).get("active_request_id")
               and (ledger or {}).get("phase") in {"PENDING", "CLAIMED", "DISPATCHED"})
+    mt5_ledger, mt5_ledger_error = _load_mt5_ledger(root, boot_id)
+    prior_mt5 = _read_json(mt5_request_path)
+    active_mt5 = (isinstance(prior_mt5, dict)
+                  and prior_mt5.get("schema_version") == "forex.trading-health-mt5-recovery-request.v1"
+                  and prior_mt5.get("request_id") == (mt5_ledger or {}).get("active_request_id")
+                  and (mt5_ledger or {}).get("phase") in {"PENDING", "CLAIMED", "DISPATCHED"})
     request = None
+    mt5_request = None
     with _recovery_mutex() as acquired:
       if not acquired:
         status["recovery_phase"] = "INTERVENTION_REQUIRED"
@@ -329,11 +445,26 @@ def run_once(root: Path, now: datetime | None = None) -> dict[str, Any]:
         request = prior
         status["recovery_request_id"] = prior["request_id"]
         status["recovery_phase"] = ledger["phase"]
+      elif active_mt5:
+        status["recovery_request_id"] = prior_mt5["request_id"]
+        status["recovery_phase"] = mt5_ledger["phase"]
+      elif _mt5_bundle_incomplete(root, prior_mt5, mt5_ledger,
+                                  _read_json(root / "trading_health_mt5_recovery_coordinator.local.json")):
+        status["recovery_phase"] = "INTERVENTION_REQUIRED"
+        status["reasons"].append("MT5_RECOVERY_PARTIAL_BUNDLE")
+      elif mt5_ledger_error is not None:
+        status["recovery_phase"] = "INTERVENTION_REQUIRED"
+        status["reasons"].append(mt5_ledger_error)
       elif ledger_error is not None:
         status["recovery_phase"] = "INTERVENTION_REQUIRED"
+      elif _cross_protocol_recovery_blocked(root, boot_id, manifest.get("configuration_fingerprint") if manifest else None):
+        status["recovery_phase"] = "INTERVENTION_REQUIRED"
+        status["reasons"].append("CROSS_PROTOCOL_RECOVERY_ACTIVE_OR_INVALID")
       else:
         generated = recovery_request(decision, ledger["last_generation"] + 1, now)
-        if generated is not None and manifest is not None and isinstance(intent, dict):
+        listener_actions = {"START_LISTENER", "RESTART_LISTENER"}
+        mt5_actions = {"START_ONE_MT5", "RECYCLE_MANAGED_SET_FLAT"}
+        if generated is not None and generated.action in listener_actions and manifest is not None and isinstance(intent, dict):
             request = {
                 "schema_version": "forex.trading-health-recovery-request.v2", "state": "PENDING",
                 "request_id": uuid.uuid4().hex, "generation": generated.generation, "boot_id": boot_id,
@@ -349,6 +480,46 @@ def run_once(root: Path, now: datetime | None = None) -> dict[str, Any]:
             _atomic_json(root / "trading_health_recovery_ledger.local.json", ledger)
             status["recovery_request_id"] = request["request_id"]
             status["recovery_phase"] = "PENDING"
+        elif generated is not None and generated.action in mt5_actions:
+            hold = _read_json(root / "m20_demo_maintenance_hold.local.json")
+            binding, inventory, refusal = _load_mt5_publish_inputs(
+                root, action=generated.action, intent=intent, hold=hold
+            )
+            if refusal is not None:
+                status["recovery_phase"] = "REFUSED"
+                status["reasons"].append(refusal)
+            elif manifest is None or _listener_recovery_active(root, boot_id):
+                status["recovery_phase"] = "INTERVENTION_REQUIRED"
+                status["reasons"].append("CROSS_PROTOCOL_RECOVERY_ACTIVE_OR_INVALID")
+            else:
+                generation = mt5_ledger["last_generation"] + 1
+                epoch = mt5_ledger["last_recovery_epoch"] + 1
+                mt5_request = {
+                    "schema_version": "forex.trading-health-mt5-recovery-request.v1", "state": "PENDING",
+                    "request_id": uuid.uuid4().hex, "generation": generation, "recovery_epoch": epoch,
+                    "boot_id": boot_id, "configuration_fingerprint": manifest["configuration_fingerprint"],
+                    "account_scope_sha256": manifest["account_scope_sha256"], "profile_sha256": manifest["profile_sha256"],
+                    "task_binding_sha256": binding["binding_sha256"], "inventory_sha256": inventory["inventory_sha256"],
+                    "action": generated.action, "issued_at_utc": now.isoformat().replace("+00:00", "Z"),
+                    "expires_at_utc": (now + timedelta(seconds=75)).isoformat().replace("+00:00", "Z"),
+                    "entry_eligible": False,
+                }
+                coordinator = {
+                    "schema_version": "forex.trading-health-recovery-coordinator.v1", "recovery_epoch": epoch,
+                    "protocol": "MT5_V1", "request_id": mt5_request["request_id"], "generation": generation,
+                    "boot_id": boot_id, "configuration_fingerprint": manifest["configuration_fingerprint"], "phase": "PENDING",
+                }
+                mt5_ledger.update({"last_generation": generation, "last_recovery_epoch": epoch,
+                                   "active_request_id": mt5_request["request_id"], "phase": "PENDING"})
+                # Publish the inspectable request first.  A crash before the
+                # ledger/coordinator means the executor refuses the orphan;
+                # the opposite order could leave a durable active lease with
+                # no request an operator can inspect or reconcile.
+                _atomic_json(mt5_request_path, mt5_request)
+                _atomic_json(root / "trading_health_mt5_recovery_ledger.local.json", mt5_ledger)
+                _atomic_json(root / "trading_health_mt5_recovery_coordinator.local.json", coordinator)
+                status["recovery_request_id"] = mt5_request["request_id"]
+                status["recovery_phase"] = "PENDING"
     _atomic_json(root / "trading_health_status.local.json", status)
     if request is not None and not active:
         _atomic_json(request_path, request)

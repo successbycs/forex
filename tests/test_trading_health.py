@@ -66,6 +66,13 @@ def test_startup_grace_then_recovery():
     assert d.recommended_action == "START_ONE_MT5"
 
 
+def test_absent_or_duplicate_mt5_is_not_hidden_by_its_derived_session_fence():
+    absent = state(managed_mt5_count=0, session_ok=False)
+    assert (absent.state, absent.recommended_action) == (th.RECOVERING_MT5, "START_ONE_MT5")
+    duplicate = state(managed_mt5_count=2, session_ok=False)
+    assert (duplicate.state, duplicate.recommended_action) == (th.RECOVERING_MT5, "RECYCLE_MANAGED_SET_FLAT")
+
+
 def test_duplicate_recycle_only_when_flat_and_no_inflight():
     assert state(managed_mt5_count=3).recommended_action == "RECYCLE_MANAGED_SET_FLAT"
     for kw in ({"exposure_flat": False}, {"exposure_flat": None}, {"inflight_unresolved": None}):
