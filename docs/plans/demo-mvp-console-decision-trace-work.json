@@ -1,0 +1,42 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "M33-5-DECISION-TRACE",
+  "authorization": "Chris explicitly instructed execution on 2026-09-28. M33.5 registers this as CONTINUE-only Demo MVP visibility work: it must emit actual-code redacted events and add read-only presentation only; no order, MT5 control, risk, strategy, Live, hold, commit or push action is authorised.",
+  "markdown_plan": "docs/plans/demo-mvp-console-decision-trace.md",
+  "items": [
+    {
+      "id": "contract-tests",
+      "title": "Define atomic event contract and failing focused tests",
+      "state": "IN_PROGRESS",
+      "requires": [],
+      "evidence": [
+        "2026-09-28: plan defines event identity, redaction, atomic publication, complete-set binding, incomplete state and continuity constraints."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "runtime-emitter",
+      "title": "Emit atomic redacted phase records from the actual listener",
+      "state": "PENDING",
+      "requires": ["contract-tests"],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "read-surface",
+      "title": "Add bounded fixed retrieval and human-readable rendering",
+      "state": "PENDING",
+      "requires": ["runtime-emitter"],
+      "evidence": [],
+      "blocker": null
+    },
+    {
+      "id": "verification-review",
+      "title": "Run QA checks and independent read-only review",
+      "state": "PENDING",
+      "requires": ["read-surface"],
+      "evidence": [],
+      "blocker": null
+    }
+  ]
+}

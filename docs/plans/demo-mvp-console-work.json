@@ -1,0 +1,58 @@
+{
+  "schema_version": "forex.execution-work.v1",
+  "task_id": "DEMO-MVP-CONSOLE-DESIGN",
+  "authorization": "Chris authorised creation and execution of the Demo MVP console design phase on 2026-09-28. This work record authorises planning artifacts only; it does not authorise runtime, schema, deployment, broker, Live, commit, push, or formal milestone changes.",
+  "markdown_plan": "docs/plans/demo-mvp-console-execplan.md",
+  "items": [
+    {
+      "id": "design-evidence",
+      "title": "Inspect existing listener, journal, P&L and strategy-report surfaces",
+      "state": "DONE",
+      "requires": [],
+      "evidence": [
+        "2026-09-28: inspected docs/workflows/m1-demo-decision-workflow.md, scripts/m20_listener_dashboard.py, scripts/listener_workflow_report.py, scripts/m20_trade_ledger_dashboard.py, scripts/m33_daily_pnl_report.py and scripts/m20_strategy_trial_dashboard.py."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "parent-design",
+      "title": "Create consolidated MVP parent ExecPlan with continuity and formal dependency map",
+      "state": "DONE",
+      "requires": ["design-evidence"],
+      "evidence": [
+        "2026-09-28: docs/plans/demo-mvp-console-execplan.md created."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "subplans",
+      "title": "Create bounded decision-trace, journal-analytics, operator-surface and strategy-evaluation sub-ExecPlans",
+      "state": "DONE",
+      "requires": ["parent-design"],
+      "evidence": [
+        "2026-09-28: four child plans created with read-only boundaries and acceptance designs."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "astra-design-review",
+      "title": "Independent Astra review of console and actual-code logging design",
+      "state": "DONE",
+      "requires": ["subplans"],
+      "evidence": [
+        "2026-09-28: Astra initially returned NO-GO for an ordinary JSON-lines spool because it could be partial/interleaved. The decision-trace sub-ExecPlan was repaired to require atomic immutable records, complete-set hash binding, allowlisted fields, explicit TRACE_INCOMPLETE/TRACE_UNAVAILABLE states and bounded retention; Astra confirmed the phase-emission ordering preserves Demo continuity."
+      ],
+      "blocker": null
+    },
+    {
+      "id": "implementation-authority",
+      "title": "Obtain explicit formal-scope authority for the first implementation package",
+      "state": "DONE",
+      "requires": ["astra-design-review"],
+      "evidence": [
+        "2026-09-28: Chris explicitly instructed execution; M33 was amended with M33.5 and the formal work package was started through scripts/forex_milestones.py."
+      ],
+      "blocker": null
+    }
+  ]
+}
