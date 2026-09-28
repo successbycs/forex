@@ -7,10 +7,10 @@ record is `docs/plans/demo-mvp-console-decision-trace-work.json`.
 ## Progress
 
 <!-- forex-work-projection:start task=M33-5-DECISION-TRACE schema=forex.execution-work-projection.v1 -->
-<!-- forex-work-item id=contract-tests state=IN_PROGRESS -->
-- [ ] contract-tests — Define atomic event contract and failing focused tests (IN_PROGRESS)
-<!-- forex-work-item id=runtime-emitter state=PENDING -->
-- [ ] runtime-emitter — Emit atomic redacted phase records from the actual listener (PENDING)
+<!-- forex-work-item id=contract-tests state=DONE -->
+- [x] contract-tests — Define atomic event contract and failing focused tests (DONE)
+<!-- forex-work-item id=runtime-emitter state=IN_PROGRESS -->
+- [ ] runtime-emitter — Emit atomic redacted phase records from the actual listener (IN_PROGRESS)
 <!-- forex-work-item id=read-surface state=PENDING -->
 - [ ] read-surface — Add bounded fixed retrieval and human-readable rendering (PENDING)
 <!-- forex-work-item id=verification-review state=PENDING -->
@@ -123,3 +123,6 @@ restart or otherwise affect Demo trading.
 - [x] Astra review: require complete-set/hash binding, an allowlisted schema,
   explicit incomplete state and bounded retention before implementation.
 - [x] Chris explicitly authorised implementation under registered M33.5.
+- [x] 2026-09-28: atomic phase records are emitted from `capture()` after
+  quote read, input validation, strategy assessment, owner/gate resolution and
+  durable proposal persistence; focused actual-capture test passes.

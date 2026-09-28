@@ -1135,6 +1135,15 @@ def test_m20_capture_persists_invalid_m1_as_no_trade_without_order(monkeypatch, 
     assert result["proposal"]["rationale"].startswith("M1_INPUT_INVALID_OR_INSUFFICIENT")
     assert result["decision_snapshot"]["m1_closed_bars"] == []
     assert [name for name, _ in calls].count("persist-proposal") == 1
+    trace_roots = list((tmp_path / "m20_demo_decision_trace").glob("*/*"))
+    assert len(trace_roots) == 1
+    events = [json.loads(path.read_text()) for path in sorted(trace_roots[0].glob("[0-9]*.json"))]
+    assert [event["event_type"] for event in events] == [
+        "QUOTE_READ", "INPUTS_VALIDATED", "STRATEGIES_ASSESSED",
+        "OWNER_AND_GATES_RESOLVED", "PROPOSAL_PERSISTED", "EXECUTION_RESULT",
+        "RECONCILIATION_RESULT",
+    ]
+    assert next(event for event in events if event["event_type"] == "PROPOSAL_PERSISTED")["facts"]["action"] == "NO_TRADE"
 
 
 def test_m20_capture_profile_mismatch_cannot_reserve_or_submit(monkeypatch, tmp_path):

@@ -7,17 +7,18 @@
     {
       "id": "contract-tests",
       "title": "Define atomic event contract and failing focused tests",
-      "state": "IN_PROGRESS",
+      "state": "DONE",
       "requires": [],
       "evidence": [
-        "2026-09-28: plan defines event identity, redaction, atomic publication, complete-set binding, incomplete state and continuity constraints."
+        "2026-09-28: plan defines event identity, redaction, atomic publication, complete-set binding, incomplete state and continuity constraints.",
+        "2026-09-28: tests/test_m20_decision_trace.py and the actual capture-path assertion in tests/test_t480_adapter.py passed."
       ],
       "blocker": null
     },
     {
       "id": "runtime-emitter",
       "title": "Emit atomic redacted phase records from the actual listener",
-      "state": "PENDING",
+      "state": "IN_PROGRESS",
       "requires": ["contract-tests"],
       "evidence": [],
       "blocker": null

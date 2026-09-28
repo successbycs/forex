@@ -34,6 +34,18 @@ from zoneinfo import ZoneInfo
 
 import MetaTrader5 as mt5
 
+
+_TRACE_PATH = Path(__file__).with_name("m20_decision_trace.py")
+if not _TRACE_PATH.is_file():
+    _TRACE_PATH = Path(__file__).with_name("m20_decision_trace.payload")
+_TRACE_LOADER = importlib.machinery.SourceFileLoader("forex_m20_decision_trace", str(_TRACE_PATH))
+_TRACE_SPEC = importlib.util.spec_from_loader("forex_m20_decision_trace", _TRACE_LOADER)
+if _TRACE_SPEC is None:
+    raise SystemExit("M20 decision-trace module is unavailable")
+_TRACE_MODULE = importlib.util.module_from_spec(_TRACE_SPEC)
+_TRACE_LOADER.exec_module(_TRACE_MODULE)
+DecisionTraceWriter = _TRACE_MODULE.DecisionTraceWriter
+
 SERVER = "GOMarketsMU-Demo"
 SYMBOL = "EURUSD"
 MAX_TICK_AGE_SECONDS = 30
@@ -817,6 +829,31 @@ def _provenance() -> tuple[str, str]:
     if len(revision) != 40 or not fingerprint.startswith("sha256:"):
         raise SystemExit("M20 session provenance is absent or invalid")
     return revision, fingerprint
+
+
+def _trace_writer(session_path: Path, *, session_id: str, captured_at: datetime,
+                  configuration_fingerprint: str) -> Any | None:
+    """Create the non-critical actual-run event writer without changing trading."""
+    try:
+        run_id = str(uuid5(NAMESPACE_URL, f"forex.m20.trace:{session_id}:{utc(captured_at)}"))
+        return DecisionTraceWriter(session_path.parent / "m20_demo_decision_trace", run_id=run_id,
+                                   listener_release_id=Path(__file__).resolve().parent.name,
+                                   configuration_fingerprint=configuration_fingerprint)
+    except (OSError, ValueError):
+        return None
+
+
+def _trace_emit(trace: Any | None, event_type: str, facts: dict[str, Any], *, proposal: dict[str, Any] | None = None,
+                snapshot: dict[str, Any] | None = None) -> None:
+    """Retain only a fixed redacted explanation of a phase already completed."""
+    if trace is None:
+        return
+    try:
+        trace.emit(event_type, facts, proposal_id=(proposal or {}).get("proposal_id"),
+                   snapshot_id=(snapshot or {}).get("snapshot_id"),
+                   decision_key=(proposal or {}).get("decision_key"))
+    except (OSError, ValueError):
+        return
 
 
 def tick_time_offset_seconds() -> int:
@@ -2391,6 +2428,7 @@ def collect_broker_pnl_journal(terminal_path: str) -> dict[str, Any]:
 
 def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int | None = None) -> dict[str, Any]:
     journal_account: Any | None = None
+    trace: Any | None = None
     lease = load_session_lease(session_path, datetime.now(timezone.utc))
     if not mt5.initialize(path=terminal_path):
         _bridge({}, "pause-unknown-account-state")
@@ -2407,6 +2445,10 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
         # no proposal reservation or broker-order path.
         _require_account_execution_profile(account)
         journal_account = account
+        revision, fingerprint = _provenance()
+        trace = _trace_writer(session_path, session_id=str(lease["session_id"]),
+                              captured_at=datetime.now(timezone.utc),
+                              configuration_fingerprint=fingerprint)
         _collect_broker_pnl_journal(force=False)
         symbol = mt5.symbol_info(SYMBOL)
         if not symbol or symbol.name != SYMBOL or float(symbol.point) <= 0:
@@ -2481,6 +2523,9 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                 "ask": ask,
                 "spread_points": round((ask - bid) / float(symbol.point), 4),
         }
+        _trace_emit(trace, "QUOTE_READ", {"server": account.server, "symbol": SYMBOL,
+                    "bid": bid, "ask": ask, "spread_points": tick_record["spread_points"],
+                    "freshness_seconds": int(freshness_seconds)})
         risk = {"volume": float(symbol.volume_min), "tick_size": float(symbol.trade_tick_size), "tick_value_loss": float(symbol.trade_tick_value_loss), "point": float(symbol.point)}
         mandate = financing_policy()
         terms = _financing_terms(symbol, captured_at)
@@ -2504,9 +2549,17 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
             "news_blackout_inactive": True,
             "abnormal_volatility_inactive": tick_record["spread_points"] <= 12.0,
         }
+        _trace_emit(trace, "INPUTS_VALIDATED", {"completed_m1_count": len(raw_bars["M1"]),
+                    "m1_input_status": "INVALID_OR_INSUFFICIENT" if m1_input_reason else "VALID",
+                    "safety_gates": safety_gates, "entry_allowed": risk_gate["entry_allowed"],
+                    "pause_reason": risk_gate.get("pause_reason")})
         snapshot, proposal, strategy_selection, strategy_assessments = _assessment(
             session, tick_record, raw_bars, captured_at, risk, listener_poll_seconds, safety_gates
         )
+        _trace_emit(trace, "STRATEGIES_ASSESSED", {"strategies": [
+            {key: item.get(key) for key in ("id", "label", "signal", "reason")}
+            for item in strategy_assessments if isinstance(item, dict)
+        ]}, proposal=proposal, snapshot=snapshot)
         if m1_input_reason:
             proposal["rationale"] = m1_input_reason
             strategy_selection.update({"selected_strategy_id": None, "strategy_rule_version": None,
@@ -2551,7 +2604,6 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                                            "estimated_round_trip_cost_aud": None, "minimum_net_profit_aud": None,
                                            "expected_net_profit_at_take_profit_aud": None,
                                            "cost_coverage_status": "NOT_APPLICABLE"})
-        revision, fingerprint = _provenance()
         bridge_session_keys = {"session_id", "server", "instrument", "starts_at_utc", "expires_at_utc", "max_trades", "max_notional_per_trade_usd", "max_cumulative_notional_usd", "max_open_positions", "strategy_version", "operator_label"}
         bridge_payload = {"session": {key: session[key] for key in bridge_session_keys}, "proposal": proposal,
                           "decision_snapshot": snapshot, "strategy_selection": strategy_selection,
@@ -2596,9 +2648,25 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
             pre_context_candidate=str(pre_context_candidate),
         )
         bridge_payload["multi_timeframe_context"] = multi_timeframe_context
+        _trace_emit(trace, "OWNER_AND_GATES_RESOLVED", {
+            "selected_strategy_id": strategy_selection.get("selected_strategy_id"),
+            "selection_status": strategy_selection.get("selection_status"),
+            "market_regime": strategy_selection.get("market_regime"),
+            "market_regime_reason": strategy_selection.get("market_regime_reason"),
+            "cost_coverage_status": strategy_selection.get("cost_coverage_status"),
+            "action": proposal.get("action"), "rationale": proposal.get("rationale"),
+            "planned_entry": proposal.get("proposed_entry"), "planned_stop_loss": proposal.get("stop_loss"),
+            "planned_take_profit": proposal.get("take_profit"), "planned_notional_usd": proposal.get("notional_usd"),
+        }, proposal=proposal, snapshot=snapshot)
         persisted = _bridge(bridge_payload, "persist-proposal")
+        _trace_emit(trace, "PROPOSAL_PERSISTED", {"action": proposal.get("action"),
+                    "rationale": proposal.get("rationale")}, proposal=proposal, snapshot=snapshot)
         if persisted["postgres_audit"].get("already_persisted"):
             reconciliation = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")["reconciliation"]
+            _trace_emit(trace, "EXECUTION_RESULT", {"execution_status": "ALREADY_PERSISTED_NO_RESUBMISSION"},
+                        proposal=proposal, snapshot=snapshot)
+            _trace_emit(trace, "RECONCILIATION_RESULT", {"reconciliation_status": reconciliation.get("status"),
+                        "reconciliation_reason": reconciliation.get("reason")}, proposal=proposal, snapshot=snapshot)
             return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "risk_policy": risk_gate, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments, "multi_timeframe_context": multi_timeframe_context, "execution": {"status": "ALREADY_PERSISTED_NO_RESUBMISSION", "proposal_id": proposal["proposal_id"]}, "reconciliation": reconciliation, "postgres_audit": persisted["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
         if proposal["action"] != "NO_TRADE":
             # The reservation is the execution boundary. Re-checking here
@@ -2657,6 +2725,10 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                 reconciliation = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")["reconciliation"]
                 if reconciliation.get("status") != "NOT_SUBMITTED_RECONCILED":
                     raise SystemExit("M20 stale submission refusal was not reconciled")
+                _trace_emit(trace, "EXECUTION_RESULT", {"execution_status": "NOT_SUBMITTED_AFTER_RESERVATION",
+                            "attempt_id": attempt_id}, proposal=proposal, snapshot=snapshot)
+                _trace_emit(trace, "RECONCILIATION_RESULT", {"reconciliation_status": reconciliation.get("status"),
+                            "reconciliation_reason": reconciliation.get("reason")}, proposal=proposal, snapshot=snapshot)
                 return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "risk_policy": risk_gate, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments, "multi_timeframe_context": multi_timeframe_context, "execution": {"status": "NOT_SUBMITTED_AFTER_RESERVATION", "attempt_id": attempt_id, "session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "idempotency_key": reservation["idempotency_key"], "submitted_at_utc": submitted_at, "open_positions_before": 0, "cumulative_notional_before_usd": 0}, "reconciliation": reconciliation, "postgres_audit": reserved["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
             # The earlier check protects the reservation boundary. This final
             # check is deliberately adjacent to the only broker order call.
@@ -2759,11 +2831,18 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
             expected_status = "OPEN_MONITORING" if observed_open else "MATCHED"
             if reconciliation.get("status") != expected_status:
                 raise SystemExit("M20 actionable execution was not reconciled")
+            _trace_emit(trace, "EXECUTION_RESULT", {"execution_status": "ACCEPTED" if full_fill else ("ACCEPTED_PARTIAL" if partial_fill else "REJECTED"),
+                        "attempt_id": attempt_id, "broker_retcode": getattr(result, "retcode", None)}, proposal=proposal, snapshot=snapshot)
+            _trace_emit(trace, "RECONCILIATION_RESULT", {"reconciliation_status": reconciliation.get("status"),
+                        "reconciliation_reason": reconciliation.get("reason")}, proposal=proposal, snapshot=snapshot)
             return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "risk_policy": risk_gate, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments, "multi_timeframe_context": multi_timeframe_context, "execution": {"status": "ACCEPTED" if full_fill else ("ACCEPTED_PARTIAL" if partial_fill else "REJECTED"), "attempt_id": attempt_id, "session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "idempotency_key": reservation["idempotency_key"], "submitted_at_utc": submitted_at, "open_positions_before": 0, "cumulative_notional_before_usd": 0, "broker_retcode": getattr(result, "retcode", None), "monitor_job_scheduled": observed_open, "monitor_job_path": str(monitor_job) if observed_open else None}, "reconciliation": reconciliation, "postgres_audit": reserved["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
         reconciled = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")
         reconciliation = reconciled.get("reconciliation")
         if not isinstance(reconciliation, dict) or reconciliation.get("status") != "NO_TRADE_RECONCILED":
             raise SystemExit("M20 NO_TRADE reconciliation was not confirmed")
+        _trace_emit(trace, "EXECUTION_RESULT", {"execution_status": "NOT_SUBMITTED"}, proposal=proposal, snapshot=snapshot)
+        _trace_emit(trace, "RECONCILIATION_RESULT", {"reconciliation_status": reconciliation.get("status"),
+                    "reconciliation_reason": reconciliation.get("reason")}, proposal=proposal, snapshot=snapshot)
         return {
             "marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK",
             "schema_version": "forex.m20.demo-trading-operation.v1",
@@ -2775,6 +2854,9 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
             "reconciliation": reconciliation, "postgres_audit": persisted["postgres_audit"],
             "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED"),
         }
+    except BaseException as error:
+        _trace_emit(trace, "ASSESSMENT_FAILED", {"rationale": type(error).__name__})
+        raise
     finally:
         try:
             if journal_account is not None:
