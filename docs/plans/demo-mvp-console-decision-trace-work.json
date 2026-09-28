@@ -40,9 +40,13 @@
     {
       "id": "verification-review",
       "title": "Run QA checks and independent read-only review",
-      "state": "IN_PROGRESS",
+      "state": "DONE",
       "requires": ["read-surface"],
-      "evidence": [],
+      "evidence": [
+        "2026-09-29: focused M33.5 trace, assessment-spool, dashboard, adapter and P&L tests passed; fixed T480 transport checks passed.",
+        "2026-09-29: independent read-only review of commit 3924f7f found no blocker; it confirmed status retains the trace release/configuration/assessment identity and the reader independently rechecks its manifest-to-assessment binding.",
+        "2026-09-29: fixed T480 prepare/configure/install deployed release 49feb257e928871c bound to revision 3924f7f; post-install status was RUNNING on GOMarketsMU-Demo with maintenance hold false and a fresh TRACE_COMPLETE seven-event NO_TRADE tail. Fixed P&L, journal and strategy readers and the local loopback console rendered successfully."
+      ],
       "blocker": null
     }
   ]

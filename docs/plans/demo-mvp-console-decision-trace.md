@@ -13,8 +13,8 @@ record is `docs/plans/demo-mvp-console-decision-trace-work.json`.
 - [x] runtime-emitter — Emit atomic redacted phase records from the actual listener (DONE)
 <!-- forex-work-item id=read-surface state=DONE -->
 - [x] read-surface — Add bounded fixed retrieval and human-readable rendering (DONE)
-<!-- forex-work-item id=verification-review state=IN_PROGRESS -->
-- [ ] verification-review — Run QA checks and independent read-only review (IN_PROGRESS)
+<!-- forex-work-item id=verification-review state=DONE -->
+- [x] verification-review — Run QA checks and independent read-only review (DONE)
 <!-- forex-work-projection:end -->
 
 ## Outcome
@@ -133,3 +133,8 @@ restart or otherwise affect Demo trading.
   repaired journal membership, missing journal facts, current execution view,
   assessment re-read and deployment-inventory gaps. The review's second pass
   found no remaining code blocker.
+- [x] 2026-09-29: governed T480 deployment installed hash-verified release
+  `49feb257e928871c` for revision `3924f7f`; its first fresh Demo assessment
+  produced a bounded, hash-verified seven-event `NO_TRADE` trace from quote
+  read through reconciliation. The fixed local console rendered it alongside
+  the broker-matched journal, Auckland P&L and strategy evidence.
