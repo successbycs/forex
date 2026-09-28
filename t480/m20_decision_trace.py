@@ -217,5 +217,8 @@ def bind_trace(root: Path, *, run_id: str, listener_release_id: str,
         return {"state": "TRACE_UNAVAILABLE", "reason": "COMPLETION_WRITE_FAILED",
                 "run_id": run_id}
     return {"state": state, "reason": reason, "run_id": run_id,
+            "listener_release_id": listener_release_id,
+            "configuration_fingerprint": configuration_fingerprint,
+            "assessment_sequence": assessment_sequence,
             "last_sequence": last_sequence,
             "complete_sha256": "sha256:" + hashlib.sha256(raw).hexdigest()}

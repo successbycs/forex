@@ -92,6 +92,8 @@ def test_listener_binds_actual_trace_to_immutable_assessment(tmp_path, monkeypat
                                                assessment_sequence=1)
     binding = module._bind_decision_trace(payload, assessment_sequence=1, spool_retention=retained)
     assert binding["state"] == "TRACE_COMPLETE"
+    assert binding["listener_release_id"] == "t480"
+    assert binding["assessment_sequence"] == 1
     assert (tmp_path / "m20_demo_decision_trace" / "t480" / "run-1" / "complete.json").is_file()
 
 
