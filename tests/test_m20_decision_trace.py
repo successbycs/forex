@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from t480.m20_decision_trace import (
-    COMPLETE_SCHEMA_VERSION, SCHEMA_VERSION, DecisionTraceError, DecisionTraceWriter,
+    COMPLETE_SCHEMA_VERSION, SCHEMA_VERSION, DecisionTraceError, DecisionTraceWriter, bind_trace,
 )
 
 
@@ -43,3 +43,26 @@ def test_trace_refuses_unsafe_facts_and_never_overwrites(tmp_path):
         trace._publish("00000000000000000001.json", b"different")
     assert (root / "00000000000000000001.json").read_bytes() == original
     assert not list(root.glob("*.pending"))
+
+
+def test_binder_verifies_complete_set_and_marks_missing_event_incomplete(tmp_path):
+    trace = writer(tmp_path)
+    first = trace.emit("QUOTE_READ", {"bid": 1.1, "ask": 1.2})
+    trace.emit("INPUTS_VALIDATED", {"completed_m1_count": 64, "m1_input_status": "VALID"})
+    result = bind_trace(tmp_path, run_id=trace.run_id, listener_release_id=trace.listener_release_id,
+                        configuration_fingerprint=trace.configuration_fingerprint, last_sequence=2,
+                        assessment_sequence=7, assessment_sha256="sha256:" + "b" * 64,
+                        proposal_id=None, snapshot_id=None)
+    assert result["state"] == "TRACE_COMPLETE"
+    manifest = json.loads((tmp_path / "release-a" / "run-1" / "complete.json").read_text())
+    assert manifest["event_hashes"] == [first["event_sha256"], trace.event_hashes[1]]
+    incomplete = writer(tmp_path / "incomplete")
+    incomplete.emit("QUOTE_READ", {"bid": 1.1, "ask": 1.2})
+    missing = bind_trace(tmp_path / "incomplete", run_id=incomplete.run_id,
+                         listener_release_id=incomplete.listener_release_id,
+                         configuration_fingerprint=incomplete.configuration_fingerprint,
+                         last_sequence=2, assessment_sequence=8,
+                         assessment_sha256="sha256:" + "c" * 64,
+                         proposal_id=None, snapshot_id=None)
+    assert missing["state"] == "TRACE_INCOMPLETE"
+    assert missing["reason"] == "MISSING_EVENT"

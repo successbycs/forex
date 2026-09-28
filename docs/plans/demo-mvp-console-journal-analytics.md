@@ -1,7 +1,8 @@
 # Demo MVP console sub-ExecPlan — journal and period analytics
 
 This is a child of `demo-mvp-console-execplan.md`. Its design phase is complete;
-implementation is blocked pending the parent plan's formal-scope decision.
+implementation is authorised by the registered M33.5 parent scope; deployment
+remains subject to the parent release gates.
 
 ## Outcome
 
@@ -70,4 +71,9 @@ policy or order.
 - [x] Defined strict system-owned, matched-closed membership for strategy P&L.
 - [x] Defined Auckland day/week/month boundaries and unavailable/exclusion
   rules.
-- [ ] Implement after formal scope approval.
+- [x] 2026-09-28: added `sql/m33_mvp_system_pnl_summary.sql` and the fixed,
+  hash-bound `forex-m33-mvp-system-pnl-summary` read operation. It returns only
+  M20-owned GOMarketsMU-Demo attempts, broker-matched actual totals and visible
+  excluded/unclosed counts; it does not use the broad account journal.
+- [ ] Stage the fixed query and verify it against the T480 source during the
+  governed deployment.

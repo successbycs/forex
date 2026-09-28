@@ -7,6 +7,7 @@ import sys
 import pytest
 
 from forex.m20_assessment_spool import AssessmentSpoolError, read_immutable_spool
+from t480.m20_decision_trace import DecisionTraceWriter
 
 
 SOURCE = Path("t480/m20_demo_listener_service.py")
@@ -72,3 +73,75 @@ def test_cli_is_read_only_and_emits_inspection(tmp_path, monkeypatch):
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout)["last_assessment_sequence"] == 1
     assert {path.name: path.read_bytes() for path in spool.iterdir()} == before
+
+
+def test_listener_binds_actual_trace_to_immutable_assessment(tmp_path, monkeypatch):
+    module = listener_module()
+    monkeypatch.setattr(module, "STATE_ROOT", tmp_path)
+    monkeypatch.setattr(module, "ROOT", Path("t480"))
+    monkeypatch.setattr(module, "ASSESSMENT_SPOOL_PATH", tmp_path / "spool")
+    trace = DecisionTraceWriter(tmp_path / "m20_demo_decision_trace", run_id="run-1",
+                                listener_release_id="t480", configuration_fingerprint="sha256:" + "a" * 64)
+    trace.emit("QUOTE_READ", {"bid": 1.1, "ask": 1.2})
+    payload = output(1)
+    payload["decision_trace"] = {"state": "TRACE_PENDING_BINDING", "run_id": "run-1",
+                                 "listener_release_id": "t480", "configuration_fingerprint": "sha256:" + "a" * 64,
+                                 "last_sequence": 1}
+    retained = module._write_assessment_spool(payload, assessment_started_at_utc="2026-09-12T00:00:00Z",
+                                               assessment_completed_at_utc="2026-09-12T00:00:02Z",
+                                               assessment_sequence=1)
+    binding = module._bind_decision_trace(payload, assessment_sequence=1, spool_retention=retained)
+    assert binding["state"] == "TRACE_COMPLETE"
+    assert (tmp_path / "m20_demo_decision_trace" / "t480" / "run-1" / "complete.json").is_file()
+
+
+def test_trace_page_returns_only_verified_bounded_tail(tmp_path, monkeypatch, capsys):
+    module = listener_module()
+    monkeypatch.setattr(module, "STATE_ROOT", tmp_path)
+    monkeypatch.setattr(module, "ROOT", Path("t480"))
+    monkeypatch.setattr(module, "STATUS_PATH", tmp_path / "status.json")
+    monkeypatch.setattr(module, "ASSESSMENT_SPOOL_PATH", tmp_path / "assessment-spool")
+    run_id = "11111111-1111-4111-8111-111111111111"
+    trace = DecisionTraceWriter(tmp_path / "m20_demo_decision_trace", run_id=run_id,
+                                listener_release_id="t480", configuration_fingerprint="sha256:" + "a" * 64)
+    for sequence in range(10):
+        trace.emit("QUOTE_READ", {"bid": 1.1 + sequence / 10, "ask": 1.2 + sequence / 10})
+    assessment = {"listener_release_id": "t480", "assessment_sequence": 9,
+                  "assessment": {"proposal": {"proposal_id": None}, "decision_snapshot": {"snapshot_id": None}}}
+    raw_assessment = json.dumps(assessment, sort_keys=True, separators=(",", ":")).encode()
+    module.ASSESSMENT_SPOOL_PATH.mkdir()
+    (module.ASSESSMENT_SPOOL_PATH / "00000000000000000009.json").write_bytes(raw_assessment)
+    from t480.m20_decision_trace import bind_trace
+    bind_trace(tmp_path / "m20_demo_decision_trace", run_id=run_id, listener_release_id="t480",
+               configuration_fingerprint="sha256:" + "a" * 64, last_sequence=10,
+               assessment_sequence=9, assessment_sha256="sha256:" + __import__("hashlib").sha256(raw_assessment).hexdigest(),
+               proposal_id=None, snapshot_id=None)
+    module.STATUS_PATH.write_text(json.dumps({"release_id": "t480", "last_result": {"decision_trace": {
+        "state": "TRACE_COMPLETE", "run_id": run_id, "listener_release_id": "t480",
+    }}}))
+    assert module.trace_page() == 0
+    page = json.loads(capsys.readouterr().out)
+    assert page["observation"] == "TRACE_COMPLETE"
+    assert [event["sequence"] for event in page["events"]] == list(range(3, 11))
+
+
+def test_trace_page_refuses_manifest_not_bound_to_immutable_assessment(tmp_path, monkeypatch, capsys):
+    module = listener_module()
+    monkeypatch.setattr(module, "STATE_ROOT", tmp_path)
+    monkeypatch.setattr(module, "ROOT", Path("t480"))
+    monkeypatch.setattr(module, "STATUS_PATH", tmp_path / "status.json")
+    monkeypatch.setattr(module, "ASSESSMENT_SPOOL_PATH", tmp_path / "assessment-spool")
+    run_id = "11111111-1111-4111-8111-111111111111"
+    trace = DecisionTraceWriter(tmp_path / "m20_demo_decision_trace", run_id=run_id,
+                                listener_release_id="t480", configuration_fingerprint="sha256:" + "a" * 64)
+    trace.emit("QUOTE_READ", {"bid": 1.1, "ask": 1.2})
+    from t480.m20_decision_trace import bind_trace
+    bind_trace(tmp_path / "m20_demo_decision_trace", run_id=run_id, listener_release_id="t480",
+               configuration_fingerprint="sha256:" + "a" * 64, last_sequence=1,
+               assessment_sequence=1, assessment_sha256="sha256:" + "b" * 64,
+               proposal_id=None, snapshot_id=None)
+    module.STATUS_PATH.write_text(json.dumps({"release_id": "t480", "last_result": {"decision_trace": {
+        "state": "TRACE_COMPLETE", "run_id": run_id, "listener_release_id": "t480",
+    }}}))
+    assert module.trace_page() == 0
+    assert json.loads(capsys.readouterr().out)["reason"] == "TRACE_READ_FAILED"

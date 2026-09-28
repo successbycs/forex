@@ -1,7 +1,8 @@
 # Demo MVP console sub-ExecPlan — operator surface and proof
 
 This is a child of `demo-mvp-console-execplan.md`. Its design phase is complete;
-implementation is blocked pending the parent plan's formal-scope decision.
+implementation is authorised by the registered M33.5 parent scope; deployment
+remains subject to the parent release gates.
 
 ## Outcome
 
@@ -54,5 +55,9 @@ stop its local process and continue using the existing terminal dashboard.
 
 - [x] Selected one local read-only composition rather than a new service.
 - [x] Defined panel order, failure labels and no-control boundary.
-- [ ] Implement after decision-trace and journal summary packages pass their
-  own checks and formal scope is approved.
+- [x] 2026-09-28: implemented `scripts/m33_mvp_console_web.py`, a
+  `127.0.0.1`-bound fixed-GET console. It renders listener state, verified
+  trace tail, fixed broker-matched system journal/P&L, and strategy evidence;
+  it accepts no input and has no control route.
+- [ ] Stage the fixed system P&L query, verify the deployed read sources, and
+  run the local browser proof during the governed release.

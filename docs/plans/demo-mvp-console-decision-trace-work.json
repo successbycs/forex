@@ -18,23 +18,29 @@
     {
       "id": "runtime-emitter",
       "title": "Emit atomic redacted phase records from the actual listener",
-      "state": "IN_PROGRESS",
+      "state": "DONE",
       "requires": ["contract-tests"],
-      "evidence": [],
+      "evidence": [
+        "2026-09-28: t480/m20_demo_trading_session.py emits atomic redacted event records after completed listener phases; t480/m20_demo_listener_service.py binds the ordered hashes to its independently published immutable assessment record.",
+        "2026-09-28: focused decision-trace, assessment-spool and transport tests passed."
+      ],
       "blocker": null
     },
     {
       "id": "read-surface",
       "title": "Add bounded fixed retrieval and human-readable rendering",
-      "state": "PENDING",
+      "state": "DONE",
       "requires": ["runtime-emitter"],
-      "evidence": [],
+      "evidence": [
+        "2026-09-28: fixed m20_listener_trace_page returns at most eight hash-verified events and rechecks its immutable assessment spool binding; scripts/m33_mvp_console_web.py renders actual facts without reconstructing missing events.",
+        "2026-09-28: local loopback browser proof rendered listener, trace-unavailable, journal-unavailable and strategy panels from fixed reader calls in under ten seconds; no control route exists."
+      ],
       "blocker": null
     },
     {
       "id": "verification-review",
       "title": "Run QA checks and independent read-only review",
-      "state": "PENDING",
+      "state": "IN_PROGRESS",
       "requires": ["read-surface"],
       "evidence": [],
       "blocker": null

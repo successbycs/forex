@@ -116,7 +116,8 @@ def test_catalog_and_adapter_operations_match():
     t480_adapter.validate_contract()
     catalog = json.loads(t480_adapter.CATALOG_PATH.read_text(encoding="utf-8"))
     assert {entry["id"] for entry in catalog["operations"]} == set(t480_adapter.OPERATIONS)
-    assert "m20_listener_runner_stage_104" in t480_adapter.OPERATIONS
+    assert "m20_listener_runner_stage_106" in t480_adapter.OPERATIONS
+    assert "m20_listener_trace_stage_12" in t480_adapter.OPERATIONS
 
 
 def test_m33_guardian_operations_are_fixed_held_no_order_and_fit_transport_limit():
@@ -489,6 +490,7 @@ def test_m20_listener_diagnostics_is_fixed_read_only_and_fits_transport_limit():
     command = t480_adapter.OPERATIONS["m20_listener_diagnostics"].powershell_command or ""
     assert "Forex-M20-Demo-Listener" in command
     assert "m20_demo_listener_service.local.json" in command
+    assert "m20_decision_trace.payload" in command
     assert "m20_demo_session.local.json" in command
     assert "m20_demo_listener_service.payload" in command
     assert "m20_demo_trading_session.payload" in command
@@ -496,6 +498,13 @@ def test_m20_listener_diagnostics_is_fixed_read_only_and_fits_transport_limit():
     assert "m20_discord_trade_notification.payload" in command
     assert "Start-ScheduledTask" not in command
     assert "Stop-ScheduledTask" not in command
+    assert "order_send" not in command
+
+
+def test_m20_listener_trace_page_binds_service_and_trace_helper_payloads():
+    command = t480_adapter.OPERATIONS["m20_listener_trace_page"].powershell_command or ""
+    assert "m20_demo_listener_service.payload" in command
+    assert "m20_decision_trace.payload" in command
     assert "order_send" not in command
     from t480_core import build_ssh_command
     assert len(build_ssh_command("OEM@192.168.0.210", command, t480_adapter.TRANSPORT_SETTINGS)[-1]) < 7_500
@@ -781,7 +790,7 @@ def test_m20_listener_staging_is_split_and_hash_checked():
 
 def test_m20_listener_runner_and_bridge_staging_are_fixed_and_hash_checked():
     runner_first = t480_adapter.OPERATIONS["m20_listener_runner_stage_1"].powershell_command
-    runner_final = t480_adapter.OPERATIONS["m20_listener_runner_stage_104"].powershell_command
+    runner_final = t480_adapter.OPERATIONS["m20_listener_runner_stage_106"].powershell_command
     runner_verify = t480_adapter.OPERATIONS["m20_listener_runner_verify"].powershell_command
     bridge_first = t480_adapter.OPERATIONS["m20_listener_bridge_stage_1"].powershell_command
     bridge_final = t480_adapter.OPERATIONS["m20_listener_bridge_stage_48"].powershell_command
@@ -794,13 +803,17 @@ def test_m20_listener_runner_and_bridge_staging_are_fixed_and_hash_checked():
             assert "WriteAllText" in first
             assert "WriteAllText" in final
             assert "ReadAllText" in runner_verify and "Get-FileHash" in runner_verify
-            assert "$fragments.Count -ne 104" in runner_verify
+            assert "$fragments.Count -ne 106" in runner_verify
         else:
             assert "WriteAllText" in first and "WriteAllText" in final
             assert "ReadAllText" in bridge_verify and "Get-FileHash" in bridge_verify
             assert "$fragments.Count -ne 48" in bridge_verify
         staged_name = filename.removesuffix(".payload")
         assert staged_name in first and staged_name in final
+
+    trace_first = t480_adapter.OPERATIONS["m20_listener_trace_stage_1"].powershell_command
+    trace_final = t480_adapter.OPERATIONS["m20_listener_trace_stage_12"].powershell_command
+    assert "m20_decision_trace.payload" in trace_first and "Get-FileHash" in trace_final
 
 
 def test_m20_runner_builds_the_same_no_trade_shape_accepted_by_the_evidence_contract(monkeypatch):
@@ -1409,7 +1422,8 @@ def test_position_gate_is_reported_as_position_block_not_absent_signal(monkeypat
 def test_incident_release_all_payload_fragments_fit_hard_transport_limit():
     from t480_core import build_ssh_command
     prefixes=('m20_listener_stage_','m20_listener_runner_stage_',
-              'm20_listener_bridge_stage_','m20_listener_discord_stage_')
+              'm20_listener_bridge_stage_','m20_listener_discord_stage_',
+              'm20_listener_trace_stage_')
     for name,operation in t480_adapter.OPERATIONS.items():
         if name.startswith(prefixes):
             encoded=build_ssh_command('OEM@192.168.0.210',operation.powershell_command,

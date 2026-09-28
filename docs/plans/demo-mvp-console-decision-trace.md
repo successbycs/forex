@@ -9,12 +9,12 @@ record is `docs/plans/demo-mvp-console-decision-trace-work.json`.
 <!-- forex-work-projection:start task=M33-5-DECISION-TRACE schema=forex.execution-work-projection.v1 -->
 <!-- forex-work-item id=contract-tests state=DONE -->
 - [x] contract-tests — Define atomic event contract and failing focused tests (DONE)
-<!-- forex-work-item id=runtime-emitter state=IN_PROGRESS -->
-- [ ] runtime-emitter — Emit atomic redacted phase records from the actual listener (IN_PROGRESS)
-<!-- forex-work-item id=read-surface state=PENDING -->
-- [ ] read-surface — Add bounded fixed retrieval and human-readable rendering (PENDING)
-<!-- forex-work-item id=verification-review state=PENDING -->
-- [ ] verification-review — Run QA checks and independent read-only review (PENDING)
+<!-- forex-work-item id=runtime-emitter state=DONE -->
+- [x] runtime-emitter — Emit atomic redacted phase records from the actual listener (DONE)
+<!-- forex-work-item id=read-surface state=DONE -->
+- [x] read-surface — Add bounded fixed retrieval and human-readable rendering (DONE)
+<!-- forex-work-item id=verification-review state=IN_PROGRESS -->
+- [ ] verification-review — Run QA checks and independent read-only review (IN_PROGRESS)
 <!-- forex-work-projection:end -->
 
 ## Outcome
@@ -126,3 +126,10 @@ restart or otherwise affect Demo trading.
 - [x] 2026-09-28: atomic phase records are emitted from `capture()` after
   quote read, input validation, strategy assessment, owner/gate resolution and
   durable proposal persistence; focused actual-capture test passes.
+- [x] 2026-09-28: service binds each completed event set to the immutable
+  assessment spool record SHA-256 and bounded fixed retrieval validates the
+  completion manifest before returning a maximum eight-event tail.
+- [x] 2026-09-28: independent read-only review found and the implementation
+  repaired journal membership, missing journal facts, current execution view,
+  assessment re-read and deployment-inventory gaps. The review's second pass
+  found no remaining code blocker.

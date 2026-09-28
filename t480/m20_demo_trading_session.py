@@ -46,6 +46,11 @@ _TRACE_MODULE = importlib.util.module_from_spec(_TRACE_SPEC)
 _TRACE_LOADER.exec_module(_TRACE_MODULE)
 DecisionTraceWriter = _TRACE_MODULE.DecisionTraceWriter
 
+# One runner process performs one capture, so this retains only the redacted
+# trace reference needed to return the actual event set to its supervisor.
+# It is not an execution, account, or decision input.
+_LAST_TRACE_WRITER: Any | None = None
+
 SERVER = "GOMarketsMU-Demo"
 SYMBOL = "EURUSD"
 MAX_TICK_AGE_SECONDS = 30
@@ -834,12 +839,16 @@ def _provenance() -> tuple[str, str]:
 def _trace_writer(session_path: Path, *, session_id: str, captured_at: datetime,
                   configuration_fingerprint: str) -> Any | None:
     """Create the non-critical actual-run event writer without changing trading."""
+    global _LAST_TRACE_WRITER
     try:
         run_id = str(uuid5(NAMESPACE_URL, f"forex.m20.trace:{session_id}:{utc(captured_at)}"))
-        return DecisionTraceWriter(session_path.parent / "m20_demo_decision_trace", run_id=run_id,
-                                   listener_release_id=Path(__file__).resolve().parent.name,
-                                   configuration_fingerprint=configuration_fingerprint)
+        writer = DecisionTraceWriter(session_path.parent / "m20_demo_decision_trace", run_id=run_id,
+                                     listener_release_id=Path(__file__).resolve().parent.name,
+                                     configuration_fingerprint=configuration_fingerprint)
+        _LAST_TRACE_WRITER = writer
+        return writer
     except (OSError, ValueError):
+        _LAST_TRACE_WRITER = None
         return None
 
 
@@ -854,6 +863,16 @@ def _trace_emit(trace: Any | None, event_type: str, facts: dict[str, Any], *, pr
                    decision_key=(proposal or {}).get("decision_key"))
     except (OSError, ValueError):
         return
+
+
+def _trace_reference(trace: Any | None) -> dict[str, Any]:
+    """Return a redacted pointer; the supervisor verifies records itself."""
+    if trace is None:
+        return {"state": "TRACE_UNAVAILABLE", "reason": "WRITER_UNAVAILABLE"}
+    return {"state": "TRACE_PENDING_BINDING", "run_id": trace.run_id,
+            "listener_release_id": trace.listener_release_id,
+            "configuration_fingerprint": trace.configuration_fingerprint,
+            "last_sequence": trace.sequence}
 
 
 def tick_time_offset_seconds() -> int:
@@ -2426,7 +2445,7 @@ def collect_broker_pnl_journal(terminal_path: str) -> dict[str, Any]:
         mt5.shutdown()
 
 
-def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int | None = None) -> dict[str, Any]:
+def _capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int | None = None) -> dict[str, Any]:
     journal_account: Any | None = None
     trace: Any | None = None
     lease = load_session_lease(session_path, datetime.now(timezone.utc))
@@ -2863,6 +2882,15 @@ def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int |
                 _finish_journal_capture()
         finally:
             mt5.shutdown()
+
+
+def capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int | None = None) -> dict[str, Any]:
+    """Return the unchanged runner result plus its actual trace reference."""
+    global _LAST_TRACE_WRITER
+    _LAST_TRACE_WRITER = None
+    result = _capture(terminal_path, session_path, trigger_tick_time_msc)
+    result["decision_trace"] = _trace_reference(_LAST_TRACE_WRITER)
+    return result
 
 
 def main(terminal_path: str, session_path: str, trigger_tick_time_msc: int | None = None) -> None:

@@ -388,6 +388,11 @@
       "approval_required": false
     },
     {
+      "id": "m20_listener_trace_page",
+      "purpose": "Read at most eight hash-verified events from the current immutable M20 decision trace; never acknowledge, alter, restart, or trade.",
+      "approval_required": false
+    },
+    {
       "id": "m20_listener_recover",
       "purpose": "Restart only the fixed permanent M20 Demo listener Scheduled Task; it exposes no shell, credentials, or order interface.",
       "approval_required": false
@@ -1614,7 +1619,77 @@
     },
     {
       "id": "m20_listener_runner_stage_104",
-      "purpose": "Stage and verify fixed M20 listener runner payload part 104.",
+      "purpose": "Stage fixed M20 listener runner payload part 104.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_105",
+      "purpose": "Stage fixed M20 listener runner payload part 105.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_106",
+      "purpose": "Stage and verify fixed M20 listener runner payload part 106.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_trace_stage_1",
+      "purpose": "Stage fixed M20 decision-trace payload part 1.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_trace_stage_2",
+      "purpose": "Stage fixed M20 decision-trace payload part 2.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_trace_stage_3",
+      "purpose": "Stage fixed M20 decision-trace payload part 3.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_trace_stage_4",
+      "purpose": "Stage fixed M20 decision-trace payload part 4.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_trace_stage_5",
+      "purpose": "Stage fixed M20 decision-trace payload part 5.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_trace_stage_6",
+      "purpose": "Stage fixed M20 decision-trace payload part 6.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_trace_stage_7",
+      "purpose": "Stage fixed M20 decision-trace payload part 7.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_trace_stage_8",
+      "purpose": "Stage fixed M20 decision-trace payload part 8.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_trace_stage_9",
+      "purpose": "Stage fixed M20 decision-trace payload part 9.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_trace_stage_10",
+      "purpose": "Stage fixed M20 decision-trace payload part 10.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_trace_stage_11",
+      "purpose": "Stage fixed M20 decision-trace payload part 11.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_trace_stage_12",
+      "purpose": "Stage and verify fixed M20 decision-trace payload part 12.",
       "approval_required": false
     },
     {

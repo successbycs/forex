@@ -146,3 +146,76 @@ class DecisionTraceWriter:
         finally:
             if staging.exists() and not staging.is_symlink():
                 staging.unlink()
+
+
+def bind_trace(root: Path, *, run_id: str, listener_release_id: str,
+               configuration_fingerprint: str, last_sequence: int,
+               assessment_sequence: int, assessment_sha256: str | None,
+               proposal_id: str | None, snapshot_id: str | None) -> dict[str, Any]:
+    """Atomically bind an emitted event set to one immutable assessment.
+
+    This is called only after the listener has published its independent
+    assessment-spool record.  It never recreates events or infers omissions;
+    malformed, missing, or conflicting source records stay visibly incomplete.
+    """
+    if (not all(isinstance(value, str) and value for value in
+                (run_id, listener_release_id, configuration_fingerprint))
+            or not isinstance(last_sequence, int) or last_sequence < 1
+            or not isinstance(assessment_sequence, int) or assessment_sequence < 1):
+        return {"state": "TRACE_UNAVAILABLE", "reason": "INVALID_TRACE_REFERENCE"}
+    writer = DecisionTraceWriter(root, run_id=run_id,
+                                 listener_release_id=listener_release_id,
+                                 configuration_fingerprint=configuration_fingerprint)
+    hashes: list[str] = []
+    state = "TRACE_COMPLETE"
+    reason: str | None = None
+    try:
+        for sequence in range(1, last_sequence + 1):
+            source = writer.root / f"{sequence:020d}.json"
+            if (not source.is_file() or source.is_symlink()):
+                state, reason = "TRACE_INCOMPLETE", "MISSING_EVENT"
+                break
+            raw = source.read_bytes()
+            record = json.loads(raw)
+            if (not isinstance(record, dict)
+                    or record.get("schema_version") != SCHEMA_VERSION
+                    or record.get("sequence") != sequence
+                    or record.get("run_id") != run_id
+                    or record.get("listener_release_id") != listener_release_id
+                    or record.get("configuration_fingerprint") != configuration_fingerprint
+                    or record.get("event_type") not in EVENT_TYPES
+                    or not isinstance(record.get("facts"), dict)
+                    or set(record["facts"]) - TRACE_FACT_FIELDS):
+                state, reason = "TRACE_INCOMPLETE", "INVALID_EVENT"
+                break
+            if _canonical(record) != raw:
+                state, reason = "TRACE_INCOMPLETE", "NONCANONICAL_EVENT"
+                break
+            hashes.append("sha256:" + hashlib.sha256(raw).hexdigest())
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):
+        state, reason = "TRACE_INCOMPLETE", "UNREADABLE_EVENT"
+    if assessment_sha256 is None:
+        state, reason = "TRACE_INCOMPLETE", "ASSESSMENT_NOT_RETAINED"
+    record = {
+        "schema_version": COMPLETE_SCHEMA_VERSION,
+        "run_id": run_id,
+        "listener_release_id": listener_release_id,
+        "configuration_fingerprint": configuration_fingerprint,
+        "assessment_sequence": assessment_sequence,
+        "assessment_sha256": assessment_sha256,
+        "proposal_id": proposal_id,
+        "snapshot_id": snapshot_id,
+        "event_hashes": hashes,
+        "state": state,
+        "reason": reason,
+        "completed_at_utc": _utc_now(),
+    }
+    try:
+        raw = _canonical(record)
+        writer._publish("complete.json", raw)
+    except OSError:
+        return {"state": "TRACE_UNAVAILABLE", "reason": "COMPLETION_WRITE_FAILED",
+                "run_id": run_id}
+    return {"state": state, "reason": reason, "run_id": run_id,
+            "last_sequence": last_sequence,
+            "complete_sha256": "sha256:" + hashlib.sha256(raw).hexdigest()}

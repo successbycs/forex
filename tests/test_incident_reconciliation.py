@@ -11,6 +11,7 @@ from forex.incident_reconciliation import SCOPE, validate_observations, validate
 
 ROOT = Path(__file__).resolve().parents[1]
 SQL = (ROOT / 'sql/operations/incident_20260923_reconciliation.sql').read_text()
+M33_MVP_SUMMARY_SQL = (ROOT / 'sql/m33_mvp_system_pnl_summary.sql').read_text()
 DEALS = json.loads(re.search(r"deals CONSTANT JSONB := '(.*?)'::jsonb;", SQL).group(1))
 NOW = datetime(2026, 9, 23, 5, 30, tzinfo=timezone.utc)
 
@@ -125,3 +126,48 @@ def test_postgres_scoreboard_aggregates_verified_owned_outcomes_only(pg):
     assert rows[0]['verified_closed_count']==2
     assert rows[0]['win_count']==1 and rows[0]['loss_count']==1
     assert rows[0]['net_realized_pnl_aud']==1
+
+
+def test_m33_mvp_summary_uses_auckland_periods_and_excludes_unmatched_or_non_demo_rows(pg):
+    pg("""ALTER TABLE forex.demo_position_event ADD COLUMN observed_at_utc timestamptz DEFAULT now();
+      ALTER TABLE forex.demo_position_event ADD COLUMN event_id bigint GENERATED ALWAYS AS IDENTITY;
+      CREATE TABLE forex.demo_trade_session(session_id text PRIMARY KEY,server text);
+      CREATE TABLE forex.demo_trade_proposal(proposal_id text PRIMARY KEY,session_id text,action text,
+        application_revision text,configuration_fingerprint text,strategy_version text,decision_at_utc timestamptz,
+        proposed_entry numeric,stop_loss numeric,take_profit numeric);
+      CREATE TABLE forex.demo_strategy_selection(proposal_id text PRIMARY KEY,selected_strategy_id text,trade_owner_strategy_id text);
+      CREATE TABLE forex.demo_trade_ledger(proposal_id text PRIMARY KEY,closed_at_utc timestamptz,exit_price numeric,
+        gross_price_pnl_account numeric,commission_account numeric,fee_account numeric,swap_account numeric,
+        realized_pnl_account numeric,account_currency text,close_reason text,reconciliation_status text,
+        reconciliation_disposition text,reconciliation_reason text);
+      INSERT INTO forex.demo_trade_session VALUES ('demo','GOMarketsMU-Demo'),('other','OTHER');
+      INSERT INTO forex.demo_trade_proposal VALUES
+        ('matched','demo','BUY','r','f','v','2026-09-28T09:59:00Z',1.1,1.0,1.2),
+        ('unmatched','demo','SELL','r','f','v','2026-09-28T10:00:00Z',1.1,1.2,1.0),
+        ('prior-week','demo','BUY','r','f','v','2026-09-27T10:00:00Z',1.1,1.0,1.2),
+        ('other-server','other','BUY','r','f','v','2026-09-28T10:00:00Z',1.1,1.0,1.2),
+        ('unclosed','demo','BUY','r','f','v','2026-09-28T10:00:00Z',1.1,1.0,1.2);
+      INSERT INTO forex.demo_strategy_selection SELECT proposal_id,'owner','owner' FROM forex.demo_trade_proposal;
+      INSERT INTO forex.demo_execution_attempt(attempt_id,proposal_id,status,broker_order_reference)
+        VALUES ('a1','matched','ACCEPTED',NULL),('a2','unmatched','ACCEPTED',NULL),('a3','prior-week','ACCEPTED',NULL),('a4','other-server','ACCEPTED',NULL),('a5','unclosed','ACCEPTED',NULL);
+      INSERT INTO forex.demo_position_event(attempt_id,event_type,payload) VALUES
+        ('a1','OPENED','{\"actual_entry_price\":\"1.1001\",\"volume\":\"0.01\"}'),
+        ('a2','OPENED','{\"actual_entry_price\":\"1.1002\",\"volume\":\"0.01\"}'),
+        ('a3','OPENED','{\"actual_entry_price\":\"1.1003\",\"volume\":\"0.01\"}');
+      INSERT INTO forex.demo_trade_ledger VALUES
+        ('matched','2026-09-28T10:05:00Z',1.2,3,-1,-0.2,0.1,1.9,'AUD','TP','MATCHED',NULL,NULL),
+        ('unmatched','2026-09-28T10:06:00Z',1.0,999,999,0,0,999,'AUD','SL','RECONCILIATION_ERROR',NULL,'history incomplete'),
+        ('prior-week','2026-09-27T10:05:00Z',1.2,0.5,0,0,0,0.5,'AUD','TP','MATCHED',NULL,NULL),
+        ('other-server','2026-09-28T10:07:00Z',1.2,888,0,0,0,888,'AUD','TP','MATCHED',NULL,NULL);""")
+    summary = json.loads(pg(M33_MVP_SUMMARY_SQL.replace("now()", "TIMESTAMPTZ '2026-09-28T10:30:00Z'")))
+    today = next(row for row in summary['periods'] if row['period'] == 'today')
+    week = next(row for row in summary['periods'] if row['period'] == 'week')
+    month = next(row for row in summary['periods'] if row['period'] == 'month')
+    assert today['matched_closed_count'] == 1 and today['excluded_closed_count'] == 1
+    assert float(today['actual_net_pnl_account']) == 1.9
+    assert week['matched_closed_count'] == 1 and month['matched_closed_count'] == 2
+    assert float(month['actual_net_pnl_account']) == 2.4
+    assert {row['proposal_id'] for row in summary['journal']} == {'matched', 'prior-week'}
+    assert summary['excluded_journal'][0]['proposal_id'] == 'unmatched'
+    assert 'realized_pnl_account' not in summary['excluded_journal'][0]
+    assert summary['unclosed_system_attempt_count'] == 1

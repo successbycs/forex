@@ -12,6 +12,8 @@ from __future__ import annotations
 import json
 import os
 import hashlib
+import importlib.machinery
+import importlib.util
 from datetime import datetime, timezone
 from pathlib import Path
 import subprocess
@@ -423,6 +425,46 @@ def _write_assessment_spool(output: dict[str, Any], *, assessment_started_at_utc
     except (OSError, TypeError, ValueError):
         return "NOT_SPOOLED_STORAGE_FAILURE"
     return "SPOOLED_IMMUTABLE"
+
+
+def _bind_decision_trace(output: dict[str, Any], *, assessment_sequence: int,
+                         spool_retention: str) -> dict[str, Any]:
+    """Bind only an actual runner-emitted trace to the immutable spool receipt."""
+    reference = output.get("decision_trace")
+    if not isinstance(reference, dict):
+        return {"state": "TRACE_UNAVAILABLE", "reason": "MISSING_TRACE_REFERENCE"}
+    if reference.get("state") != "TRACE_PENDING_BINDING":
+        return {"state": "TRACE_UNAVAILABLE", "reason": reference.get("reason", "WRITER_UNAVAILABLE")}
+    source = ASSESSMENT_SPOOL_PATH / f"{assessment_sequence:020d}.json"
+    assessment_sha256: str | None = None
+    if spool_retention in {"SPOOLED_IMMUTABLE", "SPOOL_ALREADY_RETAINED"}:
+        try:
+            if source.is_file() and not source.is_symlink():
+                assessment_sha256 = "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
+        except OSError:
+            pass
+    try:
+        helper_path = ROOT / "m20_decision_trace.py"
+        if not helper_path.is_file():
+            helper_path = ROOT / "m20_decision_trace.payload"
+        loader = importlib.machinery.SourceFileLoader("forex_m20_decision_trace_binder", str(helper_path))
+        spec = importlib.util.spec_from_loader("forex_m20_decision_trace_binder", loader)
+        if spec is None:
+            return {"state": "TRACE_UNAVAILABLE", "reason": "BINDER_UNAVAILABLE"}
+        module = importlib.util.module_from_spec(spec)
+        loader.exec_module(module)
+        proposal = output.get("proposal") if isinstance(output.get("proposal"), dict) else {}
+        snapshot = output.get("decision_snapshot") if isinstance(output.get("decision_snapshot"), dict) else {}
+        return module.bind_trace(
+            STATE_ROOT / "m20_demo_decision_trace", run_id=reference.get("run_id"),
+            listener_release_id=reference.get("listener_release_id"),
+            configuration_fingerprint=reference.get("configuration_fingerprint"),
+            last_sequence=reference.get("last_sequence"), assessment_sequence=assessment_sequence,
+            assessment_sha256=assessment_sha256, proposal_id=proposal.get("proposal_id"),
+            snapshot_id=snapshot.get("snapshot_id"),
+        )
+    except (OSError, ValueError, AttributeError, ImportError):
+        return {"state": "TRACE_UNAVAILABLE", "reason": "BINDER_UNAVAILABLE"}
 
 
 def _assessment_total() -> int:
@@ -925,6 +967,10 @@ def run() -> None:
                 assessment_completed_at_utc=assessment_completed_at_utc,
                 assessment_sequence=assessment_sequence,
             )
+            last_result["decision_trace"] = _bind_decision_trace(
+                output, assessment_sequence=assessment_sequence,
+                spool_retention=last_result["assessment_spool_retention"],
+            )
             _request_protected_restart(output)
         except json.JSONDecodeError:
             last_result = {"error": completed.stderr.strip() or completed.stdout.strip(), "exit_code": completed.returncode}
@@ -1329,6 +1375,70 @@ def run_continuity_protocol() -> int:
     return 0 if record["state"] == "PASS" else 2
 
 
+def trace_page() -> int:
+    """Export a bounded verified tail of the current actual decision trace."""
+    try:
+        status = json.loads(STATUS_PATH.read_text(encoding="utf-8-sig"))
+        trace = status.get("last_result", {}).get("decision_trace")
+        if not isinstance(trace, dict) or trace.get("state") != "TRACE_COMPLETE":
+            print(json.dumps({"observation": (trace or {}).get("state", "TRACE_UNAVAILABLE"),
+                              "reason": (trace or {}).get("reason", "MISSING_TRACE_REFERENCE"), "events": []},
+                             separators=(",", ":")))
+            return 0
+        release, run_id = status.get("release_id"), trace.get("run_id")
+        if (not isinstance(release, str) or release != ROOT.name or trace.get("listener_release_id") != release
+                or not isinstance(run_id, str) or len(run_id) != 36):
+            raise ValueError("trace reference is invalid")
+        root = STATE_ROOT / "m20_demo_decision_trace" / release / run_id
+        complete = json.loads((root / "complete.json").read_text(encoding="utf-8"))
+        hashes = complete.get("event_hashes")
+        if (complete.get("schema_version") != "forex.m20.decision-trace-complete.v1"
+                or complete.get("state") != "TRACE_COMPLETE" or not isinstance(hashes, list) or not hashes):
+            print(json.dumps({"observation": "TRACE_INCOMPLETE", "reason": "COMPLETION_RECORD_INVALID", "events": []},
+                             separators=(",", ":")))
+            return 0
+        sequence = complete.get("assessment_sequence")
+        if isinstance(sequence, bool) or not isinstance(sequence, int) or sequence < 1:
+            raise ValueError("trace assessment sequence is invalid")
+        assessment_path = ASSESSMENT_SPOOL_PATH / f"{sequence:020d}.json"
+        assessment_raw = assessment_path.read_bytes()
+        assessment = json.loads(assessment_raw)
+        bound = assessment.get("assessment") if isinstance(assessment, dict) else None
+        proposal = bound.get("proposal") if isinstance(bound, dict) else None
+        snapshot = bound.get("decision_snapshot") if isinstance(bound, dict) else None
+        if (assessment_path.is_symlink()
+                or "sha256:" + hashlib.sha256(assessment_raw).hexdigest() != complete.get("assessment_sha256")
+                or assessment.get("listener_release_id") != release
+                or assessment.get("assessment_sequence") != sequence
+                or not isinstance(proposal, dict) or not isinstance(snapshot, dict)
+                or proposal.get("proposal_id") != complete.get("proposal_id")
+                or snapshot.get("snapshot_id") != complete.get("snapshot_id")):
+            print(json.dumps({"observation": "TRACE_INCOMPLETE", "reason": "ASSESSMENT_BINDING_INVALID", "events": []},
+                             separators=(",", ":")))
+            return 0
+        events = []
+        for sequence in range(max(1, len(hashes) - 7), len(hashes) + 1):
+            path = root / f"{sequence:020d}.json"
+            raw = path.read_bytes()
+            if len(raw) > 262_144 or "sha256:" + hashlib.sha256(raw).hexdigest() != hashes[sequence - 1]:
+                raise ValueError("trace event integrity is invalid")
+            event = json.loads(raw)
+            if (event.get("schema_version") != "forex.m20.decision-trace-event.v1"
+                    or event.get("run_id") != run_id or event.get("listener_release_id") != release
+                    or event.get("sequence") != sequence):
+                raise ValueError("trace event shape is invalid")
+            events.append(event)
+        print(json.dumps({"observation": "TRACE_COMPLETE", "run_id": run_id,
+                          "assessment_sequence": sequence,
+                          "assessment_sha256": complete.get("assessment_sha256"),
+                          "event_count": len(hashes), "events": events}, separators=(",", ":")))
+        return 0
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        print(json.dumps({"observation": "TRACE_INCOMPLETE", "reason": "TRACE_READ_FAILED", "events": []},
+                         separators=(",", ":")))
+        return 0
+
+
 if __name__ == "__main__":
     if len(sys.argv) == 1:
         run_guarded()
@@ -1342,5 +1452,7 @@ if __name__ == "__main__":
         raise SystemExit(run_broker_pnl_collection())
     elif len(sys.argv) == 2 and sys.argv[1] == "--held-readiness-assessment":
         raise SystemExit(run_held_readiness_assessment())
+    elif len(sys.argv) == 2 and sys.argv[1] == "--trace-page":
+        raise SystemExit(trace_page())
     else:
-        raise SystemExit("M20 listener service accepts no arguments, --continuity-protocol, --execution-drill, or --held-readiness-assessment")
+        raise SystemExit("M20 listener service accepts no arguments, --continuity-protocol, --execution-drill, --held-readiness-assessment, or --trace-page")

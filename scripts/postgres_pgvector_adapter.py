@@ -83,6 +83,7 @@ ASSETS = {"m20_wave1_gap_reconciliation": "sql/operations/w1_reconcile_attempt_6
     "m1_closed_candle_decision_identity_schema": "sql/migrations/024_m1_closed_candle_decision_identity.sql",
     "m20_strategy_trial_query": "sql/m20_strategy_trial_summary.sql",
     "m20_lifecycle_summary_query": "sql/m20_lifecycle_summary.sql",
+    "m33_mvp_system_pnl_summary_query": "sql/m33_mvp_system_pnl_summary.sql",
     "import": "scripts/build_m2_postgres_import.py",
 }
 M2_SNAPSHOT_ID = "m2-m1-eurusd-h1-720"
@@ -93,6 +94,8 @@ MUTATING = {"forex-m20-stage-wave1-gap-reconciliation", "forex-m20-apply-wave1-g
 MUTATING.update({"forex-m33-stage-broker-pnl-journal-repair-schema", "forex-m33-apply-broker-pnl-journal-repair-schema"})
 MUTATING.update({"forex-m33-stage-broker-pnl-journal-verify", "forex-m33-broker-pnl-journal-verify"})
 READ_ONLY.add("forex-m33-broker-pnl-journal-summary")
+READ_ONLY.add("forex-m33-mvp-system-pnl-summary")
+MUTATING.add("forex-m33-stage-mvp-system-pnl-summary-query")
 MUTATING.update({"forex-m33-stage-broker-pnl-journal-schema", "forex-m33-apply-broker-pnl-journal-schema", "forex-m33-stage-broker-pnl-journal-summary-query"})
 
 def remote(body: str) -> dict:
@@ -1384,6 +1387,48 @@ docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "
     return wrap("forex_m20_lifecycle_summary", remote(body), digest)
 
 
+def _stage_fixed_read_query(asset_name: str, staging_filename: str, marker: str, operation: str) -> dict:
+    """Copy one fixed SQL asset to T480, verify its hash, and never execute it."""
+    relative, digest = asset(asset_name)
+    source_windows = subprocess.run(["wslpath", "-w", str(ROOT / relative)], text=True, capture_output=True, check=True).stdout.strip()
+    staging_directory = r"C:\Users\chris\Documents\Code\forex-m1-probe"
+    staging_windows = staging_directory + "\\" + staging_filename
+    quote = lambda value: "'" + value.replace("'", "''") + "'"
+    mkdir = subprocess.run(build_ssh_command(TARGET, "$ErrorActionPreference='Stop'; New-Item -ItemType Directory -Force -Path " + quote(staging_directory) + " | Out-Null", SETTINGS), text=True, capture_output=True, check=False)
+    if mkdir.returncode:
+        return wrap(operation, {"exit_code": mkdir.returncode, "stdout": mkdir.stdout, "stderr": mkdir.stderr, "ok": False}, digest)
+    command = "$ErrorActionPreference='Stop'; & scp.exe -B -o BatchMode=yes -o StrictHostKeyChecking=yes -- " + quote(source_windows) + " " + quote(TARGET + ':' + staging_windows) + "; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+    encoded = base64.b64encode(command.encode("utf-16-le")).decode("ascii")
+    transfer = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded], text=True, capture_output=True, check=False)
+    if transfer.returncode:
+        return wrap(operation, {"exit_code": transfer.returncode, "stdout": transfer.stdout, "stderr": transfer.stderr, "ok": False}, digest)
+    body = f'''source="/mnt/c/Users/chris/Documents/Code/forex-m1-probe/{staging_filename}"
+file="{REMOTE_FOREX}/{relative}"
+test -f "$source" && [[ "$(sha256sum "$source" | head -c 64)" == "{digest}" ]]
+mkdir -p "$(dirname "$file")"
+install -m 0644 "$source" "$file"
+[[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+printf '{marker} sha256:{digest}\\n' '''
+    return wrap(operation, remote(body), digest)
+
+
+def m33_mvp_system_pnl_summary() -> dict:
+    """Read the fixed M33.5 system-only P&L/journal summary; no client input."""
+    relative, digest = asset("m33_mvp_system_pnl_summary_query")
+    body = f'''file="{REMOTE_FOREX}/{relative}"
+test -f "$file" && [[ "$(sha256sum "$file" | head -c 64)" == "{digest}" ]]
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At < "$file"'''
+    return wrap("forex_m33_mvp_system_pnl_summary", remote(body), digest)
+
+
+def stage_m33_mvp_system_pnl_summary_query() -> dict:
+    return _stage_fixed_read_query(
+        "m33_mvp_system_pnl_summary_query", "m33_mvp_system_pnl_summary.sql",
+        "FOREX_M33_MVP_SYSTEM_PNL_SUMMARY_QUERY_STAGED",
+        "forex_m33_stage_mvp_system_pnl_summary_query",
+    )
+
+
 _M1_COMPLETENESS_QUERY = '''WITH bounds AS (
   SELECT :'from_utc'::timestamptz AS from_utc, :'to_utc'::timestamptz AS to_utc
 ), records AS (
@@ -1637,6 +1682,8 @@ def main(argv: list[str] | None = None) -> int:
     actions["forex-m20-lifecycle-summary"] = m20_lifecycle_summary
     actions["forex-m30-natural-entry-facts"] = m30_natural_entry_facts
     actions["forex-m20-strategy-trial-summary"] = m20_strategy_trial_summary
+    actions["forex-m33-mvp-system-pnl-summary"] = m33_mvp_system_pnl_summary
+    actions["forex-m33-stage-mvp-system-pnl-summary-query"] = stage_m33_mvp_system_pnl_summary_query
     if args.command == "forex-m33-broker-pnl-journal-summary":
         if args.date is None:
             parser.error("forex-m33-broker-pnl-journal-summary requires --date")

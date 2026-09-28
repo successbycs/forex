@@ -264,6 +264,31 @@ def test_m20_lifecycle_summary_is_hash_bound_read_only_and_keeps_lifecycle_state
     assert len(command[-1]) < 8191
 
 
+def test_m33_mvp_system_pnl_summary_is_fixed_hash_bound_and_read_only():
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=("sql/m33_mvp_system_pnl_summary.sql", "a" * 64)), mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True, "stdout": "{}", "stderr": ""}) as remote:
+        assert postgres_pgvector_adapter.m33_mvp_system_pnl_summary()["ok"]
+    query = remote.call_args.args[0]
+    source = (postgres_pgvector_adapter.ROOT / "sql/m33_mvp_system_pnl_summary.sql").read_text()
+    for required in ("GOMarketsMU-Demo", "trade_owner_strategy_id IS NOT NULL", "Pacific/Auckland", "excluded_closed_count", "excluded_journal", "broker_matched", "LIMIT 50"):
+        assert required in source
+    assert "m33_mvp_system_pnl_summary.sql" in query
+    assert "INSERT" not in query and "UPDATE" not in query and "password" not in query.lower()
+
+
+def test_m33_mvp_system_pnl_summary_query_staging_is_hash_bound():
+    source = "sql/m33_mvp_system_pnl_summary.sql"
+    conversion = mock.Mock(stdout=r"\\wsl.localhost\Ubuntu\home\chris\projects\forex\sql\m33_mvp_system_pnl_summary.sql\n")
+    mkdir = mock.Mock(returncode=0, stdout="", stderr="")
+    transfer = mock.Mock(returncode=0, stdout="", stderr="")
+    with mock.patch.object(postgres_pgvector_adapter, "asset", return_value=(source, "b" * 64)), mock.patch.object(postgres_pgvector_adapter, "subprocess") as process, mock.patch.object(postgres_pgvector_adapter, "remote", return_value={"ok": True, "stdout": "", "stderr": ""}) as remote:
+        process.run.side_effect = [conversion, mkdir, transfer]
+        assert postgres_pgvector_adapter.stage_m33_mvp_system_pnl_summary_query()["ok"]
+    staged = remote.call_args.args[0]
+    assert "m33_mvp_system_pnl_summary.sql" in staged
+    assert "sha256sum" in staged and "install -m 0644" in staged
+    assert "FOREX_M33_MVP_SYSTEM_PNL_SUMMARY_QUERY_STAGED" in staged
+
+
 def test_entry_diagnostic_validates_bounds_and_preserves_signal_vs_selection():
     with mock.patch.object(postgres_pgvector_adapter, 'remote', return_value={'ok': True}) as remote:
         assert postgres_pgvector_adapter.m20_entry_diagnostic('2026-09-23T00:00:00Z', '2026-09-23T05:00:00Z')['ok']
