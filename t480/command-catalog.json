@@ -1629,7 +1629,22 @@
     },
     {
       "id": "m20_listener_runner_stage_106",
-      "purpose": "Stage and verify fixed M20 listener runner payload part 106.",
+      "purpose": "Stage fixed M20 listener runner payload part 106.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_107",
+      "purpose": "Stage fixed M20 listener runner payload part 107.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_108",
+      "purpose": "Stage fixed M20 listener runner payload part 108.",
+      "approval_required": false
+    },
+    {
+      "id": "m20_listener_runner_stage_109",
+      "purpose": "Stage and verify fixed M20 listener runner payload part 109.",
       "approval_required": false
     },
     {
