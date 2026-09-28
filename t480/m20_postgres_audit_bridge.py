@@ -292,8 +292,20 @@ def persist_proposal(payload: dict[str, Any]) -> dict[str, Any]:
             {**proposal, "application_revision": revision, "configuration_fingerprint": fingerprint},
         )
         if cursor.fetchone() is None:
+            cursor.execute("SELECT p.action,p.proposed_entry,p.stop_loss,p.take_profit,p.notional_usd,p.decision_snapshot_sha256,p.strategy_version,p.application_revision,p.configuration_fingerprint,s.selected_strategy_id,s.trade_owner_strategy_id,s.selection_status,s.cost_coverage_status FROM forex.demo_trade_proposal p JOIN forex.demo_strategy_selection s ON s.proposal_id=p.proposal_id WHERE p.proposal_id=%s", (proposal["proposal_id"],))
+            replay = cursor.fetchone()
+            if replay is None:
+                raise SystemExit("M20 persisted proposal replay facts are absent")
+            replay_facts = {"action": replay[0], "proposed_entry": float(replay[1]) if replay[1] is not None else None,
+                            "stop_loss": float(replay[2]) if replay[2] is not None else None,
+                            "take_profit": float(replay[3]) if replay[3] is not None else None,
+                            "notional_usd": float(replay[4]) if replay[4] is not None else None,
+                            "decision_snapshot_sha256": replay[5], "strategy_version": replay[6],
+                            "application_revision": replay[7], "configuration_fingerprint": replay[8],
+                            "selected_strategy_id": replay[9], "trade_owner_strategy_id": replay[10],
+                            "selection_status": replay[11], "cost_coverage_status": replay[12]}
             receipt = {"session_id": session["session_id"], "proposal_id": proposal["proposal_id"], "snapshot_id": proposal["snapshot_id"], "multi_timeframe_context_id": None}
-            return {"ok": True, "postgres_audit": {**receipt, "execution_attempt_id": None, "already_persisted": True, "record_sha256": _digest({**receipt, "execution_attempt_id": None})}}
+            return {"ok": True, "postgres_audit": {**receipt, "execution_attempt_id": None, "already_persisted": True, "replay_facts": replay_facts, "record_sha256": _digest({**receipt, "execution_attempt_id": None})}}
         cursor.execute(
             "INSERT INTO forex.demo_decision_snapshot (snapshot_id,proposal_id,observed_at_utc,captured_at_utc,bid,ask,spread_points,m1_closed_bars,m5_closed_bars,news_context,freshness_seconds,payload_sha256) VALUES (%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,%s,%s)",
             (snapshot["snapshot_id"], proposal["proposal_id"], snapshot["observed_at_utc"], snapshot["captured_at_utc"], snapshot["bid"], snapshot["ask"], snapshot["spread_points"], json.dumps(snapshot["m1_closed_bars"]), json.dumps(snapshot["m5_closed_bars"]), json.dumps({"calendar_overlay": snapshot["calendar_overlay"]} if "calendar_overlay" in snapshot else {}), snapshot["freshness_seconds"], snapshot["payload_sha256"]),
@@ -330,6 +342,7 @@ def reserve_execution(payload: dict[str, Any]) -> dict[str, Any]:
     caps, idempotency, and both database and observed broker position limits.
     """
     session, proposal = _session(payload), _proposal(payload)
+    revision, fingerprint = _metadata(payload)
     _snapshot(payload, proposal)
     selection = _strategy_selection(payload, proposal)
     _strategy_assessments(payload)
@@ -355,7 +368,7 @@ def reserve_execution(payload: dict[str, Any]) -> dict[str, Any]:
         row = cursor.fetchone()
         if row is None or row[0] != "ACTIVE" or row[1] is not True or tuple(row[2:]) != (session["max_trades"], session["max_notional_per_trade_usd"], session["max_cumulative_notional_usd"], 1):
             raise SystemExit("M20 session is inactive or differs from fixed limits")
-        cursor.execute("SELECT 1 FROM forex.demo_trade_proposal p JOIN forex.demo_decision_snapshot s ON s.proposal_id=p.proposal_id JOIN forex.demo_strategy_selection selection ON selection.proposal_id=p.proposal_id WHERE p.proposal_id=%s AND p.session_id=%s AND p.action IN ('BUY','SELL') AND p.expires_at_utc >= now() AND selection.selection_status='SELECTED_EXECUTABLE' AND selection.selected_strategy_id IN ('momentum_breakout','compression_breakout','trend_pullback','range_reversion','session_breakout') AND selection.trade_owner_strategy_id=selection.selected_strategy_id AND selection.cost_coverage_status='FEASIBLE' FOR UPDATE", (proposal["proposal_id"], session["session_id"]))
+        cursor.execute("SELECT 1 FROM forex.demo_trade_proposal p JOIN forex.demo_decision_snapshot s ON s.proposal_id=p.proposal_id JOIN forex.demo_strategy_selection selection ON selection.proposal_id=p.proposal_id WHERE p.proposal_id=%s AND p.session_id=%s AND p.action=%s AND p.proposed_entry=%s AND p.stop_loss=%s AND p.take_profit=%s AND p.notional_usd=%s AND p.decision_snapshot_sha256=%s AND p.strategy_version=%s AND p.application_revision=%s AND p.configuration_fingerprint=%s AND p.expires_at_utc >= now() AND selection.selection_status=%s AND selection.selected_strategy_id=%s AND selection.trade_owner_strategy_id=%s AND selection.cost_coverage_status=%s AND selection.selection_status='SELECTED_EXECUTABLE' AND selection.selected_strategy_id IN ('momentum_breakout','compression_breakout','trend_pullback','range_reversion','session_breakout') AND selection.trade_owner_strategy_id=selection.selected_strategy_id AND selection.cost_coverage_status='FEASIBLE' FOR UPDATE", (proposal["proposal_id"], session["session_id"], proposal["action"], proposal["proposed_entry"], proposal["stop_loss"], proposal["take_profit"], proposal["notional_usd"], proposal["decision_snapshot_sha256"], proposal["strategy_version"], revision, fingerprint, selection["selection_status"], selection["selected_strategy_id"], selection["trade_owner_strategy_id"], selection["cost_coverage_status"]))
         if cursor.fetchone() is None:
             raise SystemExit("M20 proposal is absent, unpersisted, expired, or non-actionable")
         cursor.execute("SELECT count(*) FROM forex.demo_execution_attempt WHERE session_id=%s", (session["session_id"],))

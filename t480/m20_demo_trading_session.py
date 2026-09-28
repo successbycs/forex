@@ -2682,11 +2682,35 @@ def _capture(terminal_path: str, session_path: Path, trigger_tick_time_msc: int 
                     "rationale": proposal.get("rationale")}, proposal=proposal, snapshot=snapshot)
         if persisted["postgres_audit"].get("already_persisted"):
             reconciliation = _bridge({"proposal_id": proposal["proposal_id"]}, "reconcile")["reconciliation"]
-            _trace_emit(trace, "EXECUTION_RESULT", {"execution_status": "ALREADY_PERSISTED_NO_RESUBMISSION"},
-                        proposal=proposal, snapshot=snapshot)
-            _trace_emit(trace, "RECONCILIATION_RESULT", {"reconciliation_status": reconciliation.get("status"),
-                        "reconciliation_reason": reconciliation.get("reason")}, proposal=proposal, snapshot=snapshot)
-            return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "risk_policy": risk_gate, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments, "multi_timeframe_context": multi_timeframe_context, "execution": {"status": "ALREADY_PERSISTED_NO_RESUBMISSION", "proposal_id": proposal["proposal_id"]}, "reconciliation": reconciliation, "postgres_audit": persisted["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
+            if not isinstance(reconciliation, dict):
+                raise SystemExit("M20 persisted proposal reconciliation is invalid")
+            # A durable attempt is the duplicate boundary.  A proposal record
+            # alone is not: the listener can stop after persistence but before
+            # `reserve-execution`, which previously left a fresh BUY/SELL in a
+            # permanent no-submission state.  A still-valid unattempted
+            # proposal falls through to the existing reservation and final
+            # MT5 freshness/capability checks below.  Expired proposals remain
+            # non-submittable; no delayed order is ever created.
+            has_attempt = reconciliation.get("execution_attempt_id") is not None
+            expired = parse_utc(proposal["expires_at_utc"], "proposal expires_at_utc") <= datetime.now(timezone.utc)
+            if proposal["action"] == "NO_TRADE" or has_attempt:
+                _trace_emit(trace, "EXECUTION_RESULT", {"execution_status": "ALREADY_PERSISTED_NO_RESUBMISSION"},
+                            proposal=proposal, snapshot=snapshot)
+                _trace_emit(trace, "RECONCILIATION_RESULT", {"reconciliation_status": reconciliation.get("status"),
+                            "reconciliation_reason": reconciliation.get("reason")}, proposal=proposal, snapshot=snapshot)
+                return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "risk_policy": risk_gate, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments, "multi_timeframe_context": multi_timeframe_context, "execution": {"status": "ALREADY_PERSISTED_NO_RESUBMISSION", "proposal_id": proposal["proposal_id"]}, "reconciliation": reconciliation, "postgres_audit": persisted["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
+            if expired:
+                _trace_emit(trace, "EXECUTION_RESULT", {"execution_status": "EXPIRED_UNATTEMPTED_NO_RESUBMISSION"},
+                            proposal=proposal, snapshot=snapshot)
+                _trace_emit(trace, "RECONCILIATION_RESULT", {"reconciliation_status": reconciliation.get("status"),
+                            "reconciliation_reason": reconciliation.get("reason")}, proposal=proposal, snapshot=snapshot)
+                return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "risk_policy": risk_gate, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments, "multi_timeframe_context": multi_timeframe_context, "execution": {"status": "EXPIRED_UNATTEMPTED_NO_RESUBMISSION", "proposal_id": proposal["proposal_id"]}, "reconciliation": reconciliation, "postgres_audit": persisted["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
+            replay = persisted["postgres_audit"].get("replay_facts")
+            expected = {"action": proposal["action"], "proposed_entry": proposal["proposed_entry"], "stop_loss": proposal["stop_loss"], "take_profit": proposal["take_profit"], "notional_usd": proposal["notional_usd"], "decision_snapshot_sha256": proposal["decision_snapshot_sha256"], "strategy_version": proposal["strategy_version"], "application_revision": revision, "configuration_fingerprint": fingerprint, "selected_strategy_id": strategy_selection["selected_strategy_id"], "trade_owner_strategy_id": strategy_selection["trade_owner_strategy_id"], "selection_status": strategy_selection["selection_status"], "cost_coverage_status": strategy_selection["cost_coverage_status"]}
+            if not isinstance(replay, dict) or any(replay.get(key) != value for key, value in expected.items()):
+                _trace_emit(trace, "EXECUTION_RESULT", {"execution_status": "REPLAY_FACT_MISMATCH_NO_RESUBMISSION"}, proposal=proposal, snapshot=snapshot)
+                _trace_emit(trace, "RECONCILIATION_RESULT", {"reconciliation_status": reconciliation.get("status"), "reconciliation_reason": reconciliation.get("reason")}, proposal=proposal, snapshot=snapshot)
+                return {"marker": "FOREX_M20_DEMO_TRADING_OPERATION_OK", "schema_version": "forex.m20.demo-trading-operation.v1", "operation": "m20_demo_trading_session", "server": account.server, "symbol": SYMBOL, "captured_at_utc": utc(captured_at), "configuration_fingerprint": fingerprint, "tick_timestamp_offset_seconds": offset_seconds, "session": session, "risk_policy": risk_gate, "decision_snapshot": snapshot, "proposal": proposal, "strategy_selection": strategy_selection, "strategy_assessments": strategy_assessments, "multi_timeframe_context": multi_timeframe_context, "execution": {"status": "REPLAY_FACT_MISMATCH_NO_RESUBMISSION", "proposal_id": proposal["proposal_id"]}, "reconciliation": reconciliation, "postgres_audit": persisted["postgres_audit"], "probe_sha256": os.environ.get("FOREX_M20_DEMO_TRADING_SESSION_SHA256", "UNDECLARED")}
         if proposal["action"] != "NO_TRADE":
             # The reservation is the execution boundary. Re-checking here
             # prevents an account mismatch from claiming a slot or order.
