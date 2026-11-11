@@ -87,3 +87,16 @@ python3 scripts/check_execution_continuation.py --work-plan <active-work-json>
 
 Before an execution handoff, follow `PLANS.md` and use the current task's work
 record for the continuation check; its default is A1, not a task selector.
+
+## Reconcile linked issues after delivery
+
+Within this repository’s existing authority and workflow rules, link each PR to its
+scoped issue. Use a closing keyword only when merging satisfies all remaining
+acceptance and approval requirements; otherwise use a non-closing reference.
+After merge, and again after any required deployment, live proof or human review,
+check the actual issue state and record links to evidence. Close it only when its
+retained acceptance is met and this repository permits closure. Otherwise keep it
+open with the next action, dependency and accurate implemented, merged, deployed
+or proven status. If an issue closed before required proof, reopen it when permitted
+and explain what remains. Do not silently move version scope. This is a builder
+workflow rule, not an automated GitHub gate.
